@@ -364,22 +364,18 @@ impl Library {
 
 /// Intestazione del gruppo per giorno: "Oggi", "Ieri", "18 ottobre 2026".
 pub fn day_label(created: Option<NaiveDateTime>) -> String {
-    const MESI: [&str; 12] = [
-        "gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto",
-        "settembre", "ottobre", "novembre", "dicembre",
-    ];
-    use chrono::Datelike;
-    let Some(t) = created else {
-        return "Senza data".into();
+    use crate::i18n::t;
+    let Some(t0) = created else {
+        return t("Senza data").into();
     };
     let today = Local::now().date_naive();
-    let d = t.date();
+    let d = t0.date();
     if d == today {
-        "Oggi".into()
+        t("Oggi").into()
     } else if Some(d) == today.pred_opt() {
-        "Ieri".into()
+        t("Ieri").into()
     } else {
-        format!("{} {} {}", d.day(), MESI[d.month0() as usize], d.year())
+        crate::i18n::date_long(d)
     }
 }
 

@@ -24,6 +24,7 @@ Per-file attributions are in [NOTICE](NOTICE).
 |---|---|---|---|
 | [Inter](https://github.com/rsms/inter) | Rasmus Andersson and The Inter Project Authors | SIL OFL 1.1 | `assets/fonts/Inter-*.ttf` (subset: Private Use Area removed) |
 | [Source Serif 4](https://github.com/adobe-fonts/source-serif) | Frank Grießhammer, Adobe | SIL OFL 1.1 | `assets/fonts/SourceSerif4-*.ttf` |
+| [Noto Sans CJK](https://github.com/notofonts/noto-cjk) | Google, Adobe | SIL OFL 1.1 | `assets/fonts/NotoSansCJK-langnames.otf` (subset: only the glyphs of «中文日本語한국어» for the language menu) |
 | [Phosphor Icons](https://phosphoricons.com) | Helena Zhang, Tobias Fried | MIT | via the `egui-phosphor` crate |
 | [KaTeX](https://katex.org) | Khan Academy and contributors | MIT | `src/web/vendor/katex*` (formulas) |
 | [marked](https://marked.js.org) | Christopher Jeffrey and the marked contributors | MIT | `src/web/vendor/marked.min.js` (Markdown) |
@@ -31,6 +32,7 @@ Per-file attributions are in [NOTICE](NOTICE).
 ## Platform components used at run time (not bundled)
 
 - **macOS**: CoreBluetooth, WKWebView, PDFKit and Vision (through small Swift helpers in `src/swift/`), Keychain.
+- **All systems**: the system's Chinese/Japanese/Korean font (PingFang, Hiragino, Apple SD Gothic Neo, Microsoft YaHei, Yu Gothic, Malgun Gothic, Noto Sans CJK…) when the interface is in one of those languages.
 - **Linux**: BlueZ (via D-Bus), GTK 3, WebKitGTK; optionally LibreOffice and Poppler (`pdftoppm`).
 - **Windows**: WinRT Bluetooth, WebView2.
 
@@ -92,8 +94,8 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [atspi-proxies](https://github.com/odilia-app/atspi) | 0.13.0 | Apache-2.0 OR MIT | — |
 | [autocfg](https://github.com/cuviper/autocfg) | 1.5.1 | Apache-2.0 OR MIT | Josh Stone |
 | [base64](https://github.com/marshallpierce/rust-base64) | 0.22.1 | MIT OR Apache-2.0 | Marshall Pierce |
-| [bit-set](https://github.com/contain-rs/bit-set) | 0.10.0 | Apache-2.0 OR MIT | Alexis Beingessner |
 | [bit-set](https://github.com/contain-rs/bit-set) | 0.8.0 | Apache-2.0 OR MIT | Alexis Beingessner |
+| [bit-set](https://github.com/contain-rs/bit-set) | 0.10.0 | Apache-2.0 OR MIT | Alexis Beingessner |
 | [bit-vec](https://github.com/contain-rs/bit-vec) | 0.8.0 | Apache-2.0 OR MIT | Alexis Beingessner |
 | [bit-vec](https://github.com/contain-rs/bit-vec) | 0.9.1 | Apache-2.0 OR MIT | Alexis Beingessner |
 | [bitflags](https://github.com/bitflags/bitflags) | 1.3.2 | MIT/Apache-2.0 | The Rust Project Developers |
@@ -147,8 +149,8 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [concurrent-queue](https://github.com/smol-rs/concurrent-queue) | 2.5.0 | Apache-2.0 OR MIT | Stjepan Glavina, Taiki Endo, John Nunley |
 | [const-oid](https://github.com/RustCrypto/formats) | 0.10.2 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [cookie](https://github.com/SergioBenitez/cookie-rs) | 0.18.2 | MIT OR Apache-2.0 | Sergio Benitez, Alex Crichton |
-| [core-foundation](https://github.com/servo/core-foundation-rs) | 0.10.1 | MIT OR Apache-2.0 | The Servo Project Developers |
 | [core-foundation](https://github.com/servo/core-foundation-rs) | 0.9.4 | MIT OR Apache-2.0 | The Servo Project Developers |
+| [core-foundation](https://github.com/servo/core-foundation-rs) | 0.10.1 | MIT OR Apache-2.0 | The Servo Project Developers |
 | [core-foundation-sys](https://github.com/servo/core-foundation-rs) | 0.8.7 | MIT OR Apache-2.0 | The Servo Project Developers |
 | [core-graphics](https://github.com/servo/core-foundation-rs) | 0.23.2 | MIT OR Apache-2.0 | The Servo Project Developers |
 | [core-graphics](https://github.com/servo/core-foundation-rs) | 0.25.0 | MIT OR Apache-2.0 | The Servo Project Developers |
@@ -345,8 +347,8 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [libm](https://github.com/rust-lang/compiler-builtins) | 0.2.16 | MIT | Alex Crichton, Amanieu d'Antras, Jorge Aparicio, Trevor Gross |
 | [libredox](https://gitlab.redox-os.org/redox-os/libredox.git) | 0.1.25 | MIT | 4lDO2 |
 | [linebender_resource_handle](https://github.com/linebender/raw_resource_handle) | 0.1.1 | Apache-2.0 OR MIT | — |
-| [linux-raw-sys](https://github.com/sunfishcode/linux-raw-sys) | 0.12.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | Dan Gohman |
 | [linux-raw-sys](https://github.com/sunfishcode/linux-raw-sys) | 0.4.15 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | Dan Gohman |
+| [linux-raw-sys](https://github.com/sunfishcode/linux-raw-sys) | 0.12.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | Dan Gohman |
 | [litemap](https://github.com/unicode-org/icu4x) | 0.8.3 | Unicode-3.0 | The ICU4X Project Developers |
 | [litrs](https://github.com/LukasKalbertodt/litrs) | 1.0.1 | MIT OR Apache-2.0 | Lukas Kalbertodt |
 | [lock_api](https://github.com/Amanieu/parking_lot) | 0.4.14 | MIT OR Apache-2.0 | Amanieu d'Antras |
@@ -564,6 +566,7 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [syn](https://github.com/dtolnay/syn) | 2.0.119 | MIT OR Apache-2.0 | David Tolnay |
 | [syn](https://github.com/dtolnay/syn) | 3.0.9 | MIT OR Apache-2.0 | David Tolnay |
 | [synstructure](https://github.com/mystor/synstructure) | 0.14.0 | MIT | Nika Layzell |
+| [sys-locale](https://github.com/1Password/sys-locale) | 0.3.2 | MIT OR Apache-2.0 | 1Password |
 | [system-deps](https://github.com/gdesmott/system-deps) | 6.2.2 | MIT OR Apache-2.0 | Guillaume Desmottes, Josh Triplett |
 | [tao](https://github.com/tauri-apps/tao) | 0.37.1 | Apache-2.0 | Tauri Programme within The Commons Conservancy, The winit contributors |
 | [tao-macros](https://github.com/tauri-apps/tao) | 0.1.4 | MIT OR Apache-2.0 | Tauri Programme within The Commons Conservancy |

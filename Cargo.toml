@@ -26,6 +26,9 @@ eframe = "0.36"
 # Icone per i pulsanti (font Phosphor)
 egui-phosphor = "0.14"
 
+# Lingua del sistema (interfaccia multilingua)
+sys-locale = "0.3"
+
 # CLI + utility
 clap = { version = "4", features = ["derive"] }
 anyhow = "1"

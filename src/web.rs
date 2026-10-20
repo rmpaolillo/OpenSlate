@@ -28,6 +28,7 @@ const APPUNTI_HTML: &str = include_str!("web/appunti.html");
 const SETTINGS_HTML: &str = include_str!("web/impostazioni.html");
 /// Colori, caratteri e controlli in stile WordCraft, comuni alle pagine.
 const WC_CSS: &str = include_str!("web/wc.css");
+const I18N_JS: &str = include_str!("web/i18n.js");
 /// Richiesta di andare a una pagina, letta dalla finestra dell'app già aperta
 /// (così «Chat AI» non apre una finestra nuova ogni volta).
 static NAV: std::sync::Mutex<(u64, String)> = std::sync::Mutex::new((0, String::new()));
@@ -215,6 +216,15 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
         }
         "/events" => events(sock, hub).await,
         "/wc.css" => respond(&mut sock, "200 OK", "text/css; charset=utf-8", WC_CSS.as_bytes()).await,
+        // lingua dell'interfaccia per le pagine: tabella + traduttore
+        "/i18n.js" => {
+            let js = format!(
+                "window.I18N_LANG={:?};window.I18N={};\n{I18N_JS}",
+                crate::i18n::lang().code(),
+                crate::i18n::table_json()
+            );
+            respond(&mut sock, "200 OK", "text/javascript; charset=utf-8", js.as_bytes()).await
+        }
         "/chat" | "/chat.html" => {
             respond(&mut sock, "200 OK", "text/html; charset=utf-8", CHAT_HTML.as_bytes()).await
         }
@@ -537,17 +547,19 @@ async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
                 Event::Trying { provider, model, context } => serde_json::json!({ "t": "try", "provider": provider, "model": model, "context": context }),
                 Event::Usage { used, max, exact, output } => serde_json::json!({ "t": "usage", "used": used, "max": max, "exact": exact, "output": output }),
                 Event::Thinking(d) => serde_json::json!({ "t": "think", "text": d }),
-                Event::Skipped { provider, why } => serde_json::json!({ "t": "skip", "provider": provider, "why": why }),
+                // i testi dell'app (non quelli del modello) nella lingua dell'interfaccia
+                Event::Skipped { provider, why } => serde_json::json!({ "t": "skip", "provider": provider, "why": crate::i18n::tf(why) }),
                 Event::Delta(d) => serde_json::json!({ "t": "delta", "text": d }),
-                Event::Tool { label } => serde_json::json!({ "t": "tool", "label": label }),
-                Event::ToolDone { label, result } => serde_json::json!({ "t": "tooldone", "label": label, "result": result }),
+                // `key` = il testo italiano, per riconoscere lo strumento nella pagina
+                Event::Tool { label } => serde_json::json!({ "t": "tool", "key": label.clone(), "label": crate::i18n::tf(label) }),
+                Event::ToolDone { label, result } => serde_json::json!({ "t": "tooldone", "key": label.clone(), "label": crate::i18n::tf(label), "result": crate::i18n::tf(result) }),
             };
             // false = il browser ha chiuso: si interrompe
             tx.send(j).is_ok()
         });
         let _ = tx.send(match res {
             Ok(r) => serde_json::json!({ "t": "done", "provider": r.provider, "model": r.model }),
-            Err(e) => serde_json::json!({ "t": "error", "msg": e.to_string() }),
+            Err(e) => serde_json::json!({ "t": "error", "msg": crate::i18n::tf(e.to_string()) }),
         });
     });
     let mut ping = tokio::time::interval(Duration::from_secs(15));

@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="it">
 <head>
+<script src="i18n.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Appunti — OpenSlate</title>
@@ -169,7 +170,7 @@ function drawBlocks(flashFrom) {
   box.innerHTML = "";
   if (!cur) { box.innerHTML = "<div id='empty'>Nessun appunto aperto.<br>Le trascrizioni («Trascrivi») e le chat salvate finiscono qui.</div>"; return; }
   if (!blocks.length) {
-    const d = document.createElement("div"); d.className = "blk"; d.innerHTML = "<p class='ph'>Appunto vuoto: clic per scrivere (Markdown e formule $…$)</p>";
+    const d = document.createElement("div"); d.className = "blk"; d.innerHTML = "<p class='ph'>" + T("Appunto vuoto: clic per scrivere (Markdown e formule $…$)") + "</p>";
     d.onclick = () => editBlock(0, true); box.appendChild(d); return;
   }
   blocks.forEach((b, i) => {
@@ -286,7 +287,7 @@ async function open(name, keepScroll) {
   cur = name; saved = t; blocks = splitBlocks(t); editing = -1;
   $("srcmode").value = t;
   $("name").textContent = name;
-  document.title = name + " — Appunti";
+  document.title = name + " — " + T("Appunti");
   history.replaceState(null, "", "?" + new URLSearchParams({ ...Object.fromEntries(params), f: name }).toString());
   drawBlocks();
   if (!keepScroll) $("scroll").scrollTop = 0;
@@ -323,8 +324,8 @@ $("keep").onclick = () => { external = null; $("banner").style.display = "none";
 // --- elenco degli appunti ---
 function when(t) {
   const d = new Date(t * 1000), now = new Date();
-  const hm = d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
-  return d.toDateString() === now.toDateString() ? "oggi " + hm : d.toLocaleDateString("it-IT", { day: "2-digit", month: "short" }) + " " + hm;
+  const hm = d.toLocaleTimeString(I18N_DATE, { hour: "2-digit", minute: "2-digit" });
+  return d.toDateString() === now.toDateString() ? T("oggi {}", hm) : d.toLocaleDateString(I18N_DATE, { day: "2-digit", month: "short" }) + " " + hm;
 }
 function drawList() {
   const f = $("q").value.trim().toLowerCase();

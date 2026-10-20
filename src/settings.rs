@@ -40,6 +40,9 @@ pub struct Settings {
     pub copy_crop: bool,
     /// Ultima cartella scelta per salvare ed esportare (vuoto = `exports/`).
     pub save_dir: String,
+    /// Lingua dell'interfaccia: `auto` (quella del sistema) o un codice
+    /// (it, en, es, fr, de, uk, zh, ja, ko).
+    pub ui_lang: String,
     /// «Copia immagine»: pixel del lato lungo.
     pub copy_size: u32,
     /// Archivio: altezza delle anteprime (punti).
@@ -81,6 +84,7 @@ impl Default for Settings {
             sync_delete: true,
             copy_crop: true,
             save_dir: String::new(),
+            ui_lang: "auto".into(),
             copy_size: 1600,
             thumb_size: 330.0,
             hook: String::new(),
@@ -156,6 +160,7 @@ impl Settings {
             "sync_delete" => self.sync_delete = b(v),
             "copy_crop" => self.copy_crop = b(v),
             "save_dir" => self.save_dir = v.trim().into(),
+            "ui_lang" => self.ui_lang = v.trim().into(),
             "thumb_size" => self.thumb_size = v.parse().unwrap_or(self.thumb_size),
             "copy_size" => self.copy_size = v.parse().unwrap_or(self.copy_size).clamp(256, 8000),
             "hook" => self.hook = v.into(),
@@ -189,7 +194,8 @@ impl Settings {
              # aspetto: tema (sistema, chiaro, scuro) e righelli\nui_theme = {}\nrulers = {}\n\
              # chat AI: lato (sinistra, destra) e larghezza (frazione della finestra)\nchat_side = {}\nchat_width = {:.2}\n\
              # rigatura del foglio: bianco, righe, righe10, quadretti5, quadretti4, quadretti10; margini rossi (solo righe)\npaper = {}\npaper_margin = {}\n\
-             # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n",
+             # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
+             # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n",
             self.rot,
             b(self.flip_x),
             b(self.flip_y),
@@ -216,6 +222,7 @@ impl Settings {
             self.paper,
             b(self.paper_margin),
             self.save_dir,
+            self.ui_lang,
         );
         if let Err(e) = std::fs::write(FILE, text) {
             tracing::warn!("salvataggio {FILE}: {e}");

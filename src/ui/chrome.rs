@@ -6,6 +6,7 @@
 //! `ribbon.rs`, `canvas.rs` di https://github.com/storytold/wordcraft,
 //! MIT OR Apache-2.0, © ArtCraft Team e contributori di WordCraft).
 
+use crate::i18n;
 use super::backstage::BsPage;
 use super::doc_view::DocAction;
 use super::theme::{icon, medium, regular, semibold, Tokens};
@@ -69,7 +70,7 @@ fn cmd_key(k: &str) -> String {
 
 /// Una voce di menu a comparsa (icona, testo, scorciatoia).
 pub(super) fn menu_item(ui: &mut egui::Ui, enabled: bool, glyph: &str, text: &str, keys: &str) -> bool {
-    let b = egui::Button::new(format!("{glyph}  {text}")).shortcut_text(keys);
+    let b = egui::Button::new(i18n::tf(format!("{glyph}  {}", crate::i18n::tr(text)))).shortcut_text(keys);
     let clicked = ui.add_enabled(enabled, b).clicked();
     if clicked {
         ui.close();
@@ -94,7 +95,7 @@ fn fit_text(text: &str, room: f32, width: impl Fn(&str) -> f32) -> String {
 }
 
 fn text_w(ui: &egui::Ui, s: &str, font: egui::FontId) -> f32 {
-    ui.painter().layout_no_wrap(s.to_string(), font, Color32::WHITE).size().x
+    ui.painter().layout_no_wrap(i18n::tr(s).into_owned(), font, Color32::WHITE).size().x
 }
 
 impl App {
@@ -135,14 +136,14 @@ impl App {
             p.circle_filled(c, 2.4, t.ribbon);
         }
         p.circle_stroke(c, 6.0, Stroke::new(1.0, Color32::from_black_alpha(70)));
-        p.text(pos2(r.min.x + 24.0, r.center().y), Align2::LEFT_CENTER, &text, medium(11.5), t.text);
+        p.text(pos2(r.min.x + 24.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&&text).into_owned(), medium(11.5), t.text);
         resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &text));
         // il pad ha un posto solo: questo menu
-        let resp = resp.on_hover_text(tip);
+        let resp = resp.on_hover_text(i18n::tr(&tip).into_owned());
         egui::Popup::menu(&resp).show(|ui| {
             ui.set_min_width(250.0);
             let dim = |ui: &mut egui::Ui, s: String| {
-                ui.label(egui::RichText::new(s).weak());
+                ui.label(egui::RichText::new(i18n::tr(&s).into_owned()).weak());
             };
             match (&self.info, self.link) {
                 (Some(i), Link::On) => {
@@ -186,7 +187,7 @@ impl App {
             (_, _, Some(d)) => d.title.clone(),
             _ => "Lavagna".to_string(),
         };
-        format!("{what} — OpenSlate")
+        format!("{} — OpenSlate", i18n::tr(&what))
     }
 
     /// Barra del titolo: accesso rapido, titolo, ricerca, spia dello Slate.
@@ -222,7 +223,7 @@ impl App {
                         ui.add_space(6.0);
                     }
                     let save_tip = if self.docui.doc.is_some() { "Salva il documento firmato" } else { "Salva la lavagna nell'archivio" };
-                    if icon_button(ui, ic::FLOPPY_DISK, &format!("{save_tip} ({})", cmd_key("S")), vec2(26.0, control_h), true).clicked() {
+                    if icon_button(ui, ic::FLOPPY_DISK, &format!("{} ({})", i18n::t(save_tip), cmd_key("S")), vec2(26.0, control_h), true).clicked() {
                         actions.push(if self.docui.doc.is_some() { Action::Doc(DocAction::SaveSigned) } else { Action::SaveBoard });
                     }
                     if icon_button(ui, ic::ARROW_U_UP_LEFT, &format!("Annulla ({})", cmd_key("Z")), vec2(26.0, control_h), can_undo).clicked() {
@@ -241,7 +242,9 @@ impl App {
                         }
                         ui.add_space(4.0);
                         // la chat AI a destra (come Copilot in Word)
-                        let (r, resp) = ui.allocate_exact_size(vec2(control_h + 52.0, control_h), Sense::click());
+                        // larga quanto la scritta nella lingua scelta
+                        let label_w = ui.fonts_mut(|f| f.layout_no_wrap(i18n::t("Chat AI").to_string(), medium(11.5), t.text).size().x);
+                        let (r, resp) = ui.allocate_exact_size(vec2((label_w + 37.0).max(control_h + 52.0), control_h), Sense::click());
                         let on = self.chat_open;
                         ui.painter().rect(
                             r,
@@ -251,9 +254,9 @@ impl App {
                             egui::StrokeKind::Inside,
                         );
                         ui.painter().text(pos2(r.min.x + 14.0, r.center().y), Align2::CENTER_CENTER, ic::SPARKLE, icon(14.0), t.accent_text);
-                        ui.painter().text(pos2(r.min.x + 25.0, r.center().y), Align2::LEFT_CENTER, "Chat AI", medium(11.5), if on { t.accent_text } else { t.text });
+                        ui.painter().text(pos2(r.min.x + 25.0, r.center().y), Align2::LEFT_CENTER, i18n::t("Chat AI"), medium(11.5), if on { t.accent_text } else { t.text });
                         resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, on, "Chat AI"));
-                        if resp.on_hover_text("Mostra/nasconde la chat AI a destra").clicked() {
+                        if resp.on_hover_text(i18n::t("Mostra/nasconde la chat AI a destra")).clicked() {
                             actions.push(Action::Chat);
                         }
                         ui.add_space(8.0);
@@ -263,9 +266,9 @@ impl App {
                         ui.painter().rect(r, 6.0, if resp.hovered() { t.input } else { t.ribbon }, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
                         ui.painter().text(pos2(r.min.x + 15.0, r.center().y), Align2::CENTER_CENTER, ic::MAGNIFYING_GLASS, icon(14.0), t.text_dim);
                         let clip = ui.painter().with_clip_rect(r.shrink(2.0));
-                        clip.text(pos2(r.min.x + 28.0, r.center().y), Align2::LEFT_CENTER, "Cerca comandi", regular(11.5), t.text_dim);
+                        clip.text(pos2(r.min.x + 28.0, r.center().y), Align2::LEFT_CENTER, i18n::t("Cerca comandi"), regular(11.5), t.text_dim);
                         resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, "Cerca comandi"));
-                        if resp.on_hover_text(format!("Cerca un comando ({})", cmd_key("F"))).clicked() {
+                        if resp.on_hover_text(i18n::tf(format!("Cerca un comando ({})", cmd_key("F")))).clicked() {
                             actions.push(Action::Palette);
                         }
                         self.palette_anchor = r;
@@ -279,7 +282,7 @@ impl App {
                 let room = 2.0 * (cx - qat_end - 12.0).min(right_start - 12.0 - cx);
                 let shown = fit_text(&title, room, |s| text_w(ui, s, font.clone()));
                 if !shown.is_empty() {
-                    ui.painter().text(pos2(cx, full.center().y), Align2::CENTER_CENTER, shown, font, t.text);
+                    ui.painter().text(pos2(cx, full.center().y), Align2::CENTER_CENTER, i18n::tr(&shown).into_owned(), font, t.text);
                 }
             });
         r.response.rect.height()
@@ -294,7 +297,7 @@ impl App {
             ui.painter().rect_filled(r.shrink2(vec2(0.0, 4.0)), 4.0, t.hover);
         }
         let color = if active || special { t.accent_text } else { t.text };
-        ui.painter().text(r.center(), Align2::CENTER_CENTER, label, if active { semibold(12.5) } else { medium(12.5) }, color);
+        ui.painter().text(r.center(), Align2::CENTER_CENTER, i18n::tr(&label).into_owned(), if active { semibold(12.5) } else { medium(12.5) }, color);
         if active {
             let u = Rect::from_center_size(pos2(r.center().x, r.max.y - 2.0), vec2(w - 16.0, 3.0));
             ui.painter().rect_filled(u, 2.0, t.accent);
@@ -313,7 +316,7 @@ impl App {
             .show(root, |ui| {
                 ui.horizontal_centered(|ui| {
                     ui.spacing_mut().item_spacing = vec2(2.0, 0.0);
-                    let file = Self::tab_button(ui, "File", false, true).on_hover_text("Nuovo, Apri, Salva, Esporta, Opzioni…");
+                    let file = Self::tab_button(ui, "File", false, true).on_hover_text(i18n::t("Nuovo, Apri, Salva, Esporta, Opzioni…"));
                     if file.clicked() {
                         actions.push(Action::Backstage(Some(BsPage::Home)));
                     }
@@ -371,8 +374,8 @@ impl App {
                 t.ribbon
             };
             ui.painter().rect(r, rounding, fill, Stroke::new(1.0, if on { t.accent.linear_multiply(0.6) } else { t.border_strong }), egui::StrokeKind::Inside);
-            ui.painter().text(r.center(), Align2::CENTER_CENTER, &label, medium(11.5), if on { t.accent_text } else { t.text });
-            if resp.on_hover_text(tip).clicked() && !on {
+            ui.painter().text(r.center(), Align2::CENTER_CENTER, i18n::tr(&&label).into_owned(), medium(11.5), if on { t.accent_text } else { t.text });
+            if resp.on_hover_text(i18n::tr(&tip).into_owned()).clicked() && !on {
                 actions.push(Action::SetMode(m));
             }
         }
@@ -386,9 +389,9 @@ impl App {
         let (r, resp) = ui.allocate_exact_size(vec2(w.max(74.0), 24.0), Sense::click());
         ui.painter().rect_filled(r, 4.0, if resp.hovered() { t.accent_text } else { t.accent });
         ui.painter().text(pos2(r.min.x + 15.0, r.center().y), Align2::CENTER_CENTER, ic::SHARE_NETWORK, icon(14.0), t.on_accent);
-        ui.painter().text(pos2(r.min.x + 27.0, r.center().y), Align2::LEFT_CENTER, label, medium(12.0), t.on_accent);
+        ui.painter().text(pos2(r.min.x + 27.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&label).into_owned(), medium(12.0), t.on_accent);
         resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
-        let resp = resp.on_hover_text("Diretta web per TV e telefono, copia come immagine, esporta in PDF / PNG / SVG");
+        let resp = resp.on_hover_text(i18n::t("Diretta web per TV e telefono, copia come immagine, esporta in PDF / PNG / SVG"));
         egui::Popup::menu(&resp).show(|ui| {
             ui.set_min_width(260.0);
             match &self.web_url {
@@ -398,7 +401,7 @@ impl App {
                     }
                 }
                 Some(u) => {
-                    ui.label(egui::RichText::new(format!("{} {u}", ic::BROADCAST)).weak());
+                    ui.label(egui::RichText::new(i18n::tf(format!("{} {u}", ic::BROADCAST))).weak());
                     if menu_item(ui, true, ic::LINK, "Copia il link della diretta", "") {
                         actions.push(Action::CopyWebUrl);
                     }
@@ -479,7 +482,7 @@ impl App {
                 ui.horizontal_centered(|ui| {
                     ui.spacing_mut().item_spacing = vec2(14.0, 0.0);
                     let st = |ui: &mut egui::Ui, s: &str, color: Color32| {
-                        ui.label(egui::RichText::new(s).font(regular(11.0)).color(color));
+                        ui.label(egui::RichText::new(i18n::tr(&s).into_owned()).font(regular(11.0)).color(color));
                     };
                     match self.mode {
                         Mode::Board if self.center != super::workspace::Center::Board => {
@@ -520,7 +523,7 @@ impl App {
                                 st(ui, &format!("{} selezionate", self.lui.selected.len()), t.text_dim);
                             }
                             if !self.lui.last_trashed.is_empty()
-                                && ui.small_button(format!("{} Ripristina", ic::ARROW_COUNTER_CLOCKWISE)).clicked()
+                                && ui.small_button(i18n::tf(format!("{} Ripristina", ic::ARROW_COUNTER_CLOCKWISE))).clicked()
                             {
                                 actions.push(Action::Lib(library_view::LibAction::Restore));
                             }
@@ -544,8 +547,8 @@ impl App {
                             let label = zv.label();
                             let w = text_w(ui, "0000%", regular(11.0));
                             let (r, resp) = ui.allocate_exact_size(vec2(w, 18.0), Sense::click());
-                            ui.painter().text(r.right_center(), Align2::RIGHT_CENTER, label, regular(11.0), t.text_dim);
-                            if resp.on_hover_text("100% = pagina intera. Clic: torna alla pagina intera (Cmd+0)").clicked() {
+                            ui.painter().text(r.right_center(), Align2::RIGHT_CENTER, i18n::tr(&label).into_owned(), regular(11.0), t.text_dim);
+                            if resp.on_hover_text(i18n::t("100% = pagina intera. Clic: torna alla pagina intera (Cmd+0)")).clicked() {
                                 actions.push(Action::Zoom(ZoomOp::Fit));
                             }
                             if icon_button(ui, ic::PLUS, "Ingrandisci (Cmd +)", vec2(18.0, 18.0), true).clicked() {
@@ -577,11 +580,11 @@ impl App {
                             let color = if self.status.starts_with('⚠') { t.red } else { t.accent_text };
                             let (r, resp) = ui.allocate_exact_size(vec2(room, 18.0), Sense::hover());
                             let clip = ui.painter().with_clip_rect(r);
-                            let g = clip.layout_no_wrap(self.status.clone(), regular(11.0), color);
+                            let g = clip.layout_no_wrap(i18n::tr(&self.status).into_owned(), regular(11.0), color);
                             let wide = g.size().x > r.width();
                             clip.galley(pos2(r.min.x, r.center().y - g.size().y / 2.0), g, color);
                             if wide {
-                                resp.on_hover_text(&self.status);
+                                resp.on_hover_text(i18n::tr(&&self.status).into_owned());
                             }
                         }
                     });
@@ -607,6 +610,13 @@ impl App {
         };
         let q = p.query.to_lowercase();
         let words: Vec<&str> = q.split_whitespace().collect();
+        // si cerca nella lingua dell'interfaccia (e anche in italiano)
+        for c in &mut cmds {
+            let shown = i18n::tr(&c.label).into_owned();
+            if shown != c.label {
+                c.label = shown;
+            }
+        }
         cmds.retain(|c| {
             let l = c.label.to_lowercase();
             words.iter().all(|w| l.contains(w))
@@ -639,7 +649,7 @@ impl App {
                 ui.set_width(w);
                 let te = ui.add(
                     egui::TextEdit::singleline(&mut p.query)
-                        .hint_text(format!("{} Scrivi cosa vuoi fare (es. «esporta», «firma», «zoom»)", ic::MAGNIFYING_GLASS))
+                        .hint_text(i18n::tf(format!("{} Scrivi cosa vuoi fare (es. «esporta», «firma», «zoom»)", ic::MAGNIFYING_GLASS)))
                         .desired_width(f32::INFINITY),
                 );
                 if p.fresh {
@@ -652,7 +662,7 @@ impl App {
                 ui.add_space(4.0);
                 egui::ScrollArea::vertical().max_height(330.0).show(ui, |ui| {
                     if n == 0 {
-                        ui.label(egui::RichText::new("Nessun comando trovato.").weak());
+                        ui.label(egui::RichText::new(i18n::t("Nessun comando trovato.")).weak());
                     }
                     for (i, c) in cmds.iter().enumerate() {
                         let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 26.0), if c.enabled { Sense::click() } else { Sense::hover() });
@@ -661,10 +671,10 @@ impl App {
                             ui.painter().rect_filled(r, 4.0, if on { t.checked } else { t.hover });
                         }
                         let col = if c.enabled { t.text } else { t.text_disabled };
-                        ui.painter().text(pos2(r.min.x + 14.0, r.center().y), Align2::CENTER_CENTER, c.glyph, icon(15.0), if c.enabled { t.icon } else { t.text_disabled });
-                        ui.painter().text(pos2(r.min.x + 30.0, r.center().y), Align2::LEFT_CENTER, &c.label, regular(12.5), col);
+                        ui.painter().text(pos2(r.min.x + 14.0, r.center().y), Align2::CENTER_CENTER, i18n::tr(&c.glyph).into_owned(), icon(15.0), if c.enabled { t.icon } else { t.text_disabled });
+                        ui.painter().text(pos2(r.min.x + 30.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&&c.label).into_owned(), regular(12.5), col);
                         if !c.keys.is_empty() {
-                            ui.painter().text(pos2(r.max.x - 8.0, r.center().y), Align2::RIGHT_CENTER, &c.keys, regular(11.0), t.text_dim);
+                            ui.painter().text(pos2(r.max.x - 8.0, r.center().y), Align2::RIGHT_CENTER, i18n::tr(&&c.keys).into_owned(), regular(11.0), t.text_dim);
                         }
                         if on && (down || up) {
                             resp.scroll_to_me(None);
@@ -742,7 +752,7 @@ impl App {
         // un comando per ogni foglio («Foglio: righe di 1ª elementare», …)
         for p in super::paper::Paper::ALL {
             let glyph = if p.ruled() || p == super::paper::Paper::Bianco { ic::NOTEBOOK } else { ic::GRID_FOUR };
-            v.push(c(glyph, &format!("Foglio: {}", p.label().to_lowercase()), "", Action::Paper(p)));
+            v.push(c(glyph, &format!("Foglio: {}", i18n::tr(&p.label())), "", Action::Paper(p)));
         }
         if doc {
             v.push(c(ic::FILE_PDF, "Salva il documento firmato (Word o PDF)", &cmd_key("Shift+S"), Action::Doc(DocAction::SaveSigned)));
@@ -826,7 +836,7 @@ fn ruler_marks(width: f32, div: i32, scale: f32) -> Vec<(f32, RulerMark)> {
 fn ruler_mark(p: &egui::Painter, at: Pos2, mark: RulerMark, horizontal: bool, t: &Tokens) {
     let len = match mark {
         RulerMark::Label(n) => {
-            p.text(at, Align2::CENTER_CENTER, n.to_string(), regular(9.5), t.ruler_tick);
+            p.text(at, Align2::CENTER_CENTER, i18n::tr(&n.to_string()).into_owned(), regular(9.5), t.ruler_tick);
             return;
         }
         RulerMark::Tick(len) => len,

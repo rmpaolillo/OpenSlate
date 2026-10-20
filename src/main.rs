@@ -15,6 +15,7 @@ mod docrender;
 mod document;
 mod export;
 mod figures;
+mod i18n;
 mod library;
 mod live;
 mod ocr;
@@ -183,7 +184,10 @@ fn main() -> Result<()> {
             Ok(())
         }
         Cmd::Ai { prova } => ai_status(prova),
-        Cmd::Finestra { titolo, url } => viewer::run(&url, &titolo),
+        Cmd::Finestra { titolo, url } => {
+            i18n::set_lang(i18n::resolve(&settings::Settings::load().ui_lang));
+            viewer::run(&url, &titolo)
+        }
         Cmd::Trascrivi { file } => {
             let bytes = std::fs::read(&file)?;
             let png = if bytes.starts_with(b"\x89PNG") { bytes } else { to_png(&file)? };

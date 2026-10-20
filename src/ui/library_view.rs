@@ -1,6 +1,7 @@
 //! Scheda «Archivio»: griglia di anteprime raggruppate per giorno, selezione
 //! multipla, menu col tasto destro, visualizzatore a pagina intera.
 
+use crate::i18n;
 use super::zoom::ZoomView;
 use super::{paint_page, zoom_controls, zoom_keys, Action, App, Fmt, Mode};
 use crate::library;
@@ -362,11 +363,11 @@ impl App {
         let viewer = self.lui.viewer.clone().filter(|id| self.lib.get(id).is_some());
         ui.horizontal(|ui| {
             match self.lui.pad_files {
-                Some(0) => ui.label(egui::RichText::new(format!("{} Pad: nessuna pagina da scaricare", ic::DEVICE_TABLET)).weak()),
-                Some(n) => ui.label(egui::RichText::new(format!("{} Sul pad: {n} pagine da scaricare", ic::DEVICE_TABLET)).strong()),
-                None => ui.label(""),
+                Some(0) => ui.label(egui::RichText::new(i18n::tf(format!("{} Pad: nessuna pagina da scaricare", ic::DEVICE_TABLET))).weak()),
+                Some(n) => ui.label(egui::RichText::new(i18n::tf(format!("{} Sul pad: {n} pagine da scaricare", ic::DEVICE_TABLET))).strong()),
+                None => ui.label(i18n::t("")),
             };
-            if ui.button(format!("{} Scarica dal pad", ic::DOWNLOAD_SIMPLE)).on_hover_text("Scarica nell'archivio le pagine scritte senza Mac").clicked() {
+            if ui.button(i18n::tf(format!("{} Scarica dal pad", ic::DOWNLOAD_SIMPLE))).on_hover_text(i18n::t("Scarica nell'archivio le pagine scritte senza Mac")).clicked() {
                 actions.push(Action::Sync);
             }
         });
@@ -383,53 +384,53 @@ impl App {
         ui.horizontal_wrapped(|ui| {
             ui.add(
                 egui::TextEdit::singleline(search)
-                    .hint_text(format!("{} Cerca per titolo o data", ic::MAGNIFYING_GLASS))
+                    .hint_text(i18n::tf(format!("{} Cerca per titolo o data", ic::MAGNIFYING_GLASS)))
                     .desired_width(180.0),
             );
-            if ui.button(ic::CHECK_SQUARE).on_hover_text("Seleziona tutto (Cmd+A)").clicked() {
+            if ui.button(ic::CHECK_SQUARE).on_hover_text(i18n::t("Seleziona tutto (Cmd+A)")).clicked() {
                 actions.push(lib(LibAction::SelectAll));
             }
-            ui.label(ic::IMAGES).on_hover_text("Dimensione delle anteprime");
+            ui.label(ic::IMAGES).on_hover_text(i18n::t("Dimensione delle anteprime"));
             ui.add(egui::Slider::new(thumb_size, THUMB_MIN..=THUMB_MAX).show_value(false))
-                .on_hover_text("Dimensione delle anteprime");
+                .on_hover_text(i18n::t("Dimensione delle anteprime"));
             ui.separator();
             if sel.is_empty() {
-                ui.label("Clic = seleziona • doppio clic = apri • tasto destro = altre azioni");
+                ui.label(i18n::t("Clic = seleziona • doppio clic = apri • tasto destro = altre azioni"));
                 return;
             }
             let label = if sel.len() == 1 { "1 selezionata".to_string() } else { format!("{} selezionate", sel.len()) };
-            ui.label(egui::RichText::new(label).strong());
+            ui.label(egui::RichText::new(i18n::tr(&label).into_owned()).strong());
             if sel.len() == 1 {
-                if ui.button(format!("{} Apri", ic::CORNERS_OUT)).clicked() {
+                if ui.button(i18n::tf(format!("{} Apri", ic::CORNERS_OUT))).clicked() {
                     actions.push(lib(LibAction::Open(sel[0].clone())));
                 }
-                if ui.button(format!("{} Sulla lavagna", ic::CHALKBOARD_SIMPLE)).clicked() {
+                if ui.button(i18n::tf(format!("{} Sulla lavagna", ic::CHALKBOARD_SIMPLE))).clicked() {
                     actions.push(lib(LibAction::ToBoard(sel[0].clone())));
                 }
-                if ui.button(format!("{} Rinomina", ic::PENCIL_SIMPLE)).clicked() {
+                if ui.button(i18n::tf(format!("{} Rinomina", ic::PENCIL_SIMPLE))).clicked() {
                     actions.push(lib(LibAction::StartRename(sel[0].clone())));
                 }
-                if ui.button(format!("{} Copia immagine", ic::COPY)).on_hover_text("Per incollarla in una chat AI").clicked() {
+                if ui.button(i18n::tf(format!("{} Copia immagine", ic::COPY))).on_hover_text(i18n::t("Per incollarla in una chat AI")).clicked() {
                     actions.push(lib(LibAction::Copy(sel[0].clone())));
                 }
             }
-            ui.label(format!("{} Esporta:", ic::EXPORT));
-            if ui.button(format!("{} PDF", ic::FILE_PDF)).on_hover_text("Un unico PDF con tutte le pagine selezionate").clicked() {
+            ui.label(i18n::tf(format!("{} Esporta:", ic::EXPORT)));
+            if ui.button(i18n::tf(format!("{} PDF", ic::FILE_PDF))).on_hover_text(i18n::t("Un unico PDF con tutte le pagine selezionate")).clicked() {
                 actions.push(lib(LibAction::Export(sel.clone(), Fmt::Pdf)));
             }
-            if ui.button(format!("{} PNG", ic::FILE_PNG)).clicked() {
+            if ui.button(i18n::tf(format!("{} PNG", ic::FILE_PNG))).clicked() {
                 actions.push(lib(LibAction::Export(sel.clone(), Fmt::Png)));
             }
-            if ui.button(format!("{} SVG", ic::FILE_SVG)).clicked() {
+            if ui.button(i18n::tf(format!("{} SVG", ic::FILE_SVG))).clicked() {
                 actions.push(lib(LibAction::Export(sel.clone(), Fmt::Svg)));
             }
-            if ui.add_enabled(!ocr_busy, egui::Button::new(format!("{} Trascrivi", ic::MATH_OPERATIONS))).clicked() {
+            if ui.add_enabled(!ocr_busy, egui::Button::new(i18n::tf(format!("{} Trascrivi", ic::MATH_OPERATIONS)))).clicked() {
                 actions.push(lib(LibAction::Ocr(sel.clone())));
             }
-            if ui.button(format!("{} Elimina", ic::TRASH)).on_hover_text("Sposta nel cestino (recuperabile)").clicked() {
+            if ui.button(i18n::tf(format!("{} Elimina", ic::TRASH))).on_hover_text(i18n::t("Sposta nel cestino (recuperabile)")).clicked() {
                 actions.push(lib(LibAction::Trash(sel.clone())));
             }
-            if ui.button(ic::SELECTION_SLASH).on_hover_text("Deseleziona (Esc)").clicked() {
+            if ui.button(ic::SELECTION_SLASH).on_hover_text(i18n::t("Deseleziona (Esc)")).clicked() {
                 actions.push(lib(LibAction::SelectNone));
             }
         });
@@ -440,53 +441,53 @@ impl App {
         let ids = self.visible_ids();
         let pos = ids.iter().position(|x| x == id).unwrap_or(0);
         ui.horizontal_wrapped(|ui| {
-            if ui.button(format!("{} Archivio", ic::ARROW_LEFT)).on_hover_text("Esc").clicked() {
+            if ui.button(i18n::tf(format!("{} Archivio", ic::ARROW_LEFT))).on_hover_text(i18n::t("Esc")).clicked() {
                 actions.push(lib(LibAction::Close));
             }
             ui.separator();
-            if ui.add_enabled(pos > 0, egui::Button::new(format!("{} Precedente", ic::CARET_LEFT))).clicked() {
+            if ui.add_enabled(pos > 0, egui::Button::new(i18n::tf(format!("{} Precedente", ic::CARET_LEFT)))).clicked() {
                 actions.push(lib(LibAction::Step(-1)));
             }
-            ui.label(format!("{} di {}", pos + 1, ids.len()));
-            if ui.add_enabled(pos + 1 < ids.len(), egui::Button::new(format!("Successiva {}", ic::CARET_RIGHT))).clicked() {
+            ui.label(i18n::tf(format!("{} di {}", pos + 1, ids.len())));
+            if ui.add_enabled(pos + 1 < ids.len(), egui::Button::new(i18n::tf(format!("Successiva {}", ic::CARET_RIGHT)))).clicked() {
                 actions.push(lib(LibAction::Step(1)));
             }
             ui.separator();
-            ui.label(egui::RichText::new(e.meta.display_title()).strong());
+            ui.label(egui::RichText::new(i18n::tr(&e.meta.display_title()).into_owned()).strong());
             if !e.meta.title.is_empty() {
-                ui.label(egui::RichText::new(&e.meta.created).weak());
+                ui.label(egui::RichText::new(i18n::tr(&&e.meta.created).into_owned()).weak());
             }
-            ui.label(egui::RichText::new(format!("{} tratti", e.drawing.strokes.len())).weak());
+            ui.label(egui::RichText::new(i18n::tf(format!("{} tratti", e.drawing.strokes.len()))).weak());
             ui.separator();
             zoom_controls(ui, &self.lui.viewer_zoom, actions);
         });
         ui.horizontal_wrapped(|ui| {
             let one = vec![id.to_string()];
-            if ui.button(format!("{} Rinomina", ic::PENCIL_SIMPLE)).clicked() {
+            if ui.button(i18n::tf(format!("{} Rinomina", ic::PENCIL_SIMPLE))).clicked() {
                 actions.push(lib(LibAction::StartRename(id.to_string())));
             }
-            if ui.button(format!("{} Sulla lavagna", ic::CHALKBOARD_SIMPLE)).on_hover_text("Per mostrarla in diretta o scriverci sopra").clicked() {
+            if ui.button(i18n::tf(format!("{} Sulla lavagna", ic::CHALKBOARD_SIMPLE))).on_hover_text(i18n::t("Per mostrarla in diretta o scriverci sopra")).clicked() {
                 actions.push(lib(LibAction::ToBoard(id.to_string())));
             }
-            if ui.button(format!("{} Copia immagine", ic::COPY)).on_hover_text("Cmd+C, poi Cmd+V nella chat AI").clicked() {
+            if ui.button(i18n::tf(format!("{} Copia immagine", ic::COPY))).on_hover_text(i18n::t("Cmd+C, poi Cmd+V nella chat AI")).clicked() {
                 actions.push(lib(LibAction::Copy(id.to_string())));
             }
             ui.separator();
-            ui.label(format!("{} Esporta:", ic::EXPORT));
-            if ui.button(format!("{} PDF", ic::FILE_PDF)).clicked() {
+            ui.label(i18n::tf(format!("{} Esporta:", ic::EXPORT)));
+            if ui.button(i18n::tf(format!("{} PDF", ic::FILE_PDF))).clicked() {
                 actions.push(lib(LibAction::Export(one.clone(), Fmt::Pdf)));
             }
-            if ui.button(format!("{} PNG", ic::FILE_PNG)).clicked() {
+            if ui.button(i18n::tf(format!("{} PNG", ic::FILE_PNG))).clicked() {
                 actions.push(lib(LibAction::Export(one.clone(), Fmt::Png)));
             }
-            if ui.button(format!("{} SVG", ic::FILE_SVG)).clicked() {
+            if ui.button(i18n::tf(format!("{} SVG", ic::FILE_SVG))).clicked() {
                 actions.push(lib(LibAction::Export(one.clone(), Fmt::Svg)));
             }
-            if ui.add_enabled(!self.ocr_busy, egui::Button::new(format!("{} Trascrivi", ic::MATH_OPERATIONS))).clicked() {
+            if ui.add_enabled(!self.ocr_busy, egui::Button::new(i18n::tf(format!("{} Trascrivi", ic::MATH_OPERATIONS)))).clicked() {
                 actions.push(lib(LibAction::Ocr(one.clone())));
             }
             ui.separator();
-            if ui.button(format!("{} Elimina", ic::TRASH)).on_hover_text("Sposta nel cestino (Canc)").clicked() {
+            if ui.button(i18n::tf(format!("{} Elimina", ic::TRASH))).on_hover_text(i18n::t("Sposta nel cestino (Canc)")).clicked() {
                 actions.push(lib(LibAction::Trash(one)));
             }
         });
@@ -497,14 +498,14 @@ impl App {
         if self.lib.entries.is_empty() {
             ui.add_space(40.0);
             ui.vertical_centered(|ui| {
-                ui.heading("L'archivio è vuoto");
-                ui.label("Scrivi sul pad senza Mac, poi «Collega» e «Scarica dal pad».");
-                ui.label("Oppure, dalla Lavagna, «Salva in archivio».");
+                ui.heading(i18n::t("L'archivio è vuoto"));
+                ui.label(i18n::t("Scrivi sul pad senza Mac, poi «Collega» e «Scarica dal pad»."));
+                ui.label(i18n::t("Oppure, dalla Lavagna, «Salva in archivio»."));
             });
             return;
         }
         if ids.is_empty() {
-            ui.label("Nessuna pagina corrisponde alla ricerca.");
+            ui.label(i18n::t("Nessuna pagina corrisponde alla ricerca."));
             return;
         }
         self.make_thumbs(ctx, &ids);
@@ -533,7 +534,7 @@ impl App {
             .show(ui, |ui| {
                 for (label, gids) in &groups {
                     ui.add_space(6.0);
-                    ui.label(egui::RichText::new(format!("{label}  ({})", gids.len())).heading());
+                    ui.label(egui::RichText::new(i18n::tf(format!("{label}  ({})", gids.len()))).heading());
                     ui.add_space(4.0);
                     ui.horizontal_wrapped(|ui| {
                         ui.spacing_mut().item_spacing = egui::vec2(16.0, 16.0);
@@ -596,7 +597,7 @@ impl App {
             };
             let galley = ui.fonts_mut(|f| f.layout_job(job));
             p.galley(egui::pos2(rect.left(), thumb.bottom() + 6.0), galley, text_col);
-            let origin = if e.meta.source == library::SOURCE_BOARD { "dalla lavagna" } else { "dal pad" };
+            let origin = if e.meta.source == library::SOURCE_BOARD { i18n::t("dalla lavagna") } else { i18n::t("dal pad") };
             let sub = match (e.meta.title.is_empty(), e.meta.created_dt()) {
                 (false, Some(t)) => format!("{}  •  {origin}", t.format("%d/%m/%Y %H:%M")),
                 _ => origin.to_string(),
@@ -604,7 +605,7 @@ impl App {
             p.text(
                 egui::pos2(rect.left(), thumb.bottom() + 24.0),
                 egui::Align2::LEFT_TOP,
-                sub,
+                i18n::tr(&sub).into_owned(),
                 egui::FontId::proportional(11.5),
                 ui.visuals().weak_text_color(),
             );
@@ -625,45 +626,45 @@ impl App {
             let targets = if selected && sel.len() > 1 { sel.clone() } else { vec![id.to_string()] };
             let many = targets.len() > 1;
             if !many {
-                if ui.button(format!("{} Apri", ic::CORNERS_OUT)).clicked() {
+                if ui.button(i18n::tf(format!("{} Apri", ic::CORNERS_OUT))).clicked() {
                     actions.push(lib(LibAction::Open(id.to_string())));
                     ui.close();
                 }
-                if ui.button(format!("{} Sulla lavagna", ic::CHALKBOARD_SIMPLE)).clicked() {
+                if ui.button(i18n::tf(format!("{} Sulla lavagna", ic::CHALKBOARD_SIMPLE))).clicked() {
                     actions.push(lib(LibAction::ToBoard(id.to_string())));
                     ui.close();
                 }
-                if ui.button(format!("{} Rinomina…", ic::PENCIL_SIMPLE)).clicked() {
+                if ui.button(i18n::tf(format!("{} Rinomina…", ic::PENCIL_SIMPLE))).clicked() {
                     actions.push(lib(LibAction::StartRename(id.to_string())));
                     ui.close();
                 }
-                if ui.button(format!("{} Copia immagine", ic::COPY)).clicked() {
+                if ui.button(i18n::tf(format!("{} Copia immagine", ic::COPY))).clicked() {
                     actions.push(lib(LibAction::Copy(id.to_string())));
                     ui.close();
                 }
                 ui.separator();
             } else {
-                ui.label(format!("{} pagine selezionate", targets.len()));
+                ui.label(i18n::tf(format!("{} pagine selezionate", targets.len())));
                 ui.separator();
             }
-            if ui.button(format!("{} {}", ic::FILE_PDF, if many { "Esporta in un PDF" } else { "Esporta PDF" })).clicked() {
+            if ui.button(i18n::tf(format!("{} {}", ic::FILE_PDF, if many { "Esporta in un PDF" } else { "Esporta PDF" }))).clicked() {
                 actions.push(lib(LibAction::Export(targets.clone(), Fmt::Pdf)));
                 ui.close();
             }
-            if ui.button(format!("{} Esporta PNG", ic::FILE_PNG)).clicked() {
+            if ui.button(i18n::tf(format!("{} Esporta PNG", ic::FILE_PNG))).clicked() {
                 actions.push(lib(LibAction::Export(targets.clone(), Fmt::Png)));
                 ui.close();
             }
-            if ui.button(format!("{} Esporta SVG", ic::FILE_SVG)).clicked() {
+            if ui.button(i18n::tf(format!("{} Esporta SVG", ic::FILE_SVG))).clicked() {
                 actions.push(lib(LibAction::Export(targets.clone(), Fmt::Svg)));
                 ui.close();
             }
-            if ui.button(format!("{} Trascrivi", ic::MATH_OPERATIONS)).clicked() {
+            if ui.button(i18n::tf(format!("{} Trascrivi", ic::MATH_OPERATIONS))).clicked() {
                 actions.push(lib(LibAction::Ocr(targets.clone())));
                 ui.close();
             }
             ui.separator();
-            if ui.button(format!("{} Elimina", ic::TRASH)).clicked() {
+            if ui.button(i18n::tf(format!("{} Elimina", ic::TRASH))).clicked() {
                 actions.push(lib(LibAction::Trash(targets)));
                 ui.close();
             }
@@ -675,12 +676,12 @@ impl App {
         let focused = &mut self.lui.rename_focused;
         let mut commit = false;
         let mut cancel = false;
-        egui::Window::new("Rinomina pagina")
+        egui::Window::new(i18n::t("Rinomina pagina"))
             .collapsible(false)
             .resizable(false)
             .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
             .show(ctx, |ui| {
-                let r = ui.add(egui::TextEdit::singleline(text).hint_text("Titolo (vuoto = data)").desired_width(280.0));
+                let r = ui.add(egui::TextEdit::singleline(text).hint_text(i18n::t("Titolo (vuoto = data)")).desired_width(280.0));
                 if !*focused {
                     r.request_focus();
                     *focused = true;
@@ -692,10 +693,10 @@ impl App {
                     cancel = true;
                 }
                 ui.horizontal(|ui| {
-                    if ui.button(format!("{} OK", ic::CHECK)).clicked() {
+                    if ui.button(i18n::tf(format!("{} OK", ic::CHECK))).clicked() {
                         commit = true;
                     }
-                    if ui.button(format!("{} Annulla", ic::X)).clicked() {
+                    if ui.button(i18n::tf(format!("{} Annulla", ic::X))).clicked() {
                         cancel = true;
                     }
                 });

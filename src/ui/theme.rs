@@ -192,7 +192,61 @@ const F_ICONS: &str = "wsr-phosphor";
 pub fn fonts() -> FontDefinitions {
     let mut fonts = FontDefinitions::default();
     merge_ours(&mut fonts);
+    // cinese, giapponese, coreano: Inter non ha quei segni, si prende un
+    // carattere del sistema (in coda, dopo Inter e le icone)
+    let lang = crate::i18n::lang();
+    if lang.cjk() {
+        match cjk_font(lang) {
+            Some((bytes, index)) => {
+                let mut data = FontData::from_owned(bytes);
+                data.index = index;
+                fonts.font_data.insert(F_CJK.into(), Arc::new(data));
+                for fam in [FontFamily::Proportional, FontFamily::Name("medium".into()), FontFamily::Name("semibold".into())] {
+                    let list = fonts.families.entry(fam).or_default();
+                    let at = list.iter().position(|n| n == F_ICONS).map(|i| i + 1).unwrap_or(list.len());
+                    list.insert(at, F_CJK.into());
+                }
+            }
+            None => tracing::warn!("nessun carattere {} trovato nel sistema", lang.code()),
+        }
+    }
     fonts
+}
+
+const F_CJK: &str = "cjk";
+const F_LANGNAMES: &str = "cjk-langnames";
+
+/// Un carattere del sistema per cinese, giapponese o coreano (byte e indice
+/// nella raccolta .ttc).
+fn cjk_font(lang: crate::i18n::Lang) -> Option<(Vec<u8>, u32)> {
+    use crate::i18n::Lang;
+    // Noto Sans CJK (Linux): nella raccolta 0 = giapponese, 1 = coreano, 2 = cinese semplificato
+    let noto = match lang {
+        Lang::Ja => 0,
+        Lang::Ko => 1,
+        _ => 2,
+    };
+    let mut cands: Vec<(&str, u32)> = Vec::new();
+    if cfg!(target_os = "macos") {
+        match lang {
+            Lang::Ja => cands.extend([("/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc", 0), ("/System/Library/Fonts/Hiragino Sans GB.ttc", 0)]),
+            Lang::Ko => cands.push(("/System/Library/Fonts/AppleSDGothicNeo.ttc", 0)),
+            _ => cands.extend([("/System/Library/Fonts/PingFang.ttc", 0), ("/System/Library/Fonts/Hiragino Sans GB.ttc", 0), ("/System/Library/Fonts/STHeiti Light.ttc", 0)]),
+        }
+        cands.extend([("/System/Library/Fonts/Supplemental/Arial Unicode.ttf", 0), ("/Library/Fonts/Arial Unicode.ttf", 0)]);
+    } else if cfg!(target_os = "windows") {
+        match lang {
+            Lang::Ja => cands.extend([("C:\\Windows\\Fonts\\YuGothM.ttc", 0), ("C:\\Windows\\Fonts\\meiryo.ttc", 0), ("C:\\Windows\\Fonts\\msgothic.ttc", 0)]),
+            Lang::Ko => cands.push(("C:\\Windows\\Fonts\\malgun.ttf", 0)),
+            _ => cands.extend([("C:\\Windows\\Fonts\\msyh.ttc", 0), ("C:\\Windows\\Fonts\\simsun.ttc", 0)]),
+        }
+    } else {
+        for dir in ["/usr/share/fonts/opentype/noto", "/usr/share/fonts/noto-cjk", "/usr/share/fonts/google-noto-cjk", "/usr/share/fonts/opentype/noto-cjk"] {
+            cands.push((Box::leak(format!("{dir}/NotoSansCJK-Regular.ttc").into_boxed_str()), noto));
+        }
+        cands.extend([("/usr/share/fonts/truetype/wqy/wqy-microhei.ttc", 0), ("/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf", 0)]);
+    }
+    cands.into_iter().find_map(|(p, i)| std::fs::read(p).ok().map(|b| (b, i)))
 }
 
 /// Aggiunge i nostri caratteri a quelli di egui, in testa alle famiglie: prima
@@ -206,6 +260,9 @@ fn merge_ours(fonts: &mut FontDefinitions) {
     add(fonts, F_MEDIUM, include_bytes!("../../assets/fonts/Inter-Medium.ttf"));
     add(fonts, F_SEMIBOLD, include_bytes!("../../assets/fonts/Inter-SemiBold.ttf"));
     add(fonts, F_ICONS, egui_phosphor::Variant::Regular.font_bytes());
+    // i nomi delle lingue nel menu (中文 日本語 한국어) anche senza i caratteri
+    // CJK del sistema: un ritaglio minuscolo di Noto Sans CJK (SIL OFL 1.1)
+    add(fonts, F_LANGNAMES, include_bytes!("../../assets/fonts/NotoSansCJK-langnames.otf"));
     let first = |list: &mut Vec<String>, head: &[&str]| {
         list.retain(|n| !head.contains(&n.as_str()));
         for (i, h) in head.iter().enumerate() {
@@ -217,6 +274,9 @@ fn merge_ours(fonts: &mut FontDefinitions) {
     for (fam, head) in [("medium", F_MEDIUM), ("semibold", F_SEMIBOLD)] {
         let list = fonts.families.entry(FontFamily::Name(fam.into())).or_insert_with(|| base.clone());
         first(list, &[head, F_INTER, F_ICONS]);
+    }
+    for fam in [FontFamily::Proportional, FontFamily::Name("medium".into()), FontFamily::Name("semibold".into())] {
+        fonts.families.entry(fam).or_default().push(F_LANGNAMES.into());
     }
 }
 

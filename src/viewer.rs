@@ -6,6 +6,7 @@
 //! principale (egui) ha già il suo ciclo di eventi, e su macOS ce ne può
 //! essere uno solo per processo.
 
+use crate::i18n;
 use anyhow::Result;
 
 /// Apre la finestra e ritorna quando viene chiusa.
@@ -68,11 +69,11 @@ pub fn run(url: &str, title: &str) -> Result<()> {
             Event::UserEvent(path) => {
                 let _ = webview.load_url(&format!("{origin3}{}", path.trim_start_matches('/')));
                 if path.starts_with("chat") {
-                    window.set_title("Chat AI");
+                    window.set_title(i18n::t("Chat AI"));
                 } else if path.starts_with("impostazioni") {
-                    window.set_title("Impostazioni AI");
+                    window.set_title(i18n::t("Impostazioni AI"));
                 } else if path.starts_with("appunti") {
-                    window.set_title("Appunti");
+                    window.set_title(i18n::t("Appunti"));
                 }
                 window.set_focus();
             }
@@ -125,8 +126,8 @@ fn open_external(url: &str) {
 fn mac_menu() -> Option<muda::Menu> {
     use muda::{Menu, PredefinedMenuItem, Submenu};
     let menu = Menu::new();
-    let app = Submenu::new("Appunti", true);
-    let edit = Submenu::new("Modifica", true);
+    let app = Submenu::new(i18n::t("Appunti"), true);
+    let edit = Submenu::new(i18n::t("Modifica"), true);
     app.append_items(&[&PredefinedMenuItem::hide(None), &PredefinedMenuItem::separator(), &PredefinedMenuItem::quit(None)])
         .ok()?;
     edit.append_items(&[

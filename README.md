@@ -73,6 +73,10 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   export opens the system "Save as" dialog, so you always see where the file goes. It starts in the
   last folder you chose (the first time, in `exports/`). You can also copy the page as an image
   (`Cmd+C`) and paste it anywhere.
+- **Your language.** The whole interface (menus, ribbon, options, chat, notes and AI settings)
+  is available in English, Italian, Spanish, French, German, Ukrainian, Chinese, Japanese and
+  Korean. It follows the system language; change it in File → Options → Appearance → Language.
+  The AI answers in the language you write in.
 
 ## Screenshots
 
@@ -130,8 +134,8 @@ Windows 10/11. Not everything is tested on Windows. Bug reports are very welcome
 ## First connection
 
 - **First time**, or after using Inkspace: hold the pad's button for about 6 s until the LED
-  blinks blue. Then click **Collega** (Connect) and press the button once when asked.
-- **Afterwards** (LED green): press the button briefly, then click **Collega**.
+  blinks blue. Then click **Connect** and press the button once when asked.
+- **Afterwards** (LED green): press the button briefly, then click **Connect**.
 
 The pad remembers only one app at a time. If you go back to Inkspace, you will need to register
 OpenSlate again.
@@ -203,6 +207,7 @@ src/ui.rs, src/ui/*                                       egui interface (Word-l
 src/document.rs, wordsign.rs, docrender.rs, pdfdoc.rs     Word/PDF opening, rendering, signing
 src/ai.rs, chats.rs, tools.rs, ocr.rs                     AI providers, chat, transcription
 src/web.rs, src/web/*                                     web live view, chat and notes pages
+src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases
 ```

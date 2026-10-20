@@ -9,6 +9,7 @@
 //! quaderni ha le sue (qui: 1ª con tre fasce da 4 mm, 2ª da 3 mm, 3ª con una
 //! fascia da 3 mm).
 
+use crate::i18n;
 use eframe::egui;
 use egui::{pos2, Align2, Color32, FontId, Rect, Stroke};
 
@@ -434,7 +435,7 @@ pub(super) fn paint(painter: &egui::Painter, page: Rect, size_cm: (f32, f32), pa
             }
             Mark::Label(p, s) => {
                 if px >= 12.0 {
-                    painter.text(at(p), Align2::CENTER_CENTER, s, font.clone(), label_color);
+                    painter.text(at(p), Align2::CENTER_CENTER, i18n::tr(&s).into_owned(), font.clone(), label_color);
                 }
             }
         }

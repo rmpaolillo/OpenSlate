@@ -35,6 +35,11 @@ Third-party material
 - Source Serif 4 (assets/fonts/SourceSerif4-*.ttf), Copyright 2014-2023 Adobe, with Reserved Font
   Name 'Source', SIL Open Font License 1.1 (assets/fonts/OFL-SourceSerif4.txt). Unmodified.
 
+- Noto Sans CJK (assets/fonts/NotoSansCJK-langnames.otf), Copyright 2014-2021 Adobe
+  (http://www.adobe.com/), with Reserved Font Name 'Source', SIL Open Font License 1.1
+  (assets/fonts/OFL-NotoSansCJK.txt). Subset with fontTools to the characters «中文日本語한국어»,
+  the names of the languages in the language menu.
+
 - Phosphor icons (via the egui-phosphor crate), MIT.
 - KaTeX (src/web/vendor/katex), MIT. marked (src/web/vendor/marked.min.js), MIT.
 

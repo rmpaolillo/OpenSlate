@@ -1,6 +1,7 @@
 //! Documenti sulla lavagna: import (anche trascinando il file sulla finestra),
 //! pagine come sfondo, firma registrata e posizionabile, PDF firmato.
 
+use crate::i18n;
 use super::{file_stem, Action, App};
 use crate::document::{self, Document};
 use crate::export;
@@ -444,8 +445,8 @@ impl App {
         match a {
             DocAction::OpenDialog => {
                 let picked = rfd::FileDialog::new()
-                    .set_title("Apri un documento da firmare")
-                    .add_filter("Documenti", crate::docimport::EXTENSIONS)
+                    .set_title(i18n::t("Apri un documento da firmare"))
+                    .add_filter(i18n::t("Documenti"), crate::docimport::EXTENSIONS)
                     .pick_file();
                 if let Some(p) = picked {
                     self.start_import(p);
@@ -598,12 +599,14 @@ impl App {
             // una scheda: Some(true) = clic, Some(false) = chiudi; trascinandola
             // sulla chat AI il foglio o il documento vanno nel contesto della chat
             let tab = |ui: &mut egui::Ui, on: bool, glyph: &str, text: &str, closable: bool, drag: ChatDrag| -> Option<bool> {
+                let text = i18n::tr(text);
+                let text: &str = &text;
                 let font = if on { semibold(12.0) } else { medium(12.0) };
                 let tw = ui.painter().layout_no_wrap(text.to_string(), font.clone(), t.text).size().x;
                 let w = tw + 40.0 + if closable { 20.0 } else { 0.0 };
                 let (r, resp) = ui.allocate_exact_size(vec2(w, 27.0), Sense::click_and_drag());
                 resp.dnd_set_drag_payload(drag);
-                let resp = resp.on_hover_text("Clic per aprire · trascina sulla chat AI per allegarlo");
+                let resp = resp.on_hover_text(i18n::t("Clic per aprire · trascina sulla chat AI per allegarlo"));
                 let round = egui::CornerRadius { nw: 6, ne: 6, sw: 0, se: 0 };
                 if on {
                     ui.painter().rect_filled(r, round, t.input);
@@ -613,7 +616,7 @@ impl App {
                 }
                 let col = if on { t.text } else { t.text_dim };
                 ui.painter().text(pos2(r.min.x + 16.0, r.center().y), Align2::CENTER_CENTER, glyph, icon(14.0), if on { t.accent_text } else { t.text_dim });
-                ui.painter().text(pos2(r.min.x + 28.0, r.center().y), Align2::LEFT_CENTER, text, font, col);
+                ui.painter().text(pos2(r.min.x + 28.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&text).into_owned(), font, col);
                 let mut out = None;
                 if closable {
                     let x = egui::Rect::from_center_size(pos2(r.max.x - 14.0, r.center().y), vec2(18.0, 18.0));
@@ -622,7 +625,7 @@ impl App {
                         ui.painter().rect_filled(x, 4.0, t.pressed);
                     }
                     ui.painter().text(x.center(), Align2::CENTER_CENTER, ic::X, icon(12.0), col);
-                    if xr.on_hover_text("Chiudi questo file").clicked() {
+                    if xr.on_hover_text(i18n::t("Chiudi questo file")).clicked() {
                         out = Some(false);
                     }
                 }
@@ -662,7 +665,7 @@ impl App {
                     if super::widgets::icon_button(ui, ic::CARET_DOWN, "Pagina successiva (PagGiù)", vec2(24.0, 22.0), d.current + 1 < n).clicked() {
                         actions.push(doc(DocAction::Page(d.current + 1)));
                     }
-                    ui.label(egui::RichText::new(format!("pagina {} di {n}", d.current + 1)).font(super::theme::regular(11.5)).color(t.text_dim));
+                    ui.label(egui::RichText::new(i18n::tf(format!("pagina {} di {n}", d.current + 1))).font(super::theme::regular(11.5)).color(t.text_dim));
                     if super::widgets::icon_button(ui, ic::CARET_UP, "Pagina precedente (PagSu)", vec2(24.0, 22.0), d.current > 0).clicked() {
                         actions.push(doc(DocAction::Page(d.current - 1)));
                     }
@@ -818,7 +821,7 @@ impl App {
         }
         if self.docui.capture.is_some() {
             let text = format!("{} FIRMA SUL PAD", ic::SIGNATURE);
-            let galley = painter.layout_no_wrap(text, egui::FontId::proportional(20.0), egui::Color32::WHITE);
+            let galley = painter.layout_no_wrap(i18n::tf(text), egui::FontId::proportional(20.0), egui::Color32::WHITE);
             let pos = egui::pos2(page.center().x - galley.size().x / 2.0, page.top() + 16.0);
             let r = egui::Rect::from_min_size(pos, galley.size()).expand2(egui::vec2(12.0, 6.0));
             painter.rect_filled(r, 6.0, egui::Color32::from_rgb(40, 110, 220));

@@ -51,6 +51,9 @@ Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le
 - **Tutto in una finestra**: appunti, chat AI e impostazioni AI non aprono altre finestre.
 - **Opzioni** (File › Opzioni): aspetto (tema, righelli), penna ed evidenziatore, pad e foglio,
   diretta web, trascrizione e AI, archivio ed export, avanzate; «Applica» o «OK».
+- **Lingua dell'interfaccia**: italiano, inglese, spagnolo, francese, tedesco, ucraino, cinese,
+  giapponese e coreano. Di serie segue la lingua del sistema; si cambia in File › Opzioni › Aspetto ›
+  Lingua e vale subito (il menu di macOS al prossimo avvio). L'AI risponde nella lingua in cui scrivi.
 
 | Funzione | Come |
 |---|---|
@@ -174,6 +177,7 @@ copy_size = 1600         # Copia immagine: pixel del lato lungo
 thumb_size = 330         # Archivio: altezza anteprime (anche col cursore nella barra)
 hook =                   # es: ~/bin/send-to-crm.sh   (riceve il file come $1)
 ui_theme = sistema       # sistema | chiaro | scuro
+ui_lang = auto           # auto (lingua del sistema) | it | en | es | fr | de | uk | zh | ja | ko
 rulers = 1               # righelli in cm attorno al foglio
 chat_side = sinistra     # chat AI: sinistra | destra
 chat_width = 0.55        # larghezza della chat (frazione della finestra)
@@ -235,6 +239,8 @@ src/ui/backstage.rs pagina File (Nuovo, Apri, Salva, Esporta, Condividi, Informa
 src/ui/options.rs File › Opzioni, scorciatoie, finestre di aiuto
 src/ui/library_view.rs  interfaccia: archivio con anteprime
 src/export.rs     PDF / SVG / PNG
+src/i18n.rs       lingue: il testo italiano è la chiave, tabelle in src/i18n/<codice>.json
+                  (l'inglese fa da riserva), src/web/i18n.js le applica alle pagine web
 src/web.rs        diretta web (HTTP + Server-Sent Events), pagine in src/web/ (index.html, chat.html, appunti.html, impostazioni.html)
 src/ocr.rs        trascrizione (agenti AI oppure Apple Vision)
 src/ai.rs         agenti AI: ai.toml, catena di riserva, streaming, strumenti, contesto della chat

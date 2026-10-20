@@ -3,6 +3,7 @@
 //! Ogni comando ha un posto solo: il pad sta nella spia in alto a destra,
 //! condivisione ed export nel pulsante «Condividi», l'aiuto in «?» / File.
 
+use crate::i18n;
 use super::chrome::menu_item;
 use super::doc_view::DocAction;
 use super::theme::{medium, regular, Tokens};
@@ -64,7 +65,7 @@ impl App {
                 if menu_item(ui, true, ic::HIGHLIGHTER, "Solo le evidenziature", "Shift+H") {
                     actions.push(Action::ClearHighlights);
                 }
-                ui.label(egui::RichText::new("Una sola evidenziatura: Alt+clic sopra").weak().small());
+                ui.label(egui::RichText::new(i18n::t("Una sola evidenziatura: Alt+clic sopra")).weak().small());
             });
         });
         group(ui, "Colore", |ui| {
@@ -82,7 +83,7 @@ impl App {
                     }
                     p.circle_filled(rect.center(), 9.0, col);
                     p.circle_stroke(rect.center(), 9.0, Stroke::new(1.0, egui::Color32::from_gray(140)));
-                    if resp.on_hover_text(format!("{name} ({})", n + 1)).clicked() {
+                    if resp.on_hover_text(format!("{} ({})", i18n::tr(name), n + 1)).clicked() {
                         actions.push(Action::Color(*c));
                     }
                     if n % 3 == 2 {
@@ -104,7 +105,7 @@ impl App {
                 let (r, _) = ui.allocate_exact_size(vec2(84.0, 22.0), Sense::hover());
                 let col = egui::Color32::from_rgb(pen.color[0], pen.color[1], pen.color[2]);
                 ui.painter().line_segment([pos2(r.min.x + 6.0, r.center().y), pos2(r.min.x + 40.0, r.center().y)], Stroke::new(pen.width.clamp(0.6, 9.0), col));
-                ui.painter().text(pos2(r.min.x + 46.0, r.center().y), Align2::LEFT_CENTER, format!("{:.1}", pen.width), regular(11.5), t.text_dim);
+                ui.painter().text(pos2(r.min.x + 46.0, r.center().y), Align2::LEFT_CENTER, i18n::tf(format!("{:.1}", pen.width)), regular(11.5), t.text_dim);
             });
         });
         group(ui, "Foglio", |ui| {
@@ -129,7 +130,7 @@ impl App {
                 for (title, group) in super::paper::Paper::GROUPS {
                     ui.separator();
                     ui.add_space(2.0);
-                    ui.label(egui::RichText::new(title).font(medium(11.0)).color(Tokens::get(ui.ctx()).text_dim));
+                    ui.label(egui::RichText::new(i18n::tr(&title).into_owned()).font(medium(11.0)).color(Tokens::get(ui.ctx()).text_dim));
                     for &p in group {
                         if menu_item(ui, true, radio(p), p.label(), "") {
                             actions.push(Action::Paper(p));
@@ -164,7 +165,7 @@ impl App {
                 if big(ui, ic::CHECK_CIRCLE, "Salva\nfirma", "Conserva la firma scritta sul pad").clicked() {
                     actions.push(doc(DocAction::SaveCapture));
                 }
-                if big(ui, ic::X_CIRCLE, "Annulla", "Torna al foglio senza registrare").clicked() {
+                if big(ui, ic::X_CIRCLE, &crate::i18n::tc("cancel", "Annulla"), "Torna al foglio senza registrare").clicked() {
                     actions.push(doc(DocAction::CancelCapture));
                 }
             });
@@ -175,7 +176,7 @@ impl App {
                 if big(ui, ic::CHECK_CIRCLE, "Applica\nfirma", "Invio").clicked() {
                     actions.push(doc(DocAction::ApplyStamp));
                 }
-                if big(ui, ic::X_CIRCLE, "Annulla", "Esc").clicked() {
+                if big(ui, ic::X_CIRCLE, &crate::i18n::tc("cancel", "Annulla"), "Esc").clicked() {
                     actions.push(doc(DocAction::CancelStamp));
                 }
             });
@@ -222,7 +223,7 @@ impl App {
                     }
                     let t = Tokens::get(ui.ctx());
                     let (r, _) = ui.allocate_exact_size(vec2(96.0, 22.0), Sense::hover());
-                    ui.painter().text(pos2(r.min.x + 6.0, r.center().y), Align2::LEFT_CENTER, format!("Pagina {} di {n}", cur + 1), regular(11.5), t.text_dim);
+                    ui.painter().text(pos2(r.min.x + 6.0, r.center().y), Align2::LEFT_CENTER, i18n::tf(format!("Pagina {} di {n}", cur + 1)), regular(11.5), t.text_dim);
                 });
             });
         }
@@ -305,7 +306,7 @@ impl App {
                 ui,
                 if self.ocr_busy { ic::HOURGLASS } else { ic::TEXT_AA },
                 if self.ocr_busy { "Trascrivo…" } else { "Trascrivi" },
-                "Scrittura a mano → testo in Markdown, fedele al foglio. Legge un agente AI che vede le immagini: quale, in Impostazioni AI → «Chi legge il foglio» (offline: Apple Vision, in File → Opzioni)",
+                "Scrittura a mano → testo in Markdown, fedele al foglio. Legge un agente AI che vede le immagini: quale, in Impostazioni AI → «Lettura dei fogli (OCR)» (offline: Apple Vision, in File → Opzioni)",
                 !self.ocr_busy,
                 false,
                 false,

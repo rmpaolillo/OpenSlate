@@ -4,6 +4,7 @@
 //! Disposizione ripresa da WordCraft (`backstage.rs`,
 //! https://github.com/storytold/wordcraft, MIT OR Apache-2.0).
 
+use crate::i18n;
 use super::doc_view::DocAction;
 use super::options::HelpPage;
 use super::theme::{icon, medium, regular, semibold, Tokens, APP_COLOR};
@@ -41,14 +42,14 @@ fn greeting() -> &'static str {
 
 fn heading(ui: &mut egui::Ui, s: &str) {
     let t = Tokens::get(ui.ctx());
-    ui.label(egui::RichText::new(s).font(semibold(24.0)).color(t.text));
+    ui.label(egui::RichText::new(i18n::tr(&s).into_owned()).font(semibold(24.0)).color(t.text));
     ui.add_space(14.0);
 }
 
 fn subheading(ui: &mut egui::Ui, s: &str) {
     let t = Tokens::get(ui.ctx());
     ui.add_space(10.0);
-    ui.label(egui::RichText::new(s).font(semibold(14.0)).color(t.text));
+    ui.label(egui::RichText::new(i18n::tr(&s).into_owned()).font(semibold(14.0)).color(t.text));
     ui.add_space(6.0);
 }
 
@@ -61,9 +62,9 @@ fn card(ui: &mut egui::Ui, glyph: &str, title: &str, sub: &str, enabled: bool) -
     ui.painter().rect(r, 6.0, fill, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
     let (ic_c, tx, sx) = if enabled { (t.accent_text, t.text, t.text_dim) } else { (t.text_disabled, t.text_disabled, t.text_disabled) };
     ui.painter().text(pos2(r.min.x + 30.0, r.center().y), Align2::CENTER_CENTER, glyph, icon(24.0), ic_c);
-    ui.painter().text(pos2(r.min.x + 58.0, r.min.y + 19.0), Align2::LEFT_CENTER, title, semibold(13.5), tx);
+    ui.painter().text(pos2(r.min.x + 58.0, r.min.y + 19.0), Align2::LEFT_CENTER, i18n::tr(&title).into_owned(), semibold(13.5), tx);
     let clip = ui.painter().with_clip_rect(r.shrink(4.0));
-    clip.text(pos2(r.min.x + 58.0, r.min.y + 40.0), Align2::LEFT_CENTER, sub, regular(11.5), sx);
+    clip.text(pos2(r.min.x + 58.0, r.min.y + 40.0), Align2::LEFT_CENTER, i18n::tr(&sub).into_owned(), regular(11.5), sx);
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, title));
     ui.add_space(6.0);
     enabled && resp.clicked()
@@ -80,7 +81,7 @@ fn tile(ui: &mut egui::Ui, glyph: &str, label: &str, blank: bool) -> bool {
     ui.painter().rect_filled(page.translate(vec2(0.0, 2.0)), 3.0, t.page_shadow);
     ui.painter().rect(page, 3.0, if blank { Color32::WHITE } else { t.input }, Stroke::new(1.0, if resp.hovered() { t.accent } else { t.border_strong }), egui::StrokeKind::Inside);
     ui.painter().text(page.center(), Align2::CENTER_CENTER, glyph, icon(34.0), if blank { Color32::from_gray(190) } else { t.accent_text });
-    ui.painter().text(pos2(r.center().x, page.max.y + 15.0), Align2::CENTER_CENTER, label, medium(12.0), t.text);
+    ui.painter().text(pos2(r.center().x, page.max.y + 15.0), Align2::CENTER_CENTER, i18n::tr(&label).into_owned(), medium(12.0), t.text);
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
     resp.clicked()
 }
@@ -101,7 +102,7 @@ impl App {
                     ui.painter().rect_filled(r, 0.0, Color32::from_white_alpha(26));
                 }
                 ui.painter().text(pos2(r.min.x + 26.0, r.center().y), Align2::CENTER_CENTER, ic::ARROW_CIRCLE_LEFT, icon(22.0), Color32::WHITE);
-                if back.on_hover_text("Torna al foglio (Esc)").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                if back.on_hover_text(i18n::t("Torna al foglio (Esc)")).clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                     actions.push(Action::Backstage(None));
                 }
                 ui.add_space(6.0);
@@ -115,7 +116,7 @@ impl App {
                     if !glyph.is_empty() {
                         ui.painter().text(pos2(r.min.x + 31.0, r.center().y), Align2::CENTER_CENTER, glyph, icon(18.0), Color32::WHITE);
                     }
-                    ui.painter().text(pos2(r.min.x + 52.0, r.center().y), Align2::LEFT_CENTER, label, font, Color32::WHITE);
+                    ui.painter().text(pos2(r.min.x + 52.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&label).into_owned(), font, Color32::WHITE);
                     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
                     resp.clicked()
                 };
@@ -188,7 +189,7 @@ impl App {
         let t = Tokens::get(ui.ctx());
         let recent = crate::document::list();
         if recent.is_empty() {
-            ui.label(egui::RichText::new("Nessun documento aperto finora. Apri un PDF o un file Word da firmare: lo ritrovi qui.").color(t.text_dim));
+            ui.label(egui::RichText::new(i18n::t("Nessun documento aperto finora. Apri un PDF o un file Word da firmare: lo ritrovi qui.")).color(t.text_dim));
             return;
         }
         let w = ui.available_width().min(720.0);
@@ -202,12 +203,12 @@ impl App {
             ui.painter().with_clip_rect(r.shrink(2.0)).text(
                 pos2(r.min.x + 40.0, r.center().y),
                 Align2::LEFT_CENTER,
-                if open { format!("{}  (aperto)", d.title) } else { d.title.clone() },
+                i18n::tr(&if open { format!("{}  (aperto)", d.title) } else { d.title.clone() }).into_owned(),
                 medium(13.0),
                 t.text,
             );
-            ui.painter().text(pos2(r.max.x - 10.0, r.center().y), Align2::RIGHT_CENTER, d.created.get(..16).unwrap_or(&d.created).replace('T', " "), regular(11.5), t.text_dim);
-            if resp.on_hover_text("Apri sulla lavagna").clicked() {
+            ui.painter().text(pos2(r.max.x - 10.0, r.center().y), Align2::RIGHT_CENTER, i18n::tr(&d.created.get(..16).unwrap_or(&d.created).replace('T', " ")).into_owned(), regular(11.5), t.text_dim);
+            if resp.on_hover_text(i18n::t("Apri sulla lavagna")).clicked() {
                 actions.push(Action::SetMode(Mode::Board));
                 actions.push(Action::Doc(DocAction::OpenRecent(d.id.clone())));
                 actions.push(Action::Backstage(None));
@@ -228,7 +229,7 @@ impl App {
         self.new_tiles(ui, actions);
         ui.add_space(8.0);
         let t = Tokens::get(ui.ctx());
-        ui.label(egui::RichText::new("«Lavagna vuota» pulisce il foglio (Cmd+Z per tornare indietro). Salva prima nell'archivio se vuoi conservarlo.").color(t.text_dim));
+        ui.label(egui::RichText::new(i18n::t("«Lavagna vuota» pulisce il foglio (Cmd+Z per tornare indietro). Salva prima nell'archivio se vuoi conservarlo.")).color(t.text_dim));
     }
 
     fn bs_open(&self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
@@ -279,13 +280,13 @@ impl App {
             ui.painter().text(r.center(), Align2::CENTER_CENTER, ic::PEN_NIB, icon(36.0), Color32::WHITE);
             ui.add_space(10.0);
             ui.vertical(|ui| {
-                ui.label(egui::RichText::new("OpenSlate").font(semibold(20.0)).color(t.text));
-                ui.label(egui::RichText::new(format!("OpenSlate {} — licenza {}", env!("CARGO_PKG_VERSION"), env!("CARGO_PKG_LICENSE"))).color(t.text_dim));
-                ui.label(egui::RichText::new(env!("CARGO_PKG_AUTHORS")).color(t.text_dim));
+                ui.label(egui::RichText::new(i18n::t("OpenSlate")).font(semibold(20.0)).color(t.text));
+                ui.label(egui::RichText::new(i18n::tf(format!("OpenSlate {} — licenza {}", env!("CARGO_PKG_VERSION"), env!("CARGO_PKG_LICENSE")))).color(t.text_dim));
+                ui.label(egui::RichText::new(i18n::tr(&env!("CARGO_PKG_AUTHORS")).into_owned()).color(t.text_dim));
             });
         });
         ui.add_space(12.0);
-        ui.label("App libera per Wacom Bamboo Slate: lavagna in diretta, documenti da firmare, archivio, trascrizione della scrittura a mano e chat AI.");
+        ui.label(i18n::t("App libera per Wacom Bamboo Slate: lavagna in diretta, documenti da firmare, archivio, trascrizione della scrittura a mano e chat AI."));
         subheading(ui, "Aiuto");
         if card(ui, ic::KEYBOARD, "Scorciatoie da tastiera", "Tutti i tasti dell'app", true) {
             actions.push(Action::ShowHelp(HelpPage::Tasti));
@@ -306,7 +307,7 @@ impl App {
             "Carattere Inter di Rasmus Andersson (SIL Open Font License 1.1). Icone Phosphor (MIT).",
             "Formule: KaTeX (MIT). Markdown: marked (MIT). Interfaccia: egui (MIT / Apache-2.0).",
         ] {
-            ui.label(egui::RichText::new(line).color(t.text_dim));
+            ui.label(egui::RichText::new(i18n::tr(&line).into_owned()).color(t.text_dim));
         }
     }
 }

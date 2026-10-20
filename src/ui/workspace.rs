@@ -2,6 +2,7 @@
 //! modificabile come in Typora), la chat AI nel riquadro a destra, le
 //! impostazioni AI al centro; la barra «Slate non collegato» con i passi.
 
+use crate::i18n;
 use super::chrome::Tab;
 use super::embed::{js_str, Slot};
 use super::theme::{icon, medium, regular, semibold, Tokens};
@@ -197,7 +198,7 @@ impl App {
             };
             let painter = ctx.layer_painter(egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("wsr_chat_drag")));
             let text = format!("{glyph}  {name}  →  chat AI");
-            let galley = painter.layout_no_wrap(text, medium(12.0), t.text);
+            let galley = painter.layout_no_wrap(i18n::tf(text), medium(12.0), t.text);
             let r = egui::Rect::from_min_size(p + vec2(14.0, 12.0), galley.size() + vec2(18.0, 10.0));
             painter.rect(r, 6.0, t.menu, Stroke::new(1.0, t.border_strong), egui::StrokeKind::Inside);
             painter.galley(r.min + vec2(9.0, 5.0), galley, t.text);
@@ -246,7 +247,7 @@ impl App {
                 let r = ui.max_rect();
                 ui.allocate_rect(r, Sense::hover());
                 if !self.embeds.has(Slot::Chat) {
-                    ui.painter().text(r.center(), Align2::CENTER_CENTER, "Apro la chat…", regular(12.0), t.text_dim);
+                    ui.painter().text(r.center(), Align2::CENTER_CENTER, i18n::t("Apro la chat…"), regular(12.0), t.text_dim);
                 }
                 r
             });
@@ -285,7 +286,7 @@ impl App {
             ui.allocate_rect(r, Sense::hover());
             if !self.embeds.has(slot) {
                 let msg = self.embeds.failed.clone().map(|e| format!("Pagina non disponibile: {e}")).unwrap_or_else(|| "Apro…".into());
-                ui.painter().text(r.center(), Align2::CENTER_CENTER, msg, regular(12.5), t.text_dim);
+                ui.painter().text(r.center(), Align2::CENTER_CENTER, i18n::tr(&msg).into_owned(), regular(12.5), t.text_dim);
             }
             r
         });
@@ -353,12 +354,12 @@ impl App {
                     ui.horizontal_centered(|ui| {
                         ui.spacing_mut().item_spacing.x = 8.0;
                         ui.label(egui::RichText::new(ic::BLUETOOTH).font(icon(14.0)).color(t.accent_text));
-                        ui.label(egui::RichText::new("Slate non collegato: premi il pulsante rotondo del pad, poi «Collega».").font(regular(11.5)).color(t.text));
+                        ui.label(egui::RichText::new(i18n::t("Slate non collegato: premi il pulsante rotondo del pad, poi «Collega».")).font(regular(11.5)).color(t.text));
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             if super::widgets::icon_button(ui, ic::X, "Nascondi (torna se lo Slate si scollega)", vec2(20.0, 20.0), true).clicked() {
                                 self.banner_hidden = true;
                             }
-                            if ui.small_button(format!("{}  Collega", ic::BLUETOOTH)).clicked() {
+                            if ui.small_button(i18n::tf(format!("{}  Collega", ic::BLUETOOTH))).clicked() {
                                 actions.push(Action::Connect);
                             }
                         });
@@ -383,14 +384,14 @@ impl App {
                         ui.set_width(text_w);
                         ui.spacing_mut().item_spacing.y = 1.0;
                         if connecting {
-                            ui.add(egui::Label::new(egui::RichText::new("Collegamento allo Slate in corso…  Se il LED del pad è spento, premi una volta il pulsante rotondo.").font(medium(12.0)).color(t.text)).wrap());
+                            ui.add(egui::Label::new(egui::RichText::new(i18n::t("Collegamento allo Slate in corso…  Se il LED del pad è spento, premi una volta il pulsante rotondo.")).font(medium(12.0)).color(t.text)).wrap());
                         } else {
-                            ui.label(egui::RichText::new("Lo Slate non è collegato.").font(semibold(12.5)).color(t.text));
+                            ui.label(egui::RichText::new(i18n::t("Lo Slate non è collegato.")).font(semibold(12.5)).color(t.text));
                             ui.add(
                                 egui::Label::new(
                                     egui::RichText::new(
-                                        "1) Premi una volta il pulsante rotondo del pad (il LED si accende).  2) Clic su «Collega».  \
-                                         Prima volta, o dopo Inkspace: tieni premuto il pulsante ~6 s finché il LED lampeggia blu, poi «Collega» e premi il pulsante quando richiesto.",
+                                        i18n::t("1) Premi una volta il pulsante rotondo del pad (il LED si accende).  2) Clic su «Collega».  \
+                                         Prima volta, o dopo Inkspace: tieni premuto il pulsante ~6 s finché il LED lampeggia blu, poi «Collega» e premi il pulsante quando richiesto."),
                                     )
                                     .font(regular(11.5))
                                     .color(t.text_dim),
@@ -404,10 +405,10 @@ impl App {
                             self.banner_hidden = true;
                         }
                         if !connecting {
-                            if ui.button("Come si collega").clicked() {
+                            if ui.button(i18n::t("Come si collega")).clicked() {
                                 actions.push(Action::ShowHelp(super::options::HelpPage::Collegamento));
                             }
-                            let b = egui::Button::new(egui::RichText::new(format!("{}  Collega", ic::BLUETOOTH)).color(t.on_accent)).fill(t.accent);
+                            let b = egui::Button::new(egui::RichText::new(i18n::tf(format!("{}  Collega", ic::BLUETOOTH))).color(t.on_accent)).fill(t.accent);
                             if ui.add(b).clicked() {
                                 actions.push(Action::Connect);
                             }
@@ -500,6 +501,8 @@ impl App {
     pub(super) fn web_tabs(&self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
         let t = Tokens::get(ui.ctx());
         let mut tab = |ui: &mut egui::Ui, on: bool, glyph: &str, text: &str, close: Action, open: Action| {
+            let text = i18n::tr(text);
+            let text: &str = &text;
             let font = if on { semibold(12.0) } else { medium(12.0) };
             let tw = ui.painter().layout_no_wrap(text.to_string(), font.clone(), t.text).size().x;
             let (r, resp) = ui.allocate_exact_size(vec2(tw + 60.0, 27.0), Sense::click());
@@ -511,14 +514,14 @@ impl App {
                 ui.painter().rect_filled(r, round, t.hover);
             }
             ui.painter().text(pos2(r.min.x + 16.0, r.center().y), Align2::CENTER_CENTER, glyph, icon(14.0), if on { t.accent_text } else { t.text_dim });
-            ui.painter().text(pos2(r.min.x + 28.0, r.center().y), Align2::LEFT_CENTER, text, font, if on { t.text } else { t.text_dim });
+            ui.painter().text(pos2(r.min.x + 28.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&text).into_owned(), font, if on { t.text } else { t.text_dim });
             let x = egui::Rect::from_center_size(pos2(r.max.x - 14.0, r.center().y), vec2(18.0, 18.0));
             let xr = ui.interact(x, resp.id.with("close"), Sense::click());
             if xr.hovered() {
                 ui.painter().rect_filled(x, 4.0, t.pressed);
             }
             ui.painter().text(x.center(), Align2::CENTER_CENTER, ic::X, icon(12.0), t.text_dim);
-            if xr.on_hover_text("Chiudi").clicked() {
+            if xr.on_hover_text(i18n::t("Chiudi")).clicked() {
                 actions.push(close);
             } else if resp.clicked() && !on {
                 actions.push(open);

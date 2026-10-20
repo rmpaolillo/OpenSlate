@@ -22,6 +22,7 @@ mod widgets;
 mod workspace;
 mod zoom;
 
+use crate::i18n;
 use zoom::{ZoomOp, ZoomView};
 
 use crate::actor::{ble_actor, Link, OcrDone, PadDrawing, UiCmd, UiEvent};
@@ -65,6 +66,7 @@ pub fn run_app(
         std::env::set_var("WACOM_CAPTURE", "captures/gui.log");
     }
     let settings = Settings::load();
+    crate::i18n::set_lang(crate::i18n::resolve(&settings.ui_lang));
     let thumb_size = settings.thumb_size;
     let hub = Hub::new(Scene::new(&settings));
 
@@ -119,6 +121,7 @@ pub fn run_app(
         web_starting: false,
         last_ocr_md: None,
         board_from: None,
+        lang_changed: false,
         ocr_busy: false,
         page_pending: None,
         mouse_erase_last: None,
@@ -288,6 +291,8 @@ struct App {
     last_ocr_md: Option<String>,
     /// Titolo della pagina dell'archivio portata sulla lavagna (per la chat).
     board_from: Option<String>,
+    /// Lingua cambiata nelle Opzioni: caratteri e pagine web da rifare.
+    lang_changed: bool,
     ocr_busy: bool,
     /// Pagina da aprire appena parte il server web (es. "chat", "appunti?f=…").
     page_pending: Option<String>,
@@ -611,22 +616,22 @@ fn zoom_keys(ctx: &egui::Context) -> Option<ZoomOp> {
 
 /// Pulsanti dello zoom: − 100% + Adatta.
 fn zoom_controls(ui: &mut egui::Ui, zv: &ZoomView, actions: &mut Vec<Action>) {
-    if ui.button(ic::MAGNIFYING_GLASS_MINUS).on_hover_text("Riduci (Cmd −, rotella)").clicked() {
+    if ui.button(ic::MAGNIFYING_GLASS_MINUS).on_hover_text(i18n::t("Riduci (Cmd −, rotella)")).clicked() {
         actions.push(Action::Zoom(ZoomOp::Out));
     }
     if ui
-        .add(egui::Button::new(zv.label()).frame(false))
-        .on_hover_text("Clic: pagina intera (Cmd 0)")
+        .add(egui::Button::new(i18n::tr(&zv.label()).into_owned()).frame(false))
+        .on_hover_text(i18n::t("Clic: pagina intera (Cmd 0)"))
         .clicked()
     {
         actions.push(Action::Zoom(ZoomOp::Fit));
     }
-    if ui.button(ic::MAGNIFYING_GLASS_PLUS).on_hover_text("Ingrandisci (Cmd +, rotella)").clicked() {
+    if ui.button(ic::MAGNIFYING_GLASS_PLUS).on_hover_text(i18n::t("Ingrandisci (Cmd +, rotella)")).clicked() {
         actions.push(Action::Zoom(ZoomOp::In));
     }
     if ui
         .add_enabled(!zv.is_fit(), egui::Button::new(ic::ARROWS_IN))
-        .on_hover_text("Pagina intera (Cmd 0, doppio clic)")
+        .on_hover_text(i18n::t("Pagina intera (Cmd 0, doppio clic)"))
         .clicked()
     {
         actions.push(Action::Zoom(ZoomOp::Fit));
@@ -1763,7 +1768,7 @@ impl App {
                     }
                     let pos = egui::pos2(page.left().max(rect.left()) + 10.0, page.top().max(rect.top()) + 10.0);
                     let text = format!("{} GOMMA", ic::ERASER);
-                    let galley = painter.layout_no_wrap(text, egui::FontId::proportional(18.0), egui::Color32::WHITE);
+                    let galley = painter.layout_no_wrap(i18n::tf(text), egui::FontId::proportional(18.0), egui::Color32::WHITE);
                     let r = egui::Rect::from_min_size(pos, galley.size()).expand2(egui::vec2(10.0, 5.0));
                     painter.rect_filled(r, 6.0, egui::Color32::from_rgb(200, 60, 40));
                     painter.galley(pos, galley, egui::Color32::WHITE);
@@ -1771,7 +1776,7 @@ impl App {
                     // etichetta ben visibile (anche a schermo intero e sulla TV)
                     let pos = egui::pos2(page.left().max(rect.left()) + 10.0, page.top().max(rect.top()) + 10.0);
                     let text = format!("{} EVIDENZIATORE", ic::HIGHLIGHTER);
-                    let galley = painter.layout_no_wrap(text, egui::FontId::proportional(18.0), egui::Color32::BLACK);
+                    let galley = painter.layout_no_wrap(i18n::tf(text), egui::FontId::proportional(18.0), egui::Color32::BLACK);
                     let r = egui::Rect::from_min_size(pos, galley.size()).expand2(egui::vec2(10.0, 5.0));
                     painter.rect_filled(r, 6.0, egui::Color32::from_rgb(255, 225, 60));
                     painter.galley(pos, galley, egui::Color32::BLACK);
@@ -1792,6 +1797,13 @@ impl eframe::App for App {
     fn ui(&mut self, root: &mut egui::Ui, frame: &mut eframe::Frame) {
         let ctx_owned = root.ctx().clone();
         let ctx = &ctx_owned;
+        if std::mem::take(&mut self.lang_changed) {
+            // caratteri (cinese, giapponese, coreano) e pagine nella nuova lingua
+            ctx.set_fonts(theme::fonts());
+            for slot in [embed::Slot::Chat, embed::Slot::Note, embed::Slot::Settings] {
+                self.embeds.eval(slot, "location.reload()");
+            }
+        }
         self.drain_events();
         self.doc_tick(ctx);
         if let Some(n) = self.hub.lock().last_erased.take() {
@@ -1895,10 +1907,10 @@ impl eframe::App for App {
 fn mac_menu() -> Option<muda::Menu> {
     use muda::{Menu, PredefinedMenuItem, Submenu};
     let menu = Menu::new();
-    let app = Submenu::new("OpenSlate", true);
-    let edit = Submenu::new("Modifica", true);
+    let app = Submenu::new(i18n::t("OpenSlate"), true);
+    let edit = Submenu::new(i18n::t("Modifica"), true);
     app.append_items(&[
-        &PredefinedMenuItem::about(Some("Informazioni su OpenSlate"), None),
+        &PredefinedMenuItem::about(Some(crate::i18n::t("Informazioni su OpenSlate")), None),
         &PredefinedMenuItem::separator(),
         &PredefinedMenuItem::hide(None),
         &PredefinedMenuItem::hide_others(None),
@@ -1914,7 +1926,7 @@ fn mac_menu() -> Option<muda::Menu> {
         &PredefinedMenuItem::select_all(None),
     ])
     .ok()?;
-    let window = Submenu::new("Finestra", true);
+    let window = Submenu::new(i18n::t("Finestra"), true);
     window
         .append_items(&[&PredefinedMenuItem::minimize(None), &PredefinedMenuItem::maximize(None), &PredefinedMenuItem::fullscreen(None)])
         .ok()?;

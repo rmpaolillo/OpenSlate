@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="it">
 <head>
+<script src="i18n.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Chat AI — OpenSlate</title>
@@ -296,14 +297,14 @@ function renderMd(src, settled = true) {
 function when(t) {
   if (!t) return "";
   const d = new Date(t), now = new Date(), diff = (now - d) / 1000;
-  if (diff < 60) return "adesso";
-  if (diff < 3600) return Math.floor(diff / 60) + " min fa";
-  if (d.toDateString() === now.toDateString()) return "oggi " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+  if (diff < 60) return T("adesso");
+  if (diff < 3600) return T("{} min fa", Math.floor(diff / 60));
+  if (d.toDateString() === now.toDateString()) return T("oggi {}", d.toLocaleTimeString(I18N_DATE, { hour: "2-digit", minute: "2-digit" }));
   const y = new Date(now); y.setDate(now.getDate() - 1);
-  if (d.toDateString() === y.toDateString()) return "ieri";
-  return d.toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+  if (d.toDateString() === y.toDateString()) return T("ieri");
+  return d.toLocaleDateString(I18N_DATE, { day: "numeric", month: "short" });
 }
-const fmt1 = (n) => n.toLocaleString("it-IT", { maximumFractionDigits: 1 });
+const fmt1 = (n) => n.toLocaleString(I18N_DATE, { maximumFractionDigits: 1 });
 
 // ---------------- conversazioni sul Mac ----------------
 const newId = () => "c-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
@@ -393,7 +394,7 @@ function drawList() {
     const g = document.createElement("div");
     g.className = "grp" + (closed[k] && !f ? " closed" : "");
     g.innerHTML = "<div class='grp-h'><span class='car'>" + ic("down") + "</span><span class='k'></span><span class='n'></span></div><div class='items'></div>";
-    g.querySelector(".k").textContent = k.toUpperCase();
+    g.querySelector(".k").textContent = (k === "Fissate" || k === "Conversazioni" ? T(k) : k).toUpperCase();
     g.querySelector(".n").textContent = groups.get(k).length;
     g.querySelector(".grp-h").onclick = () => { closed[k] = !closed[k]; ls.set("ws-closed", closed); g.classList.toggle("closed"); };
     for (const c of groups.get(k)) g.querySelector(".items").appendChild(itemEl(c));
@@ -406,7 +407,7 @@ function itemEl(c) {
   d.innerHTML = "<span class='pick'>" + ic("check") + "</span><div class='t'></div><div class='d'></div>" +
     "<span class='acts'><button class='ib del' title='Elimina la chat'>" + ic("trash") + "</button><button class='ib more' title='Altro'>" + ic("dots") + "</button></span>";
   d.querySelector(".t").textContent = c.title || "Nuova chat";
-  d.querySelector(".d").textContent = when(c.updated) + " · " + c.count + " msg" + (c.page ? " · " + c.page : "");
+  d.querySelector(".d").textContent = when(c.updated) + " · " + T("{} msg", c.count) + (c.page ? " · " + c.page : "");
   d.onclick = (e) => {
     if (e.target.closest("input") || e.target.closest("button")) return;
     if (selecting) { picked.has(c.id) ? picked.delete(c.id) : picked.add(c.id); d.classList.toggle("picked", picked.has(c.id)); drawSelbar(); return; }
@@ -557,14 +558,14 @@ function providerLabel() {
   return p ? p.name + (p.model ? " · " + p.model : "") : cur.provider;
 }
 function drawBar() {
-  $("title").value = cur.title;
+  $("title").value = cur.title === "Nuova chat" ? T("Nuova chat") : cur.title;
   $("projchip").textContent = cur.project ? cur.project : "nessun progetto";
   $("modelbtn").innerHTML = ic("sparkle") + "<span></span>" + ic("down");
   $("modelbtn").querySelector("span").textContent = providerLabel();
-  document.title = cur.title + " — Chat AI";
+  document.title = tr(cur.title) + " — " + T("Chat AI");
   toApp({ cmd: "chat_title", title: cur.title });
 }
-$("title").onchange = () => { cur.title = $("title").value.trim() || "Nuova chat"; saveSoon(); drawBar(); };
+$("title").onchange = () => { const v = $("title").value.trim(); cur.title = !v || v === T("Nuova chat") ? "Nuova chat" : v; saveSoon(); drawBar(); };
 $("title").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("title").blur(); q.focus(); } };
 $("projchip").onclick = () => {
   const chip = $("projchip");
@@ -639,13 +640,11 @@ function emptyEl() {
     s.push({ t: "Riordina l'appunto", q: "Riordina l'appunto: titoli, paragrafi ed elenchi puliti, senza cambiare il contenuto né correggere gli errori." });
     s.push({ t: "Aggiungi un riassunto all'appunto", q: "Scrivi in fondo all'appunto un breve riassunto (titolo «Riassunto») del suo contenuto." });
   }
-  for (const x of s) { const b = document.createElement("button"); b.textContent = x.t; b.title = x.q || ""; b.onclick = () => { if (x.fn) return x.fn(); q.value = x.q; grow(); submit(); }; d.querySelector(".sugg").appendChild(b); }
+  for (const x of s) { const b = document.createElement("button"); b.textContent = x.t; b.title = x.q || ""; b.onclick = () => { if (x.fn) return x.fn(); q.value = T(x.q); grow(); submit(); }; d.querySelector(".sugg").appendChild(b); }
   return d;
 }
 // «Controlla il foglio»: l'AI rilegge quello che è scritto, qualunque cosa sia
-const CHECK = "Rileggi con attenzione quello che ho scritto nella pagina allegata e controllalo. Segnala con precisione gli errori " +
-  "(ortografia e grammatica, nomi, date e dati, calcoli, ragionamento) e i punti poco chiari: per ciascuno dimmi dov'è, perché non va " +
-  "e come correggerlo. Se è tutto a posto dimmelo in breve. Non riscrivere tutto se non serve.";
+const CHECK = T("Rileggi con attenzione quello che ho scritto nella pagina allegata e controllalo. Segnala con precisione gli errori (ortografia e grammatica, nomi, date e dati, calcoli, ragionamento) e i punti poco chiari: per ciascuno dimmi dov'è, perché non va e come correggerlo. Se è tutto a posto dimmelo in breve. Non riscrivere tutto se non serve.");
 const toolIcon = (label) => /cerco|ricerca/i.test(label) ? "search" : /pagina|leggo la/i.test(label) ? "globe" : /appunto/i.test(label) ? "pen" : /iva/i.test(label) ? "check" : "tool";
 // Righe compatte: ragionamento, agenti saltati, strumenti (clic per i dettagli).
 // Le righe aperte restano aperte anche mentre il modello scrive (la riga si
@@ -684,7 +683,7 @@ function stepsEl(m, live) {
     box.appendChild(r);
   }
   for (const n of m.notes || []) box.appendChild(row("skip", "redo", "Saltato: " + n, "", "", false));
-  for (const t of m.tools || []) box.appendChild(row("tool", toolIcon(t.label), t.label, t.result ? (t.result.length > 40 ? t.result.slice(0, 40) + "…" : t.result) : "", t.result && t.result.length > 40 ? t.result : "", !t.result));
+  for (const t of m.tools || []) box.appendChild(row("tool", toolIcon(t.key || t.label), t.label, t.result ? (t.result.length > 40 ? t.result.slice(0, 40) + "…" : t.result) : "", t.result && t.result.length > 40 ? t.result : "", !t.result));
   return box.children.length ? box : null;
 }
 function pillsEl(m) {
@@ -692,7 +691,7 @@ function pillsEl(m) {
   const d = document.createElement("span");
   d.className = "pills";
   const add = (t, title) => { const p = document.createElement("span"); p.className = "pill"; p.textContent = t; p.title = title; d.appendChild(p); };
-  if (s.out) add("↓ " + s.out.toLocaleString("it-IT") + " token", "Token della risposta" + (s.exact ? "" : " (stima)"));
+  if (s.out) add("↓ " + s.out.toLocaleString(I18N_DATE) + " token", "Token della risposta" + (s.exact ? "" : " (stima)"));
   if (s.out && s.genMs > 300) add(fmt1(s.out / (s.genMs / 1000)) + " tok/s", "Velocità di scrittura");
   if (s.ttft) add(fmt1(s.ttft / 1000) + " s al primo token", "Attesa prima della risposta");
   if (s.total) add(fmt1(s.total / 1000) + " s", "Durata totale");
@@ -751,7 +750,7 @@ async function appendToNote(md) {
     const r = await fetch("api/appunti/" + encodeURIComponent(noteName), { cache: "no-store" });
     const old = r.ok ? await r.text() : "";
     await fetch("api/appunti/" + encodeURIComponent(noteName), { method: "POST", body: old.trimEnd() + (old.trim() ? "\n\n" : "") + md.trim() + "\n" });
-    toApp({ cmd: "note_reload" }); toApp({ cmd: "status", text: "Risposta aggiunta all'appunto «" + noteName + "»." });
+    toApp({ cmd: "note_reload" }); toApp({ cmd: "status", text: T("Risposta aggiunta all'appunto «{}».", noteName) });
   } catch (e) {}
 }
 
@@ -825,10 +824,11 @@ async function send(text) {
         if (ev.t === "try") { m.by = ev.provider + " · " + ev.model; name.textContent = m.by; if (ev.context) { meter.max = ev.context; drawMeter(); } }
         else if (ev.t === "skip") { m.notes.push(ev.provider + ": " + ev.why); steps(); }
         else if (ev.t === "think") { if (!tThink) tThink = performance.now(); m.think += ev.text; m.thinkMs = performance.now() - tThink; steps(); }
-        else if (ev.t === "tool") { m.tools.push({ label: ev.label, result: "" }); steps(); }
+        else if (ev.t === "tool") { m.tools.push({ label: ev.label, key: ev.key || ev.label, result: "" }); steps(); }
         else if (ev.t === "tooldone") {
-          const t = [...m.tools].reverse().find((x) => x.label === ev.label && !x.result); if (t) t.result = ev.result || "✓"; steps();
-          if (/appunto/i.test(ev.label) && !/leggo/i.test(ev.label)) toApp({ cmd: "note_reload" });
+          const k = ev.key || ev.label;
+          const t = [...m.tools].reverse().find((x) => (x.key || x.label) === k && !x.result); if (t) t.result = ev.result || "✓"; steps();
+          if (/appunto/i.test(k) && !/leggo/i.test(k)) toApp({ cmd: "note_reload" });
         }
         else if (ev.t === "delta") { if (!tFirst) tFirst = performance.now(); if (m.think && tThink && !m.thinkDone) { m.thinkDone = true; m.thinkMs = performance.now() - tThink; steps(); } m.content += ev.text; if (!pending) { pending = true; requestAnimationFrame(paint); } }
         else if (ev.t === "usage") { usage = ev; meter.max = ev.max || meter.max; }
@@ -1040,7 +1040,7 @@ async function compact(auto) {
     if (!j.ok) throw new Error(j.error || "errore");
     const n = older.reduce((a, m) => a + (m.n || 1), 0);
     cur.messages = [{ role: "summary", content: j.summary, by: j.provider + " · " + j.model, n,
-      at: new Date().toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" }) }].concat(msgs.slice(cut));
+      at: new Date().toLocaleString(I18N_DATE, { dateStyle: "short", timeStyle: "short" }) }].concat(msgs.slice(cut));
     meter.last = null;
     saveSoon(); drawLog(); drawMeter();
     const note = document.createElement("div");
@@ -1103,7 +1103,7 @@ async function pollContext() {
 // ---------------- salva in Markdown ----------------
 async function exportMd() {
   if (!cur.messages.length) return;
-  let md = "# " + cur.title + "\n\n_" + new Date().toLocaleString("it-IT") + (cur.project ? " · progetto: " + cur.project : "") + "_\n\n";
+  let md = "# " + cur.title + "\n\n_" + new Date().toLocaleString(I18N_DATE) + (cur.project ? " · " + T("progetto: {}", cur.project) : "") + "_\n\n";
   if (cur.page && cur.page.markdown) md += "## Pagina: " + cur.page.title + "\n\n" + cur.page.markdown + "\n\n---\n\n";
   for (const m of cur.messages) {
     md += (m.role === "user" ? "**Tu:**" : m.role === "summary" ? "**Riassunto della conversazione precedente:**" : "**AI" + (m.by ? " (" + m.by + ")" : "") + ":**") + "\n\n" + m.content + "\n\n";

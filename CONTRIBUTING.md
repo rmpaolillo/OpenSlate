@@ -23,6 +23,19 @@ cargo test
 
 The code and its comments are mostly in Italian; English is fine in issues and pull requests.
 
+## Translations
+
+The interface text is written in Italian in the code, and that text is the key. Each language
+has a table in `src/i18n/<code>.json` (`en`, `es`, `fr`, `de`, `uk`, `zh`, `ja`, `ko`) that maps
+the Italian text to the translation; English is the fallback for anything missing. Placeholders
+such as `{}` or `{n}` must stay the same, and `cargo test` checks that every table has the same
+keys and placeholders as `en.json`.
+
+- **New or changed text**: add the Italian string as a key to every table.
+- **Finding untranslated text**: run with `OPENSLATE_I18N_MISSING=missing.txt cargo run -- gui`,
+  set the language in File → Options, and look at the strings collected in `missing.txt`.
+- **A new language**: add it to `Lang` in `src/i18n.rs` and to `I18N_DATE` in `src/web/i18n.js`.
+
 ## Never commit personal data
 
 No API keys, no `ai.toml`, `settings.conf`, `app_uuid.bin`, `peripheral_id`, and nothing from
