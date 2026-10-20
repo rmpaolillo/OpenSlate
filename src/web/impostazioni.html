@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Impostazioni AI — OpenSlate</title>
+<link rel="stylesheet" href="wc.css">
+<script>{ const t = new URLSearchParams(location.search).get("theme"); if (t) document.documentElement.dataset.theme = t; }</script>
+<style>
+  :root { --bg: var(--panel); --card: var(--input); --ink: var(--text); --muted: var(--text-dim); --line: var(--border);
+          --ok: var(--green); --warn: var(--red); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.5 "Inter", -apple-system, system-ui, sans-serif; }
+  header { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 10px; padding: 10px 18px;
+           background: var(--ribbon); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 15px; font-weight: 600; margin: 0 auto 0 0; }
+  #msg { font-size: 13px; }
+  #msg.ok { color: var(--ok); } #msg.err { color: var(--warn); }
+  main { max-width: 980px; margin: 0 auto; padding: 18px 16px 80px; }
+  h2 { font-size: 15px; margin: 26px 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  button.small { font-size: 12px; padding: 2px 8px; }
+  button:disabled { opacity: .45; cursor: default; }
+  input, select { min-width: 0; }
+  input[type=checkbox] { width: auto; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 6px; margin-bottom: 10px; }
+  .card.off { opacity: .6; }
+  .head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .head .num { font-weight: 700; color: var(--muted); width: 22px; }
+  .head .name { font-weight: 600; flex: 1; min-width: 160px; }
+  .badge { font-size: 12px; padding: 1px 8px; border-radius: 10px; background: var(--hover); color: var(--muted); }
+  .badge.ok { color: var(--ok); } .badge.no { color: var(--warn); }
+  .grid { display: grid; grid-template-columns: 170px 1fr; gap: 8px 12px; padding: 12px 14px; align-items: center; }
+  .grid label.l { color: var(--muted); font-size: 13px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row > input[type=text], .row > input[type=url], .row > input[type=password] { flex: 1; min-width: 160px; }
+  .hint { color: var(--muted); font-size: 12px; }
+  .checks { display: flex; gap: 14px; flex-wrap: wrap; font-size: 14px; }
+  .checks label { display: flex; gap: 5px; align-items: center; }
+  .result { font-size: 13px; padding: 0 14px 10px; }
+  .result:empty { display: none; }
+  .result.ok { color: var(--ok); } .result.err { color: var(--warn); white-space: pre-wrap; }
+  details.more summary { cursor: pointer; color: var(--muted); font-size: 13px; padding: 0 14px 10px; }
+  .addbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  input[type=range] { flex: 1; }
+  @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Impostazioni AI</h1>
+  <span id="msg"></span>
+  <button id="back">Torna alla chat</button>
+  <button id="save" class="primary">Salva</button>
+</header>
+<main>
+  <h2>Agenti</h2>
+  <p class="sub">Qualsiasi servizio con API <b>in formato OpenAI</b> (LM Studio, MTPLX, Ollama, DeepSeek, Gemini, Claude, OpenRouter…).
+    Si provano <b>in ordine</b>: se il primo non risponde si passa al successivo. Le frecce cambiano l'ordine.</p>
+  <div id="providers"></div>
+  <div class="addbar">
+    <select id="preset">
+      <option value="custom">Nuovo agente (indirizzo a scelta)</option>
+      <option value="lmstudio">LM Studio</option>
+      <option value="ollama">Ollama</option>
+      <option value="mtplx">MTPLX</option>
+      <option value="deepseek">DeepSeek</option>
+      <option value="gemini">Google Gemini</option>
+      <option value="claude">Anthropic Claude</option>
+      <option value="openrouter">OpenRouter</option>
+    </select>
+    <button id="add">Aggiungi</button>
+  </div>
+
+  <h2>Chat: contesto e compattazione</h2>
+  <p class="sub">Quando la conversazione arriva vicino al contesto massimo del modello, la parte vecchia viene riassunta (compattata)
+    prima di mandare la domanda. Si può anche compattare a mano con il pulsante «Compatta» della chat.</p>
+  <div class="card"><div class="grid">
+    <label class="l" for="cat">Compatta da sola al</label>
+    <div class="row"><input type="range" id="cat" min="0" max="95" step="5"><b id="catv"></b></div>
+    <label class="l" for="keep">Messaggi tenuti interi</label>
+    <div class="row"><input type="number" id="keep" min="0" max="20" style="width:90px"><span class="hint">gli ultimi messaggi restano parola per parola, il resto diventa un riassunto</span></div>
+  </div></div>
+
+  <h2>Ricerca web della chat</h2>
+  <p class="sub">Ricerca in rete e lettura pagine con l'API DeepSeek (0,75 $ ogni 1000 ricerche); verifica partite IVA (VIES, gratis).</p>
+  <div class="card" id="webcard"></div>
+
+  <p class="hint" id="path"></p>
+</main>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+let cfg = null, newKeys = {}, webNewKey = "", isMac = true;
+const HIDDEN = "__CHIAVE_IN_CHIARO__";
+const PRESETS = {
+  custom: { name: "Nuovo agente", url: "http://", context: 0 },
+  lmstudio: { name: "LM Studio", url: "http://localhost:1234/v1", context: 0, timeout_s: 300 },
+  ollama: { name: "Ollama", url: "http://localhost:11434/v1", context: 0, timeout_s: 300 },
+  mtplx: { name: "MTPLX", url: "http://localhost:8000/v1", context: 131072, all_vision: true, key: "dsh:MTPLX_API_KEY", timeout_s: 900 },
+  deepseek: { name: "DeepSeek", url: "https://api.deepseek.com/v1", model: "deepseek-flash", vision: false, context: 131072, key: "dsh:DEEPSEEK_API_KEY" },
+  gemini: { name: "Google Gemini", url: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-3.8-flash", context: 1048576, key: "keychain:GEMINI_API_KEY" },
+  claude: { name: "Anthropic Claude", url: "https://api.anthropic.com/v1", model: "claude-sonnet-4-6", context: 200000, no_temperature: true, max_tokens: 8192, key: "keychain:ANTHROPIC_API_KEY" },
+  openrouter: { name: "OpenRouter", url: "https://openrouter.ai/api/v1", model: "", context: 0, key: "keychain:OPENROUTER_API_KEY" },
+};
+const BASE = { name: "", url: "", model: "", vision_model: "", vision: true, key: "", enabled: true, timeout_s: 180,
+               temperature: null, no_temperature: false, max_tokens: null, all_vision: false, tools: true, context: 0 };
+const CTX_PRESETS = [[0, "automatico"], [8192, "8K"], [32768, "32K"], [65536, "64K"], [131072, "128K"], [200000, "200K"], [262144, "256K"], [1048576, "1M"]];
+
+function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function fmtK(n) { return n >= 1048576 ? (n / 1048576) + "M" : n >= 1000 ? Math.round(n / 1024) + "K" : String(n); }
+function touch() { setMsg("Modifiche non salvate", ""); }
+function setMsg(t, cls) { $("msg").textContent = t; $("msg").className = cls || ""; }
+
+// --- chiave: tipo + nome <-> "dsh:NOME | env:NOME …" ---
+function parseKey(spec) {
+  spec = (spec || "").trim();
+  if (!spec) return { mode: "none", name: "" };
+  if (spec === HIDDEN) return { mode: "hidden", name: "" };
+  const alts = spec.split("|").map((a) => a.trim()).filter(Boolean);
+  if (alts.length === 1) {
+    for (const m of ["dsh", "keychain", "env"]) if (alts[0].startsWith(m + ":")) return { mode: m, name: alts[0].slice(m.length + 1) };
+  }
+  return { mode: "advanced", name: spec };
+}
+function buildKey(mode, name) {
+  name = (name || "").trim();
+  if (mode === "none") return "";
+  if (mode === "hidden") return HIDDEN;
+  if (mode === "advanced") return name;
+  return name ? mode + ":" + name : "";
+}
+function keyEditor(spec, ok, onChange, onNewKey) {
+  const k = parseKey(spec);
+  const d = document.createElement("div");
+  d.innerHTML = `<div class="row">
+      <select class="km">
+        <option value="none">Nessuna chiave (server di casa)</option>
+        <option value="dsh">Da DeepSeek Harness</option>
+        <option value="keychain">Portachiavi di macOS</option>
+        <option value="env">Variabile d'ambiente</option>
+        <option value="advanced">Più fonti (avanzata, con |)</option>
+        ${k.mode === "hidden" ? '<option value="hidden">Scritta in chiaro nel file (nascosta)</option>' : ""}
+      </select>
+      <input type="text" class="kn" placeholder="nome, es. DEEPSEEK_API_KEY">
+      <span class="badge ${k.mode === "none" ? "" : ok ? "ok" : "no"}">${k.mode === "none" ? "—" : ok ? "chiave trovata" : "non trovata"}</span>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <input type="password" class="nk" placeholder="${isMac ? "oppure incolla qui una chiave nuova: andrà nel Portachiavi" : "chiave nuova (solo su macOS)"}" autocomplete="off" ${isMac ? "" : "disabled"}>
+    </div>`;
+  const km = d.querySelector(".km"), kn = d.querySelector(".kn"), nk = d.querySelector(".nk");
+  km.value = k.mode; kn.value = k.name;
+  const sync = () => { kn.style.display = km.value === "none" || km.value === "hidden" ? "none" : ""; };
+  sync();
+  km.onchange = () => { sync(); onChange(buildKey(km.value, kn.value)); touch(); };
+  kn.oninput = () => { onChange(buildKey(km.value, kn.value)); touch(); };
+  nk.oninput = () => { onNewKey(nk.value); touch(); };
+  return d;
+}
+
+// --- agenti ---
+function drawProviders() {
+  const box = $("providers");
+  box.innerHTML = "";
+  cfg.providers.forEach((p, i) => box.appendChild(providerCard(p, i)));
+}
+function providerCard(p, i) {
+  const c = document.createElement("div");
+  c.className = "card" + (p.enabled ? "" : " off");
+  c.innerHTML = `
+    <div class="head">
+      <span class="num">${i + 1}.</span>
+      <input type="checkbox" class="en" title="Attivo">
+      <input type="text" class="name nm" title="Nome">
+      <button class="small up" title="Prima">↑</button>
+      <button class="small down" title="Dopo">↓</button>
+      <button class="small test">Prova</button>
+      <button class="small del" title="Togli">Togli</button>
+    </div>
+    <div class="grid">
+      <label class="l">Indirizzo API (OpenAI)</label>
+      <div class="row"><input type="url" class="url" placeholder="http://localhost:1234/v1"></div>
+      <label class="l">Modello</label>
+      <div class="row"><input type="text" class="model" placeholder="vuoto = scelto da solo fra quelli caricati" list="ml${i}">
+        <button class="small list">Leggi modelli</button></div>
+      <label class="l">Contesto massimo</label>
+      <div class="row"><input type="number" class="ctx" min="0" step="1024" style="width:130px">
+        <span class="hint">token</span><select class="ctxp"></select><span class="hint ctxh"></span></div>
+      <label class="l">Chiave</label>
+      <div class="key"></div>
+      <label class="l">Opzioni</label>
+      <div class="checks">
+        <label><input type="checkbox" class="vision"> legge le immagini</label>
+        <label><input type="checkbox" class="tools"> ricerca web</label>
+      </div>
+    </div>
+    <details class="more"><summary>Altro: modello per le immagini, attesa, lunghezza risposta…</summary>
+      <div class="grid">
+        <label class="l">Modello per le immagini</label>
+        <div class="row"><input type="text" class="vmodel" placeholder="vuoto = lo stesso" list="ml${i}"></div>
+        <label class="l">Attesa massima</label>
+        <div class="row"><input type="number" class="timeout" min="5" style="width:110px"><span class="hint">secondi</span></div>
+        <label class="l">Lunghezza risposta</label>
+        <div class="row"><input type="number" class="maxtok" min="0" placeholder="del modello" style="width:130px"><span class="hint">token (max_tokens)</span></div>
+        <label class="l">Avanzate</label>
+        <div class="checks">
+          <label><input type="checkbox" class="allv"> ogni modello del server legge immagini</label>
+          <label><input type="checkbox" class="notemp"> non mandare la temperatura (Claude)</label>
+        </div>
+      </div>
+    </details>
+    <datalist id="ml${i}"></datalist>
+    <div class="result"></div>`;
+  const q = (s) => c.querySelector(s);
+  const bind = (sel, key, get = (e) => e.value, set = (e, v) => (e.value = v ?? "")) => {
+    const e = q(sel); set(e, p[key]);
+    e.addEventListener(e.type === "checkbox" ? "change" : "input", () => {
+      p[key] = get(e); touch();
+      if (key === "enabled") c.classList.toggle("off", !p.enabled);
+      if (key === "context") q(".ctxh").textContent = ctxHint(p.context);
+    });
+  };
+  const chk = [(e) => e.checked, (e, v) => (e.checked = !!v)];
+  const num = (e) => (e.value === "" ? 0 : Math.max(0, parseInt(e.value, 10) || 0));
+  bind(".en", "enabled", ...chk);
+  bind(".nm", "name");
+  bind(".url", "url", (e) => e.value.trim());
+  bind(".model", "model", (e) => e.value.trim());
+  bind(".vmodel", "vision_model", (e) => e.value.trim());
+  bind(".ctx", "context", num);
+  bind(".vision", "vision", ...chk);
+  bind(".tools", "tools", ...chk);
+  bind(".allv", "all_vision", ...chk);
+  bind(".notemp", "no_temperature", ...chk);
+  bind(".timeout", "timeout_s", (e) => Math.max(5, parseInt(e.value, 10) || 180));
+  bind(".maxtok", "max_tokens", (e) => (e.value === "" || +e.value === 0 ? null : parseInt(e.value, 10)));
+  const ctxp = q(".ctxp");
+  ctxp.innerHTML = "<option value=''>valori tipici…</option>" + CTX_PRESETS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
+  ctxp.onchange = () => {
+    if (ctxp.value !== "") { p.context = +ctxp.value; q(".ctx").value = p.context; q(".ctxh").textContent = ctxHint(p.context); touch(); }
+    ctxp.value = "";
+  };
+  q(".ctxh").textContent = ctxHint(p.context);
+  q(".key").appendChild(keyEditor(p.key, p.key_ok, (k) => (p.key = k), (nk) => (newKeys[i] = nk)));
+  q(".up").disabled = i === 0;
+  q(".down").disabled = i === cfg.providers.length - 1;
+  q(".del").disabled = cfg.providers.length === 1;
+  q(".up").onclick = () => move(i, -1);
+  q(".down").onclick = () => move(i, 1);
+  q(".del").onclick = () => { cfg.providers.splice(i, 1); shiftKeys(i); touch(); drawProviders(); };
+  const res = q(".result");
+  const payload = () => JSON.stringify({ provider: p, new_key: newKeys[i] || "" });
+  q(".test").onclick = async () => {
+    res.className = "result"; res.textContent = "Provo…";
+    const j = await (await fetch("api/config/test", { method: "POST", body: payload() })).json();
+    if (j.ok) { res.className = "result ok"; res.textContent = `✓ Risponde: ${j.model} in ${(j.ms / 1000).toFixed(1)} s · contesto ${j.context ? fmtK(j.context) : "?"} · «${j.text}»`; }
+    else { res.className = "result err"; res.textContent = "✗ " + j.error; }
+  };
+  q(".list").onclick = async () => {
+    res.className = "result"; res.textContent = "Leggo i modelli…";
+    const j = await (await fetch("api/config/models", { method: "POST", body: payload() })).json();
+    if (!j.ok) { res.className = "result err"; res.textContent = "✗ " + j.error; return; }
+    q("#ml" + i).innerHTML = j.models.map((m) => `<option value="${esc(m.id)}">${m.context ? fmtK(m.context) : ""}</option>`).join("");
+    res.className = "result ok";
+    res.innerHTML = j.models.length ? "Modelli: " + j.models.map((m) => `<a href="#" data-id="${esc(m.id)}" data-ctx="${m.context || 0}">${esc(m.id)}</a>${m.context ? " (" + fmtK(m.context) + ")" : ""}`).join(", ")
+      + " <span class='hint'>— clic per sceglierlo</span>" : "Nessun modello caricato.";
+    res.querySelectorAll("a").forEach((a) => (a.onclick = (e) => {
+      e.preventDefault();
+      p.model = a.dataset.id; q(".model").value = p.model;
+      if (+a.dataset.ctx) { p.context = +a.dataset.ctx; q(".ctx").value = p.context; q(".ctxh").textContent = ctxHint(p.context); }
+      touch();
+    }));
+  };
+  return c;
+}
+function ctxHint(n) { return n ? "≈ " + fmtK(n) : "da /models se il modello è automatico, altrimenti 32K"; }
+function shiftKeys(removed) {
+  const nk = {};
+  for (const [k, v] of Object.entries(newKeys)) { const n = +k; if (n < removed) nk[n] = v; else if (n > removed) nk[n - 1] = v; }
+  newKeys = nk;
+}
+function move(i, d) {
+  const j = i + d;
+  [cfg.providers[i], cfg.providers[j]] = [cfg.providers[j], cfg.providers[i]];
+  const a = newKeys[i], b = newKeys[j];
+  delete newKeys[i]; delete newKeys[j];
+  if (b !== undefined) newKeys[i] = b;
+  if (a !== undefined) newKeys[j] = a;
+  touch(); drawProviders();
+}
+$("add").onclick = () => {
+  const pr = PRESETS[$("preset").value];
+  cfg.providers.push({ ...BASE, ...pr, key_ok: false });
+  touch(); drawProviders();
+  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+};
+
+// --- chat e ricerca web ---
+function drawOthers() {
+  const showCat = () => ($("catv").textContent = cfg.chat.compact_at ? cfg.chat.compact_at + "% del contesto" : "mai");
+  $("cat").value = cfg.chat.compact_at; showCat();
+  $("cat").oninput = () => { cfg.chat.compact_at = +$("cat").value; showCat(); touch(); };
+  $("keep").value = cfg.chat.keep_recent;
+  $("keep").oninput = () => { cfg.chat.keep_recent = Math.max(0, parseInt($("keep").value, 10) || 0); touch(); };
+  const w = cfg.web, box = $("webcard");
+  box.innerHTML = `<div class="grid">
+    <label class="l">Attiva</label><div class="checks"><label><input type="checkbox" class="wen"> la chat può cercare in rete</label></div>
+    <label class="l">Risultati per ricerca</label><div class="row"><input type="number" class="wcount" min="1" max="50" style="width:90px"><span class="hint">1-50 (il costo è per ricerca)</span></div>
+    <label class="l">Lingua</label><div class="row"><input type="text" class="wlang" placeholder="vuoto = tutte; it = solo italiano" style="width:220px"></div>
+    <label class="l">Chiave DeepSeek</label><div class="wkey"></div></div>`;
+  const q = (s) => box.querySelector(s);
+  q(".wen").checked = w.enabled; q(".wen").onchange = () => { w.enabled = q(".wen").checked; touch(); };
+  q(".wcount").value = w.count; q(".wcount").oninput = () => { w.count = Math.min(50, Math.max(1, parseInt(q(".wcount").value, 10) || 10)); touch(); };
+  q(".wlang").value = w.lang; q(".wlang").oninput = () => { w.lang = q(".wlang").value.trim(); touch(); };
+  q(".wkey").appendChild(keyEditor(w.key, w.key_ok, (k) => (w.key = k), (nk) => (webNewKey = nk)));
+}
+
+async function load() {
+  const c = await (await fetch("api/config", { cache: "no-store" })).json();
+  if (!c.ok) { setMsg("⚠ " + c.error, "err"); return; }
+  cfg = { providers: c.providers.map((p) => ({ ...BASE, ...p })), chat: c.chat, web: c.web };
+  isMac = c.keychain; newKeys = {}; webNewKey = "";
+  $("path").textContent = "File: " + c.path + " (la versione precedente resta in " + c.path + ".bak)";
+  drawProviders(); drawOthers();
+}
+$("save").onclick = async () => {
+  const strip = (o) => { const x = { ...o }; delete x.key_ok; return x; };
+  const body = { config: { providers: cfg.providers.map(strip), chat: cfg.chat, web: strip(cfg.web) }, new_keys: newKeys, web_new_key: webNewKey };
+  setMsg("Salvo…");
+  const j = await (await fetch("api/config", { method: "POST", body: JSON.stringify(body) })).json();
+  if (j.ok) { await load(); setMsg("Salvato ✓ (vale subito, senza riavviare)", "ok"); toApp({ cmd: "config_saved" }); }
+  else setMsg("⚠ " + j.error, "err");
+};
+// dentro l'app la pagina è una scheda: «Chiudi» la chiude
+const embedded = new URLSearchParams(location.search).get("embed") === "1" && !!window.ipc;
+function toApp(m) { try { window.ipc && window.ipc.postMessage(JSON.stringify(m)); } catch (e) {} }
+if (embedded) $("back").textContent = "Chiudi";
+$("back").onclick = () => { if (embedded) toApp({ cmd: "close_settings" }); else location.href = "chat" + location.search; };
+addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); $("save").click(); } });
+load();
+</script>
+</body>
+</html>

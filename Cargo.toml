@@ -1,0 +1,101 @@
+[package]
+name = "openslate"
+version = "0.1.0"
+edition = "2021"
+authors = ["Marco Paolillo"]
+description = "Free, open-source companion app for the Wacom Bamboo Slate"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/rmpaolillo/OpenSlate"
+homepage = "https://github.com/rmpaolillo/OpenSlate"
+readme = "README.md"
+keywords = ["wacom", "bamboo-slate", "smartpad", "handwriting", "egui"]
+categories = ["gui", "hardware-support"]
+# I motori di WordCraft e PdfCraft (documenti Word e PDF) chiedono Rust 1.95
+rust-version = "1.95"
+publish = false
+
+[dependencies]
+# BLE cross-platform (su macOS usa CoreBluetooth, su Linux BlueZ/DBus, su Windows WinRT)
+btleplug = "0.11"
+uuid = "1"
+futures = "0.3"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "signal", "net", "io-util"] }
+
+# GUI nativa (eframe re-esporta egui come eframe::egui)
+eframe = "0.36"
+# Icone per i pulsanti (font Phosphor)
+egui-phosphor = "0.14"
+
+# CLI + utility
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+thiserror = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+chrono = "0.4"
+
+# Export PNG (rasterizzazione dei tratti, anche per l'OCR)
+tiny-skia = "0.11"
+# OCR via modello con visione (API compatibile OpenAI)
+ureq = { version = "2", features = ["json"] }
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+base64 = "0.22"
+# Configurazione dei provider AI (ai.toml)
+toml = "0.8"
+# Immagine negli appunti (Copia immagine → incolla in una chat AI)
+arboard = "3"
+# Documenti: lettura/scrittura PDF (firma sovrapposta), dialogo file, Markdown
+lopdf = { version = "0.34", default-features = false, features = ["nom_parser"] }
+rfd = "0.14"
+pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
+# Documenti Word (.docx, .doc, .odt, .rtf): pagine e firma col motore di WordCraft
+# (MIT OR Apache-2.0, © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
+wordcraft-engine = { git = "https://github.com/storytold/wordcraft", rev = "117aea31a8e61bd3e306e9210800cdc42897e3c1" }
+# PDF: il disegno nitido delle pagine col motore di PdfCraft (MIT OR Apache-2.0,
+# © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
+pdfcraft-render = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
+# Chat e appunti dentro la finestra (WebView di sistema: WKWebView su macOS)
+wry = "0.57"
+tao = "0.37"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+
+# macOS: menu Modifica (Cmd+C / Cmd+V nella finestra «Appunti»)
+[target.'cfg(target_os = "macos")'.dependencies]
+muda = { version = "0.17", default-features = false }
+
+# Linux (X11): le WebView dentro la finestra usano GTK, che va fatto girare
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+
+# Le correzioni a librerie esterne che usano WordCraft e PdfCraft (le loro [patch]
+# valgono solo nei loro progetti: qui vanno ripetute).
+[patch.crates-io]
+krilla = { git = "https://github.com/storytold/craft-libs", rev = "c3487320b2d1de657b860b3c8abb44e1f2b32bd8" }
+hayro-interpret = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
+hayro = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
+hayro-syntax = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
+hayro-jbig2 = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
+lopdf = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
+vello_common = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
+
+# Pacchetto .deb (Linux), fatto dalla CI con cargo-deb
+[package.metadata.deb]
+name = "openslate"
+maintainer = "Marco Paolillo"
+copyright = "2026, Marco Paolillo"
+license-file = ["LICENSE", "0"]
+extended-description = "Free companion app for the Wacom Bamboo Slate: live board over Bluetooth, offline page sync, signing Word and PDF documents with the pen, handwriting transcription to Markdown + LaTeX and an AI chat."
+section = "graphics"
+priority = "optional"
+depends = "$auto, bluez"
+assets = [
+    ["target/release/openslate", "usr/bin/", "755"],
+    ["packaging/linux/openslate.desktop", "usr/share/applications/", "644"],
+    ["assets/icon/openslate-256.png", "usr/share/icons/hicolor/256x256/apps/openslate.png", "644"],
+    ["assets/icon/openslate-512.png", "usr/share/icons/hicolor/512x512/apps/openslate.png", "644"],
+    ["README.md", "usr/share/doc/openslate/README.md", "644"],
+]

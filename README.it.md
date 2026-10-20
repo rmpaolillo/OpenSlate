@@ -1,0 +1,265 @@
+# OpenSlate
+
+*[English](README.md) · Italiano*
+
+App **libera, in Rust e modificabile** per il **Wacom Bamboo Slate** (famiglia SmartPad).
+Non è un prodotto Wacom e non è collegata a Wacom.
+Il protocollo Bluetooth è una traduzione fedele di [Tuhi](https://github.com/tuhiproject/tuhi) (GPL).
+
+## Cosa fa
+
+L'interfaccia è **in stile Word**, ripresa da [WordCraft](https://github.com/storytold/wordcraft)
+(stessi colori, carattere Inter, misure della barra multifunzione, righelli, barra di stato):
+
+Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le scorciatoie):
+
+- **Barra del titolo**: a sinistra accesso rapido (Salva, Annulla, Ripeti), al centro il nome del
+  foglio o del documento, a destra **«Cerca comandi»** (`Cmd+F` / `Cmd+K`: scrivi «esporta»,
+  «firma», «zoom»… e `Invio`), **«Chat AI»** (apre e chiude il riquadro della chat), **«?»**
+  (aiuto, anche `F1`) e la **spia dello Slate**, che è la casa del pad: **verde** collegato (piena
+  = in diretta), **arancio lampeggiante** mentre si collega, **rossa** scollegato. Un clic apre il
+  menu: Collega, diretta, scarica le pagine, batteria e firmware, «Come si collega», opzioni del
+  pennino. Su macOS la barra sta accanto ai semafori della finestra.
+- **Quattro schede**: **File** apre la pagina a tutta finestra come in Word (Home con i documenti
+  recenti, Nuovo, Apri, Salva, **Aiuto e info**, **Opzioni** `Cmd+,`; `Esc` per tornare), poi
+  **Home** (penna, evidenziatore, gomma, pulisci, colori, spessore, righe e quadretti, salva),
+  **Documento** (apri, recenti, chiudi, pagine, **registra e inserisci la firma**, salva PDF),
+  **Visualizza** (righelli, zoom, ruota e specchia, schermo intero), **AI** (trascrivi, appunti,
+  correggi i passaggi, discuti il foglio o il documento, impostazioni AI). Doppio clic su una
+  scheda nasconde la barra (e la rimostra). Con un appunto aperto compare la scheda «Appunto», nella
+  vista Archivio la scheda «Archivio». A destra: **Lavagna | Archivio** e il pulsante blu
+  **Condividi** (diretta web, copia come immagine `Cmd+C`, esporta in PDF / PNG / SVG, cartella
+  degli export).
+- **Tema chiaro/scuro**, lato della chat, rigatura di serie e opzioni del pennino stanno in
+  **File → Opzioni**.
+- **Il foglio** sta su un tavolo grigio con l'ombra, con i **righelli in centimetri** (si
+  nascondono da Visualizza o dal pulsante righello in basso); sopra il foglio, una scheda per ogni
+  file aperto con la ✕ per chiuderlo.
+- **Barra di stato**: pagina, numero di tratti, strumento, messaggi; a destra righelli, schermo
+  intero e lo **zoom** (−, cursore, +, percentuale: clic = pagina intera).
+- **Slate non collegato**: sotto la barra compare una striscia gialla con i passi (premi il pulsante
+  del pad, poi «Collega»; la prima volta tieni premuto ~6 s finché il LED lampeggia blu) e il
+  pulsante **Collega**. Sparisce appena lo Slate è collegato.
+- **Tutto in una finestra**: appunti, chat AI e impostazioni AI non aprono altre finestre.
+- **Opzioni** (File › Opzioni): aspetto (tema, righelli), penna ed evidenziatore, pad e foglio,
+  diretta web, trascrizione e AI, archivio ed export, avanzate; «Applica» o «OK».
+
+| Funzione | Come |
+|---|---|
+| Lavagna live a tutto schermo | «Collega», poi scrivi sul pad. `F` = schermo intero (la barra sparisce), `Esc` per uscire |
+| **Firmare Word e PDF** | Apri un **.docx / .doc / .odt / .rtf** o un **.pdf** (Documento → Apri, il «+» delle schede, trascinando il file o con `gui --apri file`): le pagine compaiono sulla lavagna, con la solita barra. Scrivi e firmi col pennino; **«Salva»** (scheda Documento, o Cmd+Shift+S) scrive in `exports/` una copia **nello stesso formato**: un Word resta Word (la scrittura è inchiostro dentro il documento: la vedono Word, Pages, LibreOffice), un PDF resta PDF (tratti vettoriali sopra l'originale, testo selezionabile). L'originale non viene toccato. Le pagine si vedono nitide a ogni ingrandimento, come in un programma di videoscrittura: la parte visibile la disegnano, alla risoluzione dello schermo, il motore di [WordCraft](https://github.com/storytold/wordcraft) per i Word e quello di [PdfCraft](https://github.com/storytold/pdfcraft) per i PDF, senza le loro interfacce |
+| Documenti da firmare (altri formati) | .md, .txt, .html: le pagine diventano lo sfondo della lavagna: ci scrivi e firmi col pennino, anche in diretta web. Tutto si salva da solo in `documents/` e si riapre da «Recenti». **«Salva PDF»** scrive in `exports/` il documento con tratti e firma sopra in grafica vettoriale |
+| Zoom e gesti del trackpad (lavagna e archivio) | **Trackpad del Mac**: pizzico = zoom attorno alle dita, due dita = sposta il foglio, Cmd + due dita su/giù = zoom, **due dita che ruotano = gira il foglio di 90°** (come in Anteprima). Mouse: rotella = zoom attorno al puntatore, Shift + rotella = di lato; trascina = sposta (col tasto centrale se è attiva la gomma o l'evidenziatore); doppio clic = 200% / pagina intera. Tastiera: `Cmd +`, `Cmd −`, `Cmd 0`. In basso a destra il cursore dello zoom. Nella griglia dell'archivio il pizzico (o `Cmd +/−`) cambia la grandezza delle anteprime |
+| Evidenziatore giallo | Pulsante «Evidenziatore» o tasto `H`, oppure **dal pennino: tocco lungo**. **Anche col mouse**: tasto sinistro premuto sul foglio; **con Shift la linea è dritta**, orizzontale o verticale (col pennino resta a mano libera); col mouse il foglio si sposta col tasto centrale (punta ferma ~1 s, poi alzala) per passare da penna a evidenziatore e viceversa. È trasparente come un evidenziatore vero: il testo dei documenti sotto resta nero e leggibile (schermo, diretta web, PDF, PNG). Un'etichetta gialla sul foglio dice quando è attivo. Per togliere: Annulla, pulsante accanto a «Evidenziatore» (tutte, `Shift+H`), `Alt`+clic su una, oppure «Gomma» con l'evidenziatore attivo (toglie solo il giallo, l'inchiostro resta) |
+| Righe e quadretti | Scheda Home → «Righe e quadretti»: foglio bianco; righe (8 mm o 1 cm) e righe di 1ª, 2ª e 3ª elementare con i due margini rossi a sinistra e a destra (si possono togliere); quadretti da 5 mm (anche con margine a sinistra), 4 mm o 1 cm; carta millimetrata; piano cartesiano con gli assi numerati; puntinato; isometrica (triangoli); pentagramma; appunti Cornell (parole chiave, appunti, riassunto). Le righe delle elementari hanno misure indicative (ogni marca ha le sue). Le misure sono vere (centimetri del pad). Solo sullo schermo: le immagini per l'AI e gli export restano puliti |
+| Colori | 6 colori nella barra, oppure tasti `1`…`6` |
+| Spessore | `–` / `+` nella barra, oppure tasti `-` / `+` |
+| Gomma | Pulsante «Gomma» o tasto `E`: il pennino cancella ciò che attraversa (uno zig-zag o una passata). **Anche col mouse**: tieni premuto il tasto sinistro e passa sul foglio, cancella ciò che tocca il cerchio rosso (una passata = un solo `Cmd+Z`; per spostare il foglio, tasto centrale o trackpad). Con l'evidenziatore attivo toglie solo il giallo. Resta attiva finché la spegni; etichetta rossa GOMMA sul foglio. Lo zig-zag automatico (senza Gomma) è spento di serie perché le firme sono spesso zig-zag: si riaccende con `zigzag_auto = 1` |
+| Annulla / Ripeti | `Cmd+Z` / `Shift+Cmd+Z` (anche dopo «Pulisci» o la gomma) |
+| Foglio in una chat AI | «Copia immagine» oppure `Cmd+C`, poi `Cmd+V` nella chat. Ritaglia attorno alla scrittura (`copy_crop = 0` per il foglio intero) |
+| Export | PDF e SVG vettoriali in misura A4 reale, PNG. Tutto in `exports/` |
+| Archivio (come la libreria di Inkspace) | Scheda «Archivio»: anteprime delle pagine raggruppate per giorno. Clic = seleziona (Cmd/Shift per più pagine), doppio clic = apri a tutta finestra (frecce per sfogliare), tasto destro = menu. Rinomina, porta sulla lavagna, copia immagine, esporta (più pagine = un unico PDF), testo (OCR), elimina (va in `library/cestino`, con «Ripristina») |
+| Pagine fatte senza Mac | «Scarica dal pad»: le pagine finiscono nell'archivio, con una copia grezza in `exports/pad-raw/`. Solo dopo il salvataggio le toglie dal pad. L'archivio mostra anche quante pagine restano sul pad |
+| Scrittura → Markdown + LaTeX | «Trascrivi» (scheda AI o Appunto): un agente AI con visione legge il foglio e lo riscrive in Markdown con le formule in LaTeX (`$…$`, `$$…$$`), **fedele al foglio, errori compresi** (illeggibile = `[?]`). L'appunto (`exports/appunti-*.md`) si apre **dentro l'app, come un documento di Word**: foglio bianco, formule impaginate. Anche dall'archivio, su più pagine |
+| Appunti (come Typora, dentro l'app) | Una scheda accanto a «Lavagna». **Clic su un paragrafo o su una formula = il suo Markdown**, con l'anteprima della formula sotto; fuori = di nuovo impaginato (`Esc`). Invio su una riga vuota = paragrafo nuovo, frecce su/giù tra i paragrafi, `Cmd+B` / `Cmd+I` / `Cmd+M` (formula), `Cmd+/` tutto il Markdown, pizzico o `Cmd +/−` = zoom. Si salva da solo. Scheda **Appunto**: titoli, elenchi, grassetto, formule (in linea, su riga sua, sistema), tabella, sorgente, elenco degli appunti, copia Markdown, stampa / PDF, apri in Typora. Se l'AI (o un altro programma) cambia il file, la pagina si aggiorna e i paragrafi nuovi lampeggiano |
+| Chat AI (come DSH, aspetto WordCraft) | **Dentro la finestra, a sinistra e più larga del foglio** (pulsante «Chat AI» in alto); a sinistra o a destra si sceglie in File → Opzioni → Trascrizione e AI, la larghezza si regola trascinando il bordo e resta. **«Correggi i passaggi»** (scheda AI, o `/correggi`): l'AI controlla l'esercizio che hai svolto sul foglio, passaggio per passaggio (✓ / ✗, perché e il passaggio corretto). Conversazioni salvate in `chats/` con progetti, ricerca, fissate, rinomina. **Eliminare**: cestino accanto alla chat (al passaggio del mouse), tasto destro → Elimina, `/elimina`, oppure il cestino in alto nell'elenco per selezionarne più insieme («Tutte», «Vuote»); vanno in `chats/cestino` e per qualche secondo c'è «Annulla». **Comandi `/`**: `/nuova`, `/elimina`, `/compatta`, `/modello`, `/web`, `/pagina` (allega il foglio), `/trascrivi`, `/appunto`, `/esporta`, `/dirama`, `/impostazioni`. **Documenti nella chat**: con un documento aperto (PDF, Word…), scheda AI → «Discuti il documento» (o `/pagina` nella chat): va il testo di tutte le pagine (estratto con PDFKit; fino a ~100 mila caratteri) più l'immagine della pagina aperta con quello che ci hai scritto; i PDF scansionati mandano solo l'immagine. Il **ragionamento** del modello in una riga che si apre con un clic anche mentre il modello sta ancora pensando (lo si legge in diretta), gli **strumenti** in righe compatte (ricerca, pagine, partita IVA, appunto), per ogni risposta token, velocità, attesa e durata. Rigenera, Modifica, **Dirama** (continua in una chat nuova), **Nell'appunto**. Messaggi scritti mentre risponde = **in coda**. Scelta dell'agente e cerchietto del contesto nel riquadro di scrittura (clic: dettaglio e «Compatta adesso») |
+| L'AI scrive nell'appunto | Con un appunto aperto la chat lo vede (chip 📝 nel riquadro di scrittura, clic per escluderlo): «risolvi il sistema e scrivi la soluzione nell'appunto», «riordina l'appunto», «correggi il passaggio 3» → l'agente lo legge e lo cambia (aggiunge in fondo, sostituisce un pezzo o lo riscrive), e lo vedi subito sulla pagina. Con «Ricerca web» cerca in rete e legge pagine (API DeepSeek) e verifica partite IVA (VIES), citando le fonti |
+| Contesto della chat | Sotto la chat una barra colorata mostra quanto contesto è usato (istruzioni, pagina allegata, riassunti, conversazione, messaggio che stai scrivendo; passa il mouse per il dettaglio) e il numero «≈ 12K / 128K token · 9%» (esatto quando il server lo dice). La linea rossa è la soglia di compattazione |
+| Compattazione | Prima che il contesto si riempia (di serie all'80%) la parte vecchia della conversazione diventa un riassunto (formule, risultati, errori trovati, domande aperte) e gli ultimi messaggi restano interi; «Compatta» lo fa a mano. Il riassunto resta leggibile nella chat |
+| Impostazioni AI | Pulsante con l'ingranaggio (o «Impostazioni AI» nella chat): agenti in ordine con le frecce, indirizzo API in formato OpenAI, modello («Leggi modelli» li elenca con il loro contesto), **contesto massimo**, chiave (da DSH, Portachiavi, variabile d'ambiente, o incollata: va nel Portachiavi), «Prova». Anche la soglia di compattazione e la ricerca web. Si salva in `ai.toml` (copia della versione precedente in `ai.toml.bak`) e vale subito |
+| Agenti AI con riserva | In `ai.toml`: prima i modelli locali (LM Studio, Ollama), poi DeepSeek, Google Gemini, Anthropic Claude. Se uno non risponde si passa al successivo; la chat dice chi ha risposto e chi è stato saltato. Vedi sotto |
+| Diretta web | «Diretta web»: link da aprire nel browser della TV, del telefono o di un PC della rete di casa. Si aggiorna in tempo reale |
+| Integrazione | Pagina attuale in `http://<mac>:8080/page.pdf`, `/page.svg`, `/page.png`, `/state.json`; chat su `/chat`. Il comando `hook` parte dopo ogni file prodotto |
+
+## Avvio
+
+**Versioni pronte** (macOS, Linux, Windows sperimentale): pagina
+[Releases](https://github.com/rmpaolillo/OpenSlate/releases) — istruzioni nel [README inglese](README.md#install).
+
+Per compilare serve **Rust 1.95 o più recente** (i motori di WordCraft e PdfCraft lo chiedono): `rustup update`.
+La prima compilazione è più lunga del solito; dalla seconda torna veloce.
+
+```bash
+cargo run --release                 # interfaccia grafica
+cargo run --release -- gui --web    # interfaccia + diretta web subito attiva
+cargo run --release -- gui --demo   # prova senza pad (disegna da solo, zig-zag compreso)
+```
+
+### Connessione
+
+- **Prima volta**, o dopo aver usato Inkspace: tieni premuto il pulsante del pad ~6 s, finché
+  il LED lampeggia blu. Poi «Collega» e, quando richiesto, premi una volta il pulsante.
+- **Le altre volte** (LED verde): premi brevemente il pulsante del pad, poi «Collega».
+
+Il pad ricorda una sola app alla volta: usare Inkspace richiede di registrare di nuovo questa.
+
+### Perché l'archivio è sul Mac
+
+Il pad non lascia sfogliare le pagine al suo interno: consegna solo la più vecchia, e per avere
+la successiva bisogna toglierla. Per questo, come Inkspace, le pagine si scaricano e si gestiscono
+sul computer. Ogni pagina è un file `library/<data>.json` leggibile (tratti, colori, titolo).
+
+## Agenti AI (`ai.toml`)
+
+Si crea da solo al primo uso, con i commenti. Si rilegge a ogni richiesta: le modifiche valgono
+subito. Tutti i provider usano l'API **in formato OpenAI** (`/chat/completions`), che parlano
+anche LM Studio, MTPLX, Ollama, DeepSeek, Gemini e Claude. Vengono provati **in ordine**:
+
+1. **LM Studio** — `http://localhost:1234/v1`, sul tuo computer o su un altro della rete di
+   casa (cambia l'indirizzo). Con `model = ""` sceglie da solo il modello più grande fra quelli
+   caricati (per le immagini uno con «vl», «vision», «ocr» nel nome); quelli sotto i 3B non li usa.
+2. **Ollama** — `http://localhost:11434/v1`, come sopra.
+3. **DeepSeek** — API ufficiale, `deepseek-flash`, solo testo.
+4. **Google Gemini** — `gemini-3.8-flash`.
+5. **Anthropic Claude** — `claude-sonnet-4-6` (si può mettere `claude-opus-5-5`).
+
+Tutto si cambia dalla pagina «Impostazioni AI»; a mano: l'ordine è quello dei blocchi `[[provider]]`,
+`enabled = false` ne esclude uno, `context` è il contesto massimo in token.
+
+**Chiavi API: mai in chiaro.** Nel file c'è solo *dove* trovarle. Quelle già date a
+DeepSeek Harness si riusano con `dsh:NOME` (lette da `~/.dsh/.credentials.yaml`). Per le altre:
+
+```bash
+# Portachiavi di macOS (consigliato: vale anche aprendo l'app dal Finder)
+security add-generic-password -a "$USER" -s DEEPSEEK_API_KEY  -w 'sk-...'
+security add-generic-password -a "$USER" -s GEMINI_API_KEY    -w '...'
+security add-generic-password -a "$USER" -s ANTHROPIC_API_KEY -w 'sk-ant-...'
+# oppure variabili d'ambiente (es. in ~/.zshrc)
+export DEEPSEEK_API_KEY=sk-...
+```
+
+Un provider senza chiave viene saltato. Per controllare:
+
+```bash
+cargo run --release -- ai            # stato di ogni agente
+cargo run --release -- ai --prova    # una domanda breve a ciascuno, con i tempi
+cargo run --release -- trascrivi foto-appunti.jpg   # prova della trascrizione da riga di comando
+```
+
+La chat usa le chiavi del Mac: risponde solo a chi è nella rete di casa. Chat, appunti e
+impostazioni AI stanno dentro la finestra dell'app (WebView di sistema, servite su 127.0.0.1:
+non si vedono dalla rete); le formule le disegna KaTeX, incluso nel programma. La ricerca web costa 0,75 $ ogni 1000 ricerche sul conto DeepSeek (sezione `[web]`
+di `ai.toml`).
+
+## Impostazioni (`settings.conf`)
+
+Si crea da solo. Si modifica a mano ad app chiusa.
+
+```ini
+rot = 1                  # rotazione del foglio (0-3), anche col pulsante Ruota
+pen_color = #141414
+pen_width = 2
+zigzag_auto = 0          # zig-zag che cancella anche senza «Gomma» (sconsigliato con le firme)
+highlight_color = #ffeb5a   # evidenziatore (chiaro: sta sotto l'inchiostro)
+highlight_width = 16
+longpress_toggle = 1     # tocco lungo col pennino = penna/evidenziatore
+web_port = 8080
+web_auto = 0             # 1 = diretta web attiva all'avvio
+ocr_engine = ai          # ai (agenti di ai.toml: Markdown + LaTeX) | vision (Apple, offline, solo testo)
+ocr_langs = it-IT,en-US  # lingue per Apple Vision
+md_app = Typora          # app per «Apri in Typora»
+sync_delete = 1          # 0 = lascia i disegni sul pad (ne scarica solo il più vecchio)
+copy_crop = 1            # Copia immagine: 1 = ritaglia attorno alla scrittura
+copy_size = 1600         # Copia immagine: pixel del lato lungo
+thumb_size = 330         # Archivio: altezza anteprime (anche col cursore nella barra)
+hook =                   # es: ~/bin/send-to-crm.sh   (riceve il file come $1)
+ui_theme = sistema       # sistema | chiaro | scuro
+rulers = 1               # righelli in cm attorno al foglio
+chat_side = sinistra     # chat AI: sinistra | destra
+chat_width = 0.55        # larghezza della chat (frazione della finestra)
+paper = bianco           # bianco | righe | righe10 | elem1 | elem2 | elem3 | quadretti5 | quadretti5m | quadretti4
+                         # quadretti10 | millimetrata | cartesiano | puntinato | isometrica | pentagramma | cornell
+paper_margin = 1         # margini rossi a sinistra e a destra (solo fogli a righe)
+```
+
+Le vecchie chiavi `ocr_backend`, `ocr_url`, `ocr_model`, `ocr_key` non servono più (i modelli
+stanno in `ai.toml`) e vengono ignorate.
+
+L'OCR con Apple Vision compila un piccolo programma Swift al primo uso. Servono gli strumenti
+di Apple (`xcode-select --install`).
+
+## Riga di comando
+
+```bash
+cargo run --release -- scan            # dispositivi visibili e modalità del pad
+cargo run --release -- info            # nome, firmware, batteria, dimensioni
+cargo run --release -- register        # registrazione (LED blu)
+cargo run --release -- live [--raw]    # punti della penna nel terminale
+cargo run --release -- sync [--keep]   # scarica i disegni in exports/
+cargo run --release -- pdf exports/pad-raw/*.bin   # riconverte copie grezze in PDF
+cargo run --release -- ai [--prova]    # agenti AI configurati
+cargo run --release -- trascrivi foto.png   # immagine → Markdown + LaTeX
+```
+
+Per i documenti Word serve LibreOffice (`brew install --cask libreoffice`); senza, si usa
+`textutil` di macOS + Google Chrome. Per i Markdown serve Chrome (o LibreOffice). Le pagine si
+disegnano con PDFKit (helper Swift compilato al primo uso) o con `pdftoppm` (Poppler).
+
+Diagnosi: tutti i comandi scambiati col pad finiscono in `captures/gui.log` (o `cli.log`).
+
+## Dove stanno i dati
+
+Avviata con `cargo run` dalla cartella del progetto, l'app lavora lì. Installata, usa la cartella
+dei dati dell'utente: macOS `~/Library/Application Support/OpenSlate`, Linux
+`~/.local/share/openslate`, Windows `%APPDATA%\OpenSlate` (si cambia con `OPENSLATE_DATA`).
+
+## Struttura
+
+```
+src/protocol.rs   opcode e formato dei messaggi (Tuhi)
+src/ble.rs        Bluetooth (btleplug): ricerca, connessione, invio/ricezione
+src/device.rs     sequenze: registrazione, live, scaricamento
+src/live.rs       decodifica dei punti in tempo reale
+src/offline.rs    decodifica dei disegni salvati nel pad
+src/stroke.rs     tratti e riconoscimento dello zig-zag
+src/scene.rs      lavagna condivisa: vista, penna, annulla/ripeti
+src/actor.rs      collegamento col pad per l'interfaccia
+src/library.rs    archivio delle pagine (library/*.json)
+src/ui.rs         interfaccia (egui): lavagna, azioni
+src/ui/theme.rs   colori chiaro/scuro, carattere Inter (da WordCraft)
+src/ui/widgets.rs pulsanti grandi/piccoli e gruppi della barra (da WordCraft)
+src/ui/chrome.rs  barra del titolo, schede, barra di stato, righelli, «Cerca comandi»
+src/ui/ribbon.rs  contenuto delle schede (Home, Documento, Visualizza, AI)
+src/ui/backstage.rs pagina File (Nuovo, Apri, Salva, Esporta, Condividi, Informazioni)
+src/ui/options.rs File › Opzioni, scorciatoie, finestre di aiuto
+src/ui/library_view.rs  interfaccia: archivio con anteprime
+src/export.rs     PDF / SVG / PNG
+src/web.rs        diretta web (HTTP + Server-Sent Events), pagine in src/web/ (index.html, chat.html, appunti.html, impostazioni.html)
+src/ocr.rs        trascrizione (agenti AI oppure Apple Vision)
+src/ai.rs         agenti AI: ai.toml, catena di riserva, streaming, strumenti, contesto della chat
+src/chats.rs      conversazioni della chat (chats/*.json e pagina allegata)
+src/aiconfig.rs   pagina «Impostazioni AI» (ai.toml in JSON, prova, modelli, compattazione)
+src/tools.rs      strumenti della chat: ricerca web e pagine (DeepSeek), verifica partita IVA (VIES)
+src/viewer.rs     finestra separata con una pagina web (riserva se le pagine incorporate non partono)
+src/ui/embed.rs   pagine web dentro la finestra (WebView): appunto, chat, impostazioni AI
+src/ui/workspace.rs appunto al centro, chat a lato, barra «Slate non collegato», scheda Appunto
+src/ui/paper.rs   rigature del foglio (righe, elementari, quadretti, millimetrata, cartesiano, …)
+src/vendor.rs     KaTeX e marked inclusi (src/web/vendor)
+src/swift.rs      helper Swift per macOS (src/swift/*.swift: Vision, PDFKit)
+src/docimport.rs  documenti → PDF → immagini delle pagine
+src/wordsign.rs   documenti Word: pagine e salvataggio firmato col motore di WordCraft
+src/docrender.rs  pagine nitide a ogni zoom (WordCraft per i Word, PdfCraft per i PDF)
+src/document.rs   documenti aperti: pagine, tratti, PDF firmato
+src/pdfdoc.rs     PDF: misure delle pagine e tratti sovrapposti (lopdf)
+src/signature.rs  firma registrata
+src/ui/doc_view.rs  interfaccia: documenti e firma
+src/settings.rs   settings.conf e hook
+src/platform.rs   differenze fra sistemi: cartella dei dati, apertura dei file
+```
+
+Test: `cargo test`.
+
+## Crediti
+
+- Protocollo Bluetooth: traduzione di [Tuhi](https://github.com/tuhiproject/tuhi) (GPL).
+- Interfaccia in stile Word: ripresa da [WordCraft](https://github.com/storytold/wordcraft)
+  (© ArtCraft Team e contributori, MIT OR Apache-2.0); vedi `NOTICE`.
+- Documenti Word e PDF: il motore di [WordCraft](https://github.com/storytold/wordcraft) (crate `wordcraft-engine`)
+  e il disegno delle pagine di [PdfCraft](https://github.com/storytold/pdfcraft) (crate `pdfcraft-render`),
+  © ArtCraft Team e contributori, MIT OR Apache-2.0, usati come librerie a una versione fissa (vedi `Cargo.toml`).
+- Carattere [Inter](https://github.com/rsms/inter) (SIL OFL 1.1, `assets/fonts/OFL-Inter.txt`),
+  senza i segni dell'area privata Unicode, dove stanno le icone. Icone [Phosphor](https://phosphoricons.com) (MIT).
+- Carattere [Source Serif 4](https://github.com/adobe-fonts/source-serif) per il testo degli appunti
+  (SIL OFL 1.1, `assets/fonts/OFL-SourceSerif4.txt`).
+- Chat ispirata a [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (solo le idee: nessun codice copiato).
+- Formule [KaTeX](https://katex.org) (MIT), Markdown [marked](https://marked.js.org) (MIT).

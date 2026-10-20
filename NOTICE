@@ -1,0 +1,41 @@
+OpenSlate
+Copyright (c) 2026 Marco Paolillo. Licensed under GPL-3.0-or-later (see LICENSE).
+
+OpenSlate is an independent project. It is not affiliated with, endorsed by or supported by
+Wacom Co., Ltd. "Wacom", "Bamboo" and "Inkspace" are trademarks of their respective owners and
+are used only to describe the hardware this program works with.
+
+The OpenSlate icon (assets/icon/) was made for this project and is under the same licence.
+
+Third-party material
+--------------------
+
+- Bluetooth protocol (src/protocol.rs, src/device.rs, src/live.rs, src/offline.rs): translated from
+  Tuhi (https://github.com/tuhiproject/tuhi), GPL-2.0-or-later, by the Tuhi contributors.
+
+- User interface (src/ui/theme.rs, src/ui/widgets.rs, src/ui/chrome.rs, src/ui/backstage.rs):
+  layout, measurements, colour tokens and ruler logic adapted from WordCraft
+  (https://github.com/storytold/wordcraft, crates/ui-egui),
+  Copyright (c) 2026 ArtCraft Team and the WordCraft contributors,
+  licensed under the MIT License or the Apache License, Version 2.0, at your option.
+  The ArtCraft/WordCraft names and logos are not used.
+
+- Word and PDF documents (src/wordsign.rs, src/docrender.rs): the WordCraft engine crate
+  (wordcraft-engine, https://github.com/storytold/wordcraft) and the PdfCraft renderer crate
+  (pdfcraft-render, https://github.com/storytold/pdfcraft), used as library dependencies at a
+  fixed revision, together with the patched third-party crates they use (see [patch.crates-io]
+  in Cargo.toml).
+  Copyright (c) 2026 ArtCraft Team and the WordCraft / PdfCraft contributors,
+  licensed under the MIT License or the Apache License, Version 2.0, at your option.
+
+- Inter (assets/fonts/Inter-*.ttf), Copyright (c) 2016 The Inter Project Authors,
+  SIL Open Font License 1.1 (assets/fonts/OFL-Inter.txt). Subset with fontTools to drop the
+  Private Use Area glyphs (U+E000-F8FF), which would hide the Phosphor icons.
+
+- Source Serif 4 (assets/fonts/SourceSerif4-*.ttf), Copyright 2014-2023 Adobe, with Reserved Font
+  Name 'Source', SIL Open Font License 1.1 (assets/fonts/OFL-SourceSerif4.txt). Unmodified.
+
+- Phosphor icons (via the egui-phosphor crate), MIT.
+- KaTeX (src/web/vendor/katex), MIT. marked (src/web/vendor/marked.min.js), MIT.
+
+A full list of Rust crates with their licences and authors is in THIRD-PARTY.md.

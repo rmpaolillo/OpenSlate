@@ -1,0 +1,67 @@
+/* Aspetto comune delle pagine dell'app (chat, appunti) in stile WordCraft:
+   stessi colori dell'interfaccia egui (src/ui/theme.rs), carattere Inter.
+   Colori e misure ripresi da WordCraft (https://github.com/storytold/wordcraft,
+   MIT OR Apache-2.0). Tema: ?theme=chiaro|scuro|sistema → data-theme. */
+
+@font-face { font-family: "Inter"; src: url("vendor/inter/Inter-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("vendor/inter/Inter-Medium.ttf") format("truetype"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("vendor/inter/Inter-SemiBold.ttf") format("truetype"); font-weight: 600 700; font-display: swap; }
+
+:root {
+  --title-bar: #f0f0f0; --ribbon: #f9f9f9; --tab-strip: #f0f0f0; --canvas: #e6e6e6; --panel: #fafafa;
+  --border: #e1e1e1; --border-strong: #c8c8c8; --text: #242424; --text-dim: #616161; --text-disabled: #a8a8a8;
+  --icon: #424242; --hover: #e6e6e6; --pressed: #d6d6d6; --checked: #dde3f8; --accent: #3b5bdb; --accent-text: #2b47b5;
+  --on-accent: #ffffff; --input: #ffffff; --group-label: #707070; --menu: #ffffff; --page: #ffffff; --page-ink: #1f1f1f;
+  --page-shadow: rgba(0,0,0,.13); --red: #d13b3b; --green: #2e8b57; --orange: #e07b1f; --code: #f3f3f3;
+  --me: #eef1fb; --me-line: #d3dbf5; --sum: #f4effb; --sum-line: #ddd0f0; --think: #f6f6f6;
+  color-scheme: light;
+}
+:root[data-theme="scuro"] {
+  --title-bar: #1f1f1f; --ribbon: #292929; --tab-strip: #1f1f1f; --canvas: #141414; --panel: #262626;
+  --border: #3a3a3a; --border-strong: #555555; --text: #eeeeee; --text-dim: #c8c8c8; --text-disabled: #6a6a6a;
+  --icon: #dddddd; --hover: #3d3d3d; --pressed: #4a4a4a; --checked: #2e3a66; --accent: #7a93f0; --accent-text: #9cb0f5;
+  --on-accent: #11162e; --input: #1e1e1e; --group-label: #a0a0a0; --menu: #2b2b2b; --page-shadow: rgba(0,0,0,.45);
+  --red: #ee6a6a; --green: #5bc08a; --orange: #f0a050; --code: #222222;
+  --me: #263044; --me-line: #34446a; --sum: #2f2840; --sum-line: #4a3d66; --think: #222222;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="chiaro"]) {
+    --title-bar: #1f1f1f; --ribbon: #292929; --tab-strip: #1f1f1f; --canvas: #141414; --panel: #262626;
+    --border: #3a3a3a; --border-strong: #555555; --text: #eeeeee; --text-dim: #c8c8c8; --text-disabled: #6a6a6a;
+    --icon: #dddddd; --hover: #3d3d3d; --pressed: #4a4a4a; --checked: #2e3a66; --accent: #7a93f0; --accent-text: #9cb0f5;
+    --on-accent: #11162e; --input: #1e1e1e; --group-label: #a0a0a0; --menu: #2b2b2b; --page-shadow: rgba(0,0,0,.45);
+    --red: #ee6a6a; --green: #5bc08a; --orange: #f0a050; --code: #222222;
+    --me: #263044; --me-line: #34446a; --sum: #2f2840; --sum-line: #4a3d66; --think: #222222;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--panel); color: var(--text);
+  font: 13px/1.45 "Inter", -apple-system, system-ui, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+button { font: inherit; font-size: 12.5px; padding: 4px 10px; border: 1px solid var(--border-strong); border-radius: 4px;
+  background: var(--input); cursor: pointer; color: var(--text); }
+button:hover { background: var(--hover); }
+button:active { background: var(--pressed); }
+button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+button.primary:hover { background: var(--accent-text); }
+button.ghost { border-color: transparent; background: transparent; }
+button.ghost:hover { background: var(--hover); }
+button:disabled { color: var(--text-disabled); cursor: default; background: transparent; }
+input, select, textarea { font: inherit; color: var(--text); background: var(--input); border: 1px solid var(--border-strong); border-radius: 4px; }
+input, select { font-size: 12.5px; padding: 4px 7px; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+a { color: var(--accent-text); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-track { background: transparent; }
+.menu { position: fixed; z-index: 50; background: var(--menu); border: 1px solid var(--border-strong); border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.18); padding: 4px; min-width: 200px; }
+.menu button { display: flex; gap: 8px; width: 100%; text-align: left; border: 0; background: none; padding: 5px 10px; border-radius: 4px; }
+.menu button:hover, .menu button.sel { background: var(--hover); }
+.menu button.danger { color: var(--red); }
+.menu .k { margin-left: auto; color: var(--text-dim); font-size: 11.5px; }
+.menu .sep { height: 1px; background: var(--border); margin: 4px 2px; }
+.katex-display { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+.katex { font-size: 1.12em; }

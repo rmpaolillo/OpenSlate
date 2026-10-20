@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Lavagna live</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #cdcdcd; overflow: hidden;
+               font: 15px -apple-system, system-ui, sans-serif; }
+  canvas { display: block; position: fixed; inset: 0; width: 100vw; height: 100vh; }
+  #bar { position: fixed; top: 10px; right: 10px; display: flex; gap: 8px; align-items: center;
+         transition: opacity .6s; }
+  #bar.hidden { opacity: 0; pointer-events: none; }
+  #dot { width: 10px; height: 10px; border-radius: 50%; background: #c33; }
+  #dot.on { background: #2a2; }
+  button { font: inherit; padding: 6px 12px; border: 1px solid #999; border-radius: 6px;
+           background: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<canvas id="c"></canvas>
+<div id="bar">
+  <span id="dot" title="connessione"></span>
+  <a href="page.pdf" download><button>PDF</button></a>
+  <button id="fs">Schermo intero</button>
+</div>
+<script>
+"use strict";
+// Due livelli: sotto pagina + evidenziatori, sopra l'inchiostro (trasparente).
+const bgc = document.getElementById("bg"), bg = bgc.getContext("2d");
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+const dot = document.getElementById("dot"), bar = document.getElementById("bar");
+let page = { aw: 210, ah: 297 }, strokes = [], cur = null, R = { x: 0, y: 0, w: 1, h: 1 }, dpr = 1;
+// Documento sotto i tratti (se aperto): immagine della pagina e dove sta.
+let bgInfo = null, bgImg = null, bgKey = null;
+
+function layout() {
+  dpr = window.devicePixelRatio || 1;
+  cv.width = bgc.width = Math.round(innerWidth * dpr);
+  cv.height = bgc.height = Math.round(innerHeight * dpr);
+  const m = Math.max(6 * dpr, Math.min(cv.width, cv.height) * 0.02);
+  const s = Math.min((cv.width - 2 * m) / page.aw, (cv.height - 2 * m) / page.ah);
+  R = { w: page.aw * s, h: page.ah * s };
+  R.x = (cv.width - R.w) / 2;
+  R.y = (cv.height - R.h) / 2;
+}
+const px = (p) => [R.x + p[0] * R.w, R.y + p[1] * R.h];
+const lw = (w) => Math.min(Math.max(w * R.h / 800, 0.8 * dpr), 12 * dpr);
+
+const layer = (s) => (s.h ? bg : ctx);
+const lwOf = (s) => (s.h ? Math.max(s.w * R.h / 800, 0.8 * dpr) : lw(s.w));
+function withClip(c, f) {
+  c.save();
+  c.beginPath(); c.rect(R.x, R.y, R.w, R.h); c.clip();
+  c.lineCap = "round"; c.lineJoin = "round";
+  f(c);
+  c.restore();
+}
+function drawStroke(s) {
+  const c = layer(s);
+  // evidenziatore in "moltiplica": il testo del documento sotto resta leggibile
+  c.globalCompositeOperation = s.h ? "multiply" : "source-over";
+  c.strokeStyle = s.c; c.fillStyle = s.c; c.lineWidth = lwOf(s);
+  if (s.p.length === 1) {
+    const [x, y] = px(s.p[0]);
+    c.beginPath(); c.arc(x, y, c.lineWidth * 0.6, 0, 7); c.fill();
+    return;
+  }
+  c.beginPath();
+  s.p.forEach((p, i) => { const [x, y] = px(p); i ? c.lineTo(x, y) : c.moveTo(x, y); });
+  c.stroke();
+}
+function redraw() {
+  bg.fillStyle = "#cdcdcd"; bg.fillRect(0, 0, bgc.width, bgc.height);
+  bg.fillStyle = "#969696"; bg.fillRect(R.x + 3 * dpr, R.y + 3 * dpr, R.w, R.h);
+  bg.fillStyle = "#fff"; bg.fillRect(R.x, R.y, R.w, R.h);
+  bg.strokeStyle = "#787878"; bg.lineWidth = dpr; bg.strokeRect(R.x, R.y, R.w, R.h);
+  if (bgInfo && bgImg && bgImg.complete && bgImg.naturalWidth) {
+    const [rx, ry, rw, rh] = bgInfo.r;
+    bg.drawImage(bgImg, R.x + rx * R.w, R.y + ry * R.h, rw * R.w, rh * R.h);
+  }
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  withClip(bg, () => strokes.filter((s) => s.h).forEach(drawStroke));
+  withClip(ctx, () => strokes.filter((s) => !s.h).forEach(drawStroke));
+}
+function addPoint(u, v) {
+  const s = cur, n = s.p.length;
+  s.p.push([u, v]);
+  withClip(layer(s), (c) => {
+    c.globalCompositeOperation = s.h ? "multiply" : "source-over";
+    c.strokeStyle = s.c; c.fillStyle = s.c; c.lineWidth = lwOf(s);
+    if (n === 0) {
+      const [x, y] = px(s.p[0]);
+      c.beginPath(); c.arc(x, y, c.lineWidth * 0.5, 0, 7); c.fill();
+    } else {
+      const [x0, y0] = px(s.p[n - 1]), [x1, y1] = px(s.p[n]);
+      c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+    }
+  });
+}
+
+function connect() {
+  const es = new EventSource("events");
+  es.onopen = () => dot.classList.add("on");
+  es.onerror = () => dot.classList.remove("on");
+  es.onmessage = (e) => {
+    const m = JSON.parse(e.data);
+    if (m.t === "snap") {
+      page = { aw: m.aw, ah: m.ah };
+      bgInfo = m.bg || null;
+      if (bgInfo && bgInfo.k !== bgKey) {
+        bgKey = bgInfo.k;
+        bgImg = new Image();
+        bgImg.onload = () => redraw();
+        bgImg.src = "bg.png?k=" + encodeURIComponent(bgKey);
+      } else if (!bgInfo) { bgImg = null; bgKey = null; }
+      strokes = m.s;
+      cur = m.o && strokes.length ? strokes[strokes.length - 1] : null;
+      layout(); redraw();
+    } else if (m.t === "down") {
+      cur = { c: m.c, w: m.w, h: m.h, p: [] };
+      strokes.push(cur);
+      addPoint(m.u, m.v);
+    } else if (m.t === "move") {
+      if (cur) addPoint(m.u, m.v);
+    } else if (m.t === "up") {
+      // a fine tratto l'evidenziatura si ridisegna intera (giunture uniformi)
+      const wasHl = cur && cur.h;
+      cur = null;
+      if (wasHl) redraw();
+    }
+  };
+}
+
+addEventListener("resize", () => { layout(); redraw(); });
+document.getElementById("fs").onclick = () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen().catch(() => {});
+};
+// La barra sparisce se non si tocca nulla per qualche secondo.
+let idle;
+function wake() {
+  bar.classList.remove("hidden");
+  clearTimeout(idle);
+  idle = setTimeout(() => bar.classList.add("hidden"), 4000);
+}
+["mousemove", "touchstart", "keydown"].forEach((ev) => addEventListener(ev, wake));
+wake();
+// Tiene acceso lo schermo (dove supportato).
+async function keepAwake() { try { await navigator.wakeLock.request("screen"); } catch (e) {} }
+document.addEventListener("visibilitychange", () => { if (!document.hidden) keepAwake(); });
+keepAwake();
+
+layout(); redraw(); connect();
+</script>
+</body>
+</html>

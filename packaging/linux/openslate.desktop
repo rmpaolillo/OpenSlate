@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=OpenSlate
+GenericName=Smart pad companion
+Comment=Download, view, sign and share pages from the Wacom Bamboo Slate
+Exec=openslate
+Icon=openslate
+Terminal=false
+Categories=Graphics;Office;Utility;
+Keywords=wacom;bamboo;slate;pad;notes;handwriting;sign;
+StartupWMClass=openslate

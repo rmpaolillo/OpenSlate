@@ -1,0 +1,542 @@
+//! Tutto in una finestra: l'appunto al centro (come un documento di Word,
+//! modificabile come in Typora), la chat AI nel riquadro a destra, le
+//! impostazioni AI al centro; la barra «Slate non collegato» con i passi.
+
+use super::chrome::Tab;
+use super::embed::{js_str, Slot};
+use super::theme::{icon, medium, regular, semibold, Tokens};
+use super::widgets::{big, big_ex, column, group, small, small_ex};
+use super::{Action, App};
+use crate::actor::Link;
+use eframe::egui;
+use egui::{pos2, vec2, Align2, Sense, Stroke};
+use egui_phosphor::regular as ic;
+
+/// Cosa c'è al centro della finestra.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum Center {
+    Board,
+    Note,
+    Settings,
+}
+
+/// Stato dell'appunto aperto, come lo dice la pagina.
+#[derive(Clone, Debug, Default)]
+pub(super) struct NoteInfo {
+    pub words: usize,
+    pub dirty: bool,
+    pub source: bool,
+    pub zoom: f32,
+}
+
+/// Comandi della scheda «Appunto» (eseguiti dalla pagina).
+pub(super) fn note_js(cmd: &str) -> String {
+    format!("window.wsNote && wsNote.cmd({})", js_str(cmd))
+}
+
+impl App {
+    /// Indirizzo di una pagina del server interno, con il tema giusto.
+    pub(super) fn page_url(&self, page: &str) -> Option<String> {
+        let port = self.local_port?;
+        let sep = if page.contains('?') { '&' } else { '?' };
+        Some(format!("http://127.0.0.1:{port}/{page}{sep}embed=1&theme={}", self.settings.ui_theme))
+    }
+
+    fn origin(&self) -> String {
+        format!("http://127.0.0.1:{}/", self.local_port.unwrap_or(0))
+    }
+
+    /// Apre un appunto al centro (`None`: l'ultimo aperto, con l'elenco).
+    pub(super) fn open_note(&mut self, name: Option<String>) {
+        if self.local_port.is_none() || self.embeds.failed.is_some() {
+            // niente WebView incorporate: la finestra separata di prima
+            self.open_appunti_window(name.as_deref());
+            return;
+        }
+        let list = name.is_none();
+        if let Some(n) = name {
+            if self.embeds.has(Slot::Note) && self.note.as_deref() != Some(n.as_str()) {
+                self.embeds.eval(Slot::Note, &format!("window.wsNote && wsNote.open({})", js_str(&n)));
+            }
+            self.note = Some(n);
+            self.note_info = NoteInfo { zoom: 1.0, ..Default::default() };
+        }
+        if list {
+            self.note_nav = true;
+            self.embeds.eval(Slot::Note, &note_js("navshow"));
+        }
+        self.show_note_center();
+    }
+
+    /// L'appunto al centro, con la sua scheda.
+    pub(super) fn show_note_center(&mut self) {
+        self.center = Center::Note;
+        self.tab = Tab::Appunto;
+        self.show_ribbon = true;
+        self.mode = super::Mode::Board;
+        self.backstage = None;
+        let n = self.note.clone().unwrap_or_default();
+        self.embeds.eval(Slot::Chat, &format!("window.wsChat && wsChat.setNote({})", js_str(&n)));
+    }
+
+    pub(super) fn close_note(&mut self) {
+        self.embeds.eval(Slot::Note, "window.wsNote && wsNote.flush()");
+        self.note = None;
+        if self.center == Center::Note {
+            self.center = Center::Board;
+        }
+        if self.tab == Tab::Appunto {
+            self.tab = Tab::Home;
+        }
+        self.embeds.eval(Slot::Chat, "window.wsChat && wsChat.setNote('')");
+    }
+
+    /// Mostra/nasconde la chat a destra.
+    pub(super) fn toggle_chat(&mut self, open: bool) {
+        if self.local_port.is_none() || self.embeds.failed.is_some() {
+            self.open_page("chat?nuova=1");
+            return;
+        }
+        self.chat_open = open;
+        if open {
+            self.embeds.focus(Slot::Chat);
+        }
+    }
+
+    /// Messaggio da una pagina incorporata.
+    pub(super) fn on_page_msg(&mut self, slot: Slot, v: serde_json::Value, actions: &mut Vec<Action>) {
+        let s = |k: &str| v[k].as_str().unwrap_or("").to_string();
+        match v["cmd"].as_str().unwrap_or("") {
+            "note_open" if slot == Slot::Note => {
+                let n = s("name");
+                if !n.is_empty() && self.note.as_deref() != Some(n.as_str()) {
+                    self.note = Some(n.clone());
+                    self.embeds.eval(Slot::Chat, &format!("window.wsChat && wsChat.setNote({})", js_str(&n)));
+                }
+            }
+            "note_state" => {
+                self.note_info.words = v["words"].as_u64().unwrap_or(0) as usize;
+                self.note_info.dirty = v["dirty"].as_bool().unwrap_or(false);
+            }
+            "note_source" => self.note_info.source = v["on"].as_bool().unwrap_or(false),
+            "note_zoom" => self.note_info.zoom = v["zoom"].as_f64().unwrap_or(1.0) as f32,
+            "note_reload" => self.embeds.eval(Slot::Note, "window.wsNote && wsNote.reload()"),
+            "open_note" => {
+                let n = s("name");
+                self.open_note(if n.is_empty() { None } else { Some(n) });
+            }
+            "status" => self.status = s("text"),
+            "chat_title" => self.chat_title = s("title"),
+            "attach_board" => {
+                self.set_chat_context_from_board();
+                self.embeds.eval(Slot::Chat, "window.wsChat && wsChat.attachNow()");
+            }
+            "ocr" => actions.push(Action::Ocr),
+            "close_pane" => self.chat_open = false,
+            // il pulsante lasciato sopra la chat l'ha visto la pagina, non la finestra
+            "drop_here" => {
+                if let Some(w) = self.drag_what.take() {
+                    actions.push(Action::DropOnChat(w));
+                }
+            }
+            "open_settings" => actions.push(Action::AiSettings),
+            "close_settings" => {
+                // impostazioni aperte dentro il riquadro della chat (versione
+                // vecchia della pagina): nel riquadro torna la chat
+                if slot == Slot::Chat {
+                    let note = self.note.clone().unwrap_or_default();
+                    if let Some(url) = self.page_url(&format!("chat?pane=1&note={}", super::url_escape(&note))) {
+                        self.embeds.load(Slot::Chat, &url);
+                    }
+                }
+                actions.push(Action::CloseSettings);
+            }
+            "config_saved" => self.embeds.eval(Slot::Chat, "window.wsChat && wsChat.reloadConfig()"),
+            _ => {}
+        }
+    }
+
+    /// Una scheda (lavagna o documento) trascinata verso la chat AI: accanto
+    /// al puntatore cosa si porta, sopra la chat la chat dice «lascia qui» e,
+    /// lasciandola, il foglio o il documento vanno nel contesto della chat.
+    pub(super) fn chat_drop(&mut self, ctx: &egui::Context, actions: &mut Vec<Action>) {
+        use super::doc_view::ChatDrag;
+        let payload = egui::DragAndDrop::payload::<ChatDrag>(ctx);
+        // sopra la chat il puntatore può «sparire» per la finestra (la pagina
+        // della chat sta sopra): vale l'ultimo punto visto, vicino al bordo
+        let seen = ctx.pointer_latest_pos();
+        if payload.is_none() {
+            // trascinamento finito (comunque sia finito): via il «lascia qui»
+            if self.drag_last_pos.take().is_some() {
+                self.chat_drop_hint = false;
+                self.embeds.eval(Slot::Chat, "window.wsChat && wsChat.dropHint && wsChat.dropHint(false)");
+            }
+        } else if seen.is_some() {
+            self.drag_last_pos = seen;
+        }
+        let pos = seen.or(self.drag_last_pos);
+        // trascinando con la chat chiusa: si apre, così c'è dove lasciarlo
+        if payload.is_some() && !self.chat_open && self.local_port.is_some() && self.embeds.failed.is_none() {
+            self.chat_open = true;
+        }
+        let over = payload.is_some() && pos.is_some_and(|p| self.chat_rect.is_some_and(|r| r.expand(if seen.is_none() { 24.0 } else { 0.0 }).contains(p)));
+        if over != self.chat_drop_hint {
+            self.chat_drop_hint = over;
+            self.embeds.eval(Slot::Chat, &format!("window.wsChat && wsChat.dropHint && wsChat.dropHint({over})"));
+        }
+        let Some(what) = payload else {
+            self.drag_what = None;
+            return;
+        };
+        self.drag_what = Some((*what).clone());
+        if let Some(p) = pos.filter(|_| !over) {
+            let t = Tokens::get(ctx);
+            let (glyph, name) = match &*what {
+                ChatDrag::Board => (ic::CHALKBOARD_SIMPLE, "Lavagna".to_string()),
+                ChatDrag::Doc(_, title) => (ic::FILE_TEXT, title.clone()),
+            };
+            let painter = ctx.layer_painter(egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("wsr_chat_drag")));
+            let text = format!("{glyph}  {name}  →  chat AI");
+            let galley = painter.layout_no_wrap(text, medium(12.0), t.text);
+            let r = egui::Rect::from_min_size(p + vec2(14.0, 12.0), galley.size() + vec2(18.0, 10.0));
+            painter.rect(r, 6.0, t.menu, Stroke::new(1.0, t.border_strong), egui::StrokeKind::Inside);
+            painter.galley(r.min + vec2(9.0, 5.0), galley, t.text);
+        }
+        if ctx.input(|i| i.pointer.any_released()) {
+            if over {
+                if let Some(w) = egui::DragAndDrop::take_payload::<ChatDrag>(ctx) {
+                    actions.push(Action::DropOnChat((*w).clone()));
+                }
+            }
+            if self.chat_drop_hint {
+                self.chat_drop_hint = false;
+                self.embeds.eval(Slot::Chat, "window.wsChat && wsChat.dropHint && wsChat.dropHint(false)");
+            }
+        }
+    }
+
+    /// Chat a destra (prima del centro: i pannelli laterali vanno messi prima).
+    pub(super) fn chat_pane(&mut self, root: &mut egui::Ui, frame: &eframe::Frame) {
+        let want = self.chat_open && !self.fullscreen && self.local_port.is_some() && self.embeds.failed.is_none();
+        if !want {
+            self.chat_rect = None;
+            return;
+        }
+        let t = Tokens::get(root.ctx());
+        if !self.embeds.has(Slot::Chat) {
+            let note = self.note.clone().unwrap_or_default();
+            let cmd = self.chat_cmd_pending.take().map(|c| format!("&cmd={c}")).unwrap_or_default();
+            if let Some(url) = self.page_url(&format!("chat?pane=1&note={}{cmd}", super::url_escape(&note))) {
+                let origin = self.origin();
+                self.embeds.ensure(Slot::Chat, frame, &origin, &url, t.panel);
+            }
+        }
+        // a sinistra (di serie) o a destra; larga più del foglio, si allarga col bordo
+        let left = self.settings.chat_side != "destra";
+        let total = root.available_rect_before_wrap().width();
+        let max = (total - 280.0).max(340.0);
+        let want_w = (self.settings.chat_width * total).clamp(320.0, max);
+        let panel = if left { egui::Panel::left("ai_pane_sx") } else { egui::Panel::right("ai_pane_dx") };
+        let r = panel
+            .resizable(true)
+            .default_size(want_w)
+            .size_range(320.0..=max)
+            .frame(egui::Frame::NONE.fill(t.panel).stroke(Stroke::new(1.0, t.border)))
+            .show(root, |ui| {
+                let r = ui.max_rect();
+                ui.allocate_rect(r, Sense::hover());
+                if !self.embeds.has(Slot::Chat) {
+                    ui.painter().text(r.center(), Align2::CENTER_CENTER, "Apro la chat…", regular(12.0), t.text_dim);
+                }
+                r
+            });
+        // un filo libero dal lato del bordo che allarga il riquadro
+        self.chat_rect = Some(if left { r.inner.with_max_x(r.inner.max.x - 4.0) } else { r.inner.with_min_x(r.inner.min.x + 4.0) });
+        // la larghezza scelta trascinando il bordo resta per la prossima volta
+        let w = r.response.rect.width();
+        let dragging = root.ctx().input(|i| i.pointer.any_down());
+        if !dragging && total > 400.0 && (w / total - self.settings.chat_width).abs() > 0.01 {
+            self.settings.chat_width = (w / total).clamp(0.2, 0.85);
+            self.settings.save();
+        }
+    }
+
+    /// Centro: appunto o impostazioni AI (pagine incorporate).
+    pub(super) fn web_center(&mut self, root: &mut egui::Ui, frame: &eframe::Frame) {
+        let t = Tokens::get(root.ctx());
+        let slot = if self.center == Center::Settings { Slot::Settings } else { Slot::Note };
+        if !self.embeds.has(slot) {
+            let page = match slot {
+                Slot::Settings => "impostazioni".to_string(),
+                _ => {
+                    let f = self.note.clone().unwrap_or_default();
+                    let cmd = self.note_cmd_pending.take().map(|c| format!("&cmd={c}")).unwrap_or_default();
+                    let nav = self.note_nav || (f.is_empty() && cmd.is_empty());
+                    format!("appunti?f={}{}{cmd}", super::url_escape(&f), if nav { "&nav=1" } else { "" })
+                }
+            };
+            if let Some(url) = self.page_url(&page) {
+                let origin = self.origin();
+                self.embeds.ensure(slot, frame, &origin, &url, t.canvas);
+            }
+        }
+        let r = egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.canvas)).show(root, |ui| {
+            let r = ui.max_rect();
+            ui.allocate_rect(r, Sense::hover());
+            if !self.embeds.has(slot) {
+                let msg = self.embeds.failed.clone().map(|e| format!("Pagina non disponibile: {e}")).unwrap_or_else(|| "Apro…".into());
+                ui.painter().text(r.center(), Align2::CENTER_CENTER, msg, regular(12.5), t.text_dim);
+            }
+            r
+        });
+        self.center_rect = Some((slot, r.inner));
+    }
+
+    /// Mette le pagine al loro posto; le nasconde sotto menu, finestre e
+    /// pagina File (una WebView sta sempre sopra a quello che disegna egui).
+    pub(super) fn place_pages(&mut self, ctx: &egui::Context) {
+        let covers: Vec<egui::Rect> = ctx.memory(|m| {
+            m.areas()
+                .visible_layer_ids()
+                .into_iter()
+                .filter(|l| matches!(l.order, egui::Order::Foreground | egui::Order::Middle))
+                .filter_map(|l| m.area_rect(l.id))
+                .collect()
+        });
+        let free = |r: Option<egui::Rect>| r.filter(|r| !covers.iter().any(|c| c.intersects(*r)));
+        let back = self.backstage.is_some();
+        self.embeds.set_origin(ctx.input(|i| i.viewport().inner_rect.map(|r| r.min)));
+        let center = self.center_rect.take();
+        let mut note = None;
+        let mut settings = None;
+        if !back {
+            match center {
+                Some((Slot::Note, r)) => note = free(Some(r)),
+                Some((Slot::Settings, r)) => settings = free(Some(r)),
+                _ => {}
+            }
+        }
+        let chat = if back { None } else { free(self.chat_rect) };
+        self.embeds.place(Slot::Note, note);
+        self.embeds.place(Slot::Settings, settings);
+        self.embeds.place(Slot::Chat, chat);
+        // clic sulla parte egui: la tastiera torna all'app
+        let pressed = ctx.input(|i| i.pointer.any_pressed().then(|| i.pointer.interact_pos()).flatten());
+        if let Some(p) = pressed {
+            let inside = [note, settings, chat].iter().flatten().any(|r| r.contains(p));
+            if !inside {
+                self.embeds.focus_parent();
+            }
+        }
+    }
+
+    /// Barra sotto la barra multifunzione quando lo Slate non è collegato:
+    /// cosa fare, passo per passo.
+    pub(super) fn connect_banner(&mut self, root: &mut egui::Ui, actions: &mut Vec<Action>) {
+        if self.link == Link::On {
+            self.banner_hidden = false;
+            return;
+        }
+        if self.banner_hidden || self.fullscreen || self.center != Center::Board {
+            return;
+        }
+        let t = Tokens::get(root.ctx());
+        let connecting = self.link == Link::Connecting;
+        // pad già registrato: basta una riga sottile
+        let known = std::path::Path::new("peripheral_id").exists();
+        if known && !connecting {
+            let fill = if t.dark { egui::Color32::from_rgb(0x3a, 0x33, 0x1c) } else { egui::Color32::from_rgb(0xFF, 0xF4, 0xCE) };
+            egui::Panel::top("connect_banner_thin")
+                .exact_size(28.0)
+                .frame(egui::Frame::NONE.fill(fill).inner_margin(egui::Margin { left: 14, right: 10, top: 2, bottom: 2 }))
+                .show(root, |ui| {
+                    ui.horizontal_centered(|ui| {
+                        ui.spacing_mut().item_spacing.x = 8.0;
+                        ui.label(egui::RichText::new(ic::BLUETOOTH).font(icon(14.0)).color(t.accent_text));
+                        ui.label(egui::RichText::new("Slate non collegato: premi il pulsante rotondo del pad, poi «Collega».").font(regular(11.5)).color(t.text));
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if super::widgets::icon_button(ui, ic::X, "Nascondi (torna se lo Slate si scollega)", vec2(20.0, 20.0), true).clicked() {
+                                self.banner_hidden = true;
+                            }
+                            if ui.small_button(format!("{}  Collega", ic::BLUETOOTH)).clicked() {
+                                actions.push(Action::Connect);
+                            }
+                        });
+                    });
+                });
+            return;
+        }
+        let fill = if t.dark { egui::Color32::from_rgb(0x3a, 0x33, 0x1c) } else { egui::Color32::from_rgb(0xFF, 0xF4, 0xCE) };
+        let edge = if t.dark { egui::Color32::from_rgb(0x6b, 0x5a, 0x1e) } else { egui::Color32::from_rgb(0xF0, 0xD8, 0x8A) };
+        egui::Panel::top("connect_banner")
+            .exact_size(if connecting { 34.0 } else { 56.0 })
+            .frame(egui::Frame::NONE.fill(fill).stroke(Stroke::new(1.0, edge)).inner_margin(egui::Margin { left: 14, right: 10, top: 4, bottom: 4 }))
+            .show(root, |ui| {
+                ui.horizontal_centered(|ui| {
+                    ui.spacing_mut().item_spacing.x = 8.0;
+                    let (r, _) = ui.allocate_exact_size(vec2(22.0, 22.0), Sense::hover());
+                    let glyph = if connecting { ic::BLUETOOTH } else { ic::INFO };
+                    ui.painter().text(r.center(), Align2::CENTER_CENTER, glyph, icon(18.0), if connecting { t.orange } else { t.accent_text });
+                    // il testo va a capo nello spazio lasciato dai pulsanti
+                    let text_w = (ui.available_width() - if connecting { 40.0 } else { 260.0 }).max(120.0);
+                    ui.allocate_ui_with_layout(vec2(text_w, ui.available_height()), egui::Layout::top_down(egui::Align::Min), |ui| {
+                        ui.set_width(text_w);
+                        ui.spacing_mut().item_spacing.y = 1.0;
+                        if connecting {
+                            ui.add(egui::Label::new(egui::RichText::new("Collegamento allo Slate in corso…  Se il LED del pad è spento, premi una volta il pulsante rotondo.").font(medium(12.0)).color(t.text)).wrap());
+                        } else {
+                            ui.label(egui::RichText::new("Lo Slate non è collegato.").font(semibold(12.5)).color(t.text));
+                            ui.add(
+                                egui::Label::new(
+                                    egui::RichText::new(
+                                        "1) Premi una volta il pulsante rotondo del pad (il LED si accende).  2) Clic su «Collega».  \
+                                         Prima volta, o dopo Inkspace: tieni premuto il pulsante ~6 s finché il LED lampeggia blu, poi «Collega» e premi il pulsante quando richiesto.",
+                                    )
+                                    .font(regular(11.5))
+                                    .color(t.text_dim),
+                                )
+                                .wrap(),
+                            );
+                        }
+                    });
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if super::widgets::icon_button(ui, ic::X, "Nascondi (torna se lo Slate si scollega)", vec2(22.0, 22.0), true).clicked() {
+                            self.banner_hidden = true;
+                        }
+                        if !connecting {
+                            if ui.button("Come si collega").clicked() {
+                                actions.push(Action::ShowHelp(super::options::HelpPage::Collegamento));
+                            }
+                            let b = egui::Button::new(egui::RichText::new(format!("{}  Collega", ic::BLUETOOTH)).color(t.on_accent)).fill(t.accent);
+                            if ui.add(b).clicked() {
+                                actions.push(Action::Connect);
+                            }
+                        }
+                    });
+                });
+            });
+    }
+
+    /// Scheda contestuale «Appunto» (con un appunto al centro).
+    pub(super) fn ribbon_appunto(&self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
+        let n = |c: &str| Action::NoteCmd(c.to_string());
+        group(ui, "Appunti", |ui| {
+            if big(ui, ic::FILE_PLUS, "Nuovo", "Un appunto vuoto").clicked() {
+                actions.push(n("new"));
+            }
+            if big_ex(ui, ic::LIST_BULLETS, "Elenco", "Tutti gli appunti (trascrizioni e chat salvate)", true, self.note_nav, false).clicked() {
+                actions.push(n("nav"));
+            }
+            column(ui, |ui| {
+                if small(ui, ic::COPY, "Copia Markdown", "Per un'altra chat AI o per Typora").clicked() {
+                    actions.push(n("copy"));
+                }
+                if small(ui, ic::PRINTER, "Stampa / PDF", "Stampa, oppure «Salva come PDF» dal dialogo di stampa").clicked() {
+                    actions.push(Action::NotePrint);
+                }
+                if small_ex(ui, ic::ARROW_SQUARE_OUT, "Apri in Typora", "", self.note.is_some(), false).clicked() {
+                    actions.push(Action::NoteTypora);
+                }
+            });
+        });
+        group(ui, "Paragrafo", |ui| {
+            column(ui, |ui| {
+                if small(ui, ic::TEXT_H_ONE, "Titolo 1", "").clicked() {
+                    actions.push(n("h1"));
+                }
+                if small(ui, ic::TEXT_H_TWO, "Titolo 2", "").clicked() {
+                    actions.push(n("h2"));
+                }
+                if small(ui, ic::TEXT_T, "Testo normale", "").clicked() {
+                    actions.push(n("p"));
+                }
+            });
+            column(ui, |ui| {
+                if small(ui, ic::LIST_BULLETS, "Elenco puntato", "").clicked() {
+                    actions.push(n("ul"));
+                }
+                if small(ui, ic::LIST_NUMBERS, "Elenco numerato", "").clicked() {
+                    actions.push(n("ol"));
+                }
+                if small(ui, ic::QUOTES, "Citazione", "").clicked() {
+                    actions.push(n("quote"));
+                }
+            });
+        });
+        group(ui, "Carattere", |ui| {
+            column(ui, |ui| {
+                if small(ui, ic::TEXT_B, "Grassetto", "Cmd+B").clicked() {
+                    actions.push(n("bold"));
+                }
+                if small(ui, ic::TEXT_ITALIC, "Corsivo", "Cmd+I").clicked() {
+                    actions.push(n("italic"));
+                }
+                if small(ui, ic::MINUS, "Linea", "Separatore orizzontale").clicked() {
+                    actions.push(n("hr"));
+                }
+            });
+        });
+        group(ui, "Formule", |ui| {
+            if big(ui, ic::FUNCTION, "Formula", "Formula su una riga sua ($$ … $$)").clicked() {
+                actions.push(n("mathblock"));
+            }
+            column(ui, |ui| {
+                if small(ui, ic::MATH_OPERATIONS, "Nel testo $x$", "Cmd+M").clicked() {
+                    actions.push(n("math"));
+                }
+                if small(ui, ic::BRACKETS_CURLY, "Sistema", "Sistema di equazioni").clicked() {
+                    actions.push(n("cases"));
+                }
+                if small(ui, ic::TABLE, "Tabella", "").clicked() {
+                    actions.push(n("table"));
+                }
+            });
+        });
+        group(ui, "Vista", |ui| {
+            if big_ex(ui, ic::CODE, "Sorgente", "Tutto il Markdown (Cmd+/)", true, self.note_info.source, false).clicked() {
+                actions.push(n("source"));
+            }
+        });
+    }
+
+    /// Scheda dell'appunto o delle impostazioni nella striscia dei file.
+    pub(super) fn web_tabs(&self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
+        let t = Tokens::get(ui.ctx());
+        let mut tab = |ui: &mut egui::Ui, on: bool, glyph: &str, text: &str, close: Action, open: Action| {
+            let font = if on { semibold(12.0) } else { medium(12.0) };
+            let tw = ui.painter().layout_no_wrap(text.to_string(), font.clone(), t.text).size().x;
+            let (r, resp) = ui.allocate_exact_size(vec2(tw + 60.0, 27.0), Sense::click());
+            let round = egui::CornerRadius { nw: 6, ne: 6, sw: 0, se: 0 };
+            if on {
+                ui.painter().rect_filled(r, round, t.input);
+                ui.painter().rect_filled(egui::Rect::from_min_size(r.min + vec2(6.0, 0.0), vec2(r.width() - 12.0, 2.5)), 1.0, t.accent);
+            } else if resp.hovered() {
+                ui.painter().rect_filled(r, round, t.hover);
+            }
+            ui.painter().text(pos2(r.min.x + 16.0, r.center().y), Align2::CENTER_CENTER, glyph, icon(14.0), if on { t.accent_text } else { t.text_dim });
+            ui.painter().text(pos2(r.min.x + 28.0, r.center().y), Align2::LEFT_CENTER, text, font, if on { t.text } else { t.text_dim });
+            let x = egui::Rect::from_center_size(pos2(r.max.x - 14.0, r.center().y), vec2(18.0, 18.0));
+            let xr = ui.interact(x, resp.id.with("close"), Sense::click());
+            if xr.hovered() {
+                ui.painter().rect_filled(x, 4.0, t.pressed);
+            }
+            ui.painter().text(x.center(), Align2::CENTER_CENTER, ic::X, icon(12.0), t.text_dim);
+            if xr.on_hover_text("Chiudi").clicked() {
+                actions.push(close);
+            } else if resp.clicked() && !on {
+                actions.push(open);
+            }
+        };
+        if self.note.is_none() && self.center == Center::Note {
+            tab(ui, true, ic::NOTE, "Appunti", Action::CloseNote, Action::OpenNote(None));
+        }
+        if let Some(n) = &self.note {
+            let title = n.trim_end_matches(".md");
+            let short: String = if title.chars().count() > 34 { format!("{}…", title.chars().take(33).collect::<String>()) } else { title.to_string() };
+            tab(ui, self.center == Center::Note, ic::NOTE, &short, Action::CloseNote, Action::OpenNote(Some(n.clone())));
+        }
+        if self.settings_open {
+            tab(ui, self.center == Center::Settings, ic::GEAR_SIX, "Impostazioni AI", Action::CloseSettings, Action::AiSettings);
+        }
+    }
+}

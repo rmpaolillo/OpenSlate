@@ -1,0 +1,29 @@
+# build
+/target
+/dist
+
+# personal and pad data: NEVER on GitHub
+app_uuid.bin
+peripheral_id
+*.bin
+settings.conf
+view_settings.txt
+ai.toml
+ai.toml.bak
+*.bak
+library/
+documents/
+exports/
+chats/
+signatures/
+captures/
+*.log
+/wacom-export-*.svg
+.env
+.env.*
+
+# editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
