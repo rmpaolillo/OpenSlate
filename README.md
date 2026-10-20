@@ -62,7 +62,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 - **AI assistant, for anything.** The chat sits next to the page and can see the board, the
   open document or the note. Use it to summarise, rewrite neatly, pull out to-dos, draft texts,
   check what you wrote for mistakes, answer questions, write into the note, search the web and
-  verify EU VAT numbers. If the model you pick cannot see images (e.g. DeepSeek), the page is first
+  verify EU VAT numbers. If the model you pick cannot see images (a text-only model), the page is first
   read by the agent chosen under *Page reading (OCR)* and handed over as text. Behind it is a fallback chain of OpenAI-compatible providers:
   LM Studio, Ollama, DeepSeek, Google Gemini and Anthropic Claude. It shows context usage and
   compacts automatically. Drag a document tab onto the chat to attach it.

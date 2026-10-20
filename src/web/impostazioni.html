@@ -75,7 +75,7 @@
 
   <h2>Lettura dei fogli (OCR)</h2>
   <p class="sub">Chi legge la scrittura a mano: in «Trascrivi» e, in chat, per gli agenti che non vedono le immagini
-    (es. DeepSeek), a cui passa il testo del foglio. Serve un agente che veda le immagini; meglio uno veloce.</p>
+    (spunta «legge le immagini» tolta), a cui passa il testo del foglio. Serve un agente che veda le immagini; meglio uno veloce.</p>
   <div class="card"><div class="grid">
     <label class="l" for="reader">Agente</label>
     <div class="row"><select id="reader"></select></div>
@@ -109,7 +109,7 @@ const PRESETS = {
   lmstudio: { name: "LM Studio", url: "http://localhost:1234/v1", context: 0, timeout_s: 300 },
   ollama: { name: "Ollama", url: "http://localhost:11434/v1", context: 0, timeout_s: 300 },
   mtplx: { name: "MTPLX", url: "http://localhost:8000/v1", context: 131072, all_vision: true, key: "dsh:MTPLX_API_KEY", timeout_s: 900 },
-  deepseek: { name: "DeepSeek", url: "https://api.deepseek.com/v1", model: "deepseek-flash", vision: false, context: 131072, key: "dsh:DEEPSEEK_API_KEY" },
+  deepseek: { name: "DeepSeek", url: "https://api.deepseek.com/v1", model: "deepseek-flash", context: 131072, key: "dsh:DEEPSEEK_API_KEY" },
   gemini: { name: "Google Gemini", url: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-3.8-flash", context: 1048576, key: "keychain:GEMINI_API_KEY" },
   claude: { name: "Anthropic Claude", url: "https://api.anthropic.com/v1", model: "claude-sonnet-4-6", context: 200000, no_temperature: true, max_tokens: 8192, key: "keychain:ANTHROPIC_API_KEY" },
   openrouter: { name: "OpenRouter", url: "https://openrouter.ai/api/v1", model: "", context: 0, key: "keychain:OPENROUTER_API_KEY" },

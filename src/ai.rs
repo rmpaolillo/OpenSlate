@@ -78,13 +78,12 @@ model = ""
 key = ""
 timeout_s = 300
 
-# 3) DeepSeek, API ufficiale (la stessa di DSH). Solo testo: con una pagina
-#    allegata riceve la trascrizione, non l'immagine.
+# 3) DeepSeek, API ufficiale (la stessa di DSH). deepseek-flash legge anche
+#    le immagini (https://api-docs.deepseek.com/guides/vision/).
 [[provider]]
 name = "DeepSeek"
 url = "https://api.deepseek.com/v1"
 model = "deepseek-flash"
-vision = false
 context = 131072
 key = "dsh:DEEPSEEK_API_KEY | env:DEEPSEEK_API_KEY | keychain:DEEPSEEK_API_KEY"
 timeout_s = 180
@@ -123,7 +122,7 @@ compact_at = 80   # compatta da sola la conversazione all'80% del contesto (0 = 
 keep_recent = 4   # messaggi più recenti tenuti parola per parola
 
 # Lettura dei fogli (OCR): «Trascrivi» e il foglio allegato in chat quando
-# l'agente che risponde non vede le immagini (es. DeepSeek).
+# l'agente che risponde non vede le immagini.
 #   agent     nome di un agente qui sopra che vede le immagini; vuoto = il
 #             primo della lista che le vede
 #   fallback  true = se non risponde si provano gli altri con visione;
@@ -1800,7 +1799,7 @@ pub(crate) mod tests {
         let c = AiConfig::parse(DEFAULT_TOML).unwrap();
         let names: Vec<_> = c.providers.iter().map(|p| p.name.as_str()).collect();
         assert_eq!(names, ["LM Studio", "Ollama", "DeepSeek", "Google Gemini", "Anthropic Claude"]);
-        assert!(!c.providers[0].all_vision && !c.providers[2].vision);
+        assert!(!c.providers[0].all_vision && c.providers[2].vision);
         assert!(c.providers[4].no_temperature);
         assert_eq!(c.ocr_prompt(), OCR_PROMPT);
         assert!(c.web.enabled && c.web.count == 10 && c.web.key.starts_with("dsh:"));
