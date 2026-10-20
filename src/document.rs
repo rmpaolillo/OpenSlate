@@ -141,6 +141,21 @@ impl Document {
                     Err(e) => tracing::warn!("{e:#}: provo con la conversione in PDF"),
                 }
             }
+            // foto (PNG, JPEG…): PhotoCraft; SVG: VectorCraft (si firma e si salva
+            // nel formato dell'immagine)
+            if crate::rasign::is_raster(input) {
+                let ext = input.extension().and_then(|e| e.to_str()).unwrap_or("png").to_ascii_lowercase();
+                let name = format!("source.{ext}");
+                std::fs::copy(input, dir.join(&name))?;
+                crate::rasign::to_pdf(&dir.join(&name), &pdf)?;
+                original = Some(name);
+            } else if crate::vecsign::is_image(input) {
+                let ext = input.extension().and_then(|e| e.to_str()).unwrap_or("png").to_ascii_lowercase();
+                let name = format!("source.{ext}");
+                std::fs::copy(input, dir.join(&name))?;
+                crate::vecsign::to_pdf(&dir.join(&name), &pdf)?;
+                original = Some(name);
+            }
             if original.is_none() {
                 crate::docimport::to_pdf(input, &pdf, &dir.join("work"))?;
                 let _ = std::fs::remove_dir_all(dir.join("work"));
@@ -250,11 +265,12 @@ impl Document {
         })
     }
 
-    /// Estensione del file firmato: quella del Word di partenza (il vecchio
-    /// .doc diventa .docx), altrimenti pdf.
+    /// Estensione del file firmato: quella del Word o dell'immagine di
+    /// partenza (il vecchio .doc diventa .docx), altrimenti pdf.
     pub fn signed_ext(&self) -> String {
         match self.original.as_deref().and_then(|n| Path::new(n).extension()).and_then(|e| e.to_str()) {
-            Some(e @ ("docx" | "docm" | "dotx" | "dotm" | "odt" | "rtf")) => e.to_string(),
+            Some(e @ ("docx" | "docm" | "dotx" | "dotm" | "odt" | "rtf" | "svg" | "svgz")) => e.to_string(),
+            Some(e @ ("png" | "jpg" | "jpeg" | "webp" | "tif" | "tiff" | "bmp" | "gif")) => crate::rasign::signed_ext(e).to_string(),
             Some(_) => "docx".into(),
             None => "pdf".into(),
         }
@@ -278,7 +294,14 @@ impl Document {
                     })
                 })
                 .collect();
-            return crate::wordsign::save_with_ink(&self.dir.join(orig), dst, &ink);
+            let src = self.dir.join(orig);
+            if crate::rasign::is_raster(&src) {
+                return crate::rasign::save_with_ink(&src, dst, &ink);
+            }
+            if crate::vecsign::is_image(&src) {
+                return crate::vecsign::save_with_ink(&src, dst, &ink);
+            }
+            return crate::wordsign::save_with_ink(&src, dst, &ink);
         }
         pdfdoc::write_overlay(&self.source_pdf(), dst, &per_page)
     }
@@ -360,3 +383,4 @@ mod tests {
         assert!((r[2] - 1.0).abs() < 1e-4 && r[3] < 1.0);
     }
 }
+

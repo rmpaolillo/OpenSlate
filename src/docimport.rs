@@ -17,7 +17,7 @@ const PDF_RENDER_SRC: &str = include_str!("swift/pdf_render.swift");
 const PDF_TEXT_SRC: &str = include_str!("swift/pdf_text.swift");
 
 /// Estensioni accettate (per il dialogo «Apri»).
-pub const EXTENSIONS: &[&str] = &["pdf", "doc", "docx", "odt", "rtf", "txt", "md", "markdown", "html", "htm"];
+pub const EXTENSIONS: &[&str] = &["pdf", "doc", "docx", "odt", "rtf", "txt", "md", "markdown", "html", "htm", "svg", "svgz", "png", "jpg", "jpeg", "webp", "tif", "tiff", "bmp", "gif"];
 
 /// Esegue un comando con un tempo massimo; errore con lo stderr se fallisce.
 fn run(cmd: &mut Command, timeout: Duration, what: &str) -> Result<()> {

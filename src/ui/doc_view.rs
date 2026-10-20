@@ -467,6 +467,11 @@ impl App {
                     "pdf" => "PDF",
                     "odt" => "Documento OpenDocument",
                     "rtf" => "Documento RTF",
+                    "svg" | "svgz" => "Immagine SVG",
+                    "png" => "Immagine PNG",
+                    "jpg" | "jpeg" => "Immagine JPEG",
+                    "webp" => "Immagine WebP",
+                    "tif" | "tiff" => "Immagine TIFF",
                     _ => "Documento Word",
                 };
                 let title = format!("Salva il documento firmato ({kind})");

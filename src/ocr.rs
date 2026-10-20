@@ -9,12 +9,10 @@
 
 use crate::settings::Settings;
 use anyhow::{anyhow, bail, Context, Result};
-use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 
 const VISION_SRC: &str = include_str!("swift/vision_ocr.swift");
-const HELPER_DIR: &str = "target/swift-helpers";
 
 /// Risultato del riconoscimento.
 #[derive(Clone, Debug)]
@@ -53,13 +51,14 @@ fn vision(png: &[u8], langs: &str) -> Result<String> {
     let bin = crate::swift::helper("vision_ocr", VISION_SRC).map_err(|e| {
         anyhow!("{e}\nIn alternativa usa ocr_engine = ai in settings.conf.")
     })?;
-    let img = Path::new(HELPER_DIR).join("ultima-pagina.png");
+    let img = std::env::temp_dir().join(format!("openslate-ocr-{}.png", std::process::id()));
     std::fs::write(&img, png)?;
     let out = Command::new(&bin)
         .arg(&img)
         .arg(langs)
         .output()
         .context("avvio dell'helper OCR")?;
+    let _ = std::fs::remove_file(&img);
     if !out.status.success() {
         bail!("OCR: {}", String::from_utf8_lossy(&out.stderr).trim());
     }

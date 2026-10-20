@@ -55,6 +55,17 @@ pulldown-cmark = { version = "0.12", default-features = false, features = ["html
 # Documenti Word (.docx, .doc, .odt, .rtf): pagine e firma col motore di WordCraft
 # (MIT OR Apache-2.0, © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
 wordcraft-engine = { git = "https://github.com/storytold/wordcraft", rev = "117aea31a8e61bd3e306e9210800cdc42897e3c1" }
+# Foto (PNG, JPEG, WebP, TIFF…): le librerie di PhotoCraft per leggerle, scriverle e
+# disegnarci sopra col pennello (MIT OR Apache-2.0, © ArtCraft Team), senza la sua
+# interfaccia. Da GitHub, versione fissa.
+photocraft-codecs = { git = "https://github.com/storytold/photocraft", rev = "872748fb5b2a53e09dd4e385e31968d985c0515b" }
+photocraft-paint = { git = "https://github.com/storytold/photocraft", rev = "872748fb5b2a53e09dd4e385e31968d985c0515b" }
+photocraft-raster = { git = "https://github.com/storytold/photocraft", rev = "872748fb5b2a53e09dd4e385e31968d985c0515b" }
+photocraft-color = { git = "https://github.com/storytold/photocraft", rev = "872748fb5b2a53e09dd4e385e31968d985c0515b" }
+photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "872748fb5b2a53e09dd4e385e31968d985c0515b" }
+# Immagini SVG: pagine e firma col motore di VectorCraft (MIT OR Apache-2.0,
+# © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
+vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "bc1ae0825264c5ca4b27bd718d6e04f2121b8bb3" }
 # PDF: il disegno nitido delle pagine col motore di PdfCraft (MIT OR Apache-2.0,
 # © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
 pdfcraft-render = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
@@ -77,11 +88,13 @@ gtk = "0.18"
 # Le correzioni a librerie esterne che usano WordCraft e PdfCraft (le loro [patch]
 # valgono solo nei loro progetti: qui vanno ripetute).
 [patch.crates-io]
-krilla = { git = "https://github.com/storytold/craft-libs", rev = "c3487320b2d1de657b860b3c8abb44e1f2b32bd8" }
-hayro-interpret = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
-hayro = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
-hayro-syntax = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
-hayro-jbig2 = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
+# krilla e hayro-* da craft-libs (quelli di VectorCraft, che li vuole più nuovi);
+# hayro, lopdf e vello_common da PdfCraft
+krilla = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
+hayro-interpret = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
+hayro = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
+hayro-syntax = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
+hayro-jbig2 = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
 lopdf = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
 vello_common = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
 

@@ -56,7 +56,7 @@ pub fn to_json() -> Value {
         "web": web,
         "chat": cfg.chat,
         "ocr": cfg.ocr,
-        "path": ai::config_path(),
+        "path": ai::config_path_full(),
         "keychain": cfg!(target_os = "macos"),
         "default_context": ai::DEFAULT_CONTEXT,
     })
@@ -154,14 +154,25 @@ pub fn test_from_json(body: &[u8]) -> Value {
         let cfg = AiConfig { providers: vec![p.clone()], ..Default::default() };
         let t = std::time::Instant::now();
         let mut context = 0;
-        let r = ai::run(&cfg, Task::Chat, &[Msg::new("user", "Rispondi solo con: OK")], &mut |e| {
+        // chi legge le immagini si prova con un'immagine: è quello che fa la
+        // trascrizione (un modello solo testo risponderebbe lo stesso al testo)
+        let vision = p.vision;
+        let msg = if vision {
+            Msg::new("user", "Nell'immagine c'è un quadrato nero. Rispondi solo con: OK").with_image(std::sync::Arc::new(test_png()))
+        } else {
+            Msg::new("user", "Rispondi solo con: OK")
+        };
+        let task = if vision { Task::Ocr } else { Task::Chat };
+        let r = ai::run(&cfg, task, &[msg], &mut |e| {
             if let ai::Event::Trying { context: c, .. } = e {
                 context = c;
             }
             true
-        })?;
+        })
+        .map_err(|e| if vision { anyhow!("{e:#}\n(prova con un'immagine: se il modello non legge le immagini togli «legge le immagini» o scegli un altro modello)") } else { e })?;
         Ok(json!({
             "ok": true,
+            "vision": vision,
             "model": r.model,
             "ms": t.elapsed().as_millis() as u64,
             "text": r.text.chars().take(80).collect::<String>(),
@@ -169,6 +180,18 @@ pub fn test_from_json(body: &[u8]) -> Value {
         }))
     })();
     r.unwrap_or_else(|e| err(e.to_string().replace("nessun agente AI disponibile:\n• ", "")))
+}
+
+/// Un'immagine piccola per la prova degli agenti con visione: un quadrato nero.
+fn test_png() -> Vec<u8> {
+    let mut px = tiny_skia::Pixmap::new(96, 64).expect("pixmap");
+    px.fill(tiny_skia::Color::WHITE);
+    let mut paint = tiny_skia::Paint::default();
+    paint.set_color(tiny_skia::Color::BLACK);
+    if let Some(r) = tiny_skia::Rect::from_xywh(28.0, 12.0, 40.0, 40.0) {
+        px.fill_rect(r, &paint, tiny_skia::Transform::identity(), None);
+    }
+    px.encode_png().unwrap_or_default()
 }
 
 /// `POST /api/config/models`: i modelli che il server dichiara.

@@ -578,18 +578,69 @@ impl App {
                         let room = ui.available_width();
                         if room > 40.0 && !self.status.is_empty() {
                             let color = if self.status.starts_with('⚠') { t.red } else { t.accent_text };
-                            let (r, resp) = ui.allocate_exact_size(vec2(room, 18.0), Sense::hover());
+                            // un errore con i dettagli: clic per rileggerlo per intero
+                            let details = self.status.starts_with('⚠') && self.error_box.is_some();
+                            let sense = if details { Sense::click() } else { Sense::hover() };
+                            let (r, resp) = ui.allocate_exact_size(vec2(room, 18.0), sense);
                             let clip = ui.painter().with_clip_rect(r);
-                            let g = clip.layout_no_wrap(i18n::tr(&self.status).into_owned(), regular(11.0), color);
-                            let wide = g.size().x > r.width();
+                            // su una riga sola: gli a capo diventano « · »
+                            let shown = i18n::tr(&self.status).replace('\n', " · ");
+                            let g = clip.layout_no_wrap(shown, regular(11.0), color);
+                            let wide = g.size().x > r.width() || self.status.contains('\n');
                             clip.galley(pos2(r.min.x, r.center().y - g.size().y / 2.0), g, color);
+                            let resp = if details { resp.on_hover_cursor(egui::CursorIcon::PointingHand) } else { resp };
+                            if resp.clicked() {
+                                self.error_open = true;
+                            }
                             if wide {
-                                resp.on_hover_text(i18n::tr(&&self.status).into_owned());
+                                resp.on_hover_text(i18n::tr(&self.status).into_owned());
                             }
                         }
                     });
                 });
             });
+    }
+
+    /// Un errore da leggere per intero (per esempio perché la trascrizione non
+    /// è riuscita: il motivo di ogni agente), con la strada per sistemarlo.
+    pub(super) fn error_window(&mut self, ctx: &egui::Context, actions: &mut Vec<Action>) {
+        if !self.error_open {
+            return;
+        }
+        let Some((title, body)) = self.error_box.clone() else { return };
+        let mut open = true;
+        let mut close = false;
+        egui::Window::new(format!("⚠ {}", i18n::tr(&title)))
+            .id(egui::Id::new("error_box"))
+            .open(&mut open)
+            .collapsible(false)
+            .resizable(true)
+            .default_width(520.0)
+            .anchor(egui::Align2::CENTER_CENTER, vec2(0.0, 0.0))
+            .show(ctx, |ui| {
+                egui::ScrollArea::vertical().max_height(260.0).show(ui, |ui| {
+                    let mut text = i18n::tr(&body).into_owned();
+                    ui.add(egui::TextEdit::multiline(&mut text).desired_width(f32::INFINITY).font(egui::TextStyle::Monospace).interactive(true));
+                });
+                ui.add_space(6.0);
+                ui.label(egui::RichText::new(i18n::t("Controlla in Impostazioni AI che l'agente risulti «chiave trovata», che «legge le immagini» sia spuntato e premi «Prova»: la prova usa un'immagine, come la trascrizione.")).weak());
+                ui.add_space(8.0);
+                ui.horizontal(|ui| {
+                    if ui.button(i18n::t("Impostazioni AI")).clicked() {
+                        actions.push(Action::AiSettings);
+                        close = true;
+                    }
+                    if ui.button(i18n::t("Copia")).clicked() {
+                        ctx.copy_text(body.clone());
+                    }
+                    if ui.button(i18n::t("Chiudi")).clicked() {
+                        close = true;
+                    }
+                });
+            });
+        if !open || close {
+            self.error_open = false;
+        }
     }
 
     /// Finestrella della ricerca dei comandi.
@@ -716,7 +767,8 @@ impl App {
             c(ic::MINUS, "Tratto più sottile", "-", Action::Width(-0.4)),
             c(ic::FLOPPY_DISK, "Salva la lavagna nell'archivio", &cmd_key("S"), Action::SaveBoard),
             c(ic::COPY, "Copia il foglio come immagine", &cmd_key("C"), Action::CopyImage),
-            c(ic::FILE_ARROW_UP, "Apri un documento da firmare (PDF, Word…)", &cmd_key("O"), Action::Doc(DocAction::OpenDialog)),
+            c(ic::CLIPBOARD_TEXT, "Incolla un'immagine (si apre come documento)", &cmd_key("V"), Action::Paste),
+            c(ic::FILE_ARROW_UP, "Apri un documento da firmare (PDF, Word, immagini…)", &cmd_key("O"), Action::Doc(DocAction::OpenDialog)),
             c(ic::SIGNATURE, "Registra la firma", "", Action::Doc(DocAction::StartCapture)),
             c(ic::STAMP, "Inserisci la firma", "", Action::Doc(DocAction::InsertSignature)),
             c(ic::FILE_PDF, "Esporta la pagina in PDF", "", Action::Export(Fmt::Pdf)),
@@ -747,6 +799,7 @@ impl App {
             c(ic::GEAR_SIX, "Opzioni", &cmd_key(","), Action::OpenPrefs),
             c(ic::KEYBOARD, "Scorciatoie da tastiera", "", Action::ShowHelp(super::options::HelpPage::Tasti)),
             c(ic::INFO, "Informazioni su OpenSlate", "", Action::Backstage(Some(BsPage::Info))),
+            c(ic::ARROW_CIRCLE_UP, "Cerca aggiornamenti", "", Action::CheckUpdates),
             c(ic::SIGN_OUT, "Esci", &cmd_key("Q"), Action::Quit),
         ];
         // un comando per ogni foglio («Foglio: righe di 1ª elementare», …)
@@ -755,7 +808,7 @@ impl App {
             v.push(c(glyph, &format!("Foglio: {}", i18n::tr(&p.label())), "", Action::Paper(p)));
         }
         if doc {
-            v.push(c(ic::FILE_PDF, "Salva il documento firmato (Word o PDF)", &cmd_key("Shift+S"), Action::Doc(DocAction::SaveSigned)));
+            v.push(c(ic::FILE_PDF, "Salva il documento firmato (nello stesso formato)", &cmd_key("Shift+S"), Action::Doc(DocAction::SaveSigned)));
             v.push(c(ic::X, "Chiudi il documento", &cmd_key("W"), Action::Doc(DocAction::Close)));
         }
         for d in crate::document::list().into_iter().take(8) {

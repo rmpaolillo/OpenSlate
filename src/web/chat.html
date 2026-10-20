@@ -142,6 +142,16 @@
   #composer .box { max-width: 820px; margin: 0 auto; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--input); padding: 6px 6px 4px 10px; }
   #composer .box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   #chips { display: flex; gap: 4px; flex-wrap: wrap; padding: 0 0 4px; }
+  /* immagini incollate (Cmd+V), trascinate o scelte con la graffetta */
+  #pasted { display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0 6px; }
+  #pasted:empty { display: none; }
+  #pasted .th { position: relative; }
+  #pasted img { height: 58px; max-width: 140px; object-fit: cover; border-radius: 5px; border: 1px solid var(--border); display: block; cursor: zoom-in; background: #fff; }
+  #pasted .th button { position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--border-strong); background: var(--panel); color: var(--text); display: grid; place-items: center; padding: 0; cursor: pointer; }
+  #pasted .th button .i { width: 11px; height: 11px; }
+  body.imgdrop #composer .box { outline: 2px dashed var(--accent); outline-offset: 2px; }
+  .msg .imgs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .msg .imgs img { max-height: 180px; max-width: min(260px, 100%); border-radius: 6px; border: 1px solid var(--border); cursor: zoom-in; background: #fff; }
   #chips:empty { display: none; }
   .chip { font-size: 11.5px; border: 1px solid var(--border); border-radius: 10px; padding: 1px 8px 1px 6px; display: inline-flex; gap: 4px; align-items: center; cursor: pointer; background: var(--panel); color: var(--text); white-space: nowrap; max-width: 260px; }
   .chip span { overflow: hidden; text-overflow: ellipsis; }
@@ -226,9 +236,12 @@ li > input[type="checkbox"] { margin: 0 .45em 0 0; vertical-align: -1px; }
   <div id="composer">
     <div class="box">
       <div id="chips"></div>
+      <div id="pasted"></div>
       <textarea id="q" rows="1" placeholder="Chiedi qualcosa…  «/» per i comandi · Invio manda · Maiusc+Invio a capo"></textarea>
       <div class="row">
         <button class="ib" id="modelbtn" title="Agente e modello"></button>
+        <button class="ib" id="imgbtn" title="Allega un'immagine (oppure incollala con Cmd+V o trascinala qui)"></button>
+        <input type="file" id="imgfile" accept="image/*" multiple hidden>
         <span class="sp"></span>
         <span id="ctx" title="Contesto usato (clic per il dettaglio e per compattare)"></span>
         <button id="send" title="Invia (Invio)"></button>
@@ -269,6 +282,7 @@ const P = {
   copy: "M9 9h11v11H9zM5 15H4V4h11v1", redo: "M20 8a8 8 0 10.5 7M20 3v5h-5", branch: "M6 3v12M18 9a3 3 0 100-6 3 3 0 000 6zM6 21a3 3 0 100-6 3 3 0 000 6zM18 9c0 6-12 3-12 9",
   check: "M5 12l5 5 9-11", chev: "M9 6l6 6-6 6", down: "M6 9l6 6 6-6", edit: "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", compact: "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7",
   gear: "M12 9a3 3 0 100 6 3 3 0 000-6zM19 12l2-1-1-3-2 .3-1.5-1.5L17 4l-3-1-1 2h-2L10 3 7 4l.5 2.8L6 8.3 4 8 3 11l2 1v0l-2 1 1 3 2-.3 1.5 1.5L7 20l3 1 1-2h2l1 2 3-1-.5-2.8 1.5-1.5 2 .3 1-3z",
+  image: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 9h.01",
   pen: "M4 20l4-1 11-11-3-3L5 16zM14 6l3 3", trash: "M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3", hammer: "M14 4l6 6-3 3-6-6zM11 7L3 15l3 3 8-8",
 };
 function ic(n, cls) { return "<svg class='i " + (cls || "") + "' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='" + (P[n] || "") + "'/></svg>"; }
@@ -712,6 +726,11 @@ function msgEl(m, i) {
   d.querySelector(".name").textContent = m.role === "user" ? "Tu" : (m.by || "AI");
   const st = stepsEl(m, false); if (st) d.querySelector(".steps-slot").appendChild(st);
   d.querySelector(".body").innerHTML = renderMd(m.content);
+  if (m.images && m.images.length) {
+    const box = document.createElement("div"); box.className = "imgs";
+    for (const src of m.images) { const im = document.createElement("img"); im.src = src; im.alt = ""; im.onclick = () => showZoom(src); box.appendChild(im); }
+    d.querySelector(".body").appendChild(box);
+  }
   const acts = d.querySelector(".acts");
   const btn = (icon, t, title, fn) => { const b = document.createElement("button"); b.className = "ib"; b.innerHTML = ic(icon) + "<span></span>"; b.querySelector("span").textContent = t; b.title = title; b.onclick = fn; acts.appendChild(b); return b; };
   const copy = btn("copy", "Copia", "Copia il Markdown", () => copyText(m.content).then(() => { copy.querySelector("span").textContent = "Copiato"; setTimeout(() => (copy.querySelector("span").textContent = "Copia"), 1200); }));
@@ -733,14 +752,15 @@ function regenerate(i) {
   let u = i - 1;
   while (u >= 0 && cur.messages[u].role !== "user") u--;
   if (u < 0) return;
-  const text = cur.messages[u].content;
+  const text = cur.messages[u].content, imgs = cur.messages[u].images || [];
   cur.messages = cur.messages.slice(0, u);
   saveSoon(); drawLog();
-  send(text);
+  send(text, imgs);
 }
 function editFrom(i) {
   if (busy) return;
   q.value = cur.messages[i].content; grow();
+  pendingImgs = [...(cur.messages[i].images || [])]; drawPasted();
   cur.messages = cur.messages.slice(0, i);
   saveSoon(); drawLog(); drawMeter(); q.focus();
 }
@@ -768,12 +788,13 @@ function refreshPage() {
     setTimeout(done, 2500); // l'app non ha risposto: si manda lo stesso
   });
 }
-async function send(text) {
+async function send(text, images) {
   busy = busy || new AbortController(); // intanto un altro Invio va in coda
   await refreshPage();
   const userMsg = { role: "user", content: text, at: Date.now() };
+  if (images && images.length) userMsg.images = images;
   cur.messages.push(userMsg);
-  if (cur.title === "Nuova chat") { cur.title = text.replace(/\s+/g, " ").slice(0, 60) + (text.length > 60 ? "…" : ""); drawBar(); }
+  if (cur.title === "Nuova chat") { cur.title = (text || T("Immagine")).replace(/\s+/g, " ").slice(0, 60) + (text.length > 60 ? "…" : ""); drawBar(); }
   $("empty")?.remove();
   log.appendChild(msgEl(userMsg, cur.messages.length - 1));
   const m = { role: "assistant", content: "", think: "", by: "", tools: [], notes: [], at: Date.now() };
@@ -805,7 +826,7 @@ async function send(text) {
     const att = cur.attach && !!cur.page;
     const r = await fetch("api/chat", {
       method: "POST", signal: busy.signal,
-      body: JSON.stringify({ messages: cur.messages.filter((x) => x.role !== "summary" || true).map(({ role, content }) => ({ role, content })), attach: !!att, web: !!cur.web,
+      body: JSON.stringify({ messages: cur.messages.map(({ role, content, images }) => (images && images.length ? { role, content, images } : { role, content })), attach: !!att, web: !!cur.web,
                              chat_id: cur.id, provider: cur.provider || "", note: cur.noteOn !== false ? noteName : "" }),
     });
     if (!r.ok) throw new Error("HTTP " + r.status + ": " + await r.text());
@@ -855,6 +876,8 @@ async function send(text) {
       d.remove(); log.lastElementChild?.remove();
       if (!cur.messages.length) drawLog();
       if (!queue.length) { q.value = q.value || text; grow(); }
+      // e le immagini tornano nel riquadro di scrittura, per riprovare
+      if (images && images.length && !pendingImgs.length) { pendingImgs = images; drawPasted(); }
       const e = document.createElement("div"); e.className = "msg assistant";
       const s = stepsEl(m, false); if (s) e.appendChild(s);
       const er = document.createElement("div"); er.className = "err"; er.textContent = "⚠ " + (error || "nessuna risposta"); e.appendChild(er);
@@ -875,16 +898,75 @@ function drawSend() {
 }
 async function submit() {
   const t = q.value.trim();
-  if (!t) { if (busy) busy.abort(); return; }
-  if (t.startsWith("/") && runSlash(t)) { q.value = ""; grow(); hideSlash(); return; }
+  const imgs = pendingImgs;
+  if (!t && !imgs.length) { if (busy) busy.abort(); return; }
+  if (!imgs.length && t.startsWith("/") && runSlash(t)) { q.value = ""; grow(); hideSlash(); return; }
+  if (busy && imgs.length) { toast(T("Aspetta la fine della risposta per mandare le immagini.")); return; }
   if (busy) { queue.push(t); q.value = ""; grow(); drawQueue(); return; } // in coda, come in DSH
   const p = parts(), at = cfg.chat.compact_at;
   if (at > 0 && cur.messages.length >= 3 && p.total >= (at / 100) * meter.max) {
     if (!(await compact(true)) && p.total >= 0.97 * meter.max) return;
   }
   q.value = ""; grow();
-  send(t);
+  pendingImgs = []; drawPasted();
+  send(t, imgs);
 }
+
+// ---------------- immagini incollate ----------------
+// Cmd+V di un'immagine (schermata, foto copiata), trascinata sul riquadro di
+// scrittura o scelta con la graffetta: va col messaggio. Si rimpicciolisce a
+// 1600 px di lato (i modelli non ne vedono di più); le schermate restano PNG.
+let pendingImgs = [];
+function drawPasted() {
+  const el = $("pasted");
+  el.innerHTML = "";
+  pendingImgs.forEach((src, i) => {
+    const th = document.createElement("div"); th.className = "th";
+    const im = document.createElement("img"); im.src = src; im.alt = ""; im.onclick = () => showZoom(src);
+    const x = document.createElement("button"); x.innerHTML = ic("x"); x.title = T("Togli l'immagine");
+    x.onclick = () => { pendingImgs.splice(i, 1); drawPasted(); };
+    th.append(im, x); el.appendChild(th);
+  });
+}
+function addImageFile(file) {
+  if (!file || !/^image\//.test(file.type)) return;
+  if (pendingImgs.length >= 8) { toast(T("Al massimo 8 immagini per messaggio.")); return; }
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const max = 1600, k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const g = c.getContext("2d");
+    const png = file.type === "image/png" && file.size < 2.5e6;
+    if (!png) { g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); } // il JPEG non ha trasparenza
+    g.drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(url);
+    pendingImgs.push(png ? c.toDataURL("image/png") : c.toDataURL("image/jpeg", 0.88));
+    drawPasted(); q.focus();
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toast(T("Questa immagine non si apre.")); };
+  img.src = url;
+}
+document.addEventListener("paste", (e) => {
+  const files = [...(e.clipboardData?.items || [])].filter((i) => i.kind === "file" && i.type.startsWith("image/")).map((i) => i.getAsFile());
+  if (!files.length) return; // testo: lo incolla il campo come sempre
+  e.preventDefault();
+  files.forEach(addImageFile);
+});
+$("imgbtn").innerHTML = ic("image");
+$("imgbtn").onclick = () => $("imgfile").click();
+$("imgfile").onchange = () => { [...$("imgfile").files].forEach(addImageFile); $("imgfile").value = ""; };
+const hasImgFiles = (e) => [...(e.dataTransfer?.items || [])].some((i) => i.kind === "file" && i.type.startsWith("image/"));
+$("composer").addEventListener("dragover", (e) => { if (hasImgFiles(e)) { e.preventDefault(); document.body.classList.add("imgdrop"); } });
+$("composer").addEventListener("dragleave", () => document.body.classList.remove("imgdrop"));
+$("composer").addEventListener("drop", (e) => {
+  document.body.classList.remove("imgdrop");
+  const files = [...(e.dataTransfer?.files || [])].filter((f) => f.type.startsWith("image/"));
+  if (!files.length) return;
+  e.preventDefault(); e.stopPropagation();
+  files.forEach(addImageFile);
+});
 function drawQueue() {
   const el = $("queue");
   el.innerHTML = "";
@@ -1087,6 +1169,7 @@ async function attachIncoming(fresh) {
   drawAll();
 }
 $("zoom").onclick = () => ($("zoom").style.display = "none");
+function showZoom(src) { $("zoom").querySelector("img").src = src; $("zoom").style.display = "flex"; }
 // la pagina mandata dall'app («Chat AI», «Discuti in chat», /pagina)
 async function pollContext() {
   if (busy) return; // mentre risponde non si ridisegna la chat
@@ -1156,6 +1239,44 @@ addEventListener("keydown", (e) => {
   if (e.key === "Escape") document.body.classList.remove("drawer");
 });
 addEventListener("pagehide", () => { if (cur) navigator.sendBeacon("api/chats/" + cur.id, JSON.stringify(cur)); });
+
+// ---------------- grandezza del testo ----------------
+// pizzico sul trackpad, Cmd + / Cmd − / Cmd 0 (come negli appunti e nei
+// documenti); l'app la ricorda in settings.conf (chat_zoom)
+let chatZoom = 1;
+function setChatZoom(z, tell = true) {
+  chatZoom = Math.round(Math.min(2.5, Math.max(0.6, z)) * 100) / 100;
+  for (const id of ["log", "queue", "composer"]) $(id).style.zoom = chatZoom;
+  if (tell) {
+    if (!toApp({ cmd: "chat_zoom", zoom: chatZoom })) { try { localStorage.setItem("chat-zoom", chatZoom); } catch (e) {} }
+    toast(T("Testo della chat: {}%", Math.round(chatZoom * 100)));
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").classList.remove("show"), 1500);
+  }
+}
+{
+  let z = parseFloat(params.get("zoom") || "");
+  if (!(z > 0)) { try { z = parseFloat(localStorage.getItem("chat-zoom") || "1"); } catch (e) { z = 1; } }
+  setChatZoom(z > 0 ? z : 1, false);
+}
+addEventListener("keydown", (e) => {
+  const mod = e.metaKey || e.ctrlKey;
+  if (!mod || e.altKey) return;
+  if (e.key === "=" || e.key === "+") { e.preventDefault(); setChatZoom(chatZoom * 1.1); }
+  else if (e.key === "-") { e.preventDefault(); setChatZoom(chatZoom / 1.1); }
+  else if (e.key === "0") { e.preventDefault(); setChatZoom(1); }
+});
+// WebKit (macOS): eventi gesture*; Chromium e WebKitGTK: Ctrl + rotella
+let gz = 1;
+addEventListener("gesturestart", (e) => { e.preventDefault(); gz = chatZoom; });
+addEventListener("gesturechange", (e) => { e.preventDefault(); setChatZoom(gz * e.scale, false); });
+addEventListener("gestureend", (e) => { e.preventDefault(); setChatZoom(chatZoom); });
+let wheelTell = 0;
+addEventListener("wheel", (e) => {
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+  setChatZoom(chatZoom * Math.exp(-e.deltaY / 200), false);
+  clearTimeout(wheelTell); wheelTell = setTimeout(() => setChatZoom(chatZoom), 300);
+}, { passive: false });
 
 async function loadConfig() {
   try {

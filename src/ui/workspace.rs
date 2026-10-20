@@ -40,7 +40,7 @@ impl App {
     pub(super) fn page_url(&self, page: &str) -> Option<String> {
         let port = self.local_port?;
         let sep = if page.contains('?') { '&' } else { '?' };
-        Some(format!("http://127.0.0.1:{port}/{page}{sep}embed=1&theme={}", self.settings.ui_theme))
+        Some(format!("http://127.0.0.1:{port}/{page}{sep}embed=1&theme={}&zoom={:.2}", self.settings.ui_theme, self.settings.chat_zoom))
     }
 
     fn origin(&self) -> String {
@@ -120,6 +120,10 @@ impl App {
                 self.note_info.dirty = v["dirty"].as_bool().unwrap_or(false);
             }
             "note_source" => self.note_info.source = v["on"].as_bool().unwrap_or(false),
+            "chat_zoom" => {
+                self.settings.chat_zoom = (v["zoom"].as_f64().unwrap_or(1.0) as f32).clamp(0.6, 2.5);
+                self.settings.save();
+            }
             "note_zoom" => self.note_info.zoom = v["zoom"].as_f64().unwrap_or(1.0) as f32,
             "note_reload" => self.embeds.eval(Slot::Note, "window.wsNote && wsNote.reload()"),
             "open_note" => {
@@ -329,6 +333,60 @@ impl App {
                 self.embeds.focus_parent();
             }
         }
+    }
+
+    /// Chiede a GitHub, in un thread, se c'è una versione nuova.
+    pub(super) fn check_updates(&mut self, manual: bool) {
+        self.update_next = None;
+        if manual {
+            self.status = i18n::t("Cerco aggiornamenti…").into();
+        }
+        let tx = self.evt_tx.clone();
+        std::thread::spawn(move || {
+            let result = crate::update::check().map_err(|e| format!("{e:#}"));
+            let _ = tx.send(crate::actor::UiEvent::Update { result, manual });
+        });
+    }
+
+    /// Barra «È disponibile OpenSlate x.y.z» (come nel launcher di ArtCraft):
+    /// Scarica, Novità, Salta questa versione, chiudi (per ora).
+    pub(super) fn update_banner(&mut self, root: &mut egui::Ui, actions: &mut Vec<Action>) {
+        let Some(r) = self.update.clone() else { return };
+        if self.update_hidden {
+            return;
+        }
+        let t = Tokens::get(root.ctx());
+        let (fill, edge) = if t.dark {
+            (egui::Color32::from_rgb(0x1d, 0x2a, 0x42), egui::Color32::from_rgb(0x2f, 0x4a, 0x7a))
+        } else {
+            (egui::Color32::from_rgb(0xE9, 0xF0, 0xFD), egui::Color32::from_rgb(0xBF, 0xD3, 0xF7))
+        };
+        egui::Panel::top("update_banner")
+            .exact_size(30.0)
+            .frame(egui::Frame::NONE.fill(fill).stroke(Stroke::new(1.0, edge)).inner_margin(egui::Margin { left: 14, right: 10, top: 2, bottom: 2 }))
+            .show(root, |ui| {
+                ui.horizontal_centered(|ui| {
+                    ui.spacing_mut().item_spacing.x = 8.0;
+                    ui.label(egui::RichText::new(ic::ARROW_CIRCLE_UP).font(icon(15.0)).color(t.accent_text));
+                    ui.label(egui::RichText::new(i18n::tf(format!("È disponibile OpenSlate {} (questa è la {}).", r.version, crate::update::current()))).font(medium(11.5)).color(t.text))
+                        .on_hover_text(i18n::t("Le impostazioni, gli agenti AI, l'archivio e i documenti restano: stanno nella cartella dei dati, fuori dall'app, e le chiavi nel Portachiavi."));
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if super::widgets::icon_button(ui, ic::X, "Più tardi (torna al prossimo avvio)", vec2(20.0, 20.0), true).clicked() {
+                            self.update_hidden = true;
+                        }
+                        if ui.small_button(i18n::t("Salta questa versione")).clicked() {
+                            actions.push(Action::SkipUpdate);
+                        }
+                        if ui.small_button(i18n::t("Novità")).clicked() {
+                            crate::platform::open(&r.page);
+                        }
+                        let dl = ui.add(egui::Button::new(egui::RichText::new(i18n::tf(format!("{}  Scarica", ic::DOWNLOAD_SIMPLE))).color(egui::Color32::WHITE)).fill(t.accent).small());
+                        if dl.on_hover_text(i18n::t("Scarica la nuova versione dal sito di GitHub: si installa come la prima volta, sostituendo l'app. Impostazioni e archivio restano.")).clicked() {
+                            crate::platform::open(&r.download);
+                        }
+                    });
+                });
+            });
     }
 
     /// Barra sotto la barra multifunzione quando lo Slate non è collegato:

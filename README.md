@@ -56,6 +56,13 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   PDF it becomes vector strokes over the untouched original. Pages stay crisp at any zoom,
   rendered by the [WordCraft](https://github.com/storytold/wordcraft) and
   [PdfCraft](https://github.com/storytold/pdfcraft) engines.
+- **Write on images too.** Open an SVG, PNG, JPEG (also WebP, TIFF, BMP, GIF), or press **Paste**
+  (`Cmd+V`) with a screenshot or photo on the clipboard. Write on it and save it back as an image
+  of the same format and size: an SVG keeps the handwriting as vector paths
+  ([VectorCraft](https://github.com/storytold/vectorcraft)), a photo gets it painted at full
+  resolution with its colour profile kept ([PhotoCraft](https://github.com/storytold/photocraft)).
+- **Copy and Paste like in Word.** The Home tab starts with **Paste** and **Copy**: Copy puts the
+  page on the clipboard as an image, ready for the AI chat, Word or an email.
 - **Handwriting → text.** A vision-capable AI model transcribes a page faithfully, mistakes
   included, into a Markdown note: headings, lists, checkboxes, tables, and formulas in LaTeX when
   there are any. Drawings, graphs and diagrams are redrawn from your actual pen strokes as crisp
@@ -63,7 +70,8 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 - **AI assistant, for anything.** The chat sits next to the page and can see the board, the
   open document or the note. Use it to summarise, rewrite neatly, pull out to-dos, draft texts,
   check what you wrote for mistakes, answer questions, write into the note, search the web and
-  verify EU VAT numbers. If the model you pick cannot see images (a text-only model), the page is first
+  verify EU VAT numbers. Paste images into it (`Cmd+V`, drag and drop or the paperclip), and make
+  its text bigger or smaller with a pinch or `Cmd +` / `Cmd −`. If the model you pick cannot see images (a text-only model), the page is first
   read by the agent chosen under *Page reading (OCR)* and handed over as text. Behind it is a fallback chain of OpenAI-compatible providers:
   LM Studio, Ollama, DeepSeek, Google Gemini and Anthropic Claude. It shows context usage and
   compacts automatically. Drag a document tab onto the chat to attach it.
@@ -130,6 +138,15 @@ optional, for importing documents. Your user must be allowed to use Bluetooth.
 
 Unzip and run `openslate.exe`. It needs the Microsoft Edge WebView2 runtime, which ships with
 Windows 10/11. Not everything is tested on Windows. Bug reports are very welcome.
+
+## Updates
+
+When a new release is published on GitHub, a blue bar under the ribbon says so, with
+**Download**, **What's new** and **Skip this version** (File → Help and information → Check for
+updates checks right away; Options → Advanced turns the notice off). Install the new version as
+the first time, replacing the app: your settings, AI agents, library, documents and exports live
+in the data folder (macOS: `~/Library/Application Support/OpenSlate`), outside the app, and the
+API keys in the Keychain, so nothing is lost.
 
 ## First connection
 
@@ -207,6 +224,8 @@ src/ui.rs, src/ui/*                                       egui interface (Word-l
 src/document.rs, wordsign.rs, docrender.rs, pdfdoc.rs     Word/PDF opening, rendering, signing
 src/ai.rs, chats.rs, tools.rs, ocr.rs                     AI providers, chat, transcription
 src/web.rs, src/web/*                                     web live view, chat and notes pages
+src/wordsign.rs, src/vecsign.rs, src/rasign.rs            signing Word (WordCraft), SVG (VectorCraft), photos (PhotoCraft)
+src/update.rs                                             "new version available" notice (GitHub releases)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

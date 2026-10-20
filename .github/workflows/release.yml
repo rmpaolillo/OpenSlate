@@ -16,6 +16,8 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  # the app knows it comes from a release: it then tells the user about newer releases
+  OPENSLATE_RELEASE: "1"
 
 jobs:
   version:

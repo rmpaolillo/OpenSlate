@@ -270,7 +270,7 @@ function providerCard(p, i) {
   q(".test").onclick = async () => {
     res.className = "result"; res.textContent = "Provo…";
     const j = await (await fetch("api/config/test", { method: "POST", body: payload() })).json();
-    if (j.ok) { res.className = "result ok"; res.textContent = `✓ Risponde: ${j.model} in ${(j.ms / 1000).toFixed(1)} s · contesto ${j.context ? fmtK(j.context) : "?"} · «${j.text}»`; }
+    if (j.ok) { res.className = "result ok"; res.textContent = `✓ Risponde: ${j.model} in ${(j.ms / 1000).toFixed(1)} s · contesto ${j.context ? fmtK(j.context) : "?"} · «${j.text}»` + (j.vision ? " · " + T("legge le immagini ✓") : ""); }
     else { res.className = "result err"; res.textContent = "✗ " + j.error; }
   };
   q(".list").onclick = async () => {
@@ -351,14 +351,14 @@ function drawOthers() {
 async function load() {
   const c = await (await fetch("api/config", { cache: "no-store" })).json();
   if (!c.ok) { setMsg("⚠ " + c.error, "err"); return; }
-  cfg = { providers: c.providers.map((p) => ({ ...BASE, ...p })), chat: c.chat, web: c.web };
+  cfg = { providers: c.providers.map((p) => ({ ...BASE, ...p })), chat: c.chat, web: c.web, ocr: c.ocr || { agent: "", fallback: true } };
   isMac = c.keychain; newKeys = {}; webNewKey = "";
   $("path").textContent = "File: " + c.path + " (la versione precedente resta in " + c.path + ".bak)";
   drawProviders(); drawOthers();
 }
 $("save").onclick = async () => {
   const strip = (o) => { const x = { ...o }; delete x.key_ok; return x; };
-  const body = { config: { providers: cfg.providers.map(strip), chat: cfg.chat, web: strip(cfg.web) }, new_keys: newKeys, web_new_key: webNewKey };
+  const body = { config: { providers: cfg.providers.map(strip), chat: cfg.chat, web: strip(cfg.web), ocr: cfg.ocr }, new_keys: newKeys, web_new_key: webNewKey };
   setMsg("Salvo…");
   const j = await (await fetch("api/config", { method: "POST", body: JSON.stringify(body) })).json();
   if (j.ok) { await load(); setMsg("Salvato ✓ (vale subito, senza riavviare)", "ok"); toApp({ cmd: "config_saved" }); }

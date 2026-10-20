@@ -39,8 +39,8 @@ pub fn navigate(path: &str) {
     n.1 = path.to_string();
 }
 
-/// Corpo massimo di una richiesta POST (la chat manda solo testo).
-const MAX_BODY: usize = 4 << 20;
+/// Corpo massimo di una richiesta POST (la chat manda anche le immagini incollate).
+const MAX_BODY: usize = 40 << 20;
 
 /// Indirizzo del Mac nella rete locale (nessun pacchetto viene inviato).
 pub fn lan_ip() -> Option<IpAddr> {
@@ -465,11 +465,24 @@ fn is_local(ip: IpAddr) -> bool {
 /// `POST /api/chat` con `{"messages":[{"role","content"}], "attach": bool}`:
 /// la risposta arriva in streaming come eventi SSE
 /// (`try`, `skip`, `delta`, `done`, `error`).
+/// I byte di un'immagine incollata: `data:image/…;base64,…` (al massimo 12 MB).
+fn data_url_bytes(u: &str) -> Option<std::sync::Arc<Vec<u8>>> {
+    use base64::Engine;
+    let (head, b64) = u.split_once(',')?;
+    if !head.starts_with("data:image/") || !head.ends_with(";base64") || b64.len() > 16 * 1024 * 1024 {
+        return None;
+    }
+    base64::engine::general_purpose::STANDARD.decode(b64.trim()).ok().map(std::sync::Arc::new)
+}
+
 async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
     #[derive(serde::Deserialize)]
     struct In {
         role: String,
         content: String,
+        /// Immagini incollate (data URL `data:image/png;base64,…`).
+        #[serde(default)]
+        images: Vec<String>,
     }
     #[derive(serde::Deserialize)]
     struct Req {
@@ -513,7 +526,8 @@ async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
     )
     .await?;
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<serde_json::Value>();
-    let history: Vec<(String, String)> = req.messages.into_iter().map(|m| (m.role, m.content)).collect();
+    let history: Vec<(String, String, Vec<std::sync::Arc<Vec<u8>>>)> =
+        req.messages.into_iter().map(|m| (m.role, m.content, m.images.iter().take(8).filter_map(|u| data_url_bytes(u)).collect())).collect();
     let attach = req.attach;
     let use_tools = req.web;
     let chat_id = req.chat_id.clone();
@@ -541,7 +555,7 @@ async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
             (true, false) => crate::chats::page_context(&chat_id),
             (true, true) => ai::context(),
         };
-        let msgs = ai::chat_messages(&cfg, &history, ctx.as_ref());
+        let msgs = ai::chat_messages_with_images(&cfg, &history, ctx.as_ref());
         let res = ai::run_chat(&cfg, ai::Task::Chat, &msgs, use_tools, appunto, &mut |ev| {
             let j = match ev {
                 Event::Trying { provider, model, context } => serde_json::json!({ "t": "try", "provider": provider, "model": model, "context": context }),

@@ -234,7 +234,7 @@ impl App {
 
     fn bs_open(&self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
         heading(ui, "Apri");
-        if card(ui, ic::FOLDER_OPEN, "Sfoglia…", "PDF, Word (.doc, .docx), .odt, .rtf, .md, .txt, .html — anche trascinando il file sulla finestra", !self.docui.importing) {
+        if card(ui, ic::FOLDER_OPEN, "Sfoglia…", "PDF, Word (.doc, .docx), .odt, .rtf, .md, .txt, .html, immagini SVG, PNG e JPEG — anche trascinando il file sulla finestra", !self.docui.importing) {
             actions.push(Action::Doc(DocAction::OpenDialog));
             actions.push(Action::Backstage(None));
         }
@@ -299,6 +299,9 @@ impl App {
         }
         if card(ui, ic::FOLDER_OPEN, "Cartella dei dati", "Archivio, documenti, export, impostazioni", true) {
             actions.push(Action::OpenDataFolder);
+        }
+        if card(ui, ic::ARROW_CIRCLE_UP, "Cerca aggiornamenti", "Le release di OpenSlate su GitHub", true) {
+            actions.push(Action::CheckUpdates);
         }
         subheading(ui, "Crediti");
         for line in [

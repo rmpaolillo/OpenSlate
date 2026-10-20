@@ -30,6 +30,9 @@ mod stroke;
 mod swift;
 mod tools;
 mod ui;
+mod update;
+mod rasign;
+mod vecsign;
 mod vendor;
 mod viewer;
 mod wordsign;
@@ -65,7 +68,7 @@ enum Cmd {
         /// Disegna da solo qualche tratto di prova (senza pad).
         #[arg(long)]
         demo: bool,
-        /// Apre subito un documento da firmare (PDF, Word, Markdown…).
+        /// Apre subito un documento da firmare (PDF, Word, Markdown, SVG, PNG…).
         #[arg(long)]
         apri: Option<std::path::PathBuf>,
     },
@@ -90,7 +93,7 @@ enum Cmd {
     Pdf {
         files: Vec<std::path::PathBuf>,
     },
-    /// Importa un documento (PDF, Word, Markdown…) per scriverci e firmarlo.
+    /// Importa un documento (PDF, Word, Markdown, SVG, PNG…) per scriverci e firmarlo.
     Importa {
         file: std::path::PathBuf,
     },

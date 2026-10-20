@@ -75,6 +75,8 @@ pub enum UiEvent {
     /// Stato del collegamento col pad (spia nella barra).
     Link(Link),
     Web(Result<String, String>),
+    /// Risposta di GitHub sugli aggiornamenti (`manual`: chiesto dall'utente).
+    Update { result: Result<Option<crate::update::Release>, String>, manual: bool },
 }
 
 pub async fn ble_actor(

@@ -428,6 +428,12 @@ fn prefs_page(ui: &mut egui::Ui, p: &mut Prefs, ai: &mut bool) {
                     hint(ui, "riceve il percorso del file prodotto come $1 (export, trascrizioni)");
                 });
             });
+            row(ui, "Aggiornamenti", |ui| {
+                ui.vertical(|ui| {
+                    ui.checkbox(&mut d.update_check, i18n::t("avvisa quando c'è una versione nuova"));
+                    hint(ui, "chiede a GitHub l'ultima release di OpenSlate all'avvio; impostazioni e archivio restano anche aggiornando");
+                });
+            });
             row(ui, "File delle impostazioni", |ui| {
                 if ui.button(i18n::t("Apri settings.conf")).clicked() {
                     crate::platform::open("settings.conf");

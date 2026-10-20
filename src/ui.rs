@@ -112,6 +112,11 @@ pub fn run_app(
         evt_tx,
         info: None,
         status,
+        error_box: None,
+        error_open: false,
+        update: None,
+        update_hidden: false,
+        update_next: Some(std::time::Instant::now() + std::time::Duration::from_secs(4)),
         live_on: false,
         fullscreen: false,
         fs_requested: None,
@@ -277,6 +282,14 @@ struct App {
     evt_tx: UnboundedSender<UiEvent>,
     info: Option<DeviceInfo>,
     status: String,
+    /// Un errore da leggere per intero (titolo, testo) e se la finestra è aperta.
+    error_box: Option<(String, String)>,
+    error_open: bool,
+    /// Versione nuova su GitHub (barra «È disponibile…») e se è nascosta per ora.
+    update: Option<crate::update::Release>,
+    update_hidden: bool,
+    /// Quando ricontrollare (None = controllo in corso o spento).
+    update_next: Option<std::time::Instant>,
     live_on: bool,
     fullscreen: bool,
     /// Quando abbiamo chiesto il cambio di schermo intero (il sistema
@@ -433,6 +446,10 @@ enum Action {
     ShowBoard,
     /// «Controlla il foglio»: foglio allegato e richiesta di controllo.
     ChatCheck,
+    /// Chiede a GitHub se c'è una versione nuova (dal menu: risponde comunque).
+    CheckUpdates,
+    /// «Salta questa versione».
+    SkipUpdate,
     /// Rigatura del foglio.
     Paper(paper::Paper),
     ToggleMargin,
@@ -444,6 +461,9 @@ enum Action {
     CopyWebUrl,
     OpenExports,
     CopyImage,
+    /// Incolla dagli appunti di sistema: un'immagine diventa un documento su
+    /// cui scrivere (si salva di nuovo come PNG).
+    Paste,
     SaveBoard,
     /// Zoom della pagina visibile (lavagna o visualizzatore).
     Zoom(ZoomOp),
@@ -684,7 +704,40 @@ impl App {
                     self.ocr_busy = false;
                     match r {
                         Ok(d) => self.on_ocr(d),
-                        Err(e) => self.status = format!("⚠ Trascrizione: {e}"),
+                        Err(e) => {
+                            tracing::warn!("trascrizione: {e}");
+                            self.status = "⚠ Trascrizione non riuscita — clic per i dettagli".into();
+                            self.error_box = Some(("Trascrizione non riuscita".into(), e));
+                            self.error_open = true;
+                        }
+                    }
+                }
+                UiEvent::Update { result, manual } => {
+                    self.update_next = Some(std::time::Instant::now() + crate::update::EVERY);
+                    match result {
+                        Ok(Some(r)) => {
+                            if manual {
+                                self.status = i18n::tf(format!("È disponibile OpenSlate {}", r.version));
+                            }
+                            // una versione saltata torna solo se la si chiede dal menu
+                            if manual || r.version != self.settings.update_skip {
+                                if self.update.as_ref() != Some(&r) {
+                                    self.update_hidden = false;
+                                }
+                                self.update = Some(r);
+                            }
+                        }
+                        Ok(None) => {
+                            if manual {
+                                self.status = i18n::tf(format!("OpenSlate è aggiornato (versione {})", crate::update::current()));
+                            }
+                        }
+                        Err(e) => {
+                            tracing::info!("aggiornamenti: {e}");
+                            if manual {
+                                self.status = format!("⚠ {}", i18n::tf(format!("Aggiornamenti: {e}")));
+                            }
+                        }
                     }
                 }
                 UiEvent::Web(r) => {
@@ -1057,6 +1110,42 @@ impl App {
     }
 
     /// Copia una pagina negli appunti come immagine (per una chat AI).
+    /// Incolla: un'immagine negli appunti (una schermata, una foto copiata)
+    /// si apre come documento da scrivere e firmare, come un PNG aperto da
+    /// «Apri»; il percorso di un file che OpenSlate apre, lo apre.
+    fn paste(&mut self) {
+        let mut cb = match arboard::Clipboard::new() {
+            Ok(c) => c,
+            Err(e) => {
+                self.status = format!("⚠ {}", i18n::tf(format!("appunti: {e}")));
+                return;
+            }
+        };
+        if let Ok(img) = cb.get_image() {
+            match png_from_rgba(img.width as u32, img.height as u32, &img.bytes) {
+                Some(png) => {
+                    let dir = std::path::Path::new(crate::export::EXPORT_DIR);
+                    let path = dir.join(format!("incollata-{}.png", chrono::Local::now().format("%Y%m%d-%H%M%S")));
+                    match std::fs::create_dir_all(dir).and_then(|_| std::fs::write(&path, png)) {
+                        Ok(()) => self.start_import(path),
+                        Err(e) => self.status = format!("⚠ {e}"),
+                    }
+                }
+                None => self.status = "⚠ Immagine negli appunti non valida.".into(),
+            }
+            return;
+        }
+        if let Ok(text) = cb.get_text() {
+            let p = std::path::PathBuf::from(text.trim().trim_start_matches("file://"));
+            let ext = p.extension().and_then(|e| e.to_str()).unwrap_or("").to_ascii_lowercase();
+            if p.is_file() && crate::docimport::EXTENSIONS.contains(&ext.as_str()) {
+                self.start_import(p);
+                return;
+            }
+        }
+        self.status = "Negli appunti non c'è un'immagine da incollare: copia una schermata, una foto o un'immagine.".into();
+    }
+
     fn copy_page(&mut self, page: Page) {
         if page.is_empty() {
             self.status = "La pagina è vuota.".into();
@@ -1310,6 +1399,13 @@ impl App {
                     open_path(&d.to_string_lossy());
                 }
             }
+            Action::CheckUpdates => self.check_updates(true),
+            Action::SkipUpdate => {
+                if let Some(r) = self.update.take() {
+                    self.settings.update_skip = r.version;
+                    self.settings.save();
+                }
+            }
             Action::OpenReadme => {
                 if std::path::Path::new("README.md").exists() {
                     open_path("README.md");
@@ -1475,6 +1571,7 @@ impl App {
                 let (_, p) = self.board_page();
                 self.copy_page(p);
             }
+            Action::Paste => self.paste(),
             Action::SaveBoard if self.docui.doc.is_some() => {
                 self.status = "Con un documento aperto usa «Salva PDF firmato».".into();
             }
@@ -1567,6 +1664,11 @@ impl App {
             // Cmd+C: il foglio come immagine negli appunti.
             if i.events.iter().any(|e| matches!(e, egui::Event::Copy)) {
                 actions.push(Action::CopyImage);
+                return;
+            }
+            // Cmd+V: un'immagine dagli appunti (egui manda Paste anche col testo)
+            if i.events.iter().any(|e| matches!(e, egui::Event::Paste(_))) || (i.modifiers.command && i.key_pressed(egui::Key::V)) {
+                actions.push(Action::Paste);
                 return;
             }
             if i.modifiers.command {
@@ -1854,6 +1956,9 @@ impl eframe::App for App {
             self.bar_height = bar;
             if !self.fullscreen {
                 self.status_bar(root, &mut actions);
+                if chrome {
+                    self.update_banner(root, &mut actions);
+                }
             }
             match self.mode {
                 Mode::Board => {
@@ -1881,9 +1986,14 @@ impl eframe::App for App {
                 }
             }
         }
+        // avviso degli aggiornamenti: all'avvio e poi ogni tanto
+        if self.settings.update_check && crate::update::from_release() && self.update_next.is_some_and(|t| std::time::Instant::now() >= t) {
+            self.check_updates(false);
+        }
         self.menu_keys(ctx, &mut actions);
         self.chat_drop(ctx, &mut actions);
         self.help_window(ctx);
+        self.error_window(ctx, &mut actions);
         self.palette_ui(ctx, &mut actions);
         self.place_pages(ctx);
 
@@ -1933,4 +2043,16 @@ fn mac_menu() -> Option<muda::Menu> {
     menu.append_items(&[&app, &edit, &window]).ok()?;
     menu.init_for_nsapp();
     Some(menu)
+}
+
+/// PNG da pixel RGBA (non premoltiplicati, come li dà arboard).
+fn png_from_rgba(w: u32, h: u32, rgba: &[u8]) -> Option<Vec<u8>> {
+    if w == 0 || h == 0 || rgba.len() < (w * h * 4) as usize {
+        return None;
+    }
+    let mut px = tiny_skia::Pixmap::new(w, h)?;
+    for (dst, src) in px.pixels_mut().iter_mut().zip(rgba.chunks_exact(4)) {
+        *dst = tiny_skia::ColorU8::from_rgba(src[0], src[1], src[2], src[3]).premultiply();
+    }
+    px.encode_png().ok()
 }

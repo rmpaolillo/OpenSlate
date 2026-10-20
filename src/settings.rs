@@ -58,6 +58,12 @@ pub struct Settings {
     pub chat_side: String,
     /// Larghezza della chat (frazione della finestra).
     pub chat_width: f32,
+    /// Grandezza del testo nella chat AI (1 = normale; pizzico, Cmd +/−/0).
+    pub chat_zoom: f32,
+    /// Avvisa quando su GitHub c'è una versione nuova.
+    pub update_check: bool,
+    /// Versione nuova che l'utente ha scelto di saltare (non se ne avvisa più).
+    pub update_skip: String,
     /// Rigatura del foglio: bianco, righe, righe10, quadretti5, quadretti4, quadretti10.
     pub paper: String,
     /// Margini rossi a sinistra e a destra nei fogli a righe.
@@ -92,6 +98,9 @@ impl Default for Settings {
             rulers: true,
             chat_side: "sinistra".into(),
             chat_width: 0.55,
+            chat_zoom: 1.0,
+            update_check: true,
+            update_skip: String::new(),
             paper: "bianco".into(),
             paper_margin: true,
         }
@@ -169,6 +178,9 @@ impl Settings {
             "chat_side" => self.chat_side = if v.trim() == "destra" { "destra".into() } else { "sinistra".into() },
             "paper" => self.paper = v.into(),
             "paper_margin" => self.paper_margin = b(v),
+            "chat_zoom" => self.chat_zoom = v.parse::<f32>().unwrap_or(self.chat_zoom).clamp(0.6, 2.5),
+            "update_check" => self.update_check = b(v),
+            "update_skip" => self.update_skip = v.trim().into(),
             "chat_width" => self.chat_width = v.parse::<f32>().unwrap_or(self.chat_width).clamp(0.2, 0.85),
             _ => tracing::warn!("settings.conf: chiave sconosciuta «{k}»"),
         }
@@ -192,10 +204,11 @@ impl Settings {
              # archivio: altezza delle anteprime\nthumb_size = {}\n\
              # comando lanciato dopo ogni file prodotto (riceve il percorso come $1)\nhook = {}\n\
              # aspetto: tema (sistema, chiaro, scuro) e righelli\nui_theme = {}\nrulers = {}\n\
-             # chat AI: lato (sinistra, destra) e larghezza (frazione della finestra)\nchat_side = {}\nchat_width = {:.2}\n\
+             # chat AI: lato (sinistra, destra) e larghezza (frazione della finestra)\nchat_side = {}\nchat_width = {:.2}\nchat_zoom = {:.2}\n\
              # rigatura del foglio: bianco, righe, righe10, quadretti5, quadretti4, quadretti10; margini rossi (solo righe)\npaper = {}\npaper_margin = {}\n\
              # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
-             # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n",
+             # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n\
+             # aggiornamenti: avvisa quando c'è una versione nuova su GitHub; versione saltata\nupdate_check = {}\nupdate_skip = {}\n",
             self.rot,
             b(self.flip_x),
             b(self.flip_y),
@@ -219,10 +232,13 @@ impl Settings {
             b(self.rulers),
             self.chat_side,
             self.chat_width,
+            self.chat_zoom,
             self.paper,
             b(self.paper_margin),
             self.save_dir,
             self.ui_lang,
+            b(self.update_check),
+            self.update_skip,
         );
         if let Err(e) = std::fs::write(FILE, text) {
             tracing::warn!("salvataggio {FILE}: {e}");

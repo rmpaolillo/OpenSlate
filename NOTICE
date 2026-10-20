@@ -28,6 +28,17 @@ Third-party material
   Copyright (c) 2026 ArtCraft Team and the WordCraft / PdfCraft contributors,
   licensed under the MIT License or the Apache License, Version 2.0, at your option.
 
+- VectorCraft (https://github.com/storytold/vectorcraft): the vectorcraft-engine crate opens SVG
+  images and saves them with the pen strokes. Copyright (c) 2026 ArtCraft Team and the
+  VectorCraft contributors, licensed under the MIT License or the Apache License, Version 2.0, at
+  your option. Used unmodified from GitHub at a fixed revision.
+
+- PhotoCraft (https://github.com/storytold/photocraft): the photocraft-codecs, -paint, -raster,
+  -color and -geom crates read and write photos (PNG, JPEG, WebP, TIFF…) and draw the pen strokes
+  on them. Copyright (c) 2026 ArtCraft Team and the PhotoCraft contributors, licensed under the MIT
+  License or the Apache License, Version 2.0, at your option. Used unmodified from GitHub at a
+  fixed revision.
+
 - Inter (assets/fonts/Inter-*.ttf), Copyright (c) 2016 The Inter Project Authors,
   SIL Open Font License 1.1 (assets/fonts/OFL-Inter.txt). Subset with fontTools to drop the
   Private Use Area glyphs (U+E000-F8FF), which would hide the Phosphor icons.

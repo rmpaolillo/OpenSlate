@@ -23,6 +23,13 @@ pub fn config_path() -> String {
     std::env::var("WACOM_AI_CONFIG").unwrap_or_else(|_| CONFIG_FILE.to_string())
 }
 
+/// Il percorso completo di `ai.toml` (per mostrarlo: dice quale file si usa).
+pub fn config_path_full() -> String {
+    let p = std::path::PathBuf::from(config_path());
+    let p = if p.is_absolute() { p } else { std::env::current_dir().map(|d| d.join(&p)).unwrap_or(p) };
+    p.to_string_lossy().into_owned()
+}
+
 /// File creato al primo avvio (commentato, da modificare a mano).
 pub const DEFAULT_TOML: &str = r#"# Agenti AI di OpenSlate (OCR della scrittura e chat).
 #
@@ -469,11 +476,22 @@ pub struct Msg {
     pub text: String,
     /// Immagine PNG allegata (solo ai provider con visione).
     pub image: Option<Arc<Vec<u8>>>,
+    /// Immagini incollate nella chat (PNG o JPEG), dopo il foglio.
+    pub images: Vec<Arc<Vec<u8>>>,
 }
 
 impl Msg {
     pub fn new(role: &str, text: impl Into<String>) -> Self {
-        Self { role: role.into(), text: text.into(), image: None }
+        Self { role: role.into(), text: text.into(), image: None, images: Vec::new() }
+    }
+    /// Con le immagini incollate.
+    pub fn with_images(mut self, imgs: Vec<Arc<Vec<u8>>>) -> Self {
+        self.images = imgs;
+        self
+    }
+    /// Ha immagini (il foglio o immagini incollate)?
+    pub fn has_images(&self) -> bool {
+        self.image.is_some() || !self.images.is_empty()
     }
     pub fn with_image(mut self, png: Arc<Vec<u8>>) -> Self {
         self.image = Some(png);
@@ -552,10 +570,12 @@ pub fn run_chat(
 ) -> Result<Reply> {
     let use_web = use_tools && cfg.web.enabled;
     let tool_ctx = (task == Task::Chat && (use_web || appunto.is_some())).then(|| ToolCtx::with(&cfg.web, use_web, appunto));
-    let has_image = msgs.iter().any(|m| m.image.is_some());
+    let has_image = msgs.iter().any(Msg::has_images);
     let mut fails: Vec<String> = Vec::new();
     // il foglio letto da un modello con visione, per chi risponde senza vederlo
     let mut reading: Option<Option<String>> = None;
+    // e le immagini incollate, una per una
+    let mut pasted: Option<Vec<Option<String>>> = None;
     let answering = |p: &&Provider| match &cfg.answer_with {
         Some(name) => &p.name == name,
         None => p.enabled,
@@ -606,7 +626,14 @@ pub fn run_chat(
             if reading.is_none() {
                 reading = Some(read_page(cfg, &p.name, msgs, on_event)?);
             }
-            with_text = with_reading(msgs, reading.as_ref().and_then(|r| r.as_deref()));
+            if pasted.is_none() {
+                let mut r = Vec::new();
+                for png in msgs.iter().flat_map(|m| m.images.iter()) {
+                    r.push(read_png(cfg, &p.name, png.clone(), "Leggo l'immagine incollata", on_event)?);
+                }
+                pasted = Some(r);
+            }
+            with_text = with_reading(msgs, reading.as_ref().and_then(|r| r.as_deref()), pasted.as_deref().unwrap_or(&[]));
             &with_text
         } else {
             msgs
@@ -656,7 +683,7 @@ fn png_key(png: &[u8]) -> u64 {
 
 /// Serve leggere il foglio? No se nel messaggio c'è già la trascrizione.
 fn needs_reading(msgs: &[Msg]) -> bool {
-    msgs.iter().any(|m| m.image.is_some() && !m.text.contains("Trascrizione fedele (Markdown):"))
+    msgs.iter().any(|m| (m.image.is_some() && !m.text.contains("Trascrizione fedele (Markdown):")) || !m.images.is_empty())
 }
 
 /// Massimo di attesa per leggere il foglio: chi risponde aspetta.
@@ -666,7 +693,14 @@ const READ_TIMEOUT_S: u64 = 90;
 /// con visione; con `fallback` gli altri fanno da riserva). In chat si vede chi lo sta leggendo, chi è stato saltato e quanto
 /// ci ha messo. `None` = nessuno ha potuto.
 fn read_page(cfg: &AiConfig, answering: &str, msgs: &[Msg], on_event: &mut dyn FnMut(Event) -> bool) -> Result<Option<String>> {
-    let Some(png) = msgs.iter().find_map(|m| m.image.clone()) else { return Ok(None) };
+    // già trascritto nel messaggio: non serve leggerlo
+    let Some(png) = msgs.iter().filter(|m| !m.text.contains("Trascrizione fedele (Markdown):")).find_map(|m| m.image.clone()) else { return Ok(None) };
+    read_png(cfg, answering, png, "Leggo il foglio", on_event)
+}
+
+/// Legge un'immagine (`what`: «Leggo il foglio», «Leggo l'immagine incollata»)
+/// con gli agenti che vedono le immagini; vedi [`read_page`].
+fn read_png(cfg: &AiConfig, answering: &str, png: Arc<Vec<u8>>, what: &str, on_event: &mut dyn FnMut(Event) -> bool) -> Result<Option<String>> {
     let k = png_key(&png);
     if let Some((_, t)) = READINGS.lock().unwrap().iter().find(|(h, _)| *h == k) {
         return Ok(Some(t.clone()));
@@ -676,7 +710,7 @@ fn read_page(cfg: &AiConfig, answering: &str, msgs: &[Msg], on_event: &mut dyn F
     match cfg.ocr_chain() {
         Ok(chain) => ocr.providers = chain,
         Err(why) => {
-            let label = "Leggo il foglio".to_string();
+            let label = what.to_string();
             if !(on_event(Event::Tool { label: label.clone() }) && on_event(Event::ToolDone { label, result: why })) {
                 bail!("interrotto");
             }
@@ -697,12 +731,12 @@ fn read_page(cfg: &AiConfig, answering: &str, msgs: &[Msg], on_event: &mut dyn F
         match e {
             Event::Trying { provider, .. } => {
                 // si dice anche perché: chi risponde non ha la spunta «legge le immagini»
-                let label = format!("Leggo il foglio con {provider} ({answering} non legge le immagini)");
+                let label = format!("{what} con {provider} ({answering} non legge le immagini)");
                 alive = on_event(Event::Tool { label: label.clone() });
                 open = Some(label);
             }
             Event::Skipped { provider, why } => {
-                if let Some(label) = open.take().filter(|l| l.starts_with(&format!("Leggo il foglio con {provider} ("))) {
+                if let Some(label) = open.take().filter(|l| l.starts_with(&format!("{what} con {provider} ("))) {
                     alive = on_event(Event::ToolDone { label, result: format!("non ha risposto: {why}") });
                 }
             }
@@ -729,7 +763,7 @@ fn read_page(cfg: &AiConfig, answering: &str, msgs: &[Msg], on_event: &mut dyn F
     let label = match open {
         Some(l) => l,
         None => {
-            let l = "Leggo il foglio".to_string();
+            let l = what.to_string();
             if !on_event(Event::Tool { label: l.clone() }) {
                 bail!("interrotto");
             }
@@ -743,11 +777,13 @@ fn read_page(cfg: &AiConfig, answering: &str, msgs: &[Msg], on_event: &mut dyn F
 }
 
 /// I messaggi per chi non vede le immagini: al posto del foglio, la sua lettura.
-fn with_reading(msgs: &[Msg], reading: Option<&str>) -> Vec<Msg> {
+fn with_reading(msgs: &[Msg], reading: Option<&str>, pasted: &[Option<String>]) -> Vec<Msg> {
+    let mut next = pasted.iter();
     msgs.iter()
         .map(|m| {
             let mut m = m.clone();
-            if m.image.take().is_some() {
+            let transcribed = m.text.contains("Trascrizione fedele (Markdown):");
+            if m.image.take().is_some() && !transcribed {
                 let head = match reading {
                     Some(t) => format!(
                         "[Il foglio allegato è un'immagine. Qui sotto c'è la sua trascrizione fedele (errori compresi), \
@@ -759,6 +795,15 @@ fn with_reading(msgs: &[Msg], reading: Option<&str>) -> Vec<Msg> {
                         .to_string(),
                 };
                 m.text = format!("{head}{}", m.text);
+            }
+            // le immagini incollate: al loro posto quello che ci ha letto un modello con visione
+            let n = std::mem::take(&mut m.images).len();
+            for i in 0..n {
+                let t = match next.next().and_then(|r| r.as_deref()) {
+                    Some(t) => format!("[Immagine incollata {}: un modello che legge le immagini ci ha letto questo]\n\n{t}", i + 1),
+                    None => format!("[Immagine incollata {}: nessun modello in grado di leggere le immagini ha potuto leggerla. Dillo all'utente.]", i + 1),
+                };
+                m.text = format!("{}\n\n{t}", m.text);
             }
             m
         })
@@ -1000,20 +1045,33 @@ fn transport_msg(e: &ureq::Error) -> String {
 
 fn message_json(m: &Msg, send_image: bool) -> serde_json::Value {
     use base64::Engine;
-    match (&m.image, send_image) {
-        (Some(png), true) => {
-            let b64 = base64::engine::general_purpose::STANDARD.encode(png.as_slice());
-            let mut parts = Vec::new();
-            if !m.text.is_empty() {
-                parts.push(serde_json::json!({ "type": "text", "text": m.text }));
-            }
-            parts.push(serde_json::json!({
-                "type": "image_url",
-                "image_url": { "url": format!("data:image/png;base64,{b64}") }
-            }));
-            serde_json::json!({ "role": m.role, "content": parts })
-        }
-        _ => serde_json::json!({ "role": m.role, "content": m.text }),
+    if !send_image || !m.has_images() {
+        return serde_json::json!({ "role": m.role, "content": m.text });
+    }
+    let mut parts = Vec::new();
+    if !m.text.is_empty() {
+        parts.push(serde_json::json!({ "type": "text", "text": m.text }));
+    }
+    for img in m.image.iter().chain(m.images.iter()) {
+        let b64 = base64::engine::general_purpose::STANDARD.encode(img.as_slice());
+        parts.push(serde_json::json!({
+            "type": "image_url",
+            "image_url": { "url": format!("data:{};base64,{b64}", image_mime(img)) }
+        }));
+    }
+    serde_json::json!({ "role": m.role, "content": parts })
+}
+
+/// Il tipo di un'immagine dai primi byte (PNG di serie).
+pub fn image_mime(b: &[u8]) -> &'static str {
+    if b.starts_with(&[0xFF, 0xD8, 0xFF]) {
+        "image/jpeg"
+    } else if b.starts_with(b"GIF8") {
+        "image/gif"
+    } else if b.len() > 12 && &b[0..4] == b"RIFF" && &b[8..12] == b"WEBP" {
+        "image/webp"
+    } else {
+        "image/png"
     }
 }
 
@@ -1638,9 +1696,15 @@ pub fn context() -> Option<ChatContext> {
 
 /// Messaggi per il modello: istruzioni, pagina (se allegata), conversazione.
 pub fn chat_messages(cfg: &AiConfig, history: &[(String, String)], ctx: Option<&ChatContext>) -> Vec<Msg> {
+    let h: Vec<(String, String, Vec<Arc<Vec<u8>>>)> = history.iter().map(|(r, t)| (r.clone(), t.clone(), Vec::new())).collect();
+    chat_messages_with_images(cfg, &h, ctx)
+}
+
+/// Come [`chat_messages`], con le immagini incollate in ogni messaggio.
+pub fn chat_messages_with_images(cfg: &AiConfig, history: &[(String, String, Vec<Arc<Vec<u8>>>)], ctx: Option<&ChatContext>) -> Vec<Msg> {
     let mut msgs = vec![Msg::new("system", cfg.chat_prompt())];
     let mut first_user = true;
-    for (role, text) in history {
+    for (role, text, pasted) in history {
         // il riassunto di una compattazione arriva come messaggio dell'utente
         let summary;
         let text = if role == "summary" {
@@ -1669,7 +1733,7 @@ pub fn chat_messages(cfg: &AiConfig, history: &[(String, String)], ctx: Option<&
                 }
                 t.push_str("---\n\n");
                 t.push_str(text);
-                let mut m = Msg::new("user", t);
+                let mut m = Msg::new("user", t).with_images(pasted.clone());
                 if let Some(png) = &c.png {
                     m = m.with_image(png.clone());
                 }
@@ -1677,7 +1741,9 @@ pub fn chat_messages(cfg: &AiConfig, history: &[(String, String)], ctx: Option<&
                 continue;
             }
         }
-        msgs.push(Msg::new(role, text.clone()));
+        // solo i messaggi dell'utente portano immagini
+        let pasted = if role == "user" { pasted.clone() } else { Vec::new() };
+        msgs.push(Msg::new(role, text.clone()).with_images(pasted));
     }
     // due messaggi di fila dello stesso ruolo (es. riassunto + domanda) si
     // uniscono: alcuni server non li accettano separati
@@ -1689,6 +1755,7 @@ pub fn chat_messages(cfg: &AiConfig, history: &[(String, String)], ctx: Option<&
                 if last.image.is_none() {
                     last.image = m.image;
                 }
+                last.images.extend(m.images);
             }
             _ => merged.push(m),
         }
@@ -2123,5 +2190,29 @@ pub(crate) mod tests {
         assert!(m2[1].text.contains("Riassunto della conversazione") && m2[1].text.ends_with("e poi?") && m2[1].image.is_some());
         assert!(m[1].text.contains("$x=2$") && m[1].text.ends_with("è giusto?") && m[1].image.is_some());
         assert!(m[3].image.is_none());
+    }
+
+    #[test]
+    fn immagini_incollate() {
+        let jpg = Arc::new(vec![0xFF, 0xD8, 0xFF, 0xE0, 1, 2]);
+        let png = Arc::new(b"\x89PNG....".to_vec());
+        let cfg = AiConfig::default();
+        let h = vec![
+            ("user".to_string(), "cosa c'è qui?".to_string(), vec![jpg.clone(), png.clone()]),
+            ("assistant".to_string(), "un gatto".to_string(), vec![jpg.clone()]),
+        ];
+        let m = chat_messages_with_images(&cfg, &h, None);
+        assert_eq!(m[1].images.len(), 2);
+        assert!(m[2].images.is_empty(), "l'assistente non porta immagini");
+        let j = message_json(&m[1], true);
+        let parts = j["content"].as_array().unwrap();
+        assert_eq!(parts.len(), 3);
+        assert!(parts[1]["image_url"]["url"].as_str().unwrap().starts_with("data:image/jpeg;base64,"));
+        assert!(parts[2]["image_url"]["url"].as_str().unwrap().starts_with("data:image/png;base64,"));
+        // senza visione: solo testo, con quello che un altro modello ci ha letto
+        assert_eq!(message_json(&m[1], false)["content"], "cosa c'è qui?");
+        let r = with_reading(&m, None, &[Some("un gatto rosso".into()), None]);
+        assert!(r[1].images.is_empty() && r[1].text.contains("un gatto rosso") && r[1].text.contains("Immagine incollata 2"), "{}", r[1].text);
+        assert!(needs_reading(&m));
     }
 }

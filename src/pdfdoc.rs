@@ -115,6 +115,39 @@ fn load(path: &Path) -> Result<Document> {
 }
 
 /// Misure di tutte le pagine.
+/// Un PDF di una pagina con solo un'immagine RGB (`w`×`h` pixel), grande
+/// `pw`×`ph` punti: le foto aperte come documento.
+pub fn image_pdf(out: &Path, w: u32, h: u32, rgb: &[u8], pw: f64, ph: f64) -> Result<()> {
+    use lopdf::dictionary;
+    if rgb.len() < (w * h * 3) as usize {
+        bail!("immagine incompleta");
+    }
+    let mut doc = Document::with_version("1.5");
+    let pages_id = doc.new_object_id();
+    let mut img = Stream::new(
+        dictionary! {
+            "Type" => "XObject", "Subtype" => "Image", "Width" => w as i64, "Height" => h as i64,
+            "ColorSpace" => "DeviceRGB", "BitsPerComponent" => 8,
+        },
+        rgb[..(w * h * 3) as usize].to_vec(),
+    );
+    let _ = img.compress();
+    let img_id = doc.add_object(img);
+    let content = format!("q {pw:.3} 0 0 {ph:.3} 0 0 cm /Im0 Do Q");
+    let content_id = doc.add_object(Stream::new(Dictionary::new(), content.into_bytes()));
+    let page_id = doc.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages_id,
+        "MediaBox" => vec![0.into(), 0.into(), Object::Real(pw as f32), Object::Real(ph as f32)],
+        "Contents" => content_id,
+        "Resources" => dictionary! { "XObject" => dictionary! { "Im0" => img_id } },
+    });
+    doc.objects.insert(pages_id, Object::Dictionary(dictionary! { "Type" => "Pages", "Kids" => vec![page_id.into()], "Count" => 1 }));
+    let catalog = doc.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages_id });
+    doc.trailer.set("Root", catalog);
+    doc.save(out).with_context(|| format!("scrittura di {}", out.display()))?;
+    Ok(())
+}
+
 pub fn pages(path: &Path) -> Result<Vec<PdfPage>> {
     let doc = load(path)?;
     Ok(doc.get_pages().values().map(|&id| page_of(&doc, id)).collect())
