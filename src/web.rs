@@ -242,6 +242,13 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
             let list = tokio::task::spawn_blocking(list_appunti).await.unwrap_or_default();
             respond(&mut sock, "200 OK", "application/json", list.to_string().as_bytes()).await
         }
+        p if p.starts_with("/api/appunti-file/") => match appunto_file(&p["/api/appunti-file/".len()..]) {
+            Some((f, ctype)) => match std::fs::read(&f) {
+                Ok(b) => respond(&mut sock, "200 OK", ctype, &b).await,
+                Err(_) => respond(&mut sock, "404 Not Found", "text/plain", b"non trovato").await,
+            },
+            None => respond(&mut sock, "400 Bad Request", "text/plain", b"nome non valido").await,
+        },
         p if p.starts_with("/api/appunti/") => match appunto_path(&p["/api/appunti/".len()..]) {
             Some(f) => match std::fs::read(&f) {
                 Ok(b) => respond(&mut sock, "200 OK", "text/markdown; charset=utf-8", &b).await,
@@ -384,6 +391,24 @@ fn appunto_path(raw: &str) -> Option<std::path::PathBuf> {
         && !name.contains("..")
         && name.chars().all(|c| c.is_alphanumeric() || " ._-()".contains(c));
     ok.then(|| std::path::Path::new(export::EXPORT_DIR).join(name))
+}
+
+/// Immagini accanto agli appunti in exports/ (figure ridisegnate): solo
+/// `.svg` e `.png` nella cartella, niente percorsi.
+fn appunto_file(raw: &str) -> Option<(std::path::PathBuf, &'static str)> {
+    let name = percent_decode(raw)?;
+    let ctype = if name.ends_with(".svg") {
+        "image/svg+xml"
+    } else if name.ends_with(".png") {
+        "image/png"
+    } else {
+        return None;
+    };
+    let ok = !name.starts_with('.')
+        && name.len() <= 200
+        && !name.contains("..")
+        && name.chars().all(|c| c.is_alphanumeric() || " ._-()".contains(c));
+    ok.then(|| (std::path::Path::new(export::EXPORT_DIR).join(name), ctype))
 }
 
 /// Elenco degli appunti (.md) in exports/, dal più recente.

@@ -75,6 +75,8 @@
     #page { box-shadow: none; width: auto; min-height: 0; padding: 0; }
     .blk:hover, .blk.flash { background: none; }
   }
+/* figure ridisegnate dal foglio (SVG accanto all'appunto) */
+.blk img { display: block; max-width: 100%; height: auto; margin: 10px auto 4px; }
 /* elenchi con caselle ("- [ ]"): niente pallino */
 li:has(> input[type="checkbox"]) { list-style: none; margin-left: -1.3em; }
 li > input[type="checkbox"] { margin: 0 .45em 0 0; vertical-align: -1px; }
@@ -133,7 +135,9 @@ function renderMd(src) {
   src = src.replace(/%%C(\d+)%%/g, (m, i) => code[+i]);
   return marked.parse(src, { breaks: true })
     .replace(/%%M(\d+)%%/g, (m, i) => math[+i])
-    .replace(/\[\?\]/g, "<span class='unk' title='illeggibile sul foglio'>[?]</span>");
+    .replace(/\[\?\]/g, "<span class='unk' title='illeggibile sul foglio'>[?]</span>")
+    // immagini accanto all'appunto (figure ridisegnate): si prendono da exports/
+    .replace(/<img src="(?![a-z]+:|\/)([^"]+)"/gi, (m, f) => '<img src="api/appunti-file/' + encodeURIComponent(f) + '"');
 }
 
 // --- blocchi (paragrafi, formule, titoli, elenchi…) ---

@@ -778,13 +778,24 @@ impl App {
             let mut first_png = None;
             let mut by = String::new();
             let mut markdown = false;
+            // le figure ridisegnate prendono il nome dall'ora, come l'appunto
+            let ts = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
             for (i, (title, page)) in pages.into_iter().enumerate() {
-                let r = page_png_for_ai(page).and_then(|png| {
+                let page = ai_page(page);
+                let r = export::page_to_png(&page, 2000).and_then(|png| {
                     let png = Arc::new(png);
                     if first_png.is_none() {
                         first_png = Some(png.clone());
                     }
                     ocr::recognize(&png, &cfg)
+                });
+                // [figura: … | riquadro: …] → la figura coi tratti veri della penna
+                let r = r.map(|mut r| {
+                    if r.markdown {
+                        let stem = format!("appunti-{ts}-p{}", i + 1);
+                        r.text = crate::figures::extract(&r.text, &page, std::path::Path::new(export::EXPORT_DIR), &stem);
+                    }
+                    r
                 });
                 match r {
                     Ok(r) => {
@@ -1594,8 +1605,13 @@ impl App {
 /// Immagine di una pagina da far leggere a un modello: ritagliata attorno
 /// alla scrittura (pagina intera se c'è un documento sotto).
 fn page_png_for_ai(page: Page) -> Result<Vec<u8>> {
-    let page = if page.bg.is_none() { export::crop_to_content(&page, 0.03) } else { page };
-    export::page_to_png(&page, 2000)
+    export::page_to_png(&ai_page(page), 2000)
+}
+
+/// La pagina come la vede l'AI: ritagliata attorno alla scrittura (se non
+/// c'è un documento sotto). Le coordinate delle figure si riferiscono a questa.
+fn ai_page(page: Page) -> Page {
+    if page.bg.is_none() { export::crop_to_content(&page, 0.03) } else { page }
 }
 
 /// Per un pezzo di URL (nomi di file con spazi, accenti…).

@@ -157,7 +157,7 @@ Regole:
 4. Solo se ci sono formule o simboli matematici: in linea tra $...$, su una riga propria tra $$...$$, in LaTeX standard (\frac, \sqrt, \sum, \int, \begin{cases}, \begin{pmatrix}…).
 5. Parole barrate: ~~...~~ (o \cancel{...} dentro una formula).
 6. Parole o simboli illeggibili: [?]. Se sei incerto fra due letture scrivi la più probabile seguita da [?].
-7. Disegni, frecce fra blocchi, schemi o grafici: [figura: breve descrizione].
+7. Disegni, grafici, schemi, piani cartesiani, tabelle disegnate a mano: una riga sola [figura: breve descrizione | riquadro: x1,y1,x2,y2], dove x1,y1 è l'angolo in alto a sinistra e x2,y2 quello in basso a destra della figura, in millesimi della larghezza e dell'altezza dell'immagine (0-1000). Il testo scritto fuori dalla figura si trascrive normalmente.
 8. Rispondi SOLO con il Markdown trascritto: niente ``` attorno, niente commenti, niente introduzioni."#;
 
 /// Istruzioni per la chat.
@@ -604,7 +604,7 @@ pub fn run_chat(
         let with_text;
         let msgs_for: &[Msg] = if task == Task::Chat && has_image && !send_image && needs_reading(msgs) {
             if reading.is_none() {
-                reading = Some(read_page(cfg, msgs, on_event)?);
+                reading = Some(read_page(cfg, &p.name, msgs, on_event)?);
             }
             with_text = with_reading(msgs, reading.as_ref().and_then(|r| r.as_deref()));
             &with_text
@@ -665,7 +665,7 @@ const READ_TIMEOUT_S: u64 = 90;
 /// Legge il foglio allegato con l'agente della sezione `[ocr]` (o il primo
 /// con visione; con `fallback` gli altri fanno da riserva). In chat si vede chi lo sta leggendo, chi è stato saltato e quanto
 /// ci ha messo. `None` = nessuno ha potuto.
-fn read_page(cfg: &AiConfig, msgs: &[Msg], on_event: &mut dyn FnMut(Event) -> bool) -> Result<Option<String>> {
+fn read_page(cfg: &AiConfig, answering: &str, msgs: &[Msg], on_event: &mut dyn FnMut(Event) -> bool) -> Result<Option<String>> {
     let Some(png) = msgs.iter().find_map(|m| m.image.clone()) else { return Ok(None) };
     let k = png_key(&png);
     if let Some((_, t)) = READINGS.lock().unwrap().iter().find(|(h, _)| *h == k) {
@@ -696,12 +696,13 @@ fn read_page(cfg: &AiConfig, msgs: &[Msg], on_event: &mut dyn FnMut(Event) -> bo
     let res = run_chat(&ocr, Task::Ocr, &req, false, None, &mut |e| {
         match e {
             Event::Trying { provider, .. } => {
-                let label = format!("Leggo il foglio con {provider}");
+                // si dice anche perché: chi risponde non ha la spunta «legge le immagini»
+                let label = format!("Leggo il foglio con {provider} ({answering} non legge le immagini)");
                 alive = on_event(Event::Tool { label: label.clone() });
                 open = Some(label);
             }
             Event::Skipped { provider, why } => {
-                if let Some(label) = open.take().filter(|l| l.ends_with(provider.as_str())) {
+                if let Some(label) = open.take().filter(|l| l.starts_with(&format!("Leggo il foglio con {provider} ("))) {
                     alive = on_event(Event::ToolDone { label, result: format!("non ha risposto: {why}") });
                 }
             }
@@ -715,7 +716,7 @@ fn read_page(cfg: &AiConfig, msgs: &[Msg], on_event: &mut dyn FnMut(Event) -> bo
     let secs = t0.elapsed().as_secs_f32();
     let (text, result) = match res {
         Ok(r) => {
-            let t = tidy_markdown(&r.text);
+            let t = crate::figures::strip_rects(&tidy_markdown(&r.text));
             let mut cache = READINGS.lock().unwrap();
             cache.push((k, t.clone()));
             if cache.len() > 20 {
@@ -2030,7 +2031,7 @@ pub(crate) mod tests {
         let req = tlog.lock().unwrap()[0].clone();
         assert!(!req.contains("image_url") && req.contains("x + y = 1") && req.contains("è giusto?"), "{req}");
         assert!(
-            events.iter().any(|e| matches!(e, Event::ToolDone { label, result } if label.contains("Occhi") && result.starts_with("letto in"))),
+            events.iter().any(|e| matches!(e, Event::ToolDone { label, result } if label.contains("Occhi") && label.contains("Testo non legge") && result.starts_with("letto in"))),
             "{events:?}"
         );
     }

@@ -14,6 +14,7 @@ mod docimport;
 mod docrender;
 mod document;
 mod export;
+mod figures;
 mod library;
 mod live;
 mod ocr;

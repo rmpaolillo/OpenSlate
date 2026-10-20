@@ -97,6 +97,7 @@ impl PageGeom {
 }
 
 /// Un tratto già proiettato sulla pagina (coordinate 0..1).
+#[derive(Clone)]
 pub struct PageStroke {
     pub color: Rgb,
     pub width: f32,
