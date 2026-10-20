@@ -238,9 +238,9 @@ impl App {
         group(ui, "Salva", |ui| {
             let word = self.docui.doc.as_ref().is_some_and(|d| d.original.is_some());
             let (glyph, label, tip) = if word {
-                (ic::FILE_DOC, "Salva\nWord", "Il documento Word con quello che hai scritto, in exports/ (Cmd+Shift+S). L'originale resta com'era")
+                (ic::FILE_DOC, "Salva\nWord", "Il documento Word con quello che hai scritto: scegli dove salvarlo (Cmd+Shift+S). L'originale resta com'era")
             } else {
-                (ic::FILE_PDF, "Salva\nPDF", "Il PDF con quello che hai scritto, in exports/ (Cmd+Shift+S). L'originale resta com'era")
+                (ic::FILE_PDF, "Salva\nPDF", "Il PDF con quello che hai scritto: scegli dove salvarlo (Cmd+Shift+S). L'originale resta com'era")
             };
             if big_ex(ui, glyph, label, tip, open, false, false).clicked() {
                 actions.push(doc(DocAction::SaveSigned));

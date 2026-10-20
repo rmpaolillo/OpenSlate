@@ -62,13 +62,16 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 - **AI assistant, for anything.** The chat sits next to the page and can see the board, the
   open document or the note. Use it to summarise, rewrite neatly, pull out to-dos, draft texts,
   check what you wrote for mistakes, answer questions, write into the note, search the web and
-  verify EU VAT numbers. Behind it is a fallback chain of OpenAI-compatible providers:
+  verify EU VAT numbers. If the model you pick cannot see images (e.g. DeepSeek), the page is first
+  read by a vision-capable agent from your list and handed over as text. Behind it is a fallback chain of OpenAI-compatible providers:
   LM Studio, Ollama, DeepSeek, Google Gemini and Anthropic Claude. It shows context usage and
   compacts automatically. Drag a document tab onto the chat to attach it.
 - **Live on the web.** A share link lets a TV, phone or PC on your home network watch the board
   in real time. Stable endpoints are `/page.pdf`, `/page.svg`, `/page.png` and `/state.json`.
-- **Export.** Export to vector PDF and SVG at true A4 size, or to PNG. You can also copy the page
-  as an image (`Cmd+C`) and paste it anywhere.
+- **Save and export.** Export to vector PDF and SVG at true A4 size, or to PNG. Every save or
+  export opens the system "Save as" dialog, so you always see where the file goes. It starts in the
+  last folder you chose (the first time, in `exports/`). You can also copy the page as an image
+  (`Cmd+C`) and paste it anywhere.
 
 ## Screenshots
 

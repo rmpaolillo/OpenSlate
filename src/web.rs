@@ -494,12 +494,12 @@ async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
             }
         };
         if !only.is_empty() {
-            cfg.providers.retain(|p| p.name == only);
-            if cfg.providers.is_empty() {
+            // risponde solo l'agente scelto; gli altri restano per leggere il foglio
+            if !cfg.providers.iter().any(|p| p.name == only) {
                 let _ = tx.send(serde_json::json!({ "t": "error", "msg": format!("agente «{only}» non trovato in ai.toml") }));
                 return;
             }
-            cfg.providers[0].enabled = true;
+            cfg.answer_with = Some(only.clone());
         }
         let ctx = match (attach, chat_id.is_empty()) {
             (false, _) => None,

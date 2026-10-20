@@ -459,8 +459,22 @@ impl App {
             DocAction::SaveSigned => {
                 self.save_doc();
                 let Some(d) = &self.docui.doc else { return };
-                // stesso formato del documento: Word resta Word, PDF resta PDF
-                let dst = export::new_path(&file_stem(&d.title), &d.signed_ext());
+                // stesso formato del documento: Word resta Word, PDF resta PDF;
+                // dove salvarlo lo si sceglie (ultima cartella usata o exports/)
+                let ext = d.signed_ext();
+                let kind = match ext.as_str() {
+                    "pdf" => "PDF",
+                    "odt" => "Documento OpenDocument",
+                    "rtf" => "Documento RTF",
+                    _ => "Documento Word",
+                };
+                let title = format!("Salva il documento firmato ({kind})");
+                let name = format!("{}-firmato", file_stem(&d.title));
+                let Some(dst) = super::savedlg::save_file(&mut self.settings, &title, &name, kind, &ext) else {
+                    self.status = "Salvataggio annullato: il documento e la firma restano qui.".into();
+                    return;
+                };
+                let Some(d) = &self.docui.doc else { return };
                 let (view, pad) = {
                     let s = self.hub.lock();
                     (s.view, s.drawing.clone())

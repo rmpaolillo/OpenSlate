@@ -15,6 +15,7 @@ mod embed;
 mod library_view;
 mod options;
 mod paper;
+mod savedlg;
 mod ribbon;
 mod theme;
 mod widgets;
@@ -1057,41 +1058,65 @@ impl App {
     }
 
     /// Esporta: PDF = un file con tutte le pagine; PNG/SVG = un file per pagina.
+    /// Prima si chiede dove, con la finestra del sistema (ultima cartella scelta
+    /// o `exports/`): un file = «Salva con nome», più file = scelta della cartella.
     fn export_pages(&mut self, pages: Vec<(String, Page)>, fmt: Fmt) {
         let pages: Vec<(String, Page)> = pages.into_iter().filter(|(_, p)| !p.is_empty()).collect();
         if pages.is_empty() {
             self.status = "Niente da esportare: pagina vuota.".into();
             return;
         }
+        let (ext, kind) = match fmt {
+            Fmt::Pdf => ("pdf", "PDF"),
+            Fmt::Png => ("png", "Immagine PNG"),
+            Fmt::Svg => ("svg", "Immagine SVG"),
+        };
+        // nome proposto: il titolo della pagina, per la lavagna con data e ora
+        let stem = |title: &str| {
+            if title == "lavagna" {
+                format!("lavagna-{}", chrono::Local::now().format("%Y%m%d-%H%M"))
+            } else {
+                file_stem(title)
+            }
+        };
         let mut written = Vec::new();
         let mut error = None;
-        match fmt {
-            Fmt::Pdf => {
-                let stem = if pages.len() == 1 {
-                    file_stem(&pages[0].0)
-                } else {
-                    format!("pagine-{}", pages.len())
-                };
-                let path = export::new_path(&stem, "pdf");
-                let refs: Vec<&Page> = pages.iter().map(|(_, p)| p).collect();
-                match export::save_pdf(&refs, &path) {
-                    Ok(()) => written.push(path),
-                    Err(e) => error = Some(e.to_string()),
+        if matches!(fmt, Fmt::Pdf) || pages.len() == 1 {
+            let name = if pages.len() == 1 { stem(&pages[0].0) } else { format!("pagine-{}", pages.len()) };
+            let what = if pages.len() == 1 { "la pagina".to_string() } else { format!("{} pagine", pages.len()) };
+            let title = format!("Esporta {what} in {}", ext.to_uppercase());
+            let Some(path) = savedlg::save_file(&mut self.settings, &title, &name, kind, ext) else {
+                self.status = "Esportazione annullata.".into();
+                return;
+            };
+            let r = match fmt {
+                Fmt::Pdf => {
+                    let refs: Vec<&Page> = pages.iter().map(|(_, p)| p).collect();
+                    export::save_pdf(&refs, &path).map_err(|e| e.to_string())
                 }
+                Fmt::Png => export::save_png(&pages[0].1, &path).map_err(|e| e.to_string()),
+                Fmt::Svg => export::save_svg(&pages[0].1, &path).map_err(|e| e.to_string()),
+            };
+            match r {
+                Ok(()) => written.push(path),
+                Err(e) => error = Some(e),
             }
-            Fmt::Png | Fmt::Svg => {
-                for (title, page) in &pages {
-                    let ext = if matches!(fmt, Fmt::Png) { "png" } else { "svg" };
-                    let path = export::new_path(&file_stem(title), ext);
-                    let r = if matches!(fmt, Fmt::Png) {
-                        export::save_png(page, &path).map_err(|e| e.to_string())
-                    } else {
-                        export::save_svg(page, &path).map_err(|e| e.to_string())
-                    };
-                    match r {
-                        Ok(()) => written.push(path),
-                        Err(e) => error = Some(e),
-                    }
+        } else {
+            let title = format!("Scegli la cartella per {} immagini {}", pages.len(), ext.to_uppercase());
+            let Some(dir) = savedlg::pick_folder(&mut self.settings, &title) else {
+                self.status = "Esportazione annullata.".into();
+                return;
+            };
+            for (title, page) in &pages {
+                let path = savedlg::free_path(&dir, &stem(title), ext);
+                let r = if matches!(fmt, Fmt::Png) {
+                    export::save_png(page, &path).map_err(|e| e.to_string())
+                } else {
+                    export::save_svg(page, &path).map_err(|e| e.to_string())
+                };
+                match r {
+                    Ok(()) => written.push(path),
+                    Err(e) => error = Some(e),
                 }
             }
         }
@@ -1100,8 +1125,11 @@ impl App {
         }
         self.status = match (error, written.len()) {
             (Some(e), _) => format!("⚠ export: {e}"),
-            (None, 1) => format!("Salvato {}", written[0].display()),
-            (None, n) => format!("Salvati {n} file in {}/", export::EXPORT_DIR),
+            (None, 1) => format!("Salvato in {}", written[0].display()),
+            (None, n) => format!(
+                "Salvati {n} file in {}",
+                written[0].parent().map(|d| d.display().to_string()).unwrap_or_default()
+            ),
         };
     }
 
@@ -1415,8 +1443,8 @@ impl App {
                 }
             }
             Action::OpenExports => {
-                let _ = std::fs::create_dir_all(export::EXPORT_DIR);
-                crate::platform::open(export::EXPORT_DIR);
+                // la cartella dove si è salvato l'ultima volta (o exports/)
+                crate::platform::open(savedlg::start_dir(&self.settings));
             }
             Action::CopyImage => {
                 let (_, p) = self.board_page();

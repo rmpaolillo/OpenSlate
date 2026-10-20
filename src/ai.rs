@@ -267,6 +267,10 @@ pub struct AiConfig {
     pub web: crate::tools::WebTools,
     #[serde(default)]
     pub chat: ChatOpts,
+    /// Agente scelto in chat: risponde solo lui. Gli altri servono comunque a
+    /// leggere il foglio allegato se lui non vede le immagini. `None` = catena.
+    #[serde(skip)]
+    pub answer_with: Option<String>,
 }
 
 impl AiConfig {
@@ -492,7 +496,13 @@ pub fn run_chat(
     let tool_ctx = (task == Task::Chat && (use_web || appunto.is_some())).then(|| ToolCtx::with(&cfg.web, use_web, appunto));
     let has_image = msgs.iter().any(|m| m.image.is_some());
     let mut fails: Vec<String> = Vec::new();
-    for p in cfg.providers.iter().filter(|p| p.enabled) {
+    // il foglio letto da un modello con visione, per chi risponde senza vederlo
+    let mut reading: Option<Option<String>> = None;
+    let answering = |p: &&Provider| match &cfg.answer_with {
+        Some(name) => &p.name == name,
+        None => p.enabled,
+    };
+    for p in cfg.providers.iter().filter(answering) {
         let mut skip = |why: String, on_event: &mut dyn FnMut(Event) -> bool| {
             fails.push(format!("{}: {why}", p.name));
             on_event(Event::Skipped { provider: p.name.clone(), why })
@@ -531,9 +541,21 @@ pub fn run_chat(
         if !on_event(Event::Trying { provider: p.name.clone(), model: model.clone(), context }) {
             bail!("interrotto");
         }
+        // Chi risponde non vede le immagini: il foglio glielo legge prima un
+        // modello con visione (uno qualsiasi della catena) e gli arriva come testo.
+        let with_text;
+        let msgs_for: &[Msg] = if task == Task::Chat && has_image && !send_image && needs_reading(msgs) {
+            if reading.is_none() {
+                reading = Some(read_page(cfg, msgs, on_event)?);
+            }
+            with_text = with_reading(msgs, reading.as_ref().and_then(|r| r.as_deref()));
+            &with_text
+        } else {
+            msgs
+        };
         let mut started = false;
         let tools = tool_ctx.as_ref().filter(|_| p.tools);
-        let res = call(p, &key, &model, task, msgs, send_image, tools, &mut |e| {
+        let res = call(p, &key, &model, task, msgs_for, send_image, tools, &mut |e| {
             if matches!(e, Event::Delta(_)) {
                 started = true;
             }
@@ -561,6 +583,86 @@ pub fn run_chat(
         bail!("nessun provider attivo in {CONFIG_FILE}");
     }
     bail!("nessun agente AI disponibile:\n• {}", fails.join("\n• "))
+}
+
+/// Letture dei fogli già fatte (impronta del PNG → trascrizione): la stessa
+/// pagina non si rilegge a ogni messaggio.
+static READINGS: Mutex<Vec<(u64, String)>> = Mutex::new(Vec::new());
+
+fn png_key(png: &[u8]) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    png.hash(&mut h);
+    h.finish()
+}
+
+/// Serve leggere il foglio? No se nel messaggio c'è già la trascrizione.
+fn needs_reading(msgs: &[Msg]) -> bool {
+    msgs.iter().any(|m| m.image.is_some() && !m.text.contains("Trascrizione fedele (Markdown):"))
+}
+
+/// Legge il foglio allegato con il primo modello con visione disponibile
+/// (si vede in chat come uno strumento). `None` = nessuno ha potuto.
+fn read_page(cfg: &AiConfig, msgs: &[Msg], on_event: &mut dyn FnMut(Event) -> bool) -> Result<Option<String>> {
+    let Some(png) = msgs.iter().find_map(|m| m.image.clone()) else { return Ok(None) };
+    let k = png_key(&png);
+    if let Some((_, t)) = READINGS.lock().unwrap().iter().find(|(h, _)| *h == k) {
+        return Ok(Some(t.clone()));
+    }
+    let label = "Leggo il foglio con un modello che vede le immagini".to_string();
+    if !on_event(Event::Tool { label: label.clone() }) {
+        bail!("interrotto");
+    }
+    let mut ocr = cfg.clone();
+    ocr.answer_with = None;
+    ocr.providers.retain(|p| p.enabled && p.vision);
+    let req = vec![
+        Msg::new("system", cfg.ocr_prompt()),
+        Msg::new("user", "Trascrivi questa pagina.").with_image(png),
+    ];
+    let (text, result) = if ocr.providers.is_empty() {
+        (None, "nessun agente con visione attivo in Impostazioni AI".to_string())
+    } else {
+        match run_chat(&ocr, Task::Ocr, &req, false, None, &mut |_| true) {
+            Ok(r) => {
+                let t = tidy_markdown(&r.text);
+                let mut cache = READINGS.lock().unwrap();
+                cache.push((k, t.clone()));
+                if cache.len() > 20 {
+                    cache.remove(0);
+                }
+                (Some(t), format!("letto da {} · {}", r.provider, r.model))
+            }
+            Err(e) => (None, format!("non letto: {}", short_err(&e))),
+        }
+    };
+    if !on_event(Event::ToolDone { label, result }) {
+        bail!("interrotto");
+    }
+    Ok(text)
+}
+
+/// I messaggi per chi non vede le immagini: al posto del foglio, la sua lettura.
+fn with_reading(msgs: &[Msg], reading: Option<&str>) -> Vec<Msg> {
+    msgs.iter()
+        .map(|m| {
+            let mut m = m.clone();
+            if m.image.take().is_some() {
+                let head = match reading {
+                    Some(t) => format!(
+                        "[Il foglio allegato è un'immagine. Qui sotto c'è la sua trascrizione fedele (errori compresi), \
+                         fatta da un modello che legge le immagini: considerala il contenuto del foglio.]\n\n{t}\n\n"
+                    ),
+                    None => "[Il foglio allegato è un'immagine, ma nessun modello in grado di leggere le immagini ha potuto \
+                             leggerlo. Dillo all'utente e suggerisci di attivare in «Impostazioni AI» un agente con visione \
+                             (es. Google Gemini, Anthropic Claude o un modello «VL» in LM Studio).]\n\n"
+                        .to_string(),
+                };
+                m.text = format!("{head}{}", m.text);
+            }
+            m
+        })
+        .collect()
 }
 
 fn short_err(e: &anyhow::Error) -> String {
@@ -1770,10 +1872,39 @@ pub(crate) mod tests {
         let msgs = vec![Msg::new("user", "guarda").with_image(Arc::new(vec![1, 2, 3]))];
         assert_eq!(complete(&cfg, Task::Chat, &msgs).unwrap().text, "ok");
         let req = log.lock().unwrap()[0].clone();
-        assert!(!req.contains("image_url") && req.contains("\"content\":\"guarda\""));
+        // nessun agente con visione: al modello si dice che il foglio non si è potuto leggere
+        assert!(!req.contains("image_url") && req.contains("guarda") && req.contains("nessun modello"), "{req}");
         assert!(!req.contains("temperature"));
         // per l'OCR invece viene saltato
         assert!(complete(&cfg, Task::Ocr, &msgs).is_err());
+    }
+
+    /// Agente scelto senza visione: il foglio lo legge prima un agente con
+    /// visione della catena, e a chi risponde arriva la trascrizione.
+    #[test]
+    fn foglio_letto_per_chi_non_vede() {
+        let (vport, vlog) = fake_server(|_| sse_reply(&["x + y = 1"]));
+        let (tport, tlog) = fake_server(|_| sse_reply(&["giusto"]));
+        let mut vis = provider("Occhi", format!("http://127.0.0.1:{vport}"));
+        vis.model = "finto-vl".into();
+        let mut txt = provider("Testo", format!("http://127.0.0.1:{tport}"));
+        txt.model = "solo-testo".into();
+        txt.vision = false;
+        let mut cfg = AiConfig { providers: vec![vis, txt], ..Default::default() };
+        cfg.answer_with = Some("Testo".into());
+        let png = Arc::new(vec![9, 8, 7, 6, 5]);
+        let msgs = vec![Msg::new("user", "è giusto?").with_image(png)];
+        let mut events = Vec::new();
+        let r = run(&cfg, Task::Chat, &msgs, &mut |e| {
+            events.push(e);
+            true
+        })
+        .unwrap();
+        assert_eq!((r.text.as_str(), r.provider.as_str()), ("giusto", "Testo"));
+        assert!(vlog.lock().unwrap()[0].contains("image_url"));
+        let req = tlog.lock().unwrap()[0].clone();
+        assert!(!req.contains("image_url") && req.contains("x + y = 1") && req.contains("è giusto?"), "{req}");
+        assert!(events.iter().any(|e| matches!(e, Event::ToolDone { result, .. } if result.contains("Occhi"))), "{events:?}");
     }
 
     /// Il trasporto di riserva con curl: modelli (GET) e risposta in streaming (POST).

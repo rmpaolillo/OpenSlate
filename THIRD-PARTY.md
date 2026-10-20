@@ -74,14 +74,11 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [arrayvec](https://github.com/bluss/arrayvec) | 0.7.8 | MIT OR Apache-2.0 | bluss |
 | [as-raw-xcb-connection](https://github.com/psychon/as-raw-xcb-connection) | 1.0.1 | MIT OR Apache-2.0 | — |
 | [ash](https://github.com/ash-rs/ash) | 0.38.0+1.3.281 | MIT OR Apache-2.0 | Maik Klein, Benjamin Saunders, Marijn Suijten |
-| [ashpd](https://github.com/bilelmoussaoui/ashpd) | 0.8.2 | MIT | Bilal Elmoussaoui |
 | [async-broadcast](https://github.com/smol-rs/async-broadcast) | 0.7.2 | MIT OR Apache-2.0 | Stjepan Glavina, Yoshua Wuyts, Zeeshan Ali Khan |
 | [async-channel](https://github.com/smol-rs/async-channel) | 2.5.0 | Apache-2.0 OR MIT | Stjepan Glavina |
 | [async-executor](https://github.com/smol-rs/async-executor) | 1.14.0 | Apache-2.0 OR MIT | Stjepan Glavina, John Nunley |
-| [async-fs](https://github.com/smol-rs/async-fs) | 2.2.0 | Apache-2.0 OR MIT | Stjepan Glavina |
 | [async-io](https://github.com/smol-rs/async-io) | 2.6.0 | Apache-2.0 OR MIT | Stjepan Glavina |
 | [async-lock](https://github.com/smol-rs/async-lock) | 3.4.2 | Apache-2.0 OR MIT | Stjepan Glavina |
-| [async-net](https://github.com/smol-rs/async-net) | 2.0.0 | Apache-2.0 OR MIT | Stjepan Glavina |
 | [async-process](https://github.com/smol-rs/async-process) | 2.5.0 | Apache-2.0 OR MIT | Stjepan Glavina |
 | [async-recursion](https://github.com/dcchut/async-recursion) | 1.2.0 | MIT OR Apache-2.0 | Robert Usher |
 | [async-signal](https://github.com/smol-rs/async-signal) | 0.2.14 | Apache-2.0 OR MIT | John Nunley |
@@ -377,7 +374,6 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [ndk-context](https://github.com/rust-windowing/android-ndk-rs) | 0.1.1 | MIT OR Apache-2.0 | The Rust Windowing contributors |
 | [ndk-sys](https://github.com/rust-mobile/ndk) | 0.6.0+11769913 | MIT OR Apache-2.0 | The Rust Windowing contributors |
 | [new_debug_unreachable](https://github.com/mbrubeck/rust-debug-unreachable) | 1.0.6 | MIT | Matt Brubeck, Jonathan Reem |
-| [nix](https://github.com/nix-rust/nix) | 0.29.0 | MIT | The nix-rust Project Developers |
 | [nohash-hasher](https://github.com/paritytech/nohash-hasher) | 0.2.0 | Apache-2.0 OR MIT | Parity Technologies |
 | [nom](https://github.com/Geal/nom) | 7.1.3 | MIT | contact@geoffroycouprie.com |
 | [nom](https://github.com/rust-bakery/nom) | 8.0.0 | MIT | contact@geoffroycouprie.com |
@@ -460,14 +456,12 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [png](https://github.com/image-rs/image-png) | 0.17.16 | MIT OR Apache-2.0 | The image-rs Developers |
 | [png](https://github.com/image-rs/image-png) | 0.18.1 | MIT OR Apache-2.0 | The image-rs Developers |
 | [polling](https://github.com/smol-rs/polling) | 3.11.0 | Apache-2.0 OR MIT | Stjepan Glavina, John Nunley |
-| [pollster](https://github.com/zesterer/pollster) | 0.3.0 | Apache-2.0/MIT | Joshua Barretto |
 | [pollster](https://github.com/zesterer/pollster) | 1.0.1 | Apache-2.0/MIT | Joshua Barretto |
 | [polycool](https://github.com/linebender/kurbo) | 0.4.0 | MIT OR Apache-2.0 | — |
 | [portable-atomic](https://github.com/taiki-e/portable-atomic) | 1.15.0 | Apache-2.0 OR MIT | — |
 | [portable-atomic-util](https://github.com/taiki-e/portable-atomic-util) | 0.2.8 | Apache-2.0 OR MIT | — |
 | [potential_utf](https://github.com/unicode-org/icu4x) | 0.1.6 | Unicode-3.0 | The ICU4X Project Developers |
 | [powerfmt](https://github.com/jhpratt/powerfmt) | 0.2.1 | MIT OR Apache-2.0 | Jacob Pratt |
-| [ppv-lite86](https://github.com/cryptocorrosion/cryptocorrosion) | 0.2.21 | MIT OR Apache-2.0 | The CryptoCorrosion Contributors |
 | [precomputed-hash](https://github.com/emilio/precomputed-hash) | 0.1.1 | MIT | Emilio Cobos Álvarez |
 | [presser](https://github.com/EmbarkStudios/presser) | 0.3.1 | MIT OR Apache-2.0 | Embark, Gray Olson |
 | [proc-macro-crate](https://github.com/bkchr/proc-macro-crate) | 1.3.1 | MIT OR Apache-2.0 | Bastian Köcher |
@@ -486,10 +480,7 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [r-efi](https://github.com/r-efi/r-efi) | 5.3.0 | MIT OR Apache-2.0 OR LGPL-2.1-or-later | — |
 | [r-efi](https://github.com/r-efi/r-efi) | 6.0.0 | MIT OR Apache-2.0 OR LGPL-2.1-or-later | — |
 | [rand](https://github.com/rust-random/rand) | 0.10.3 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers |
-| [rand](https://github.com/rust-random/rand) | 0.8.8 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers |
-| [rand_chacha](https://github.com/rust-random/rand) | 0.3.1 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers, The CryptoCorrosion Contributors |
 | [rand_core](https://github.com/rust-random/rand_core) | 0.10.1 | MIT OR Apache-2.0 | The Rand Project Developers |
-| [rand_core](https://github.com/rust-random/rand) | 0.6.4 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers |
 | [range-alloc](https://github.com/gfx-rs/range-alloc) | 0.1.5 | MIT OR Apache-2.0 | the gfx-rs Developers |
 | [rangemap](https://github.com/jeffparsons/rangemap) | 1.8.0 | MIT/Apache-2.0 | Jeff Parsons |
 | [raw-window-handle](https://github.com/rust-windowing/raw-window-handle) | 0.6.2 | MIT OR Apache-2.0 OR Zlib | Osspial |
@@ -536,7 +527,6 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [serde_repr](https://github.com/dtolnay/serde-repr) | 0.1.21 | MIT OR Apache-2.0 | David Tolnay |
 | [serde_spanned](https://github.com/toml-rs/toml) | 0.6.9 | MIT OR Apache-2.0 | — |
 | [servo_arc](https://github.com/servo/stylo) | 0.4.3 | MIT OR Apache-2.0 | The Servo Project Developers |
-| [sha1](https://github.com/RustCrypto/hashes) | 0.10.7 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [sha1](https://github.com/RustCrypto/hashes) | 0.11.0 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [sha2](https://github.com/RustCrypto/hashes) | 0.10.9 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [sha2](https://github.com/RustCrypto/hashes) | 0.11.1 | MIT OR Apache-2.0 | RustCrypto Developers |
@@ -630,7 +620,6 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [untrusted](https://github.com/briansmith/untrusted) | 0.9.0 | ISC | Brian Smith |
 | [ureq](https://github.com/algesten/ureq) | 2.12.1 | MIT OR Apache-2.0 | Martin Algesten, Jacob Hoffman-Andrews |
 | [url](https://github.com/servo/rust-url) | 2.5.8 | MIT OR Apache-2.0 | The rust-url developers |
-| [urlencoding](https://github.com/kornelski/rust_urlencoding) | 2.1.3 | MIT | Kornel, Bertram Truong |
 | [utf8_iter](https://github.com/hsivonen/utf8_iter) | 1.0.4 | Apache-2.0 OR MIT | Henri Sivonen |
 | [utf8parse](https://github.com/alacritty/vte) | 0.2.2 | Apache-2.0 OR MIT | Joe Wilm, Christian Duerr |
 | [uuid](https://github.com/uuid-rs/uuid) | 1.28.0 | Apache-2.0 OR MIT | Ashley Mannix&lt;ashleymannix@live.com.au&gt;, Dylan DPC&lt;dylan.dpc@gmail.com&gt;, Hunar Roop Kahlon&lt;hunar.roop@gmail.com&gt; |
@@ -775,7 +764,6 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [x11rb](https://github.com/psychon/x11rb) | 0.13.2 | MIT OR Apache-2.0 | Uli Schlachter, Eduardo Sánchez Muñoz, notgull |
 | [x11rb-protocol](https://github.com/psychon/x11rb) | 0.13.2 | MIT OR Apache-2.0 | Uli Schlachter, Eduardo Sánchez Muñoz, notgull |
 | [xcursor](https://github.com/esposm03/xcursor-rs) | 0.3.11 | MIT | Samuele Esposito |
-| [xdg-home](https://github.com/zeenix/xdg-home) | 1.3.0 | MIT | Zeeshan Ali Khan |
 | [xkbcommon-dl](https://github.com/rust-windowing/xkbcommon-dl) | 0.4.2 | MIT | Francesca Frangipane |
 | [xkeysym](https://github.com/notgull/xkeysym) | 0.2.1 | MIT OR Apache-2.0 OR Zlib | John Nunley |
 | [xml](https://github.com/kornelski/xml-rs) | 1.4.0 | MIT | Vladimir Matveev, Kornel (https://github.com/kornelski) |
@@ -783,13 +771,10 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [xmp-writer](https://github.com/typst/xmp-writer) | 0.3.3 | MIT OR Apache-2.0 | Martin Haug |
 | [yoke](https://github.com/unicode-org/icu4x) | 0.8.3 | Unicode-3.0 | Manish Goregaokar |
 | [yoke-derive](https://github.com/unicode-org/icu4x) | 0.8.4 | Unicode-3.0 | Manish Goregaokar |
-| [zbus](https://github.com/dbus2/zbus/) | 4.4.0 | MIT | Zeeshan Ali Khan |
 | [zbus](https://github.com/z-galaxy/zbus/) | 5.19.0 | MIT | Zeeshan Ali Khan |
 | [zbus-lockstep](https://github.com/luukvanderduim/zbus-lockstep) | 0.5.2 | MIT | Luuk van der Duim, Tait Hoyem&lt;tait@tait.tech&gt; |
 | [zbus-lockstep-macros](https://github.com/luukvanderduim/zbus-lockstep) | 0.5.2 | MIT | Luuk van der Duim |
-| [zbus_macros](https://github.com/dbus2/zbus/) | 4.4.0 | MIT | Marc-André Lureau, Zeeshan Ali Khan |
 | [zbus_macros](https://github.com/z-galaxy/zbus/) | 5.19.0 | MIT | Marc-André Lureau, Zeeshan Ali Khan |
-| [zbus_names](https://github.com/dbus2/zbus/) | 3.0.0 | MIT | Zeeshan Ali Khan |
 | [zbus_names](https://github.com/z-galaxy/zbus/) | 4.3.5 | MIT | Zeeshan Ali Khan |
 | [zbus_xml](https://github.com/z-galaxy/zbus/) | 5.2.1 | MIT | Zeeshan Ali Khan |
 | [zcheapstr](https://github.com/z-galaxy/zcheapstr/) | 1.1.0 | MIT | Zeeshan Ali Khan |
@@ -807,9 +792,6 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [zopfli](https://github.com/zopfli-rs/zopfli) | 0.8.4 | Apache-2.0 | — |
 | [zune-core](https://github.com/etemesi254/zune-image) | 0.5.3 | MIT OR Apache-2.0 OR Zlib | — |
 | [zune-jpeg](https://github.com/etemesi254/zune-image/tree/dev/crates/zune-jpeg) | 0.5.15 | MIT OR Apache-2.0 OR Zlib | caleb |
-| [zvariant](https://github.com/dbus2/zbus/) | 4.2.0 | MIT | Zeeshan Ali Khan |
 | [zvariant](https://github.com/z-galaxy/zbus/) | 5.15.1 | MIT | Zeeshan Ali Khan |
-| [zvariant_derive](https://github.com/dbus2/zbus/) | 4.2.0 | MIT | Zeeshan Ali Khan |
 | [zvariant_derive](https://github.com/z-galaxy/zbus/) | 5.15.1 | MIT | Zeeshan Ali Khan |
-| [zvariant_utils](https://github.com/dbus2/zbus/) | 2.1.0 | MIT | Zeeshan Ali Khan, turbocooler |
 | [zvariant_utils](https://github.com/z-galaxy/zbus/) | 4.2.0 | MIT | Zeeshan Ali Khan, turbocooler |

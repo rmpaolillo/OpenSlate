@@ -421,7 +421,7 @@ impl App {
             if menu_item(ui, true, ic::FILE_SVG, "Esporta in SVG (vettoriale)", "") {
                 actions.push(Action::Export(Fmt::Svg));
             }
-            if menu_item(ui, true, ic::FOLDER_OPEN, "Apri la cartella degli export", "") {
+            if menu_item(ui, true, ic::FOLDER_OPEN, "Apri la cartella dei file salvati", "") {
                 actions.push(Action::OpenExports);
             }
         });
@@ -712,7 +712,7 @@ impl App {
             c(ic::FILE_PDF, "Esporta la pagina in PDF", "", Action::Export(Fmt::Pdf)),
             c(ic::FILE_SVG, "Esporta la pagina in SVG", "", Action::Export(Fmt::Svg)),
             c(ic::FILE_PNG, "Esporta la pagina in PNG", "", Action::Export(Fmt::Png)),
-            c(ic::FOLDER_OPEN, "Apri la cartella degli export", "", Action::OpenExports),
+            c(ic::FOLDER_OPEN, "Apri la cartella dei file salvati", "", Action::OpenExports),
             c(ic::MAGNIFYING_GLASS_PLUS, "Ingrandisci", &cmd_key("+"), Action::Zoom(ZoomOp::In)),
             c(ic::MAGNIFYING_GLASS_MINUS, "Riduci", &cmd_key("-"), Action::Zoom(ZoomOp::Out)),
             c(ic::ARROWS_IN, "Pagina intera", &cmd_key("0"), Action::Zoom(ZoomOp::Fit)),

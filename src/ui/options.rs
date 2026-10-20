@@ -365,6 +365,30 @@ fn prefs_page(ui: &mut egui::Ui, p: &mut Prefs, ai: &mut bool) {
             });
         }),
         PrefTab::Archivio => grid(ui, "arch", &mut |ui| {
+            row(ui, "Cartella per salvare ed esportare", |ui| {
+                ui.vertical(|ui| {
+                    let shown = super::savedlg::start_dir(d);
+                    ui.label(egui::RichText::new(shown.display().to_string()).monospace());
+                    ui.horizontal(|ui| {
+                        if ui.button("Scegli…").clicked() {
+                            if let Some(dir) = rfd::FileDialog::new()
+                                .set_title("Cartella proposta quando si salva o si esporta")
+                                .set_directory(&shown)
+                                .pick_folder()
+                            {
+                                d.save_dir = dir.to_string_lossy().into();
+                            }
+                        }
+                        if !d.save_dir.is_empty() && ui.button("Usa quella di serie").clicked() {
+                            d.save_dir.clear();
+                        }
+                        if ui.button("Apri").clicked() {
+                            crate::platform::open(&shown);
+                        }
+                    });
+                    hint(ui, "Salva ed Esporta chiedono sempre dove salvare: si parte da qui e si ricorda l'ultima cartella scelta");
+                });
+            });
             row(ui, "Anteprime dell'archivio", |ui| {
                 ui.add(egui::Slider::new(&mut d.thumb_size, 160.0..=640.0).suffix(" pt"));
             });
