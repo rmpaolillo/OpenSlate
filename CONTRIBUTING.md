@@ -11,7 +11,7 @@ useful to other Bamboo Slate owners. Bug reports, ideas and pull requests are we
 - Open an issue first for larger changes, so we can agree on the direction.
 - Keep pull requests small and focused. CI (`cargo build` + `cargo test` on Linux and macOS)
   must be green.
-- Every merge into `main` publishes a new release automatically, so `main` must always build.
+- Releases are published by the owner when a set of changes is ready; `main` must always build.
 
 ## Development
 

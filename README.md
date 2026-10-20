@@ -87,8 +87,8 @@ The interface is in Italian (for now). The handwriting and documents below are s
 ## Install
 
 Ready-to-install builds are published on the
-[**Releases**](https://github.com/rmpaolillo/OpenSlate/releases) page. Every push to `main`
-produces a new release with an increasing version number (`v0.1.N`).
+[**Releases**](https://github.com/rmpaolillo/OpenSlate/releases) page, each with an increasing
+version number (`v0.2.0`, `v0.2.1`, …).
 
 | Platform | File | Status |
 |---|---|---|
@@ -206,10 +206,13 @@ A file-by-file description is in the [Italian README](README.it.md#struttura).
 ## Releases and versioning
 
 - `ci.yml` builds and tests on Linux and macOS for every push and pull request.
-- `release.yml` runs on every push to `main`. It sets the version to `0.1.<run number>`, builds
-  macOS (universal), Linux and Windows, and publishes a GitHub Release tagged `v0.1.<run number>`
-  with automatically generated notes.
-- To start a new minor or major series, change the `0.1` prefix in `.github/workflows/release.yml`.
+- `release.yml` runs when the maintainer starts it (Actions → Release → Run workflow, on `main`).
+  It builds macOS (universal), Linux and Windows and publishes a GitHub Release with
+  automatically generated notes.
+- Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR` comes from `Cargo.toml`,
+  `PATCH` is counted automatically from the existing tags (`v0.2.0`, then `v0.2.1`, …).
+- To start a new series (new features: `0.3.0`; first stable: `1.0.0`), change `version` in
+  `Cargo.toml`; the next release starts again from patch `0`.
 
 ## Credits
 

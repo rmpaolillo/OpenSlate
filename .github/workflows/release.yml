@@ -1,19 +1,13 @@
 name: Release
 
-# Every push to main publishes a new release: v0.1.<run number>.
-# To start a new series (e.g. 0.2 or 1.0) change VERSION_PREFIX below.
+# A release is published only when you decide: Actions → Release → "Run workflow" (branch main).
+# Version = MAJOR.MINOR taken from Cargo.toml + PATCH counted from the existing tags:
+#   Cargo.toml 0.2.x, no v0.2.* tag yet  -> v0.2.0
+#   last tag v0.2.4                       -> v0.2.5
+# To start a new series (0.3.0, 1.0.0…) change the version in Cargo.toml.
+# CI (ci.yml) still builds and tests every push and pull request.
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'LICENSE'
-      - 'NOTICE'
-      - 'assets/screenshots/**'
-      - '.github/CODEOWNERS'
-      - '.github/pull_request_template.md'
-      - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 concurrency:
@@ -22,16 +16,27 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  VERSION_PREFIX: '0.1'
 
 jobs:
   version:
+    # solo dal ramo principale
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.v.outputs.version }}
     steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
       - id: v
-        run: echo "version=${VERSION_PREFIX}.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+        run: |
+          base=$(sed -n 's/^version = "\([0-9]*\)\.\([0-9]*\)\..*"/\1.\2/p' Cargo.toml | head -1)
+          test -n "$base" || { echo "versione non trovata in Cargo.toml"; exit 1; }
+          last=$(git tag -l "v$base.*" | sed "s/^v$base\.//" | grep -E '^[0-9]+$' | sort -n | tail -1 || true)
+          if [ -z "$last" ]; then patch=0; else patch=$((last + 1)); fi
+          echo "Version: $base.$patch"
+          echo "version=$base.$patch" >> "$GITHUB_OUTPUT"
 
   macos:
     name: macOS (universal)
