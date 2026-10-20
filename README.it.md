@@ -4,6 +4,14 @@
 
 App **libera, in Rust e modificabile** per il **Wacom Bamboo Slate** (famiglia SmartPad).
 Non è un prodotto Wacom e non è collegata a Wacom.
+
+![OpenSlate: una pagina scritta a mano sulla lavagna e l'assistente AI che la riassume](assets/screenshots/chat.png)
+
+| Firma di un documento Word | Archivio delle pagine |
+|---|---|
+| ![Firma](assets/screenshots/sign.png) | ![Archivio](assets/screenshots/library.png) |
+| **Scrittura → testo** | **Tema scuro e quadretti** |
+| ![Trascrizione](assets/screenshots/transcribe.png) | ![Tema scuro](assets/screenshots/dark.png) |
 Il protocollo Bluetooth è una traduzione fedele di [Tuhi](https://github.com/tuhiproject/tuhi) (GPL).
 
 ## Cosa fa
@@ -25,7 +33,7 @@ Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le
   **Home** (penna, evidenziatore, gomma, pulisci, colori, spessore, righe e quadretti, salva),
   **Documento** (apri, recenti, chiudi, pagine, **registra e inserisci la firma**, salva PDF),
   **Visualizza** (righelli, zoom, ruota e specchia, schermo intero), **AI** (trascrivi, appunti,
-  correggi i passaggi, discuti il foglio o il documento, impostazioni AI). Doppio clic su una
+  controlla il foglio, discuti il foglio o il documento, impostazioni AI). Doppio clic su una
   scheda nasconde la barra (e la rimostra). Con un appunto aperto compare la scheda «Appunto», nella
   vista Archivio la scheda «Archivio». A destra: **Lavagna | Archivio** e il pulsante blu
   **Condividi** (diretta web, copia come immagine `Cmd+C`, esporta in PDF / PNG / SVG, cartella
@@ -60,12 +68,12 @@ Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le
 | Export | PDF e SVG vettoriali in misura A4 reale, PNG. Tutto in `exports/` |
 | Archivio (come la libreria di Inkspace) | Scheda «Archivio»: anteprime delle pagine raggruppate per giorno. Clic = seleziona (Cmd/Shift per più pagine), doppio clic = apri a tutta finestra (frecce per sfogliare), tasto destro = menu. Rinomina, porta sulla lavagna, copia immagine, esporta (più pagine = un unico PDF), testo (OCR), elimina (va in `library/cestino`, con «Ripristina») |
 | Pagine fatte senza Mac | «Scarica dal pad»: le pagine finiscono nell'archivio, con una copia grezza in `exports/pad-raw/`. Solo dopo il salvataggio le toglie dal pad. L'archivio mostra anche quante pagine restano sul pad |
-| Scrittura → Markdown + LaTeX | «Trascrivi» (scheda AI o Appunto): un agente AI con visione legge il foglio e lo riscrive in Markdown con le formule in LaTeX (`$…$`, `$$…$$`), **fedele al foglio, errori compresi** (illeggibile = `[?]`). L'appunto (`exports/appunti-*.md`) si apre **dentro l'app, come un documento di Word**: foglio bianco, formule impaginate. Anche dall'archivio, su più pagine |
+| Scrittura → testo | «Trascrivi» (scheda AI o Appunto): un agente AI con visione legge il foglio e lo riscrive in Markdown (titoli, elenchi, caselle, tabelle; le formule in LaTeX `$…$`, `$$…$$` se ci sono), **fedele al foglio, errori compresi** (illeggibile = `[?]`). L'appunto (`exports/appunti-*.md`) si apre **dentro l'app, come un documento di Word**: foglio bianco, formule impaginate. Anche dall'archivio, su più pagine |
 | Appunti (come Typora, dentro l'app) | Una scheda accanto a «Lavagna». **Clic su un paragrafo o su una formula = il suo Markdown**, con l'anteprima della formula sotto; fuori = di nuovo impaginato (`Esc`). Invio su una riga vuota = paragrafo nuovo, frecce su/giù tra i paragrafi, `Cmd+B` / `Cmd+I` / `Cmd+M` (formula), `Cmd+/` tutto il Markdown, pizzico o `Cmd +/−` = zoom. Si salva da solo. Scheda **Appunto**: titoli, elenchi, grassetto, formule (in linea, su riga sua, sistema), tabella, sorgente, elenco degli appunti, copia Markdown, stampa / PDF, apri in Typora. Se l'AI (o un altro programma) cambia il file, la pagina si aggiorna e i paragrafi nuovi lampeggiano |
-| Chat AI (come DSH, aspetto WordCraft) | **Dentro la finestra, a sinistra e più larga del foglio** (pulsante «Chat AI» in alto); a sinistra o a destra si sceglie in File → Opzioni → Trascrizione e AI, la larghezza si regola trascinando il bordo e resta. **«Correggi i passaggi»** (scheda AI, o `/correggi`): l'AI controlla l'esercizio che hai svolto sul foglio, passaggio per passaggio (✓ / ✗, perché e il passaggio corretto). Conversazioni salvate in `chats/` con progetti, ricerca, fissate, rinomina. **Eliminare**: cestino accanto alla chat (al passaggio del mouse), tasto destro → Elimina, `/elimina`, oppure il cestino in alto nell'elenco per selezionarne più insieme («Tutte», «Vuote»); vanno in `chats/cestino` e per qualche secondo c'è «Annulla». **Comandi `/`**: `/nuova`, `/elimina`, `/compatta`, `/modello`, `/web`, `/pagina` (allega il foglio), `/trascrivi`, `/appunto`, `/esporta`, `/dirama`, `/impostazioni`. **Documenti nella chat**: con un documento aperto (PDF, Word…), scheda AI → «Discuti il documento» (o `/pagina` nella chat): va il testo di tutte le pagine (estratto con PDFKit; fino a ~100 mila caratteri) più l'immagine della pagina aperta con quello che ci hai scritto; i PDF scansionati mandano solo l'immagine. Il **ragionamento** del modello in una riga che si apre con un clic anche mentre il modello sta ancora pensando (lo si legge in diretta), gli **strumenti** in righe compatte (ricerca, pagine, partita IVA, appunto), per ogni risposta token, velocità, attesa e durata. Rigenera, Modifica, **Dirama** (continua in una chat nuova), **Nell'appunto**. Messaggi scritti mentre risponde = **in coda**. Scelta dell'agente e cerchietto del contesto nel riquadro di scrittura (clic: dettaglio e «Compatta adesso») |
-| L'AI scrive nell'appunto | Con un appunto aperto la chat lo vede (chip 📝 nel riquadro di scrittura, clic per escluderlo): «risolvi il sistema e scrivi la soluzione nell'appunto», «riordina l'appunto», «correggi il passaggio 3» → l'agente lo legge e lo cambia (aggiunge in fondo, sostituisce un pezzo o lo riscrive), e lo vedi subito sulla pagina. Con «Ricerca web» cerca in rete e legge pagine (API DeepSeek) e verifica partite IVA (VIES), citando le fonti |
+| Chat AI (come DSH, aspetto WordCraft) | **Dentro la finestra, a sinistra e più larga del foglio** (pulsante «Chat AI» in alto); a sinistra o a destra si sceglie in File → Opzioni → Trascrizione e AI, la larghezza si regola trascinando il bordo e resta. Un assistente per qualsiasi cosa: riassumere, riscrivere in bella copia, ricavare le cose da fare, scrivere testi, rispondere a domande. **«Controlla il foglio»** (scheda AI, o `/controlla`): l'AI rilegge quello che hai scritto e segnala errori (ortografia, dati, calcoli, ragionamento) e punti poco chiari, con la correzione. Conversazioni salvate in `chats/` con progetti, ricerca, fissate, rinomina. **Eliminare**: cestino accanto alla chat (al passaggio del mouse), tasto destro → Elimina, `/elimina`, oppure il cestino in alto nell'elenco per selezionarne più insieme («Tutte», «Vuote»); vanno in `chats/cestino` e per qualche secondo c'è «Annulla». **Comandi `/`**: `/nuova`, `/elimina`, `/compatta`, `/modello`, `/web`, `/pagina` (allega il foglio), `/trascrivi`, `/appunto`, `/esporta`, `/dirama`, `/impostazioni`. **Documenti nella chat**: con un documento aperto (PDF, Word…), scheda AI → «Discuti il documento» (o `/pagina` nella chat): va il testo di tutte le pagine (estratto con PDFKit; fino a ~100 mila caratteri) più l'immagine della pagina aperta con quello che ci hai scritto; i PDF scansionati mandano solo l'immagine. Il **ragionamento** del modello in una riga che si apre con un clic anche mentre il modello sta ancora pensando (lo si legge in diretta), gli **strumenti** in righe compatte (ricerca, pagine, partita IVA, appunto), per ogni risposta token, velocità, attesa e durata. Rigenera, Modifica, **Dirama** (continua in una chat nuova), **Nell'appunto**. Messaggi scritti mentre risponde = **in coda**. Scelta dell'agente e cerchietto del contesto nel riquadro di scrittura (clic: dettaglio e «Compatta adesso») |
+| L'AI scrive nell'appunto | Con un appunto aperto la chat lo vede (chip 📝 nel riquadro di scrittura, clic per escluderlo): «riordina l'appunto», «aggiungi un riassunto in fondo», «trasforma la lista in una tabella» → l'agente lo legge e lo cambia (aggiunge in fondo, sostituisce un pezzo o lo riscrive), e lo vedi subito sulla pagina. Con «Ricerca web» cerca in rete e legge pagine (API DeepSeek) e verifica partite IVA (VIES), citando le fonti |
 | Contesto della chat | Sotto la chat una barra colorata mostra quanto contesto è usato (istruzioni, pagina allegata, riassunti, conversazione, messaggio che stai scrivendo; passa il mouse per il dettaglio) e il numero «≈ 12K / 128K token · 9%» (esatto quando il server lo dice). La linea rossa è la soglia di compattazione |
-| Compattazione | Prima che il contesto si riempia (di serie all'80%) la parte vecchia della conversazione diventa un riassunto (formule, risultati, errori trovati, domande aperte) e gli ultimi messaggi restano interi; «Compatta» lo fa a mano. Il riassunto resta leggibile nella chat |
+| Compattazione | Prima che il contesto si riempia (di serie all'80%) la parte vecchia della conversazione diventa un riassunto (argomento, risultati, decisioni, domande aperte) e gli ultimi messaggi restano interi; «Compatta» lo fa a mano. Il riassunto resta leggibile nella chat |
 | Impostazioni AI | Pulsante con l'ingranaggio (o «Impostazioni AI» nella chat): agenti in ordine con le frecce, indirizzo API in formato OpenAI, modello («Leggi modelli» li elenca con il loro contesto), **contesto massimo**, chiave (da DSH, Portachiavi, variabile d'ambiente, o incollata: va nel Portachiavi), «Prova». Anche la soglia di compattazione e la ricerca web. Si salva in `ai.toml` (copia della versione precedente in `ai.toml.bak`) e vale subito |
 | Agenti AI con riserva | In `ai.toml`: prima i modelli locali (LM Studio, Ollama), poi DeepSeek, Google Gemini, Anthropic Claude. Se uno non risponde si passa al successivo; la chat dice chi ha risposto e chi è stato saltato. Vedi sotto |
 | Diretta web | «Diretta web»: link da aprire nel browser della TV, del telefono o di un PC della rete di casa. Si aggiorna in tempo reale |
@@ -155,7 +163,7 @@ highlight_width = 16
 longpress_toggle = 1     # tocco lungo col pennino = penna/evidenziatore
 web_port = 8080
 web_auto = 0             # 1 = diretta web attiva all'avvio
-ocr_engine = ai          # ai (agenti di ai.toml: Markdown + LaTeX) | vision (Apple, offline, solo testo)
+ocr_engine = ai          # ai (agenti di ai.toml: testo in Markdown) | vision (Apple, offline, solo testo)
 ocr_langs = it-IT,en-US  # lingue per Apple Vision
 md_app = Typora          # app per «Apri in Typora»
 sync_delete = 1          # 0 = lascia i disegni sul pad (ne scarica solo il più vecchio)
@@ -188,7 +196,7 @@ cargo run --release -- live [--raw]    # punti della penna nel terminale
 cargo run --release -- sync [--keep]   # scarica i disegni in exports/
 cargo run --release -- pdf exports/pad-raw/*.bin   # riconverte copie grezze in PDF
 cargo run --release -- ai [--prova]    # agenti AI configurati
-cargo run --release -- trascrivi foto.png   # immagine → Markdown + LaTeX
+cargo run --release -- trascrivi foto.png   # immagine → testo in Markdown
 ```
 
 Per i documenti Word serve LibreOffice (`brew install --cask libreoffice`); senza, si usa

@@ -303,9 +303,9 @@ impl App {
         group(ui, "Scrittura", |ui| {
             if big_ex(
                 ui,
-                if self.ocr_busy { ic::HOURGLASS } else { ic::MATH_OPERATIONS },
+                if self.ocr_busy { ic::HOURGLASS } else { ic::TEXT_AA },
                 if self.ocr_busy { "Trascrivo…" } else { "Trascrivi" },
-                "Scrittura → Markdown con formule LaTeX, fedele al foglio (errori compresi)",
+                "Scrittura a mano → testo in Markdown (tabelle, elenchi, formule se ci sono), fedele al foglio",
                 !self.ocr_busy,
                 false,
                 false,
@@ -314,12 +314,12 @@ impl App {
             {
                 actions.push(Action::Ocr);
             }
-            if big(ui, ic::BOOK_OPEN, "Appunti", "Trascrizioni e chat salvate (.md), con le formule impaginate; da lì anche «Nuovo»").clicked() {
+            if big(ui, ic::BOOK_OPEN, "Appunti", "Trascrizioni e chat salvate (.md), impaginate; da lì anche «Nuovo»").clicked() {
                 actions.push(Action::Appunti);
             }
         });
         group(ui, "Agente", |ui| {
-            if big(ui, ic::CHECK_CIRCLE, "Correggi\ni passaggi", "L'AI controlla l'esercizio che hai fatto sul foglio: passaggio per passaggio, giusto o sbagliato e perché").clicked() {
+            if big(ui, ic::CHECK_CIRCLE, "Controlla\nil foglio", "L'AI rilegge quello che hai scritto e segnala errori (ortografia, dati, calcoli, ragionamento) e punti poco chiari, con la correzione").clicked() {
                 actions.push(Action::ChatCheck);
             }
             let doc_open = self.docui.doc.is_some();

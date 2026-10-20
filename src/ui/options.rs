@@ -336,7 +336,7 @@ fn prefs_page(ui: &mut egui::Ui, p: &mut Prefs, ai: &mut bool) {
         PrefTab::Ai => grid(ui, "ai", &mut |ui| {
             row(ui, "Motore della trascrizione", |ui| {
                 ui.vertical(|ui| {
-                    ui.radio_value(&mut d.ocr_engine, "ai".to_string(), "Agenti AI: Markdown con formule LaTeX (consigliato)");
+                    ui.radio_value(&mut d.ocr_engine, "ai".to_string(), "Agenti AI: testo in Markdown, con tabelle e formule (consigliato)");
                     ui.radio_value(&mut d.ocr_engine, "vision".to_string(), "Apple Vision: offline, solo testo");
                 });
             });

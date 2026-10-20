@@ -138,22 +138,22 @@ const SAVED_HEADER: &str = "# Agenti AI di OpenSlate: si modificano comodamente 
 # context: contesto massimo in token (0 = automatico)
 ";
 
-/// Istruzioni per la trascrizione: fedele, Markdown + LaTeX.
-pub const OCR_PROMPT: &str = r#"Sei un trascrittore OCR di appunti scritti a mano (italiano; esercizi di matematica: analisi, algebra lineare, geometria). Trascrivi ESATTAMENTE ciò che è scritto nell'immagine, in Markdown con formule LaTeX.
+/// Istruzioni per la trascrizione: fedele, in Markdown (formule in LaTeX se ci sono).
+pub const OCR_PROMPT: &str = r#"Sei un trascrittore di scrittura a mano. La pagina può contenere qualsiasi cosa: appunti, liste, promemoria, bozze di testi o lettere, verbali di riunione, schemi, tabelle, conti, esercizi o formule. Trascrivi ESATTAMENTE ciò che è scritto nell'immagine, in Markdown.
 
 Regole:
-1. Fedeltà assoluta. NON correggere errori di calcolo, di segno, di indici, di ortografia o passaggi sbagliati. NON completare, NON risolvere, NON aggiungere spiegazioni o passaggi mancanti. Se lo studente ha scritto 2+2=5, trascrivi 2+2=5.
-2. Formule in linea tra $...$; formule su una riga propria tra $$...$$ (una per riga, come sul foglio).
-3. LaTeX standard: \frac, \sqrt, \int_a^b, \sum, \lim_{x \to 0}, \infty, vettori \vec{v} o \mathbf{v}; sistemi con \begin{cases}...\end{cases}; matrici con \begin{pmatrix} (bmatrix se tra quadre, vmatrix per i determinanti); frecce \Rightarrow, \iff, \to.
-4. Mantieni l'ordine e gli a capo del foglio. Titoli (es. "Esercizio 1") come ## solo se sono scritti. Elenchi come elenchi Markdown.
-5. Parole o formule barrate: ~~...~~ (o \cancel{...} dentro una formula).
-6. Simboli o parole illeggibili: [?]. Se sei incerto fra due letture scrivi la più probabile seguita da [?].
-7. Disegni o grafici: [figura: breve descrizione].
+1. Fedeltà assoluta. NON correggere ortografia, grammatica, numeri, calcoli o contenuti sbagliati. NON completare, NON riassumere, NON aggiungere spiegazioni. Se è scritto 2+2=5, trascrivi 2+2=5.
+2. Mantieni la lingua in cui è scritta la pagina, l'ordine e gli a capo del foglio.
+3. Titoli come titoli Markdown (##) solo se sul foglio si vedono come titoli (sottolineati, più grandi, isolati). Elenchi come elenchi Markdown; caselle da spuntare come "- [ ]" o "- [x]". Tabelle come tabelle Markdown.
+4. Solo se ci sono formule o simboli matematici: in linea tra $...$, su una riga propria tra $$...$$, in LaTeX standard (\frac, \sqrt, \sum, \int, \begin{cases}, \begin{pmatrix}…).
+5. Parole barrate: ~~...~~ (o \cancel{...} dentro una formula).
+6. Parole o simboli illeggibili: [?]. Se sei incerto fra due letture scrivi la più probabile seguita da [?].
+7. Disegni, frecce fra blocchi, schemi o grafici: [figura: breve descrizione].
 8. Rispondi SOLO con il Markdown trascritto: niente ``` attorno, niente commenti, niente introduzioni."#;
 
 /// Istruzioni per la chat.
-pub const CHAT_PROMPT: &str = r#"Sei un tutor di matematica universitaria (analisi matematica, algebra lineare, geometria) e un assistente per documenti. Rispondi in italiano, in Markdown; scrivi le formule in LaTeX con $...$ in linea e $$...$$ su riga propria (mai \( \) o \[ \]).
-Quando ricevi una pagina di appunti dello studente (immagine e/o trascrizione), la trascrizione è fedele al foglio, errori compresi: se trovi errori indica in quale passaggio sono, spiega perché e mostra la correzione. Se l'immagine e la trascrizione non coincidono, fidati dell'immagine e dillo. Sii preciso e conciso; svolgi i calcoli passo passo quando servono."#;
+pub const CHAT_PROMPT: &str = r#"Sei un assistente versatile dentro un'app per scrivere a mano su un pad digitale: aiuti con quello che serve all'utente, per esempio appunti, documenti da leggere o firmare, testi da scrivere o rivedere, idee, studio, lavoro, domande di ogni genere. Rispondi nella lingua in cui ti scrive l'utente, in Markdown. Se servono formule scrivile in LaTeX con $...$ in linea e $$...$$ su riga propria (mai \( \) o \[ \]).
+Quando ricevi una pagina scritta a mano (immagine e/o trascrizione), la trascrizione è fedele al foglio, errori compresi; se l'immagine e la trascrizione non coincidono, fidati dell'immagine e dillo. Fai quello che ti viene chiesto: correggi, giudichi o completi solo se te lo chiedono. Sii preciso e conciso."#;
 
 // ---------------------------------------------------------------------------
 // Configurazione
@@ -694,9 +694,9 @@ fn estimate_wire(wire: &[serde_json::Value]) -> u32 {
 
 /// Istruzioni per riassumere la conversazione (compattazione).
 const COMPACT_PROMPT: &str = "Riassumi la conversazione che segue in modo che possa continuare senza perdere nulla di importante. \
-Scrivi in italiano, in Markdown, formule in LaTeX con $...$ e $$...$$. Conserva: l'esercizio o il documento di cui si parla \
-(testo e formule essenziali), i risultati raggiunti, gli errori trovati e le correzioni, le decisioni prese, le fonti citate (con link), \
-le domande ancora aperte. Togli saluti, ripetizioni e passaggi superati. Non aggiungere nulla che non sia nella conversazione. \
+Scrivi nella lingua della conversazione, in Markdown (formule in LaTeX con $...$ e $$...$$, se ce ne sono). Conserva: l'argomento \
+e i materiali di cui si parla (pagine, documenti, appunti: il contenuto essenziale), i risultati raggiunti, le decisioni prese, \
+gli errori trovati e le correzioni, le fonti citate (con link), le domande ancora aperte. Togli saluti, ripetizioni e passaggi superati. Non aggiungere nulla che non sia nella conversazione. \
 Inizia direttamente con il riassunto.";
 
 /// Compatta una conversazione: ritorna il riassunto e chi l'ha scritto.
@@ -731,7 +731,7 @@ pub fn model_size(id: &str) -> Option<f32> {
 }
 
 /// Sotto questa soglia (miliardi) un modello scelto da solo non si usa:
-/// sugli esercizi di matematica risponderebbe a caso.
+/// risponde male e legge male la scrittura a mano.
 const MIN_AUTO_SIZE: f32 = 3.0;
 
 /// Come `choose_model`, ma spiega perché non ne ha trovato uno.
@@ -768,7 +768,7 @@ pub fn choose_model_why(ids: &[String], vision: bool) -> Result<String, String> 
         .unwrap();
     if size(best) < MIN_AUTO_SIZE {
         return Err(format!(
-            "solo modelli troppo piccoli per la matematica ({best}): caricane uno più grande o scrivilo in «model» di ai.toml"
+            "solo modelli troppo piccoli per rispondere bene ({best}): caricane uno più grande o scrivilo in «model» di ai.toml"
         ));
     }
     Ok(best.to_string())
@@ -1460,7 +1460,7 @@ pub fn chat_messages(cfg: &AiConfig, history: &[(String, String)], ctx: Option<&
                     t.push_str(if c.doc {
                         "Testo del documento, estratto dal PDF (le pagine sono separate da «--- Pagina N ---»):\n\n"
                     } else {
-                        "Trascrizione fedele (Markdown + LaTeX):\n\n"
+                        "Trascrizione fedele (Markdown):\n\n"
                     });
                     t.push_str(c.markdown.trim());
                     t.push_str("\n\n");
@@ -1494,7 +1494,7 @@ pub fn chat_messages(cfg: &AiConfig, history: &[(String, String)], ctx: Option<&
     merged
 }
 
-/// Trascrive una pagina (PNG) in Markdown + LaTeX.
+/// Trascrive una pagina (PNG) in Markdown.
 pub fn transcribe(png: Arc<Vec<u8>>) -> Result<Reply> {
     let cfg = AiConfig::load()?;
     let msgs = vec![

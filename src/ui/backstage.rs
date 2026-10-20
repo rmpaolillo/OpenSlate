@@ -285,7 +285,7 @@ impl App {
             });
         });
         ui.add_space(12.0);
-        ui.label("App libera per Wacom Bamboo Slate: lavagna in diretta, documenti da firmare, archivio, trascrizione di formule e chat AI.");
+        ui.label("App libera per Wacom Bamboo Slate: lavagna in diretta, documenti da firmare, archivio, trascrizione della scrittura a mano e chat AI.");
         subheading(ui, "Aiuto");
         if card(ui, ic::KEYBOARD, "Scorciatoie da tastiera", "Tutti i tasti dell'app", true) {
             actions.push(Action::ShowHelp(HelpPage::Tasti));

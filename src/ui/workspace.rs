@@ -476,19 +476,16 @@ impl App {
                 }
             });
         });
-        group(ui, "Formule", |ui| {
-            if big(ui, ic::FUNCTION, "Formula", "Formula su una riga sua ($$ … $$)").clicked() {
-                actions.push(n("mathblock"));
+        group(ui, "Inserisci", |ui| {
+            if big(ui, ic::TABLE, "Tabella", "Tabella Markdown").clicked() {
+                actions.push(n("table"));
             }
             column(ui, |ui| {
-                if small(ui, ic::MATH_OPERATIONS, "Nel testo $x$", "Cmd+M").clicked() {
+                if small(ui, ic::FUNCTION, "Formula", "Formula su una riga sua ($$ … $$)").clicked() {
+                    actions.push(n("mathblock"));
+                }
+                if small(ui, ic::MATH_OPERATIONS, "Formula nel testo", "Cmd+M").clicked() {
                     actions.push(n("math"));
-                }
-                if small(ui, ic::BRACKETS_CURLY, "Sistema", "Sistema di equazioni").clicked() {
-                    actions.push(n("cases"));
-                }
-                if small(ui, ic::TABLE, "Tabella", "").clicked() {
-                    actions.push(n("table"));
                 }
             });
         });

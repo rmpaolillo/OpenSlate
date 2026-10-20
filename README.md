@@ -6,7 +6,7 @@
 
 <p align="center">
   A free, open-source companion app for the <b>Wacom Bamboo Slate</b> (SmartPad family).<br>
-  Live board · offline sync · sign Word and PDF documents with the pen · handwriting to Markdown + LaTeX · AI chat
+  Live board · offline sync · sign Word and PDF documents with the pen · handwriting to text · AI assistant
 </p>
 
 <p align="center">
@@ -16,6 +16,10 @@
 </p>
 
 *English · [Italiano](README.it.md)*
+
+<p align="center">
+  <img src="assets/screenshots/chat.png" alt="OpenSlate: a handwritten page on the board, with the AI assistant summarising it" width="900">
+</p>
 
 ---
 
@@ -30,7 +34,7 @@ what I wanted and wrote it together with an AI coding assistant ([Claude](https:
 iterating on real use rather than following a big design up front. It works well for me on
 macOS. It is shared in case it is useful to other Slate owners. Expect rough edges, an
 interface that is still mostly **in Italian**, and code comments in Italian too.
-Issues and pull requests are welcome.
+Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 > OpenSlate is an independent project. It is **not affiliated with, endorsed by or supported by
 > Wacom**. "Wacom", "Bamboo" and "Inkspace" are trademarks of their respective owners.
@@ -52,18 +56,30 @@ Issues and pull requests are welcome.
   PDF it becomes vector strokes over the untouched original. Pages stay crisp at any zoom,
   rendered by the [WordCraft](https://github.com/storytold/wordcraft) and
   [PdfCraft](https://github.com/storytold/pdfcraft) engines.
-- **Handwriting → Markdown + LaTeX.** A vision-capable AI model transcribes a page faithfully,
-  mistakes included, into a note. The note opens inside the app as an editable, Typora-like
-  page with typeset formulas.
-- **AI chat.** The chat sits next to the page and can see the board, the open document or the
-  note. It can check your exercise step by step, write into the note, search the web, and
-  verify Italian VAT numbers. Behind it is a fallback chain of OpenAI-compatible providers:
+- **Handwriting → text.** A vision-capable AI model transcribes a page faithfully, mistakes
+  included, into a Markdown note: headings, lists, checkboxes, tables, and formulas in LaTeX when
+  there are any. The note opens inside the app as an editable, Typora-like page.
+- **AI assistant, for anything.** The chat sits next to the page and can see the board, the
+  open document or the note. Use it to summarise, rewrite neatly, pull out to-dos, draft texts,
+  check what you wrote for mistakes, answer questions, write into the note, search the web and
+  verify EU VAT numbers. Behind it is a fallback chain of OpenAI-compatible providers:
   LM Studio, Ollama, DeepSeek, Google Gemini and Anthropic Claude. It shows context usage and
   compacts automatically. Drag a document tab onto the chat to attach it.
 - **Live on the web.** A share link lets a TV, phone or PC on your home network watch the board
   in real time. Stable endpoints are `/page.pdf`, `/page.svg`, `/page.png` and `/state.json`.
 - **Export.** Export to vector PDF and SVG at true A4 size, or to PNG. You can also copy the page
   as an image (`Cmd+C`) and paste it anywhere.
+
+## Screenshots
+
+The interface is in Italian (for now). The handwriting and documents below are sample content.
+
+| | |
+|---|---|
+| **Sign a Word or PDF document** with the pen and save it in the same format | **Library** of the pages downloaded from the pad, grouped by day |
+| <img src="assets/screenshots/sign.png" alt="Signing a Word document" width="440"> | <img src="assets/screenshots/library.png" alt="Library of pages" width="440"> |
+| **Handwriting → text**: a page transcribed into an editable note | **Dark theme** and paper styles (here 5 mm squares) |
+| <img src="assets/screenshots/transcribe.png" alt="Handwriting transcribed into a note" width="440"> | <img src="assets/screenshots/dark.png" alt="Dark theme with squared paper" width="440"> |
 
 ## Install
 

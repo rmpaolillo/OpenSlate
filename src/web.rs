@@ -716,7 +716,7 @@ mod tests {
         let text: String = evs.iter().filter_map(|e| e["text"].as_str()).collect();
         assert_eq!(text, "Al passaggio 2 manca il segno: $-\\frac{1}{x^2}$.");
         let req = log.lock().unwrap().last().unwrap().clone();
-        assert!(req.contains("data:image/png;base64,iVBORw") && req.contains("$f(x)=1/x$") && req.contains("tutor"));
+        assert!(req.contains("data:image/png;base64,iVBORw") && req.contains("$f(x)=1/x$") && req.contains("assistente versatile"));
         // richiesta malformata
         assert!(post(port, "/api/chat", "boh").await.starts_with("HTTP/1.1 400"));
     }

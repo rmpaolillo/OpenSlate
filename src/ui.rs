@@ -70,7 +70,7 @@ pub fn run_app(
     // Archivio: al primo avvio importa le pagine già scaricate (copie grezze).
     let first_time = !std::path::Path::new(library::LIB_DIR).exists();
     let mut lib = Library::open();
-    let mut status = "Pronto. Premi «Connetti».".to_string();
+    let mut status = "Pronto. Premi «Collega».".to_string();
     if first_time {
         let dir = std::path::Path::new(export::EXPORT_DIR).join("pad-raw");
         let n = lib.import_raw_dir(&dir, 0.0, 0.0);
@@ -422,7 +422,7 @@ enum Action {
     CloseSettings,
     /// Torna al foglio (dalla scheda di un appunto).
     ShowBoard,
-    /// «Correggi i passaggi»: foglio allegato e controllo dell'esercizio.
+    /// «Controlla il foglio»: foglio allegato e richiesta di controllo.
     ChatCheck,
     /// Rigatura del foglio.
     Paper(paper::Paper),
@@ -665,7 +665,7 @@ impl App {
                 UiEvent::Live(on) => self.live_on = on,
                 UiEvent::Link(l) => {
                     if l == Link::Off && self.link == Link::On {
-                        self.status = "Slate scollegato (spento o fuori portata). Premi il pulsante del pad e «Connetti».".into();
+                        self.status = "Slate scollegato (spento o fuori portata). Premi il pulsante del pad e «Collega».".into();
                     }
                     self.link = l;
                 }
@@ -763,7 +763,7 @@ impl App {
         self.status = if self.settings.ocr_engine == "vision" {
             "Riconosco la scrittura (Apple Vision)…".into()
         } else {
-            "Trascrivo con l'agente AI (Markdown + LaTeX)… può volerci un minuto.".into()
+            "Trascrivo con l'agente AI… può volerci un minuto.".into()
         };
         let cfg = self.settings.clone();
         let tx = self.evt_tx.clone();

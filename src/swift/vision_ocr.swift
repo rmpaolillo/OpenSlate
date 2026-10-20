@@ -25,7 +25,8 @@ else { fail("immagine non leggibile: \(args[1])") }
 let request = VNRecognizeTextRequest()
 request.recognitionLevel = .accurate
 request.usesLanguageCorrection = true
-if let supported = try? request.supportedRecognitionLanguages() {
+// supportedRecognitionLanguages() c'è da macOS 12; su macOS 11 si passano le lingue così come sono
+if #available(macOS 12.0, *), let supported = try? request.supportedRecognitionLanguages() {
     let ok = langs.filter { supported.contains($0) }
     request.recognitionLanguages = ok.isEmpty ? ["en-US"] : ok
 } else {

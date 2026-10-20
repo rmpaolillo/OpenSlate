@@ -75,6 +75,9 @@
     #page { box-shadow: none; width: auto; min-height: 0; padding: 0; }
     .blk:hover, .blk.flash { background: none; }
   }
+/* elenchi con caselle ("- [ ]"): niente pallino */
+li:has(> input[type="checkbox"]) { list-style: none; margin-left: -1.3em; }
+li > input[type="checkbox"] { margin: 0 .45em 0 0; vertical-align: -1px; }
 </style>
 </head>
 <body class="nonav">

@@ -184,6 +184,9 @@
     body.pane #side { position: static; transform: none; box-shadow: none; width: 250px; z-index: auto; }
     body.pane #histbtn, body.pane #sideclose, body.pane #scrim { display: none !important; }
   }
+/* elenchi con caselle ("- [ ]"): niente pallino */
+li:has(> input[type="checkbox"]) { list-style: none; margin-left: -1.3em; }
+li > input[type="checkbox"] { margin: 0 .45em 0 0; vertical-align: -1px; }
 </style>
 </head>
 <body>
@@ -230,7 +233,7 @@
         <button id="send" title="Invia (Invio)"></button>
       </div>
     </div>
-    <div class="hint">Le risposte possono contenere errori: controlla i passaggi importanti.</div>
+    <div class="hint">Le risposte possono contenere errori: verifica le informazioni importanti.</div>
   </div>
 </section>
 <div id="legend"></div>
@@ -619,18 +622,29 @@ function emptyEl() {
   d.innerHTML = "<span class='logo'>" + ic("sparkle") + "</span><h2>Di cosa parliamo?</h2><div class='sub'></div><div class='sugg'></div>";
   d.querySelector(".sub").textContent = cur.page ? "La pagina «" + cur.page.title + "» è allegata: l'agente la vede."
     : noteName ? "L'agente può leggere e scrivere nell'appunto «" + noteName + "»." : "Scrivi «/» per i comandi, oppure allega il foglio con /pagina.";
-  // domande pronte: la prima è la più usata (ho fatto un esercizio, è giusto?)
-  const s = [{ t: "Correggi i passaggi che ho fatto", q: CHECK }];
-  if (noteName) s.push({ t: "Correggi e scrivi la soluzione nell'appunto", q: "Controlla l'esercizio passaggio per passaggio, poi scrivi nell'appunto, in fondo, la soluzione corretta e ordinata (titolo «Soluzione», formule in LaTeX), segnando dove avevo sbagliato." });
-  s.push({ t: "Spiegami il metodo risolutivo, passo passo", q: "Spiegami il metodo risolutivo di questo esercizio, passo passo, come farebbe un buon insegnante: prima l'idea, poi i passaggi con le formule." });
-  if (noteName) s.push({ t: "Riordina l'appunto con titoli e formule pulite", q: "Riordina l'appunto: titoli, paragrafi e formule LaTeX pulite, senza cambiare il contenuto né correggere gli errori." });
-  s.push({ t: noteName ? "Aggiungi all'appunto un esercizio simile" : "Proponimi un esercizio simile", q: noteName ? "Aggiungi in fondo all'appunto un esercizio simile da fare (senza soluzione), con lo stesso livello di difficoltà." : "Proponimi un esercizio simile da fare, con lo stesso livello di difficoltà, senza la soluzione." });
-  for (const x of s) { const b = document.createElement("button"); b.textContent = x.t; b.title = x.q; b.onclick = () => { q.value = x.q; grow(); submit(); }; d.querySelector(".sugg").appendChild(b); }
+  // domande pronte, per qualsiasi uso: foglio o documento allegato, appunto aperto, oppure niente
+  const s = [];
+  const att = cur.page;
+  if (att) {
+    s.push({ t: "Riassumi in pochi punti", q: "Riassumi il contenuto della pagina allegata in pochi punti chiari." });
+    s.push({ t: "Controlla quello che ho scritto", q: CHECK });
+    s.push({ t: "Riscrivilo in bella copia", q: "Riscrivi il contenuto della pagina in un testo pulito e ordinato, nella stessa lingua, senza cambiarne il senso." });
+    s.push({ t: "Elenca le cose da fare", q: "Dalla pagina allegata ricava un elenco delle cose da fare, con scadenze e persone coinvolte se ci sono." });
+  } else {
+    s.push({ t: "Allega il foglio (o il documento)", fn: () => { if (!toApp({ cmd: "attach_board" })) attachIncoming(false); } });
+    s.push({ t: "Aiutami a scrivere un testo", q: "Aiutami a scrivere un testo. Prima chiedimi in breve a chi è rivolto, lo scopo e il tono." });
+  }
+  if (noteName) {
+    s.push({ t: "Riordina l'appunto", q: "Riordina l'appunto: titoli, paragrafi ed elenchi puliti, senza cambiare il contenuto né correggere gli errori." });
+    s.push({ t: "Aggiungi un riassunto all'appunto", q: "Scrivi in fondo all'appunto un breve riassunto (titolo «Riassunto») del suo contenuto." });
+  }
+  for (const x of s) { const b = document.createElement("button"); b.textContent = x.t; b.title = x.q || ""; b.onclick = () => { if (x.fn) return x.fn(); q.value = x.q; grow(); submit(); }; d.querySelector(".sugg").appendChild(b); }
   return d;
 }
-// «Correggi i passaggi che ho fatto»: controllo dell'esercizio svolto
-const CHECK = "Ho svolto questo esercizio: controlla i miei passaggi uno per uno. Per ciascuno dimmi se è giusto (✓) o sbagliato (✗); " +
-  "per quelli sbagliati spiega l'errore e mostra il passaggio corretto. Alla fine dimmi se il risultato è giusto. Non rifare tutto da capo se non serve.";
+// «Controlla il foglio»: l'AI rilegge quello che è scritto, qualunque cosa sia
+const CHECK = "Rileggi con attenzione quello che ho scritto nella pagina allegata e controllalo. Segnala con precisione gli errori " +
+  "(ortografia e grammatica, nomi, date e dati, calcoli, ragionamento) e i punti poco chiari: per ciascuno dimmi dov'è, perché non va " +
+  "e come correggerlo. Se è tutto a posto dimmelo in breve. Non riscrivere tutto se non serve.";
 const toolIcon = (label) => /cerco|ricerca/i.test(label) ? "search" : /pagina|leggo la/i.test(label) ? "globe" : /appunto/i.test(label) ? "pen" : /iva/i.test(label) ? "check" : "tool";
 // Righe compatte: ragionamento, agenti saltati, strumenti (clic per i dettagli).
 // Le righe aperte restano aperte anche mentre il modello scrive (la riga si
@@ -874,14 +888,14 @@ function grow() { q.style.height = "auto"; q.style.height = Math.min(q.scrollHei
 
 // ---------------- comandi «/» (come DSH) ----------------
 const SLASH = [
-  { c: "correggi", d: "Controlla i passaggi dell'esercizio che hai fatto", fn: () => { q.value = CHECK; grow(); submit(); } },
+  { c: "controlla", d: "L'AI rilegge il foglio allegato e segnala errori e punti poco chiari", fn: () => { q.value = CHECK; grow(); submit(); } },
   { c: "nuova", d: "Nuova chat", fn: () => newChat(cur.project) },
   { c: "elimina", d: "Elimina questa chat (c'è «Annulla»)", fn: () => cur && deleteChats([cur.id]) },
   { c: "compatta", d: "Riassume la parte vecchia per liberare contesto", fn: () => compact(false) },
   { c: "modello", d: "Sceglie l'agente e il modello", fn: () => modelMenu($("modelbtn")) },
   { c: "web", d: "Ricerca web: sì / no", fn: () => { cur.web = !cur.web; ls.set("ws-web", cur.web); drawChips(); drawMeter(); saveSoon(false); } },
   { c: "pagina", d: "Allega il foglio della lavagna (o del documento)", fn: () => { if (!toApp({ cmd: "attach_board" })) attachIncoming(false); } },
-  { c: "trascrivi", d: "Trascrive il foglio in un appunto (Markdown + LaTeX)", fn: () => toApp({ cmd: "ocr" }) },
+  { c: "trascrivi", d: "Trascrive il foglio in un appunto (testo in Markdown)", fn: () => toApp({ cmd: "ocr" }) },
   { c: "appunto", d: "Aggiunge l'ultima risposta all'appunto aperto", fn: () => { const a = [...cur.messages].reverse().find((m) => m.role === "assistant"); if (a) appendToNote(a.content); } },
   { c: "esporta", d: "Salva la chat negli Appunti (.md)", fn: () => exportMd() },
   { c: "dirama", d: "Copia la chat in una nuova e continua lì", fn: () => forkAt(cur.messages.length - 1) },
@@ -1094,7 +1108,7 @@ window.wsChat = {
   focus: () => q.focus(),
   newChat: () => newChat(cur ? cur.project : ""),
   setTheme: (t) => (document.documentElement.dataset.theme = t),
-  // «Correggi i passaggi»: chat nuova con il foglio allegato e la domanda di controllo
+  // «Controlla il foglio»: chat nuova con il foglio allegato e la richiesta di controllo
   check: async () => {
     if (busy) return;
     if (cur && (cur.messages.length || cur.page)) await newChat(cur.project);

@@ -104,7 +104,7 @@ enum Cmd {
         titolo: String,
         url: String,
     },
-    /// Trascrive un'immagine (PNG/JPG di appunti) in Markdown + LaTeX.
+    /// Trascrive un'immagine (PNG/JPG scritta a mano) in Markdown.
     Trascrivi {
         file: std::path::PathBuf,
     },

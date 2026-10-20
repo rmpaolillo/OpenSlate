@@ -10,6 +10,9 @@ on:
       - '**.md'
       - 'LICENSE'
       - 'NOTICE'
+      - 'assets/screenshots/**'
+      - '.github/CODEOWNERS'
+      - '.github/pull_request_template.md'
       - '.github/workflows/ci.yml'
   workflow_dispatch:
 
@@ -23,7 +26,7 @@ env:
 
 jobs:
   version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.v.outputs.version }}
     steps:
@@ -38,7 +41,7 @@ jobs:
       VERSION: ${{ needs.version.outputs.version }}
       MACOSX_DEPLOYMENT_TARGET: '11.0'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -94,10 +97,15 @@ jobs:
           mkdir -p build/dmg dist
           cp -R build/OpenSlate.app build/dmg/
           ln -s /Applications build/dmg/Applications
-          hdiutil create -volname "OpenSlate $VERSION" -srcfolder build/dmg -ov -format UDZO \
-            "dist/OpenSlate-$VERSION-macos-universal.dmg"
+          # hdiutil a volte fallisce con "Resource busy" sui runner: si riprova
+          for i in 1 2 3; do
+            hdiutil create -volname "OpenSlate $VERSION" -srcfolder build/dmg -ov -format UDZO \
+              "dist/OpenSlate-$VERSION-macos-universal.dmg" && break
+            sleep 10
+          done
+          test -f "dist/OpenSlate-$VERSION-macos-universal.dmg"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: macos
           path: dist/*
@@ -111,7 +119,7 @@ jobs:
     env:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -146,7 +154,7 @@ jobs:
         run: |
           cargo deb --no-build --deb-version "$VERSION" -o "dist/openslate_${VERSION}_amd64.deb"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: linux
           path: dist/*
@@ -163,7 +171,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -183,7 +191,7 @@ jobs:
           Copy-Item target/release/openslate.exe, README.md, LICENSE, NOTICE, THIRD-PARTY.md, assets/icon/openslate.ico "build/$d/"
           Compress-Archive -Path "build/$d" -DestinationPath "dist/$d.zip"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: windows
           path: dist/*
@@ -194,13 +202,13 @@ jobs:
     needs: [version, macos, linux, windows]
     # Windows is experimental: a failed Windows build does not block the release
     if: ${{ !cancelled() && needs.macos.result == 'success' && needs.linux.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     env:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: dist
           merge-multiple: true
