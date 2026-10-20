@@ -32,7 +32,7 @@ pub fn text_of(dir: &Path) -> Result<String> {
     let pages: Vec<String> = match std::fs::read_to_string(&cache) {
         Ok(t) => t.split('\u{0C}').map(str::to_string).collect(),
         Err(_) => {
-            let pages = crate::docimport::pdf_text(&dir.join("source.pdf"), dir)?;
+            let pages = crate::docimport::pdf_text(&dir.join("source.pdf"))?;
             let _ = std::fs::write(&cache, pages.join("\u{0C}"));
             pages
         }
@@ -129,17 +129,15 @@ impl Document {
         std::fs::create_dir_all(&dir)?;
         let result = (|| -> Result<Document> {
             let pdf = dir.join("source.pdf");
-            // Word: pagine impaginate da WordCraft (si firma e si salva in Word);
-            // se non ce la fa, la conversione di prima (solo PDF)
+            // Word e testi (Markdown, .txt, .html): pagine impaginate da WordCraft
+            // (un Word si firma e si salva in Word; un testo firmato diventa PDF)
             let mut original = None;
             if crate::wordsign::is_word(input) {
                 let ext = input.extension().and_then(|e| e.to_str()).unwrap_or("docx").to_ascii_lowercase();
                 let name = format!("source.{ext}");
                 std::fs::copy(input, dir.join(&name))?;
-                match crate::wordsign::to_pdf(&dir.join(&name), &pdf) {
-                    Ok(()) => original = Some(name),
-                    Err(e) => tracing::warn!("{e:#}: provo con la conversione in PDF"),
-                }
+                crate::wordsign::to_pdf(&dir.join(&name), &pdf)?;
+                original = Some(name);
             }
             // foto (PNG, JPEG…): PhotoCraft; SVG: VectorCraft (si firma e si salva
             // nel formato dell'immagine)
@@ -157,8 +155,7 @@ impl Document {
                 original = Some(name);
             }
             if original.is_none() {
-                crate::docimport::to_pdf(input, &pdf, &dir.join("work"))?;
-                let _ = std::fs::remove_dir_all(dir.join("work"));
+                crate::docimport::to_pdf(input, &pdf)?;
             }
             let mut doc = Document {
                 id: id.clone(),
@@ -197,7 +194,7 @@ impl Document {
         let mut pngs: Vec<PathBuf> = (0..info.len()).map(expected).collect();
         if !pngs.iter().all(|p| p.exists()) {
             let made = crate::docimport::render_pages(&pdf, &pages_dir, PAGE_PX)?;
-            // Nomi uniformi page-NNNN.png (pdftoppm ne usa altri).
+            // Nomi uniformi page-NNNN.png.
             for (i, p) in made.iter().enumerate() {
                 let want = expected(i);
                 if *p != want {
@@ -271,6 +268,8 @@ impl Document {
         match self.original.as_deref().and_then(|n| Path::new(n).extension()).and_then(|e| e.to_str()) {
             Some(e @ ("docx" | "docm" | "dotx" | "dotm" | "odt" | "rtf" | "svg" | "svgz")) => e.to_string(),
             Some(e @ ("png" | "jpg" | "jpeg" | "webp" | "tif" | "tiff" | "bmp" | "gif")) => crate::rasign::signed_ext(e).to_string(),
+            // un testo (Markdown, .txt, .html) non tiene l'inchiostro: diventa PDF
+            Some("md" | "markdown" | "txt" | "html" | "htm") => "pdf".into(),
             Some(_) => "docx".into(),
             None => "pdf".into(),
         }
@@ -280,7 +279,8 @@ impl Document {
     /// documento), un PDF resta PDF (tratti vettoriali sopra l'originale).
     pub fn export_signed(&self, view: View, pad: &Drawing, dst: &Path) -> Result<()> {
         let per_page = self.overlay(view, pad);
-        if let Some(orig) = &self.original {
+        // un testo aperto con WordCraft: le sue pagine (il PDF di WordCraft) con i tratti sopra
+        if let Some(orig) = self.original.as_ref().filter(|o| !crate::wordsign::is_text(Path::new(o))) {
             let ink: Vec<crate::wordsign::InkStroke> = per_page
                 .into_iter()
                 .enumerate()

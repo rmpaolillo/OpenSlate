@@ -37,17 +37,6 @@ impl App {
             let s = self.hub.lock();
             (s.pen, s.eraser, s.tool)
         };
-        // come in Word: Incolla grande, Copia accanto
-        group(ui, "Copia e incolla", |ui| {
-            if big(ui, ic::CLIPBOARD_TEXT, "Incolla", "Incolla un'immagine dagli appunti (Cmd+V): si apre come documento su cui scrivere e firmare, e si salva di nuovo come immagine").clicked() {
-                actions.push(Action::Paste);
-            }
-            column(ui, |ui| {
-                if small(ui, ic::COPY, "Copia", "Copia il foglio come immagine (Cmd+C): si incolla nella chat AI, in Word, in una mail…").clicked() {
-                    actions.push(Action::CopyImage);
-                }
-            });
-        });
         group(ui, "Strumenti", |ui| {
             if big_ex(ui, ic::PEN, "Penna", "Penna: si scrive col pennino, a mano libera", true, tool == Tool::Pen && !eraser, false).clicked() {
                 actions.push(Action::SetTool(Tool::Pen));

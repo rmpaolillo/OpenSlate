@@ -1,12 +1,11 @@
-//! Export di una pagina: SVG e PDF vettoriali (misura A4 reale), PNG raster
-//! (per OCR e per l'integrazione con altri programmi).
+//! Una pagina in pixel per l'app (anteprime, «Copia», immagine per l'AI) e i
+//! file esportati: quelli li scrivono le librerie della suite Craft
+//! (`craftexport`: SVG e PDF di VectorCraft, PNG con PhotoCraft).
 //!
 //! Lo spessore dei tratti segue la stessa regola dello schermo: `width` pixel
 //! su una pagina alta 800 px, in proporzione all'altezza della pagina.
 
 use crate::scene::Page;
-use crate::settings::color_to_hex;
-use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 /// Cartella degli export (nella cartella del progetto).
@@ -26,7 +25,7 @@ pub fn new_path(prefix: &str, ext: &str) -> PathBuf {
 }
 
 /// Misura della pagina in millimetri: il lato lungo è 297 mm (A4).
-fn page_mm(page: &Page) -> (f32, f32) {
+pub(crate) fn page_mm(page: &Page) -> (f32, f32) {
     if page.h >= page.w {
         (297.0 * page.w / page.h, 297.0)
     } else {
@@ -34,120 +33,8 @@ fn page_mm(page: &Page) -> (f32, f32) {
     }
 }
 
-fn stroke_width(width: f32, page_h: f32) -> f32 {
+pub(crate) fn stroke_width(width: f32, page_h: f32) -> f32 {
     (width * page_h / 800.0).max(page_h * 0.0008)
-}
-
-// ---------------------------------------------------------------------------
-// SVG
-// ---------------------------------------------------------------------------
-
-pub fn page_to_svg(page: &Page) -> String {
-    let (w, h) = page_mm(page);
-    let mut s = String::new();
-    let _ = writeln!(
-        s,
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{w:.2}mm\" height=\"{h:.2}mm\" viewBox=\"0 0 {w:.2} {h:.2}\">"
-    );
-    let _ = writeln!(s, "  <rect width=\"{w:.2}\" height=\"{h:.2}\" fill=\"white\"/>");
-    if let Some(bg) = &page.bg {
-        use base64::Engine;
-        let b64 = base64::engine::general_purpose::STANDARD.encode(bg.png.as_slice());
-        let [rx, ry, rw, rh] = bg.rect;
-        let _ = writeln!(
-            s,
-            "  <image x=\"{:.2}\" y=\"{:.2}\" width=\"{:.2}\" height=\"{:.2}\" preserveAspectRatio=\"none\" href=\"data:image/png;base64,{b64}\"/>",
-            rx * w, ry * h, rw * w, rh * h
-        );
-    }
-    s.push_str("  <g fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n");
-    for st in &page.strokes {
-        let sw = stroke_width(st.width, h);
-        let col = color_to_hex(st.color);
-        let mut d = String::new();
-        for (i, (u, v)) in st.pts.iter().enumerate() {
-            let _ = write!(d, "{}{:.2} {:.2}", if i == 0 { "M" } else { " L" }, u * w, v * h);
-        }
-        if st.pts.len() == 1 {
-            // un punto: segmento di lunghezza zero con estremi tondi
-            let _ = write!(d, " l 0 0");
-        }
-        let blend = if st.highlight { " style=\"mix-blend-mode:multiply\"" } else { "" };
-        let _ = writeln!(s, "    <path d=\"{d}\" stroke=\"{col}\" stroke-width=\"{sw:.3}\"{blend}/>");
-    }
-    s.push_str("  </g>\n</svg>\n");
-    s
-}
-
-// ---------------------------------------------------------------------------
-// PDF (scritto a mano: una pagina per disegno, tratti vettoriali)
-// ---------------------------------------------------------------------------
-
-/// Un PDF con una pagina per ogni `Page`.
-pub fn pages_to_pdf(pages: &[&Page]) -> Vec<u8> {
-    const MM: f32 = 72.0 / 25.4;
-    let n = pages.len().max(1);
-    // Oggetti: 1 catalogo, 2 albero pagine, poi per ogni pagina: pagina + contenuto.
-    let mut objs: Vec<Vec<u8>> = Vec::new();
-    let kids: Vec<String> = (0..n).map(|i| format!("{} 0 R", 3 + 2 * i)).collect();
-    objs.push(b"<< /Type /Catalog /Pages 2 0 R >>".to_vec());
-    objs.push(format!("<< /Type /Pages /Kids [{}] /Count {n} >>", kids.join(" ")).into_bytes());
-
-    for i in 0..n {
-        let (wmm, hmm) = pages.get(i).map(|p| page_mm(p)).unwrap_or((210.0, 297.0));
-        let (w, h) = (wmm * MM, hmm * MM);
-        let mut c = String::from("1 J 1 j\n");
-        if let Some(page) = pages.get(i) {
-            for st in &page.strokes {
-                let [r, g, b] = st.color;
-                let _ = write!(
-                    c,
-                    "{:.3} {:.3} {:.3} RG {:.2} w\n",
-                    r as f32 / 255.0,
-                    g as f32 / 255.0,
-                    b as f32 / 255.0,
-                    stroke_width(st.width, h)
-                );
-                for (j, (u, v)) in st.pts.iter().enumerate() {
-                    let _ = write!(c, "{:.2} {:.2} {}\n", u * w, h - v * h, if j == 0 { "m" } else { "l" });
-                }
-                if st.pts.len() == 1 {
-                    let (u, v) = st.pts[0];
-                    let _ = write!(c, "{:.2} {:.2} l\n", u * w, h - v * h);
-                }
-                c.push_str("S\n");
-            }
-        }
-        objs.push(
-            format!(
-                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {w:.2} {h:.2}] /Resources << >> /Contents {} 0 R >>",
-                4 + 2 * i
-            )
-            .into_bytes(),
-        );
-        let mut stream = format!("<< /Length {} >>\nstream\n", c.len()).into_bytes();
-        stream.extend_from_slice(c.as_bytes());
-        stream.extend_from_slice(b"\nendstream");
-        objs.push(stream);
-    }
-
-    let mut out: Vec<u8> = b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n".to_vec();
-    let mut offsets = Vec::new();
-    for (i, o) in objs.iter().enumerate() {
-        offsets.push(out.len());
-        out.extend_from_slice(format!("{} 0 obj\n", i + 1).as_bytes());
-        out.extend_from_slice(o);
-        out.extend_from_slice(b"\nendobj\n");
-    }
-    let xref = out.len();
-    out.extend_from_slice(format!("xref\n0 {}\n0000000000 65535 f \n", objs.len() + 1).as_bytes());
-    for off in offsets {
-        out.extend_from_slice(format!("{off:010} 00000 n \n").as_bytes());
-    }
-    out.extend_from_slice(
-        format!("trailer\n<< /Size {} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n", objs.len() + 1).as_bytes(),
-    );
-    out
 }
 
 // ---------------------------------------------------------------------------
@@ -273,16 +160,21 @@ fn render(page: &Page, long_side: u32) -> anyhow::Result<tiny_skia::Pixmap> {
 // Salvataggio
 // ---------------------------------------------------------------------------
 
-pub fn save_svg(page: &Page, path: &Path) -> std::io::Result<()> {
-    std::fs::write(path, page_to_svg(page))
+// I file si scrivono con le librerie della suite Craft (vedi `craftexport`):
+// SVG e PDF da VectorCraft, PNG disegnato da VectorCraft e scritto da PhotoCraft.
+
+pub fn save_svg(page: &Page, path: &Path) -> anyhow::Result<()> {
+    std::fs::write(path, crate::craftexport::svg(page)?)?;
+    Ok(())
 }
 
-pub fn save_pdf(pages: &[&Page], path: &Path) -> std::io::Result<()> {
-    std::fs::write(path, pages_to_pdf(pages))
+pub fn save_pdf(pages: &[&Page], path: &Path) -> anyhow::Result<()> {
+    std::fs::write(path, crate::craftexport::pdf(pages)?)?;
+    Ok(())
 }
 
 pub fn save_png(page: &Page, path: &Path) -> anyhow::Result<()> {
-    std::fs::write(path, page_to_png(page, 2480)?)?;
+    std::fs::write(path, crate::craftexport::png(page, 2480)?)?;
     Ok(())
 }
 
@@ -304,28 +196,8 @@ mod tests {
     }
 
     #[test]
-    fn pdf_ben_formato() {
-        let pdf = pages_to_pdf(&[&sample(), &sample()]);
-        let text = String::from_utf8_lossy(&pdf);
-        assert!(text.starts_with("%PDF-1.4"));
-        assert!(text.contains("/Count 2"));
-        // l'offset in startxref punta davvero alla tabella xref (offset in byte)
-        let sx = text.rfind("startxref\n").unwrap();
-        let off: usize = text[sx + 10..].lines().next().unwrap().parse().unwrap();
-        assert_eq!(&pdf[off..off + 4], b"xref");
-        // ogni voce xref punta a "N 0 obj"
-        let table = String::from_utf8(pdf[off..].to_vec()).unwrap();
-        for (n, line) in table.lines().skip(3).take(6).enumerate() {
-            let o: usize = line[..10].parse().unwrap();
-            assert!(pdf[o..].starts_with(format!("{} 0 obj", n + 1).as_bytes()));
-        }
-    }
-
-    #[test]
-    fn svg_e_png() {
+    fn png() {
         let p = sample();
-        let svg = page_to_svg(&p);
-        assert!(svg.contains("#ff0000") && svg.contains("297.00mm"));
         let png = page_to_png(&p, 400).unwrap();
         assert_eq!(&png[1..4], b"PNG");
         let (w, h, px) = page_to_rgba(&p, 400).unwrap();

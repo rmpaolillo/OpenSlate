@@ -14,8 +14,8 @@ Per-file attributions are in [NOTICE](NOTICE).
 |---|---|---|---|
 | [Tuhi](https://github.com/tuhiproject/tuhi) | Peter Hutterer, Benjamin Tissoires and the Tuhi contributors | GPL-2.0-or-later | The Bluetooth protocol of the Wacom SmartPad family was translated from Tuhi's Python code. Without Tuhi's reverse engineering this project would not exist. |
 | [WordCraft](https://github.com/storytold/wordcraft) | ArtCraft Team and the WordCraft contributors | MIT OR Apache-2.0 | `wordcraft-engine` crate: opening, rendering and saving Word documents with the handwritten ink. The Word-like look of the interface (colours, measurements, rulers) is adapted from its `ui-egui` crate. |
-| [PdfCraft](https://github.com/storytold/pdfcraft) | ArtCraft Team and the PdfCraft contributors | MIT OR Apache-2.0 | `pdfcraft-render` crate: crisp PDF page rendering at any zoom, plus the patched `hayro`, `lopdf` and `vello_common` crates. |
-| [VectorCraft](https://github.com/storytold/vectorcraft) | ArtCraft Team and the VectorCraft contributors | MIT OR Apache-2.0 | `vectorcraft-engine` crate: opening SVG images as pages and saving them with the handwritten ink as vector paths. |
+| [PdfCraft](https://github.com/storytold/pdfcraft) | ArtCraft Team and the PdfCraft contributors | MIT OR Apache-2.0 | `pdfcraft-render` crate: crisp PDF page rendering at any zoom, page images and text extraction; its patched `lopdf` writes the signed PDFs and the photo pages; plus its patched `vello_common`. |
+| [VectorCraft](https://github.com/storytold/vectorcraft) | ArtCraft Team and the VectorCraft contributors | MIT OR Apache-2.0 | `vectorcraft-engine` and `vectorcraft-render` crates: opening SVG images as pages and saving them with the handwritten ink as vector paths; drawing and writing the board and library exports (PDF, SVG, PNG). |
 | [PhotoCraft](https://github.com/storytold/photocraft) | ArtCraft Team and the PhotoCraft contributors | MIT OR Apache-2.0 | `photocraft-codecs` (reading and writing PNG, JPEG, WebP, TIFF… with colour profile and metadata) and `photocraft-paint` (the brush that draws the handwritten ink on photos). |
 | [craft-libs](https://github.com/storytold/craft-libs) | ArtCraft Team | MIT OR Apache-2.0 | Patched `krilla` (PDF writing) and `hayro` (PDF reading) used by WordCraft, PdfCraft and VectorCraft. |
 | [ArtCraft Launcher](https://github.com/storytold/craft-launcher) | ArtCraft Team | MIT OR Apache-2.0 | Model for the "new version available" notice (GitHub releases check, banner with Download / What's new). Ideas only. |
@@ -34,9 +34,9 @@ Per-file attributions are in [NOTICE](NOTICE).
 
 ## Platform components used at run time (not bundled)
 
-- **macOS**: CoreBluetooth, WKWebView, PDFKit and Vision (through small Swift helpers in `src/swift/`), Keychain.
+- **macOS**: CoreBluetooth, WKWebView, Vision (optional OCR, through a small Swift helper in `src/swift/`), Keychain.
 - **All systems**: the system's Chinese/Japanese/Korean font (PingFang, Hiragino, Apple SD Gothic Neo, Microsoft YaHei, Yu Gothic, Malgun Gothic, Noto Sans CJK…) when the interface is in one of those languages.
-- **Linux**: BlueZ (via D-Bus), GTK 3, WebKitGTK; optionally LibreOffice and Poppler (`pdftoppm`).
+- **Linux**: BlueZ (via D-Bus), GTK 3, WebKitGTK.
 - **Windows**: WinRT Bluetooth, WebView2.
 
 ## Rust crates
@@ -373,7 +373,6 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [litrs](https://github.com/LukasKalbertodt/litrs) | 1.0.1 | MIT OR Apache-2.0 | Lukas Kalbertodt |
 | [lock_api](https://github.com/Amanieu/parking_lot) | 0.4.14 | MIT OR Apache-2.0 | Amanieu d'Antras |
 | [log](https://github.com/rust-lang/log) | 0.4.34 | MIT OR Apache-2.0 | The Rust Project Developers |
-| [lopdf](https://github.com/J-F-Liu/lopdf.git) | 0.34.0 | MIT | Junfeng Liu, Emulator |
 | [lopdf](https://github.com/J-F-Liu/lopdf.git) (git) | 0.45.0 | MIT | Junfeng Liu, Emulator |
 | [malloc_buf](https://github.com/SSheldon/malloc_buf) | 0.0.6 | MIT | Steven Sheldon |
 | [markup5ever](https://github.com/servo/html5ever) | 0.39.0 | MIT OR Apache-2.0 | The html5ever Project Developers |
@@ -383,7 +382,6 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [memchr](https://github.com/BurntSushi/memchr) | 2.8.3 | Unlicense OR MIT | Andrew Gallant, bluss |
 | [memmap2](https://github.com/RazrFalcon/memmap2-rs) | 0.9.11 | MIT OR Apache-2.0 | Dan Burkert, Yevhenii Reizner, The Contributors |
 | [memoffset](https://github.com/Gilnaa/memoffset) | 0.9.1 | MIT | Gilad Naaman |
-| [minimal-lexical](https://github.com/Alexhuszagh/minimal-lexical) | 0.2.1 | MIT/Apache-2.0 | Alex Huszagh |
 | [miniz_oxide](https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide) | 0.8.9 | MIT OR Zlib OR Apache-2.0 | Frommi, oyvindln, Rich Geldreich richgel99@gmail.com |
 | [miniz_oxide](https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide) | 0.9.1 | MIT OR Zlib OR Apache-2.0 | Frommi, oyvindln, Rich Geldreich richgel99@gmail.com |
 | [mio](https://github.com/tokio-rs/mio) | 1.2.4 | MIT | Carl Lerche, Thomas de Zeeuw, Tokio Contributors |
@@ -397,7 +395,6 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [ndk-sys](https://github.com/rust-mobile/ndk) | 0.6.0+11769913 | MIT OR Apache-2.0 | The Rust Windowing contributors |
 | [new_debug_unreachable](https://github.com/mbrubeck/rust-debug-unreachable) | 1.0.6 | MIT | Matt Brubeck, Jonathan Reem |
 | [nohash-hasher](https://github.com/paritytech/nohash-hasher) | 0.2.0 | Apache-2.0 OR MIT | Parity Technologies |
-| [nom](https://github.com/Geal/nom) | 7.1.3 | MIT | contact@geoffroycouprie.com |
 | [nom](https://github.com/rust-bakery/nom) | 8.0.0 | MIT | contact@geoffroycouprie.com |
 | [nu-ansi-term](https://github.com/nushell/nu-ansi-term) | 0.50.3 | MIT | ogham@bsago.me, Ryan Scheel (Havvy), Josh Triplett, The Nushell Project Developers |
 | [num-complex](https://github.com/rust-num/num-complex) | 0.4.6 | MIT OR Apache-2.0 | The Rust Project Developers |
@@ -502,8 +499,6 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [proc-macro-error-attr](https://gitlab.com/CreepySkeleton/proc-macro-error) | 1.0.4 | MIT OR Apache-2.0 | CreepySkeleton |
 | [proc-macro2](https://github.com/dtolnay/proc-macro2) | 1.0.107 | MIT OR Apache-2.0 | David Tolnay, Alex Crichton |
 | [profiling](https://github.com/aclysma/profiling) | 1.0.18 | MIT OR Apache-2.0 | Philip Degarmo |
-| [pulldown-cmark](https://github.com/raphlinus/pulldown-cmark) | 0.12.2 | MIT | Raph Levien, Marcus Klaas de Vries |
-| [pulldown-cmark-escape](https://github.com/raphlinus/pulldown-cmark) | 0.11.0 | MIT | Raph Levien, Marcus Klaas de Vries |
 | [pulp](https://github.com/sarah-quinones/pulp) | 0.22.3 | MIT | sarah quiñones |
 | [pulp-wasm-simd-flag](https://github.com/sarah-quinones/pulp) | 0.1.1 | MIT | sarah quiñones |
 | [pxfm](https://github.com/awxkee/pxfm) | 0.1.30 | BSD-3-Clause OR Apache-2.0 | Radzivon Bartoshyk |
@@ -649,7 +644,6 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [type-map](https://github.com/kardeiz/type-map) | 0.5.1 | MIT/Apache-2.0 | Jacob Brown |
 | [typenum](https://github.com/paholg/typenum) | 1.20.1 | MIT OR Apache-2.0 | — |
 | [uds_windows](https://github.com/haraldh/rust_uds_windows) | 1.2.1 | MIT | Azure IoT Edge Devs, Harald Hoyer |
-| [unicase](https://github.com/seanmonstar/unicase) | 2.10.0 | MIT OR Apache-2.0 | Sean McArthur |
 | [unicode-bidi](https://github.com/servo/unicode-bidi) | 0.3.18 | MIT OR Apache-2.0 | The Servo Project Developers |
 | [unicode-bidi-mirroring](https://github.com/RazrFalcon/unicode-bidi-mirroring) | 0.4.0 | MIT/Apache-2.0 | Yevhenii Reizner |
 | [unicode-ccc](https://github.com/RazrFalcon/unicode-ccc) | 0.4.0 | MIT/Apache-2.0 | Yevhenii Reizner |

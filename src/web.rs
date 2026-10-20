@@ -323,26 +323,18 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
                 None => respond(&mut sock, "404 Not Found", "text/plain", b"nessun documento").await,
             }
         }
-        "/page.svg" => {
+        // il foglio come file, scritto con le librerie della suite Craft
+        "/page.svg" | "/page.pdf" | "/page.png" => {
             let page = hub.lock().page();
-            let s = export::page_to_svg(&page);
-            respond(&mut sock, "200 OK", "image/svg+xml", s.as_bytes()).await
-        }
-        "/page.pdf" if hub.lock().bg.is_some() => {
-            // Con un documento aperto il PDF vero si salva dall'app
-            // («Salva PDF firmato»): qui si dà l'immagine della pagina.
-            sock.write_all(b"HTTP/1.1 303 See Other\r\nLocation: /page.png\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
-                .await
-        }
-        "/page.pdf" => {
-            let page = hub.lock().page();
-            let pdf = export::pages_to_pdf(&[&page]);
-            respond(&mut sock, "200 OK", "application/pdf", &pdf).await
-        }
-        "/page.png" => {
-            let page = hub.lock().page();
-            match tokio::task::spawn_blocking(move || export::page_to_png(&page, 1600)).await {
-                Ok(Ok(png)) => respond(&mut sock, "200 OK", "image/png", &png).await,
+            let kind = path.to_string();
+            let made = tokio::task::spawn_blocking(move || match kind.as_str() {
+                "/page.svg" => crate::craftexport::svg(&page).map(|b| ("image/svg+xml", b)),
+                "/page.pdf" => crate::craftexport::pdf(&[&page]).map(|b| ("application/pdf", b)),
+                _ => crate::craftexport::png(&page, 1600).map(|b| ("image/png", b)),
+            })
+            .await;
+            match made {
+                Ok(Ok((ctype, body))) => respond(&mut sock, "200 OK", ctype, &body).await,
                 _ => respond(&mut sock, "500 Internal Server Error", "text/plain", b"errore").await,
             }
         }
@@ -689,7 +681,7 @@ mod tests {
         let state = get(port, "/state.json").await;
         assert!(state.contains("\"s\":[{\"c\":\"#141414\""));
         let pdf = get(port, "/page.pdf").await;
-        assert!(pdf.contains("application/pdf") && pdf.contains("%PDF-1.4"));
+        assert!(pdf.contains("application/pdf") && pdf.contains("%PDF-"), "{}", &pdf[..pdf.len().min(300)]);
     }
 
     async fn post(port: u16, path: &str, body: &str) -> String {

@@ -64,10 +64,10 @@ jobs:
           cargo build --release --target aarch64-apple-darwin
           cargo build --release --target x86_64-apple-darwin
 
-      - name: Swift helpers (PDFKit, Vision)
+      - name: Swift helper (Apple Vision OCR)
         run: |
           mkdir -p build/helpers
-          for name in pdf_render pdf_text vision_ocr; do
+          for name in vision_ocr; do
             for arch in arm64 x86_64; do
               d="build/swift/$name-$arch"; mkdir -p "$d"
               cp "src/swift/$name.swift" "$d/main.swift"

@@ -48,10 +48,9 @@ base64 = "0.22"
 toml = "0.8"
 # Immagine negli appunti (Copia immagine → incolla in una chat AI)
 arboard = "3"
-# Documenti: lettura/scrittura PDF (firma sovrapposta), dialogo file, Markdown
-lopdf = { version = "0.34", default-features = false, features = ["nom_parser"] }
+# Documenti: lettura/scrittura PDF (firma sovrapposta), dialogo file
+lopdf = { version = "0.45", default-features = false }  # quello di PdfCraft (vedi [patch])
 rfd = { version = "0.14", default-features = false, features = ["gtk3"] }
-pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
 # Documenti Word (.docx, .doc, .odt, .rtf): pagine e firma col motore di WordCraft
 # (MIT OR Apache-2.0, © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
 wordcraft-engine = { git = "https://github.com/storytold/wordcraft", rev = "117aea31a8e61bd3e306e9210800cdc42897e3c1" }
@@ -66,6 +65,7 @@ photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "8727
 # Immagini SVG: pagine e firma col motore di VectorCraft (MIT OR Apache-2.0,
 # © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
 vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "bc1ae0825264c5ca4b27bd718d6e04f2121b8bb3" }
+vectorcraft-render = { git = "https://github.com/storytold/vectorcraft", rev = "bc1ae0825264c5ca4b27bd718d6e04f2121b8bb3" }
 # PDF: il disegno nitido delle pagine col motore di PdfCraft (MIT OR Apache-2.0,
 # © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
 pdfcraft-render = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }

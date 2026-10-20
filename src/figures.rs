@@ -111,7 +111,7 @@ pub fn extract(text: &str, page: &Page, dir: &Path, stem: &str) -> String {
         };
         n += 1;
         let name = format!("{stem}-fig{n}.svg");
-        if let Err(e) = std::fs::create_dir_all(dir).and_then(|_| crate::export::save_svg(&fig, &dir.join(&name))) {
+        if let Err(e) = std::fs::create_dir_all(dir).map_err(anyhow::Error::from).and_then(|_| crate::export::save_svg(&fig, &dir.join(&name))) {
             tracing::warn!("figura {name}: {e}");
             out.push_str(&format!("[figura: {}]", p.desc));
             continue;

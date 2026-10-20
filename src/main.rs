@@ -9,6 +9,7 @@ mod ai;
 mod aiconfig;
 mod ble;
 mod chats;
+mod craftexport;
 mod device;
 mod docimport;
 mod docrender;

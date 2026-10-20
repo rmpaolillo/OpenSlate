@@ -232,6 +232,17 @@ impl App {
                     if icon_button(ui, ic::ARROW_U_UP_RIGHT, &format!("Ripeti ({})", cmd_key("Shift+Z")), vec2(26.0, control_h), can_redo).clicked() {
                         actions.push(Action::Redo);
                     }
+                    // Copia e Incolla valgono in tutte le schede: qui, accanto ad Annulla
+                    ui.add_space(4.0);
+                    let (sep, _) = ui.allocate_exact_size(vec2(1.0, control_h * 0.55), Sense::hover());
+                    ui.painter().rect_filled(sep, 0.0, t.border);
+                    ui.add_space(4.0);
+                    if icon_button(ui, ic::COPY, &format!("{} ({})", i18n::t("Copia il foglio come immagine"), cmd_key("C")), vec2(26.0, control_h), true).clicked() {
+                        actions.push(Action::CopyImage);
+                    }
+                    if icon_button(ui, ic::CLIPBOARD_TEXT, &format!("{} ({})", i18n::t("Incolla un'immagine (si apre come documento)"), cmd_key("V")), vec2(26.0, control_h), true).clicked() {
+                        actions.push(Action::Paste);
+                    }
                     qat_end = ui.min_rect().max.x;
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         self.led_pill(ui, actions, control_h);

@@ -1,4 +1,4 @@
-//! Piccoli programmi Swift per usare i servizi di macOS (Vision, PDFKit).
+//! Piccoli programmi Swift per usare i servizi di macOS (OCR con Apple Vision).
 //! Vengono compilati al primo uso con `swiftc` (Xcode Command Line Tools) e
 //! ricompilati solo se il sorgente cambia.
 

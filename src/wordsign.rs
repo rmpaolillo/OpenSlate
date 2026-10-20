@@ -10,10 +10,18 @@ use serde_json::json;
 use std::path::Path;
 use wordcraft_engine::Session;
 
-/// Estensioni aperte con WordCraft.
+/// Estensioni aperte con WordCraft: Word, OpenDocument, RTF e anche i testi
+/// (Markdown, .txt, .html), che WordCraft impagina come un documento.
 pub fn is_word(path: &Path) -> bool {
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_ascii_lowercase();
-    matches!(ext.as_str(), "docx" | "doc" | "docm" | "dotx" | "dotm" | "dot" | "odt" | "rtf")
+    matches!(ext.as_str(), "docx" | "doc" | "docm" | "dotx" | "dotm" | "dot" | "odt" | "rtf") || is_text(path)
+}
+
+/// Testi che WordCraft apre ma che non possono tenere l'inchiostro: firmati
+/// diventano PDF (le pagine impaginate da WordCraft con i tratti sopra).
+pub fn is_text(path: &Path) -> bool {
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_ascii_lowercase();
+    matches!(ext.as_str(), "md" | "markdown" | "txt" | "html" | "htm")
 }
 
 /// Apre un documento Word col motore di WordCraft.

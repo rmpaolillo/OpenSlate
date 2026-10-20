@@ -121,8 +121,8 @@ version number (`v0.2.0`, `v0.2.1`, …).
    ```
 3. Allow **Bluetooth** access when asked.
 
-Word documents open best with [LibreOffice](https://www.libreoffice.org) installed
-(`brew install --cask libreoffice`). Without it, OpenSlate falls back to macOS `textutil`.
+Nothing else to install: every file is opened and saved with the libraries of the
+[Craft suite](https://github.com/storytold) (see "Files and formats" below).
 
 ### Linux
 
@@ -131,13 +131,27 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 # or unpack the tar.gz and run ./openslate
 ```
 
-At run time it needs BlueZ, GTK 3 and WebKitGTK 4.1. LibreOffice and Poppler (`pdftoppm`) are
-optional, for importing documents. Your user must be allowed to use Bluetooth.
+At run time it needs BlueZ, GTK 3 and WebKitGTK 4.1. Your user must be allowed to use Bluetooth.
 
 ### Windows (experimental)
 
 Unzip and run `openslate.exe`. It needs the Microsoft Edge WebView2 runtime, which ships with
 Windows 10/11. Not everything is tested on Windows. Bug reports are very welcome.
+
+## Files and formats
+
+Every file is opened, shown and saved with the libraries of ArtCraft's Craft suite, without
+their interfaces and without external programs:
+
+| Files | Library |
+|---|---|
+| Word (.docx, .doc, .odt, .rtf), Markdown, .txt, .html | [WordCraft](https://github.com/storytold/wordcraft): opens and lays out the pages, saves Word with the ink |
+| PDF | [PdfCraft](https://github.com/storytold/pdfcraft): pages, thumbnails and text; its PDF library saves the signed copy |
+| SVG | [VectorCraft](https://github.com/storytold/vectorcraft) |
+| Photos (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
+| Board and library exports (PDF, SVG, PNG) | VectorCraft draws and writes them; PNG files are written by PhotoCraft |
+
+A signed Markdown, .txt or .html file is saved as PDF (those formats cannot hold the ink).
 
 ## Updates
 
@@ -213,7 +227,7 @@ sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
 ```
 
 On macOS you need the Xcode command-line tools (`xcode-select --install`). The small Swift
-helpers (PDFKit, Vision OCR) are compiled on first use, or bundled inside the release `.app`.
+helper for the optional Apple Vision OCR is compiled on first use, or bundled inside the release `.app`.
 
 ## Project layout
 

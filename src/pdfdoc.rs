@@ -153,6 +153,12 @@ pub fn pages(path: &Path) -> Result<Vec<PdfPage>> {
     Ok(doc.get_pages().values().map(|&id| page_of(&doc, id)).collect())
 }
 
+/// Misure delle pagine di un PDF in memoria.
+pub fn pages_from_bytes(bytes: &[u8]) -> Result<Vec<PdfPage>> {
+    let doc = Document::load_mem(bytes).context("PDF non leggibile")?;
+    Ok(doc.get_pages().values().map(|&id| page_of(&doc, id)).collect())
+}
+
 /// Operatori PDF che disegnano i tratti di una pagina.
 fn overlay_content(page: &PdfPage, strokes: &[OverlayStroke]) -> String {
     let (_, dh) = page.display_size();
@@ -291,7 +297,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("wacom-pdf-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let src = dir.join("a.pdf");
-        std::fs::write(&src, crate::export::pages_to_pdf(&[&page, &page])).unwrap();
+        std::fs::write(&src, crate::craftexport::pdf(&[&page, &page]).unwrap()).unwrap();
         let info = pages(&src).unwrap();
         assert_eq!(info.len(), 2);
         let firma = OverlayStroke {
