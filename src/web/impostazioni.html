@@ -73,6 +73,16 @@
     <button id="add">Aggiungi</button>
   </div>
 
+  <h2>Lettura dei fogli (OCR)</h2>
+  <p class="sub">Chi legge la scrittura a mano: in «Trascrivi» e, in chat, per gli agenti che non vedono le immagini
+    (es. DeepSeek), a cui passa il testo del foglio. Serve un agente che veda le immagini; meglio uno veloce.</p>
+  <div class="card"><div class="grid">
+    <label class="l" for="reader">Agente</label>
+    <div class="row"><select id="reader"></select></div>
+    <label class="l">Se non risponde</label>
+    <div class="checks"><label><input type="checkbox" id="ocrfb"> prova gli altri agenti che vedono le immagini, in ordine</label></div>
+  </div></div>
+
   <h2>Chat: contesto e compattazione</h2>
   <p class="sub">Quando la conversazione arriva vicino al contesto massimo del modello, la parte vecchia viene riassunta (compattata)
     prima di mandare la domanda. Si può anche compattare a mano con il pulsante «Compatta» della chat.</p>
@@ -110,7 +120,11 @@ const CTX_PRESETS = [[0, "automatico"], [8192, "8K"], [32768, "32K"], [65536, "6
 
 function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 function fmtK(n) { return n >= 1048576 ? (n / 1048576) + "M" : n >= 1000 ? Math.round(n / 1024) + "K" : String(n); }
-function touch() { setMsg("Modifiche non salvate", ""); }
+function touch() {
+  setMsg("Modifiche non salvate", "");
+  // nomi, «legge le immagini» e acceso/spento cambiano chi può leggere i fogli
+  if (typeof cfg !== "undefined" && cfg && cfg.providers && $("reader")) drawReader();
+}
 function setMsg(t, cls) { $("msg").textContent = t; $("msg").className = cls || ""; }
 
 // --- chiave: tipo + nome <-> "dsh:NOME | env:NOME …" ---
@@ -161,6 +175,7 @@ function keyEditor(spec, ok, onChange, onNewKey) {
 
 // --- agenti ---
 function drawProviders() {
+  if (cfg.chat && $("reader")) setTimeout(drawReader, 0); // l'elenco di chi legge segue i provider
   const box = $("providers");
   box.innerHTML = "";
   cfg.providers.forEach((p, i) => box.appendChild(providerCard(p, i)));
@@ -297,12 +312,28 @@ $("add").onclick = () => {
 };
 
 // --- chat e ricerca web ---
+// chi legge il foglio per gli agenti senza visione: solo quelli con visione
+function drawReader() {
+  cfg.ocr = cfg.ocr || { agent: "", fallback: true };
+  const sel = $("reader"), want = cfg.ocr.agent || "";
+  sel.innerHTML = "";
+  const add = (v, t) => { const o = document.createElement("option"); o.value = v; o.textContent = t; sel.appendChild(o); };
+  const first = cfg.providers.find((p) => p.vision && p.enabled !== false && p.name);
+  add("", "Il primo della lista che vede le immagini" + (first ? " (ora: " + first.name + ")" : " (nessuno!)"));
+  for (const p of cfg.providers) if (p.vision && p.name) add(p.name, p.name + (p.enabled === false ? " (spento in chat)" : ""));
+  if (want && ![...sel.options].some((o) => o.value === want)) add(want, want + " (non c'è più o non vede le immagini)");
+  sel.value = want;
+  sel.onchange = () => { cfg.ocr.agent = sel.value; touch(); };
+  $("ocrfb").checked = cfg.ocr.fallback !== false;
+  $("ocrfb").onchange = () => { cfg.ocr.fallback = $("ocrfb").checked; touch(); };
+}
 function drawOthers() {
   const showCat = () => ($("catv").textContent = cfg.chat.compact_at ? cfg.chat.compact_at + "% del contesto" : "mai");
   $("cat").value = cfg.chat.compact_at; showCat();
   $("cat").oninput = () => { cfg.chat.compact_at = +$("cat").value; showCat(); touch(); };
   $("keep").value = cfg.chat.keep_recent;
   $("keep").oninput = () => { cfg.chat.keep_recent = Math.max(0, parseInt($("keep").value, 10) || 0); touch(); };
+  drawReader();
   const w = cfg.web, box = $("webcard");
   box.innerHTML = `<div class="grid">
     <label class="l">Attiva</label><div class="checks"><label><input type="checkbox" class="wen"> la chat può cercare in rete</label></div>

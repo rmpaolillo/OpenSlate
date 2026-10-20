@@ -118,6 +118,7 @@ pub fn run_app(
         web_url: None,
         web_starting: false,
         last_ocr_md: None,
+        board_from: None,
         ocr_busy: false,
         page_pending: None,
         mouse_erase_last: None,
@@ -285,6 +286,8 @@ struct App {
     web_starting: bool,
     /// Ultima trascrizione in Markdown (va alla chat insieme al foglio).
     last_ocr_md: Option<String>,
+    /// Titolo della pagina dell'archivio portata sulla lavagna (per la chat).
+    board_from: Option<String>,
     ocr_busy: bool,
     /// Pagina da aprire appena parte il server web (es. "chat", "appunti?f=…").
     page_pending: Option<String>,
@@ -962,7 +965,10 @@ impl App {
     fn board_title(&self) -> String {
         match &self.docui.doc {
             Some(d) => format!("{} — pagina {}", d.title, d.current + 1),
-            None => format!("Lavagna {}", chrono::Local::now().format("%d/%m/%Y %H:%M")),
+            None => match &self.board_from {
+                Some(t) => t.clone(),
+                None => format!("Lavagna {}", chrono::Local::now().format("%d/%m/%Y %H:%M")),
+            },
         }
     }
 
@@ -1165,7 +1171,10 @@ impl App {
             Action::Redo => {
                 self.hub.edit(|s| s.redo());
             }
-            Action::Clear => self.hub.edit(|s| s.clear()),
+            Action::Clear => {
+                self.hub.edit(|s| s.clear());
+                self.board_from = None;
+            }
             Action::Color(c) => self.hub.lock().pen.color = c,
             Action::Width(d) => {
                 let mut s = self.hub.lock();

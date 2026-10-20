@@ -167,6 +167,7 @@ impl App {
                     let d = e.drawing.clone();
                     let t = e.meta.display_title();
                     self.hub.edit(|s| s.load(d));
+                    self.board_from = Some(t.clone());
                     self.mode = Mode::Board;
                     self.status = format!("«{t}» sulla lavagna: puoi scriverci sopra (Annulla per tornare indietro).");
                 }

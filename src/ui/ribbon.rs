@@ -305,7 +305,7 @@ impl App {
                 ui,
                 if self.ocr_busy { ic::HOURGLASS } else { ic::TEXT_AA },
                 if self.ocr_busy { "Trascrivo…" } else { "Trascrivi" },
-                "Scrittura a mano → testo in Markdown (tabelle, elenchi, formule se ci sono), fedele al foglio",
+                "Scrittura a mano → testo in Markdown, fedele al foglio. Legge un agente AI che vede le immagini: quale, in Impostazioni AI → «Chi legge il foglio» (offline: Apple Vision, in File → Opzioni)",
                 !self.ocr_busy,
                 false,
                 false,

@@ -63,7 +63,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   open document or the note. Use it to summarise, rewrite neatly, pull out to-dos, draft texts,
   check what you wrote for mistakes, answer questions, write into the note, search the web and
   verify EU VAT numbers. If the model you pick cannot see images (e.g. DeepSeek), the page is first
-  read by a vision-capable agent from your list and handed over as text. Behind it is a fallback chain of OpenAI-compatible providers:
+  read by the agent chosen under *Page reading (OCR)* and handed over as text. Behind it is a fallback chain of OpenAI-compatible providers:
   LM Studio, Ollama, DeepSeek, Google Gemini and Anthropic Claude. It shows context usage and
   compacts automatically. Drag a document tab onto the chat to attach it.
 - **Live on the web.** A share link lets a TV, phone or PC on your home network watch the board
@@ -151,6 +151,11 @@ You can override this with the `OPENSLATE_DATA` environment variable. When start
 AI features are optional. Providers are set up in **File → Options → AI** or in the `ai.toml`
 file, which is created on first use with comments. Any server that speaks the OpenAI
 `/chat/completions` API works, including local ones (LM Studio, Ollama), which need no key.
+
+**Page reading (OCR)** has its own setting (`[ocr]` in `ai.toml`, or *AI settings → Lettura dei
+fogli*): pick the agent that reads handwriting for *Trascrivi* and for text-only chat models, or
+leave it empty to use the first agent in the list that can see images. A fast one such as Gemini
+is recommended; `fallback = false` means "always and only that one".
 
 **API keys are never stored in plain text.** `ai.toml` only says *where* to find each key:
 

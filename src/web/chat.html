@@ -621,6 +621,7 @@ function emptyEl() {
   d.id = "empty";
   d.innerHTML = "<span class='logo'>" + ic("sparkle") + "</span><h2>Di cosa parliamo?</h2><div class='sub'></div><div class='sugg'></div>";
   d.querySelector(".sub").textContent = cur.page ? "La pagina «" + cur.page.title + "» è allegata: l'agente la vede."
+    : embed ? "L'agente vede il foglio aperto (lavagna o documento) quando gli scrivi."
     : noteName ? "L'agente può leggere e scrivere nell'appunto «" + noteName + "»." : "Scrivi «/» per i comandi, oppure allega il foglio con /pagina.";
   // domande pronte, per qualsiasi uso: foglio o documento allegato, appunto aperto, oppure niente
   const s = [];
@@ -755,7 +756,22 @@ async function appendToNote(md) {
 }
 
 // ---------------- invio e risposta in streaming ----------------
+// La chat vede il foglio aperto (lavagna o documento) com'è adesso: prima di
+// ogni messaggio si chiede all'app la pagina attuale e la si allega, a meno
+// che l'allegato non sia stato escluso a mano (clic sul chip).
+let attachWaiter = null;
+function refreshPage() {
+  if (!embed || (cur.page && cur.attach === false)) return Promise.resolve();
+  return new Promise((res) => {
+    const done = () => { if (attachWaiter === done) attachWaiter = null; res(); };
+    attachWaiter = done;
+    if (!toApp({ cmd: "attach_board" })) return done();
+    setTimeout(done, 2500); // l'app non ha risposto: si manda lo stesso
+  });
+}
 async function send(text) {
+  busy = busy || new AbortController(); // intanto un altro Invio va in coda
+  await refreshPage();
   const userMsg = { role: "user", content: text, at: Date.now() };
   cur.messages.push(userMsg);
   if (cur.title === "Nuova chat") { cur.title = text.replace(/\s+/g, " ").slice(0, 60) + (text.length > 60 ? "…" : ""); drawBar(); }
@@ -1063,13 +1079,17 @@ function drawChips() {
 async function attachIncoming(fresh) {
   if (fresh) await newChat(cur.project);
   const j = await api("api/chats/" + cur.id + "/attach", "{}");
-  if (j.ok && j.page) { cur.page = j.page; cur.attach = true; }
+  if (j.ok && j.page) {
+    cur.page = j.page; cur.attach = true;
+    if ((j.page.rev || 0) > ctxSeen) ctxSeen = j.page.rev; // già preso: pollContext non lo ripete
+  }
   await saveNow();
   drawAll();
 }
 $("zoom").onclick = () => ($("zoom").style.display = "none");
 // la pagina mandata dall'app («Chat AI», «Discuti in chat», /pagina)
 async function pollContext() {
+  if (busy) return; // mentre risponde non si ridisegna la chat
   try {
     const c = await api("api/context");
     if (ctxSeen < 0) { ctxSeen = c.rev; return; }
@@ -1103,7 +1123,11 @@ async function exportMd() {
 // ---------------- dall'app (WebView incorporata) ----------------
 window.wsChat = {
   setNote: (name) => { noteName = name || ""; if (cur) { drawChips(); drawMeter(); if (!cur.messages.length) drawLog(); } },
-  attachNow: () => { document.body.classList.remove("drophint"); return attachIncoming(false); },
+  attachNow: async () => {
+    document.body.classList.remove("drophint");
+    await attachIncoming(false);
+    if (attachWaiter) attachWaiter();
+  },
   send: (t) => { q.value = t; grow(); submit(); },
   focus: () => q.focus(),
   newChat: () => newChat(cur ? cur.project : ""),

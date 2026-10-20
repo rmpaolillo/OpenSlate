@@ -122,6 +122,16 @@ context = 200000
 compact_at = 80   # compatta da sola la conversazione all'80% del contesto (0 = mai)
 keep_recent = 4   # messaggi più recenti tenuti parola per parola
 
+# Lettura dei fogli (OCR): «Trascrivi» e il foglio allegato in chat quando
+# l'agente che risponde non vede le immagini (es. DeepSeek).
+#   agent     nome di un agente qui sopra che vede le immagini; vuoto = il
+#             primo della lista che le vede
+#   fallback  true = se non risponde si provano gli altri con visione;
+#             false = sempre e solo quello
+[ocr]
+agent = ""
+fallback = true
+
 [web]
 enabled = true
 key = "dsh:DEEPSEEK_API_KEY | env:DEEPSEEK_API_KEY | keychain:DEEPSEEK_API_KEY"
@@ -234,6 +244,24 @@ pub struct ChatOpts {
     pub keep_recent: usize,
 }
 
+/// Lettura dei fogli (OCR): chi legge e se ci sono riserve.
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct OcrOpts {
+    /// Agente che legge i fogli (deve vedere le immagini). Vuoto = il primo
+    /// della lista che le vede.
+    #[serde(default)]
+    pub agent: String,
+    /// Se l'agente non risponde si provano gli altri con visione, in ordine.
+    #[serde(default = "yes")]
+    pub fallback: bool,
+}
+
+impl Default for OcrOpts {
+    fn default() -> Self {
+        Self { agent: String::new(), fallback: true }
+    }
+}
+
 fn default_compact_at() -> u8 {
     80
 }
@@ -267,6 +295,9 @@ pub struct AiConfig {
     pub web: crate::tools::WebTools,
     #[serde(default)]
     pub chat: ChatOpts,
+    /// Lettura dei fogli (OCR).
+    #[serde(default)]
+    pub ocr: OcrOpts,
     /// Agente scelto in chat: risponde solo lui. Gli altri servono comunque a
     /// leggere il foglio allegato se lui non vede le immagini. `None` = catena.
     #[serde(skip)]
@@ -274,6 +305,34 @@ pub struct AiConfig {
 }
 
 impl AiConfig {
+    /// Gli agenti che leggono i fogli, nell'ordine in cui provarli: quello
+    /// scelto in `[ocr] agent` (o il primo con visione) e, con `fallback`, gli
+    /// altri con visione. Errore se non ce n'è nessuno utilizzabile.
+    pub fn ocr_chain(&self) -> Result<Vec<Provider>, String> {
+        let vision: Vec<Provider> = self.providers.iter().filter(|p| p.enabled && p.vision).cloned().collect();
+        let want = self.ocr.agent.trim();
+        let mut chain = vision.clone();
+        if !want.is_empty() {
+            let Some(p) = self.providers.iter().find(|p| p.name == want) else {
+                return Err(format!("l'agente «{want}» scelto per leggere i fogli non c'è più in Impostazioni AI"));
+            };
+            if !p.vision {
+                return Err(format!("«{want}» non vede le immagini: scegli un altro agente per leggere i fogli"));
+            }
+            let mut first = p.clone();
+            first.enabled = true; // scelto apposta: vale anche se è spento per la chat
+            chain.retain(|x| x.name != want);
+            chain.insert(0, first);
+        }
+        if !self.ocr.fallback {
+            chain.truncate(1);
+        }
+        if chain.is_empty() {
+            return Err("nessun agente con visione attivo in Impostazioni AI".into());
+        }
+        Ok(chain)
+    }
+
     /// Legge `ai.toml` (lo crea al primo uso). Riletto a ogni richiesta: le
     /// modifiche valgono subito, senza riavviare.
     pub fn load() -> Result<Self> {
@@ -601,39 +660,80 @@ fn needs_reading(msgs: &[Msg]) -> bool {
     msgs.iter().any(|m| m.image.is_some() && !m.text.contains("Trascrizione fedele (Markdown):"))
 }
 
-/// Legge il foglio allegato con il primo modello con visione disponibile
-/// (si vede in chat come uno strumento). `None` = nessuno ha potuto.
+/// Massimo di attesa per leggere il foglio: chi risponde aspetta.
+const READ_TIMEOUT_S: u64 = 90;
+
+/// Legge il foglio allegato con l'agente della sezione `[ocr]` (o il primo
+/// con visione; con `fallback` gli altri fanno da riserva). In chat si vede chi lo sta leggendo, chi è stato saltato e quanto
+/// ci ha messo. `None` = nessuno ha potuto.
 fn read_page(cfg: &AiConfig, msgs: &[Msg], on_event: &mut dyn FnMut(Event) -> bool) -> Result<Option<String>> {
     let Some(png) = msgs.iter().find_map(|m| m.image.clone()) else { return Ok(None) };
     let k = png_key(&png);
     if let Some((_, t)) = READINGS.lock().unwrap().iter().find(|(h, _)| *h == k) {
         return Ok(Some(t.clone()));
     }
-    let label = "Leggo il foglio con un modello che vede le immagini".to_string();
-    if !on_event(Event::Tool { label: label.clone() }) {
-        bail!("interrotto");
-    }
     let mut ocr = cfg.clone();
     ocr.answer_with = None;
-    ocr.providers.retain(|p| p.enabled && p.vision);
+    match cfg.ocr_chain() {
+        Ok(chain) => ocr.providers = chain,
+        Err(why) => {
+            let label = "Leggo il foglio".to_string();
+            if !(on_event(Event::Tool { label: label.clone() }) && on_event(Event::ToolDone { label, result: why })) {
+                bail!("interrotto");
+            }
+            return Ok(None);
+        }
+    }
+    for p in &mut ocr.providers {
+        p.timeout_s = p.timeout_s.min(READ_TIMEOUT_S);
+    }
     let req = vec![
         Msg::new("system", cfg.ocr_prompt()),
         Msg::new("user", "Trascrivi questa pagina.").with_image(png),
     ];
-    let (text, result) = if ocr.providers.is_empty() {
-        (None, "nessun agente con visione attivo in Impostazioni AI".to_string())
-    } else {
-        match run_chat(&ocr, Task::Ocr, &req, false, None, &mut |_| true) {
-            Ok(r) => {
-                let t = tidy_markdown(&r.text);
-                let mut cache = READINGS.lock().unwrap();
-                cache.push((k, t.clone()));
-                if cache.len() > 20 {
-                    cache.remove(0);
-                }
-                (Some(t), format!("letto da {} · {}", r.provider, r.model))
+    let t0 = std::time::Instant::now();
+    let mut open: Option<String> = None; // riga «Leggo il foglio con …» aperta
+    let mut alive = true;
+    let res = run_chat(&ocr, Task::Ocr, &req, false, None, &mut |e| {
+        match e {
+            Event::Trying { provider, .. } => {
+                let label = format!("Leggo il foglio con {provider}");
+                alive = on_event(Event::Tool { label: label.clone() });
+                open = Some(label);
             }
-            Err(e) => (None, format!("non letto: {}", short_err(&e))),
+            Event::Skipped { provider, why } => {
+                if let Some(label) = open.take().filter(|l| l.ends_with(provider.as_str())) {
+                    alive = on_event(Event::ToolDone { label, result: format!("non ha risposto: {why}") });
+                }
+            }
+            _ => {}
+        }
+        alive
+    });
+    if !alive {
+        bail!("interrotto");
+    }
+    let secs = t0.elapsed().as_secs_f32();
+    let (text, result) = match res {
+        Ok(r) => {
+            let t = tidy_markdown(&r.text);
+            let mut cache = READINGS.lock().unwrap();
+            cache.push((k, t.clone()));
+            if cache.len() > 20 {
+                cache.remove(0);
+            }
+            (Some(t), format!("letto in {secs:.0} s ({})", r.model))
+        }
+        Err(e) => (None, format!("non letto: {}", short_err(&e))),
+    };
+    let label = match open {
+        Some(l) => l,
+        None => {
+            let l = "Leggo il foglio".to_string();
+            if !on_event(Event::Tool { label: l.clone() }) {
+                bail!("interrotto");
+            }
+            l
         }
     };
     if !on_event(Event::ToolDone { label, result }) {
@@ -1598,7 +1698,9 @@ pub fn chat_messages(cfg: &AiConfig, history: &[(String, String)], ctx: Option<&
 
 /// Trascrive una pagina (PNG) in Markdown.
 pub fn transcribe(png: Arc<Vec<u8>>) -> Result<Reply> {
-    let cfg = AiConfig::load()?;
+    let mut cfg = AiConfig::load()?;
+    // chi legge i fogli: sezione [ocr] di ai.toml
+    cfg.providers = cfg.ocr_chain().map_err(|e| anyhow!("{e}"))?;
     let msgs = vec![
         Msg::new("system", cfg.ocr_prompt()),
         Msg::new("user", "Trascrivi questa pagina.").with_image(png),
@@ -1879,6 +1981,30 @@ pub(crate) mod tests {
         assert!(complete(&cfg, Task::Ocr, &msgs).is_err());
     }
 
+    /// Chi legge i fogli: scelto, primo con visione, senza riserve.
+    #[test]
+    fn catena_ocr() {
+        let mut a = provider("Testo", "http://a".into());
+        a.vision = false;
+        let b = provider("Locale", "http://b".into());
+        let c = provider("Gemini", "http://c".into());
+        let mut cfg = AiConfig { providers: vec![a, b, c], ..Default::default() };
+        let names = |cfg: &AiConfig| cfg.ocr_chain().unwrap().iter().map(|p| p.name.clone()).collect::<Vec<_>>();
+        assert_eq!(names(&cfg), ["Locale", "Gemini"]);
+        cfg.ocr.agent = "Gemini".into();
+        assert_eq!(names(&cfg), ["Gemini", "Locale"]);
+        cfg.ocr.fallback = false;
+        assert_eq!(names(&cfg), ["Gemini"]);
+        cfg.ocr.agent = "Testo".into();
+        assert!(cfg.ocr_chain().unwrap_err().contains("non vede le immagini"));
+        cfg.ocr.agent = "Sparito".into();
+        assert!(cfg.ocr_chain().is_err());
+        // si rilegge uguale da ai.toml
+        cfg.ocr.agent = "Gemini".into();
+        let back = AiConfig::parse(&toml::to_string_pretty(&cfg).unwrap()).unwrap();
+        assert_eq!((back.ocr.agent.as_str(), back.ocr.fallback), ("Gemini", false));
+    }
+
     /// Agente scelto senza visione: il foglio lo legge prima un agente con
     /// visione della catena, e a chi risponde arriva la trascrizione.
     #[test]
@@ -1904,7 +2030,10 @@ pub(crate) mod tests {
         assert!(vlog.lock().unwrap()[0].contains("image_url"));
         let req = tlog.lock().unwrap()[0].clone();
         assert!(!req.contains("image_url") && req.contains("x + y = 1") && req.contains("è giusto?"), "{req}");
-        assert!(events.iter().any(|e| matches!(e, Event::ToolDone { result, .. } if result.contains("Occhi"))), "{events:?}");
+        assert!(
+            events.iter().any(|e| matches!(e, Event::ToolDone { label, result } if label.contains("Occhi") && result.starts_with("letto in"))),
+            "{events:?}"
+        );
     }
 
     /// Il trasporto di riserva con curl: modelli (GET) e risposta in streaming (POST).

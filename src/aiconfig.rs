@@ -55,6 +55,7 @@ pub fn to_json() -> Value {
         "providers": providers,
         "web": web,
         "chat": cfg.chat,
+        "ocr": cfg.ocr,
         "path": ai::config_path(),
         "keychain": cfg!(target_os = "macos"),
         "default_context": ai::DEFAULT_CONTEXT,
