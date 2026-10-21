@@ -321,12 +321,25 @@ Test: `cargo test`.
 - Protocollo Bluetooth: traduzione di [Tuhi](https://github.com/tuhiproject/tuhi) (GPL).
 - Interfaccia in stile Word: ripresa da [WordCraft](https://github.com/storytold/wordcraft)
   (© ArtCraft Team e contributori, MIT OR Apache-2.0); vedi `NOTICE`.
-- Documenti Word e PDF: il motore di [WordCraft](https://github.com/storytold/wordcraft) (crate `wordcraft-engine`)
-  e il disegno delle pagine di [PdfCraft](https://github.com/storytold/pdfcraft) (crate `pdfcraft-render`),
-  © ArtCraft Team e contributori, MIT OR Apache-2.0, usati come librerie a una versione fissa (vedi `Cargo.toml`).
+- La suite Craft (© ArtCraft Team e contributori, MIT OR Apache-2.0), usata come librerie a una
+  versione fissa (vedi `Cargo.toml`), senza le loro interfacce:
+  - [WordCraft](https://github.com/storytold/wordcraft): apre, impagina e salva i Word (e i Markdown) con l'inchiostro;
+    la sua impaginazione è copiata in `vendor/` con una piccola modifica;
+  - [PdfCraft](https://github.com/storytold/pdfcraft): pagine PDF nitide a ogni zoom, testo, copia firmata;
+  - [VectorCraft](https://github.com/storytold/vectorcraft): SVG con l'inchiostro ed export della lavagna e dell'archivio (PDF, SVG, PNG);
+  - [PhotoCraft](https://github.com/storytold/photocraft): foto (PNG, JPEG, WebP, TIFF…) con profilo colore e misure, e l'inchiostro dipinto sopra;
+  - i loro **server MCP** (`wordcraft-mcp`, `pdfcraft-automation`, `vectorcraft-mcp`), dentro l'app: la chat AI legge e modifica il documento Word, PDF o SVG accanto;
+  - librerie corrette di [craft-libs](https://github.com/storytold/craft-libs);
+  - [craft-launcher](https://github.com/storytold/craft-launcher): l'idea degli aggiornamenti dentro l'app e della firma per macOS (solo le idee, nessun codice copiato).
+- [Typst](https://github.com/typst/typst) (Apache-2.0): formule LaTeX e grafici della chat; due suoi crate sono copiati in `vendor/` con una riga cambiata.
+  [MiTeX](https://github.com/mitex-rs/mitex) (Apache-2.0) converte il LaTeX in Typst.
+- [Lilaq](https://github.com/lilaq-project/lilaq) (Mc-Zen, MIT) e i pacchetti Typst che usa ([zero](https://github.com/Mc-Zen/zero),
+  [tiptoe](https://github.com/Mc-Zen/tiptoe), [elembic](https://github.com/PgBiel/elembic), [suiji](https://github.com/liuguangxi/suiji)): i grafici della chat AI.
 - Carattere [Inter](https://github.com/rsms/inter) (SIL OFL 1.1, `assets/fonts/OFL-Inter.txt`),
   senza i segni dell'area privata Unicode, dove stanno le icone. Icone [Phosphor](https://phosphoricons.com) (MIT).
 - Carattere [Source Serif 4](https://github.com/adobe-fonts/source-serif) per il testo degli appunti
   (SIL OFL 1.1, `assets/fonts/OFL-SourceSerif4.txt`).
 - Chat ispirata a [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (solo le idee: nessun codice copiato).
-- Formule [KaTeX](https://katex.org) (MIT), Markdown [marked](https://marked.js.org) (MIT).
+- Formule [KaTeX](https://katex.org) (MIT), Markdown [marked](https://marked.js.org) (MIT),
+  HTML ripulito da [DOMPurify](https://github.com/cure53/DOMPurify) (Apache-2.0 OR MPL-2.0).
+- Sottoinsieme di [Noto Sans CJK](https://github.com/notofonts/noto-cjk) (SIL OFL 1.1) per i nomi delle lingue nel menu.

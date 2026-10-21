@@ -348,12 +348,29 @@ OpenSlate would not exist without these projects and their authors:
 - **[Tuhi](https://github.com/tuhiproject/tuhi)** by the Tuhi contributors (GPL-2.0-or-later).
   The Bluetooth protocol of the SmartPad family was translated from their reverse-engineering
   work.
-- **[WordCraft](https://github.com/storytold/wordcraft)** and
-  **[PdfCraft](https://github.com/storytold/pdfcraft)** by the ArtCraft Team and contributors
-  (MIT OR Apache-2.0):
-  - their engines open, render and save Word and PDF documents;
-  - the Word-like interface is adapted from WordCraft's egui UI;
-  - patched libraries come from [craft-libs](https://github.com/storytold/craft-libs).
+- **The Craft suite** by the ArtCraft Team and contributors (MIT OR Apache-2.0), used as
+  libraries without their interfaces:
+  - **[WordCraft](https://github.com/storytold/wordcraft)**: opens, lays out and saves Word
+    documents (and Markdown) with the ink; the Word-like interface is adapted from its egui UI;
+    its layout crate is copied in `vendor/` with a small change;
+  - **[PdfCraft](https://github.com/storytold/pdfcraft)**: renders PDF pages crisp at any zoom,
+    extracts their text and saves the signed copy;
+  - **[VectorCraft](https://github.com/storytold/vectorcraft)**: opens and saves SVG images with
+    the ink, and draws and writes the board and library exports (PDF, SVG, PNG);
+  - **[PhotoCraft](https://github.com/storytold/photocraft)**: reads and writes photos (PNG, JPEG,
+    WebP, TIFF…) keeping colour profile and size, and paints the ink on them;
+  - **their MCP servers** (`wordcraft-mcp`, `pdfcraft-automation`, `vectorcraft-mcp`), run inside
+    the app so the AI chat can read and edit the Word, PDF or SVG document next to it;
+  - patched libraries from [craft-libs](https://github.com/storytold/craft-libs);
+  - [craft-launcher](https://github.com/storytold/craft-launcher): the design of the in-app
+    updates and of the macOS signing (ideas only, no code copied).
+- **[Typst](https://github.com/typst/typst)** (The Typst Project Developers, Apache-2.0): draws the
+  LaTeX formulas and the chat's charts; two of its crates are copied in `vendor/` with a one-line
+  change. **[MiTeX](https://github.com/mitex-rs/mitex)** (Apache-2.0) turns LaTeX into Typst.
+- **[Lilaq](https://github.com/lilaq-project/lilaq)** (Mc-Zen, MIT) and the Typst packages it
+  uses — [zero](https://github.com/Mc-Zen/zero), [tiptoe](https://github.com/Mc-Zen/tiptoe),
+  [elembic](https://github.com/PgBiel/elembic), [suiji](https://github.com/liuguangxi/suiji):
+  the charts drawn by the AI chat.
 - **[egui / eframe](https://github.com/emilk/egui)** by Emil Ernerfeldt and contributors: the
   GUI toolkit.
 - **[wry](https://github.com/tauri-apps/wry), [tao](https://github.com/tauri-apps/tao),
@@ -364,15 +381,18 @@ OpenSlate would not exist without these projects and their authors:
   **[serde](https://serde.rs)**, **[tiny-skia](https://github.com/linebender/tiny-skia)**,
   **[lopdf](https://github.com/J-F-Liu/lopdf)**, **[hayro](https://github.com/LaurenzV/hayro)**,
   **[ureq](https://github.com/algesten/ureq)**, **[arboard](https://github.com/1Password/arboard)**,
-  **[rfd](https://github.com/PolyMeilex/rfd)**,
-  **[pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark)** and every other crate
-  listed in [THIRD-PARTY.md](THIRD-PARTY.md).
-- **[Inter](https://github.com/rsms/inter)** (Rasmus Andersson) and
-  **[Source Serif 4](https://github.com/adobe-fonts/source-serif)** (Adobe): fonts, SIL OFL 1.1.
+  **[rfd](https://github.com/PolyMeilex/rfd)** and every other crate listed in
+  [THIRD-PARTY.md](THIRD-PARTY.md).
+- **[Inter](https://github.com/rsms/inter)** (Rasmus Andersson),
+  **[Source Serif 4](https://github.com/adobe-fonts/source-serif)** (Adobe) and a small subset
+  of **[Noto Sans CJK](https://github.com/notofonts/noto-cjk)** (Adobe, for the language names):
+  fonts, SIL OFL 1.1.
 - **[Phosphor Icons](https://phosphoricons.com)** (Helena Zhang, Tobias Fried) via
   [egui-phosphor](https://github.com/amPerl/egui-phosphor): icons, MIT.
 - **[KaTeX](https://katex.org)** (Khan Academy) and **[marked](https://marked.js.org)**:
-  formulas and Markdown in the chat and notes, MIT.
+  formulas and Markdown in the chat and notes, MIT;
+  **[DOMPurify](https://github.com/cure53/DOMPurify)** (Cure53, Apache-2.0 OR MPL-2.0) cleans
+  that HTML before it is shown.
 - **[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)**: inspiration for the
   chat (ideas only, no code copied).
 - Written with **[Claude](https://claude.ai)** by Anthropic as an AI pair programmer.
