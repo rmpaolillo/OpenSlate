@@ -66,7 +66,8 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Handwriting → text.** A vision-capable AI model transcribes a page faithfully, mistakes
   included, into a Markdown note: headings, lists, checkboxes, tables, and formulas in LaTeX when
   there are any. Drawings, graphs and diagrams are redrawn from your actual pen strokes as crisp
-  SVG figures next to the note. The note opens inside the app as an editable, Typora-like page.
+  SVG figures next to the note. The note opens inside the app as an editable, Typora-like page,
+  and **Export** saves it as Markdown (figures alongside), Word or PDF.
 - **AI assistant, for anything.** The chat sits next to the page and can see the board, the
   open document or the note. Use it to summarise, rewrite neatly, pull out to-dos, draft texts,
   check what you wrote for mistakes, answer questions, write into the note, search the web and

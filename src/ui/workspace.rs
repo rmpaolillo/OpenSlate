@@ -573,6 +573,18 @@ impl App {
             if big_ex(ui, ic::LIST_BULLETS, "Elenco", "Tutti gli appunti (trascrizioni e chat salvate)", true, self.note_nav, false).clicked() {
                 actions.push(n("nav"));
             }
+            let r = big_ex(ui, ic::EXPORT, "Esporta", "Salva l'appunto dove vuoi: Markdown (con le figure), Word o PDF", self.note.is_some(), false, true);
+            egui::Popup::menu(&r).show(|ui| {
+                if super::chrome::menu_item(ui, true, ic::MARKDOWN_LOGO, "Markdown (.md)", "") {
+                    actions.push(Action::NoteExport("md"));
+                }
+                if super::chrome::menu_item(ui, true, ic::MICROSOFT_WORD_LOGO, "Word (.docx)", "") {
+                    actions.push(Action::NoteExport("docx"));
+                }
+                if super::chrome::menu_item(ui, true, ic::FILE_PDF, "PDF", "") {
+                    actions.push(Action::NoteExport("pdf"));
+                }
+            });
             column(ui, |ui| {
                 if small(ui, ic::COPY, "Copia Markdown", "Per un'altra chat AI o per Typora").clicked() {
                     actions.push(n("copy"));

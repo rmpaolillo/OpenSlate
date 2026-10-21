@@ -464,6 +464,8 @@ enum Action {
     NoteCmd(String),
     NotePrint,
     NoteTypora,
+    /// Esporta l'appunto aperto: "md", "docx" o "pdf".
+    NoteExport(&'static str),
     OpenNote(Option<String>),
     CloseNote,
     CloseSettings,
@@ -966,6 +968,36 @@ impl App {
             self.last_ocr_note = Some((d.title.clone(), n.clone()));
         }
         self.open_note(name);
+    }
+
+    /// «Esporta» dell'appunto: si sceglie dove con «Salva con nome», poi
+    /// il file si scrive in un thread (Word e PDF impaginano le formule).
+    fn export_note(&mut self, ext: &'static str) {
+        let Some(n) = self.note.clone() else { return };
+        // quello che si sta scrivendo va prima nel file
+        self.embeds.eval(embed::Slot::Note, "window.wsNote && wsNote.flush()");
+        let (kind, title) = match ext {
+            "docx" => ("Word", "Esporta l'appunto in Word"),
+            "pdf" => ("PDF", "Esporta l'appunto in PDF"),
+            _ => ("Markdown", "Esporta l'appunto in Markdown"),
+        };
+        let stem = n.strip_suffix(".md").unwrap_or(&n).to_string();
+        let Some(dst) = savedlg::save_file(&mut self.settings, title, &stem, kind, ext) else {
+            self.status = "Esportazione annullata.".into();
+            return;
+        };
+        let src = std::path::Path::new(export::EXPORT_DIR).join(&n);
+        self.status = "Esporto l'appunto…".into();
+        let tx = self.evt_tx.clone();
+        std::thread::spawn(move || {
+            // il salvataggio della pagina dell'appunto arriva in un attimo
+            std::thread::sleep(std::time::Duration::from_millis(400));
+            let msg = match crate::mdcraft::export_note(&src, &dst) {
+                Ok(()) => format!("Salvato: {}", dst.display()),
+                Err(e) => format!("⚠ esportazione dell'appunto: {e:#}"),
+            };
+            let _ = tx.send(UiEvent::Status(msg));
+        });
     }
 
     /// Apre la chat AI (avvia il server web se serve).
@@ -1646,6 +1678,7 @@ impl App {
                 self.embeds.focus(embed::Slot::Note);
             }
             Action::NotePrint => self.embeds.print(embed::Slot::Note),
+            Action::NoteExport(ext) => self.export_note(ext),
             Action::NoteTypora => {
                 if let Some(n) = &self.note {
                     self.embeds.eval(embed::Slot::Note, "window.wsNote && wsNote.flush()");

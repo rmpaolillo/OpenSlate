@@ -388,19 +388,17 @@ async function openChat(id) {
 async function newChat(project) {
   if (busy) return;
   document.body.classList.remove("drawer");
-  if (cur && cur.messages.length === 0 && !cur.page && cur.project === (project ?? cur.project)) { attachOpen(); q.focus(); return; }
+  if (cur && cur.messages.length === 0 && !cur.page && cur.project === (project ?? cur.project)) { q.focus(); return; }
   await saveNow();
   cur = blank(project ?? (cur ? cur.project : ""));
   ls.set("ws-cur", cur.id);
   meter.last = null;
   await saveNow();
   drawAll();
-  attachOpen();
   q.focus();
 }
-// Una chat nuova parte pulita (schede accese, niente della chat di prima) e
-// si prende subito il foglio o il documento aperto ADESSO accanto.
-function attachOpen() { if (embed && cur && !cur.page) toApp({ cmd: "attach_board" }); }
+// Una chat nuova parte vuota, senza schede: il foglio (o il documento)
+// aperto in quel momento entra quando si scrive la prima domanda.
 // Dirama (come il «branch» di DSH): una chat nuova con la conversazione fino a qui.
 async function forkAt(i) {
   if (busy) return;
@@ -1204,9 +1202,9 @@ async function compact(auto) {
 }
 
 // ---------------- pagina allegata, appunto, ricerca web ----------------
-// La scheda dell'appunto: quello aperto al centro sempre; quello della
-// pagina in lavagna solo se la chat ha la pagina.
-function noteShown() { return !!noteName && (!noteBoard || !!(cur && cur.page)); }
+// La scheda dell'appunto: non in una chat nuova ancora vuota; poi quello
+// aperto al centro sempre, quello della pagina in lavagna solo con la pagina.
+function noteShown() { return !!noteName && !!cur && (!!cur.page || cur.messages.length > 0) && (!noteBoard || !!cur.page); }
 function drawChips() {
   const c = $("chips");
   c.innerHTML = "";
@@ -1253,7 +1251,8 @@ async function pollContext() {
     if (ctxSeen < 0) { ctxSeen = c.rev; return; }
     if (c.rev > ctxSeen) {
       ctxSeen = c.rev;
-      if (c.image || c.markdown) await attachIncoming(!!(cur && cur.messages.length && cur.page && !embed));
+      // una chat nuova ancora vuota resta vuota: il foglio entra alla prima domanda
+      if ((c.image || c.markdown) && (!embed || cur.page || cur.messages.length)) await attachIncoming(!!(cur && cur.messages.length && cur.page && !embed));
     }
   } catch (e) {}
 }
@@ -1369,7 +1368,7 @@ window.addEventListener("load", async () => {
   const want = params.get("c") || ls.get("ws-cur", null);
   if (want && chats.some((c) => c.id === want)) await openChat(want);
   else if (chats.length) await openChat(chats[0].id);
-  else { cur = blank(""); await saveNow(); drawAll(); attachOpen(); }
+  else { cur = blank(""); await saveNow(); drawAll(); }
   if (params.get("nuova")) {
     const j0 = await api("api/context");
     if (j0.image || j0.markdown) {

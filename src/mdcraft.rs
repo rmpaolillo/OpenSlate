@@ -103,6 +103,44 @@ fn local(base: &Path, src: &str) -> Option<PathBuf> {
     p.is_file().then_some(p)
 }
 
+/// Esporta un appunto Markdown in `dst`, secondo l'estensione:
+/// - `.md`: il testo e, accanto, le figure e i grafici che cita (stessi
+///   percorsi relativi, così il file si apre uguale in Typora o altrove);
+/// - `.docx` e `.pdf`: impaginati da WordCraft con l'aspetto degli appunti,
+///   formule comprese (come si vedono nell'app).
+pub fn export_note(src: &Path, dst: &Path) -> anyhow::Result<()> {
+    use anyhow::{anyhow, bail, Context};
+    let ext = dst.extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
+    match ext.as_str() {
+        "md" | "markdown" => {
+            let md = std::fs::read_to_string(src).with_context(|| format!("{}", src.display()))?;
+            let base = src.parent().unwrap_or(Path::new("."));
+            let out = dst.parent().unwrap_or(Path::new("."));
+            std::fs::write(dst, &md).with_context(|| format!("{}", dst.display()))?;
+            let same = std::fs::canonicalize(base).ok() == std::fs::canonicalize(out).ok();
+            if !same {
+                for rel in images(&md, base) {
+                    let to = out.join(&rel);
+                    if let Some(d) = to.parent() {
+                        std::fs::create_dir_all(d)?;
+                    }
+                    std::fs::copy(base.join(&rel), &to).with_context(|| format!("figura {rel}"))?;
+                }
+            }
+        }
+        "docx" => {
+            let mut s = crate::wordsign::open(src)?;
+            s.run("file.save", &json!({ "path": dst.to_string_lossy() })).map_err(|e| anyhow!("WordCraft, Word: {e}"))?;
+            if !dst.exists() {
+                bail!("WordCraft non ha scritto {}", dst.display());
+            }
+        }
+        "pdf" => crate::wordsign::to_pdf(src, dst)?,
+        _ => bail!("formato non previsto: .{ext}"),
+    }
+    Ok(())
+}
+
 /// Le figure locali citate dal Markdown (percorsi relativi), da copiare
 /// accanto a lui quando lo si importa.
 pub fn images(md: &str, base: &Path) -> Vec<String> {
@@ -496,6 +534,27 @@ fn picture(path: &Path) -> anyhow::Result<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// «Esporta» dell'appunto: Markdown con la figura accanto, Word e PDF.
+    #[test]
+    fn esporta_appunto() {
+        let t = std::env::temp_dir().join(format!("openslate-esporta-{}", std::process::id()));
+        let (src, out) = (t.join("exports"), t.join("fuori"));
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::create_dir_all(&out).unwrap();
+        std::fs::write(src.join("a-fig1.svg"), r#"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="red"/></svg>"#).unwrap();
+        let note = src.join("a.md");
+        std::fs::write(&note, "# Sistema\n\n$$\\begin{cases} x-1=0 \\\\ y+x=1 \\end{cases}$$\n\nLa soluzione è $x=1$.\n\n<img src=\"a-fig1.svg\" width=\"50%\">\n").unwrap();
+        export_note(&note, &out.join("a.md")).unwrap();
+        assert!(out.join("a-fig1.svg").is_file(), "la figura va accanto al .md");
+        export_note(&note, &out.join("a.docx")).unwrap();
+        let docx = std::fs::read(out.join("a.docx")).unwrap();
+        assert!(docx.starts_with(b"PK") && docx.len() > 2000);
+        export_note(&note, &out.join("a.pdf")).unwrap();
+        assert!(std::fs::read(out.join("a.pdf")).unwrap().starts_with(b"%PDF"));
+        assert!(export_note(&note, &out.join("a.xyz")).is_err());
+        let _ = std::fs::remove_dir_all(&t);
+    }
 
     fn math(p: &Piece) -> (&str, bool) {
         match p {
