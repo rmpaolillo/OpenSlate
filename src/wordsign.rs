@@ -25,14 +25,27 @@ pub fn is_text(path: &Path) -> bool {
 }
 
 /// Apre un documento Word col motore di WordCraft.
+/// Un Markdown porta con sé le formule LaTeX e le figure: diventano equazioni
+/// e immagini di WordCraft (vedi `mdcraft`).
 pub fn open(path: &Path) -> Result<Session> {
-    let bytes = std::fs::read(path).map_err(|e| anyhow!("{}: {e}", path.display()))?;
+    let mut bytes = std::fs::read(path).map_err(|e| anyhow!("{}: {e}", path.display()))?;
+    let markdown = crate::mdcraft::is_markdown(path);
+    let mut pieces = Vec::new();
+    if markdown {
+        let base = path.parent().unwrap_or(Path::new("."));
+        let (text, p) = crate::mdcraft::split(&String::from_utf8_lossy(&bytes), base);
+        bytes = text.into_bytes();
+        pieces = p;
+    }
     let mut s = Session::new(wordcraft_engine::doc::Document::new());
     s.run(
         "file.open",
         &json!({ "path": path.to_string_lossy(), "data": wordcraft_engine::cmd::insert::base64_encode(&bytes) }),
     )
     .map_err(|e| anyhow!("WordCraft non apre il documento: {e}"))?;
+    if markdown {
+        crate::mdcraft::place(&mut s, &pieces);
+    }
     Ok(s)
 }
 

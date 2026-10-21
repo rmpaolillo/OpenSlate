@@ -136,6 +136,18 @@ impl Document {
                 let ext = input.extension().and_then(|e| e.to_str()).unwrap_or("docx").to_ascii_lowercase();
                 let name = format!("source.{ext}");
                 std::fs::copy(input, dir.join(&name))?;
+                // un Markdown si porta dietro le sue figure (stessi nomi, accanto)
+                if crate::mdcraft::is_markdown(input) {
+                    let base = input.parent().unwrap_or(Path::new("."));
+                    let md = std::fs::read_to_string(input).unwrap_or_default();
+                    for rel in crate::mdcraft::images(&md, base) {
+                        let to = dir.join(&rel);
+                        if let Some(p) = to.parent() {
+                            let _ = std::fs::create_dir_all(p);
+                        }
+                        let _ = std::fs::copy(base.join(&rel), to);
+                    }
+                }
                 crate::wordsign::to_pdf(&dir.join(&name), &pdf)?;
                 original = Some(name);
             }

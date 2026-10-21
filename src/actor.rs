@@ -77,6 +77,9 @@ pub enum UiEvent {
     Web(Result<String, String>),
     /// Risposta di GitHub sugli aggiornamenti (`manual`: chiesto dall'utente).
     Update { result: Result<Option<crate::update::Release>, String>, manual: bool },
+    /// Aggiornamento dall'app: a che punto è, poi com'è finito.
+    UpdatePhase(crate::selfupdate::Phase),
+    UpdateDone(Result<crate::selfupdate::Ready, String>),
 }
 
 pub async fn ble_actor(

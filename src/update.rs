@@ -4,6 +4,9 @@
 //! l'app lo dice con una barra sotto la barra multifunzione («Scarica»,
 //! «Novità», «Salta questa versione»).
 //!
+//! L'aggiornamento lo fa l'app stessa (`selfupdate`): scarica, controlla e
+//! installa la nuova versione al posto di questa, poi si riavvia.
+//!
 //! L'aggiornamento non tocca i dati: impostazioni (`settings.conf`), agenti AI
 //! (`ai.toml`), archivio, documenti ed export stanno nella cartella dei dati
 //! dell'utente (macOS: ~/Library/Application Support/OpenSlate), non dentro
@@ -27,6 +30,10 @@ pub struct Release {
     pub page: String,
     /// Il file da scaricare per questo sistema (o la pagina, se non c'è).
     pub download: String,
+    /// Nome del file per questo sistema, se c'è (per l'aggiornamento dall'app).
+    pub asset: Option<String>,
+    /// Le impronte SHA-256 dei file (`SHA256SUMS.txt`), se la release le ha.
+    pub sums: Option<String>,
 }
 
 /// La versione di questa app (per provare l'avviso: OPENSLATE_PRETEND_VERSION=0.1.0).
@@ -110,12 +117,15 @@ pub fn from_json(j: &Value, installed: &str, os: &str, deb: bool) -> Option<Rele
             _ => false,
         }
     };
-    let download = assets.iter().find(|(n, _)| want(n)).map(|(_, u)| u.to_string()).unwrap_or_else(|| page.clone());
-    Some(Release { version: tag.trim_start_matches(['v', 'V']).to_string(), page, download })
+    let found = assets.iter().find(|(n, _)| want(n));
+    let download = found.map(|(_, u)| u.to_string()).unwrap_or_else(|| page.clone());
+    let asset = found.map(|(n, _)| n.to_string());
+    let sums = assets.iter().find(|(n, _)| *n == "SHA256SUMS.txt").map(|(_, u)| u.to_string());
+    Some(Release { version: tag.trim_start_matches(['v', 'V']).to_string(), page, download, asset, sums })
 }
 
 /// Linux: installata col pacchetto .deb (allora si propone il .deb).
-fn deb_installed() -> bool {
+pub fn deb_installed() -> bool {
     cfg!(target_os = "linux") && std::env::current_exe().is_ok_and(|p| p.starts_with("/usr"))
 }
 

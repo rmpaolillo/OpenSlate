@@ -85,7 +85,9 @@ impl Renderer {
 
 /// WordCraft per un Word aperto bene, altrimenti PdfCraft sul PDF delle pagine.
 fn build(dir: &std::path::Path, original: Option<&str>) -> Engine {
-    if let Some(name) = original {
+    // solo Word e testi: un SVG o una foto li ha già impaginati nel PDF il loro
+    // motore (VectorCraft, PhotoCraft); WordCraft leggerebbe l'SVG come testo
+    if let Some(name) = original.filter(|n| crate::wordsign::is_word(std::path::Path::new(n))) {
         match crate::wordsign::open(&dir.join(name)) {
             Ok(mut s) => {
                 // niente sottolineature rosse del controllo ortografico: si firma, non si scrive

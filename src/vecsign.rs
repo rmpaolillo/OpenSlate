@@ -44,6 +44,16 @@ pub fn to_pdf(input: &Path, out: &Path) -> Result<()> {
     Ok(())
 }
 
+/// L'immagine in PNG (la prima tavola, su bianco), disegnata da VectorCraft:
+/// per le figure dentro un documento di WordCraft.
+pub fn to_png(input: &Path, ppi: f64) -> Result<Vec<u8>> {
+    use base64::Engine;
+    let mut s = open(input)?;
+    let r = run(&mut s, "document.export", json!({ "format": "png", "artboard": 0, "ppi": ppi, "background": "white" }))?;
+    let b = r["dataBase64"].as_str().ok_or_else(|| anyhow!("VectorCraft: nessun PNG"))?;
+    Ok(base64::engine::general_purpose::STANDARD.decode(b)?)
+}
+
 /// Le tavole (pagine) in punti: x, y, larghezza, altezza.
 fn artboards(s: &Session) -> Result<Vec<[f64; 4]>> {
     let d = s.doc().map_err(|e| anyhow!("VectorCraft: {e}"))?;

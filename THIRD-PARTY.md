@@ -18,7 +18,7 @@ Per-file attributions are in [NOTICE](NOTICE).
 | [VectorCraft](https://github.com/storytold/vectorcraft) | ArtCraft Team and the VectorCraft contributors | MIT OR Apache-2.0 | `vectorcraft-engine` and `vectorcraft-render` crates: opening SVG images as pages and saving them with the handwritten ink as vector paths; drawing and writing the board and library exports (PDF, SVG, PNG). |
 | [PhotoCraft](https://github.com/storytold/photocraft) | ArtCraft Team and the PhotoCraft contributors | MIT OR Apache-2.0 | `photocraft-codecs` (reading and writing PNG, JPEG, WebP, TIFF… with colour profile and metadata) and `photocraft-paint` (the brush that draws the handwritten ink on photos). |
 | [craft-libs](https://github.com/storytold/craft-libs) | ArtCraft Team | MIT OR Apache-2.0 | Patched `krilla` (PDF writing) and `hayro` (PDF reading) used by WordCraft, PdfCraft and VectorCraft. |
-| [ArtCraft Launcher](https://github.com/storytold/craft-launcher) | ArtCraft Team | MIT OR Apache-2.0 | Model for the "new version available" notice (GitHub releases check, banner with Download / What's new). Ideas only. |
+| [ArtCraft Launcher](https://github.com/storytold/craft-launcher) | ArtCraft Team | MIT OR Apache-2.0 | Model for the in-app updates: GitHub releases check, download in the background, check against the release's `SHA256SUMS.txt`, install in place of the running app (macOS `.app` from the DMG, `.deb`, archives) and restart; and for the Developer ID signing and notarization in the release workflow. Design adapted, no code copied. |
 | [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | DeepSeek | — | Inspiration for the chat (ideas only, no code copied). |
 
 ## Fonts, icons and web assets

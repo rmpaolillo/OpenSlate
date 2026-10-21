@@ -116,6 +116,9 @@ pub fn run_app(
         error_open: false,
         update: None,
         update_hidden: false,
+        update_phase: None,
+        update_ready: None,
+        update_error: None,
         update_next: Some(std::time::Instant::now() + std::time::Duration::from_secs(4)),
         live_on: false,
         fullscreen: false,
@@ -288,6 +291,10 @@ struct App {
     /// Versione nuova su GitHub (barra «È disponibile…») e se è nascosta per ora.
     update: Option<crate::update::Release>,
     update_hidden: bool,
+    /// Aggiornamento dall'app: in corso (a che punto), installato, o l'errore.
+    update_phase: Option<crate::selfupdate::Phase>,
+    update_ready: Option<crate::selfupdate::Ready>,
+    update_error: Option<String>,
     /// Quando ricontrollare (None = controllo in corso o spento).
     update_next: Option<std::time::Instant>,
     live_on: bool,
@@ -450,6 +457,10 @@ enum Action {
     CheckUpdates,
     /// «Salta questa versione».
     SkipUpdate,
+    /// «Aggiorna»: scarica e installa la nuova versione.
+    InstallUpdate,
+    /// «Riavvia ora»: chiude l'app e la riapre aggiornata.
+    RestartForUpdate,
     /// Rigatura del foglio.
     Paper(paper::Paper),
     ToggleMargin,
@@ -720,11 +731,20 @@ impl App {
                                 self.status = i18n::tf(format!("È disponibile OpenSlate {}", r.version));
                             }
                             // una versione saltata torna solo se la si chiede dal menu
-                            if manual || r.version != self.settings.update_skip {
+                            let already = self.update_ready.as_ref().is_some_and(|x| x.version == r.version) || self.update_phase.is_some();
+                            if (manual || r.version != self.settings.update_skip) && !already {
                                 if self.update.as_ref() != Some(&r) {
                                     self.update_hidden = false;
+                                    self.update_error = None;
                                 }
                                 self.update = Some(r);
+                                // aggiornamento da solo: si scarica e si installa senza chiedere
+                                if self.settings.update_auto
+                                    && self.update_error.is_none()
+                                    && crate::selfupdate::current().is_some_and(|i| crate::selfupdate::silent(&i))
+                                {
+                                    self.install_update();
+                                }
                             }
                         }
                         Ok(None) => {
@@ -737,6 +757,21 @@ impl App {
                             if manual {
                                 self.status = format!("⚠ {}", i18n::tf(format!("Aggiornamenti: {e}")));
                             }
+                        }
+                    }
+                }
+                UiEvent::UpdatePhase(p) => self.update_phase = Some(p),
+                UiEvent::UpdateDone(r) => {
+                    self.update_phase = None;
+                    match r {
+                        Ok(ready) => {
+                            self.update_hidden = false;
+                            self.update_ready = Some(ready);
+                        }
+                        Err(e) => {
+                            tracing::warn!("aggiornamento: {e}");
+                            self.update_hidden = false;
+                            self.update_error = Some(e);
                         }
                     }
                 }
@@ -1400,6 +1435,15 @@ impl App {
                 }
             }
             Action::CheckUpdates => self.check_updates(true),
+            Action::InstallUpdate => self.install_update(),
+            Action::RestartForUpdate => {
+                if let Some(r) = &self.update_ready {
+                    match crate::selfupdate::relaunch_after_exit(r) {
+                        Ok(()) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+                        Err(e) => self.status = format!("⚠ {e:#}"),
+                    }
+                }
+            }
             Action::SkipUpdate => {
                 if let Some(r) = self.update.take() {
                     self.settings.update_skip = r.version;

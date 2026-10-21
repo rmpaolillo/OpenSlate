@@ -70,7 +70,7 @@ Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le
 | Annulla / Ripeti | `Cmd+Z` / `Shift+Cmd+Z` (anche dopo «Pulisci» o la gomma) |
 | Foglio in una chat AI | **Copia** (Home → Copia e incolla) oppure `Cmd+C`, poi `Cmd+V` nella chat. Ritaglia attorno alla scrittura (`copy_crop = 0` per il foglio intero) |
 | Immagini nella chat AI | Incollale nel riquadro di scrittura (`Cmd+V`), trascinale lì o scegline con la graffetta (fino a 8 per messaggio): le vede l'agente che legge le immagini; a uno solo testo le legge prima un agente con visione. Il testo della chat si ingrandisce col pizzico sul trackpad o con `Cmd +` / `Cmd −` / `Cmd 0`, e resta |
-| Aggiornamenti | Quando su GitHub esce una versione nuova, una barra azzurra sotto la barra multifunzione lo dice: **Scarica**, **Novità**, **Salta questa versione** (File → Aiuto e informazioni → Cerca aggiornamenti per controllare subito; Opzioni → Avanzate per spegnere l'avviso). Si installa come la prima volta, sostituendo l'app: impostazioni, agenti AI, archivio, documenti ed export stanno nella cartella dei dati (macOS: `~/Library/Application Support/OpenSlate`), fuori dall'app, e le chiavi nel Portachiavi: non si perde nulla |
+| Aggiornamenti | Come le app Craft, OpenSlate **si aggiorna da solo**: quando su GitHub esce una versione nuova la scarica in sottofondo, la controlla con le impronte della release (`SHA256SUMS.txt`) e la installa al posto di quella in uso; una barra azzurra sotto la barra multifunzione mostra l'avanzamento e poi **Riavvia ora** (oppure la nuova versione parte al prossimo avvio). Opzioni → Avanzate spegne l'installazione automatica (la barra offre allora **Aggiorna**) o il controllo stesso; File → Aiuto e informazioni → Cerca aggiornamenti controlla subito. Impostazioni, agenti AI, archivio, documenti ed export stanno nella cartella dei dati (macOS: `~/Library/Application Support/OpenSlate`), fuori dall'app, e le chiavi nel Portachiavi: l'aggiornamento non li tocca. Su macOS l'app scaricata da OpenSlate stesso non chiede di nuovo il permesso a Gatekeeper; col `.deb` chiede la password (`pkexec`); su Windows si installa quando chiudi l'app |
 | Salvare ed esportare | PDF e SVG vettoriali in misura A4 reale, PNG. Ogni volta si apre la finestra «Salva con nome» del sistema, così si vede dove va il file: parte dall'ultima cartella scelta (la prima volta da `exports/`); più immagini insieme = si sceglie la cartella. La cartella proposta si cambia anche in File → Opzioni → Archivio ed export |
 | Archivio (come la libreria di Inkspace) | Scheda «Archivio»: anteprime delle pagine raggruppate per giorno. Clic = seleziona (Cmd/Shift per più pagine), doppio clic = apri a tutta finestra (frecce per sfogliare), tasto destro = menu. Rinomina, porta sulla lavagna, copia immagine, esporta (più pagine = un unico PDF), testo (OCR), elimina (va in `library/cestino`, con «Ripristina») |
 | Pagine fatte senza Mac | «Scarica dal pad»: le pagine finiscono nell'archivio, con una copia grezza in `exports/pad-raw/`. Solo dopo il salvataggio le toglie dal pad. L'archivio mostra anche quante pagine restano sul pad |
@@ -89,6 +89,14 @@ Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le
 
 **Versioni pronte** (macOS, Linux, Windows sperimentale): pagina
 [Releases](https://github.com/rmpaolillo/OpenSlate/releases) — istruzioni nel [README inglese](README.md#install).
+
+Su macOS le release fatte con un **Developer ID** di Apple sono firmate e notarizzate e si aprono
+senza avvisi. Servono cinque secret nel repository (Settings → Secrets and variables → Actions):
+`APPLE_CERTIFICATE` (il certificato «Developer ID Application» esportato in `.p12`, in base64),
+`APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`, `APPLE_PASSWORD` (password specifica per app) e
+`APPLE_TEAM_ID`; dettagli nel [README inglese](README.md#signing-and-notarization-macos). Senza,
+l'app è firmata «ad hoc» e la prima volta va aperta da Impostazioni di sistema → Privacy e
+sicurezza → **Apri comunque**; gli aggiornamenti successivi, scaricati dall'app, no.
 
 Per compilare serve **Rust 1.95 o più recente** (i motori di WordCraft e PdfCraft lo chiedono): `rustup update`.
 La prima compilazione è più lunga del solito; dalla seconda torna veloce.
@@ -184,6 +192,7 @@ ui_lang = auto           # auto (lingua del sistema) | it | en | es | fr | de | 
 chat_zoom = 1.00         # grandezza del testo della chat AI (pizzico, Cmd +/−/0)
 update_check = 1         # avvisa quando su GitHub c'è una versione nuova
 update_skip =            # versione saltata («Salta questa versione»)
+update_auto = 1          # installa da solo gli aggiornamenti (si usano dal prossimo avvio)
 rulers = 1               # righelli in cm attorno al foglio
 chat_side = sinistra     # chat AI: sinistra | destra
 chat_width = 0.55        # larghezza della chat (frazione della finestra)
@@ -223,6 +232,7 @@ Craft di ArtCraft, senza le loro interfacce e senza programmi esterni:
 | Foto (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
 | Export di lavagna e archivio (PDF, SVG, PNG) | li disegna e scrive VectorCraft; i PNG li scrive PhotoCraft |
 
+Le formule di un Markdown (`$…$`, `$$…$$`, `\\(…\\)`, `\\[…\\]`) diventano equazioni di WordCraft e le figure accanto (`<img src="…">`, `![…](…)`, gli SVG disegnati da VectorCraft) immagini.
 Un Markdown, .txt o .html firmato si salva in PDF (quei formati non possono tenere l'inchiostro).
 
 Diagnosi: tutti i comandi scambiati col pad finiscono in `captures/gui.log` (o `cli.log`).
@@ -254,7 +264,9 @@ src/ui/backstage.rs pagina File (Nuovo, Apri, Salva, Esporta, Condividi, Informa
 src/ui/options.rs File › Opzioni, scorciatoie, finestre di aiuto
 src/ui/library_view.rs  interfaccia: archivio con anteprime
 src/export.rs     PDF / SVG / PNG
-src/update.rs     avviso degli aggiornamenti (ultima release su GitHub)
+src/update.rs     controllo degli aggiornamenti (ultima release su GitHub)
+src/selfupdate.rs aggiornamento dentro l'app: scarica, controlla le impronte, installa, riavvia
+src/mdcraft.rs    Markdown per WordCraft: formule LaTeX → equazioni, figure → immagini
 src/rasign.rs     foto (PNG, JPEG…): pagine e firma con le librerie di PhotoCraft
 src/vecsign.rs    SVG: pagine e firma col motore di VectorCraft
 src/i18n.rs       lingue: il testo italiano è la chiave, tabelle in src/i18n/<codice>.json

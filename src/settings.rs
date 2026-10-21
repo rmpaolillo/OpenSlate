@@ -64,6 +64,9 @@ pub struct Settings {
     pub update_check: bool,
     /// Versione nuova che l'utente ha scelto di saltare (non se ne avvisa più).
     pub update_skip: String,
+    /// Le versioni nuove si scaricano e si installano da sole (si usano al
+    /// prossimo avvio, o subito con «Riavvia ora»).
+    pub update_auto: bool,
     /// Rigatura del foglio: bianco, righe, righe10, quadretti5, quadretti4, quadretti10.
     pub paper: String,
     /// Margini rossi a sinistra e a destra nei fogli a righe.
@@ -101,6 +104,7 @@ impl Default for Settings {
             chat_zoom: 1.0,
             update_check: true,
             update_skip: String::new(),
+            update_auto: true,
             paper: "bianco".into(),
             paper_margin: true,
         }
@@ -181,6 +185,7 @@ impl Settings {
             "chat_zoom" => self.chat_zoom = v.parse::<f32>().unwrap_or(self.chat_zoom).clamp(0.6, 2.5),
             "update_check" => self.update_check = b(v),
             "update_skip" => self.update_skip = v.trim().into(),
+            "update_auto" => self.update_auto = b(v),
             "chat_width" => self.chat_width = v.parse::<f32>().unwrap_or(self.chat_width).clamp(0.2, 0.85),
             _ => tracing::warn!("settings.conf: chiave sconosciuta «{k}»"),
         }
@@ -208,7 +213,7 @@ impl Settings {
              # rigatura del foglio: bianco, righe, righe10, quadretti5, quadretti4, quadretti10; margini rossi (solo righe)\npaper = {}\npaper_margin = {}\n\
              # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
              # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n\
-             # aggiornamenti: avvisa quando c'è una versione nuova su GitHub; versione saltata\nupdate_check = {}\nupdate_skip = {}\n",
+             # aggiornamenti: avvisa quando c'è una versione nuova su GitHub; versione saltata; installa da solo\nupdate_check = {}\nupdate_skip = {}\nupdate_auto = {}\n",
             self.rot,
             b(self.flip_x),
             b(self.flip_y),
@@ -239,6 +244,7 @@ impl Settings {
             self.ui_lang,
             b(self.update_check),
             self.update_skip,
+            b(self.update_auto),
         );
         if let Err(e) = std::fs::write(FILE, text) {
             tracing::warn!("salvataggio {FILE}: {e}");

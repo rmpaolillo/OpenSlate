@@ -44,6 +44,8 @@ ureq = { version = "2", features = ["json"] }
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 base64 = "0.22"
+# Impronte SHA-256 dei file scaricati dall'aggiornamento
+sha2 = "0.10"
 # Configurazione dei provider AI (ai.toml)
 toml = "0.8"
 # Immagine negli appunti (Copia immagine → incolla in una chat AI)

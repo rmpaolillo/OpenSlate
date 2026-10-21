@@ -47,8 +47,39 @@ jobs:
     env:
       VERSION: ${{ needs.version.outputs.version }}
       MACOSX_DEPLOYMENT_TARGET: '11.0'
+      # Apple Developer ID (optional, as in ArtCraft's Craft apps): with these repository secrets
+      # the app is signed with the Developer ID and notarized by Apple, so macOS opens it with no
+      # warning. Without them it is signed ad hoc (the user must allow it once).
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v5
+
+      - name: Signing certificate (Developer ID, if configured)
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "::warning::APPLE_CERTIFICATE not set: the app will be signed ad hoc and not notarized"
+            exit 0
+          fi
+          umask 077
+          KEYCHAIN="$RUNNER_TEMP/openslate-signing.keychain-db"
+          CERT="$RUNNER_TEMP/openslate-signing.p12"
+          KC_PASS="$(openssl rand -hex 24)"
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$CERT"
+          security create-keychain -p "$KC_PASS" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KC_PASS" "$KEYCHAIN"
+          security import "$CERT" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -t cert -f pkcs12 -k "$KEYCHAIN"
+          rm -f "$CERT"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KC_PASS" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" | awk '/Developer ID Application/ { print $2; exit }')"
+          test -n "$IDENTITY" || { echo "no 'Developer ID Application' identity in APPLE_CERTIFICATE"; exit 1; }
+          echo "MACOS_SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          echo "MACOS_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -94,10 +125,33 @@ jobs:
             cp "assets/icon/openslate-$((s*2)).png" "$ICONSET/icon_${s}x${s}@2x.png"
           done
           iconutil -c icns -o "$APP/Contents/Resources/OpenSlate.icns" "$ICONSET"
-          # ad-hoc signature (no Apple Developer account): helpers first, then the app
-          for h in "$APP"/Contents/Resources/helpers/*; do codesign --force -s - "$h"; done
-          codesign --force -s - "$APP"
-          codesign --verify --verbose "$APP"
+          printf 'APPL????' > "$APP/Contents/PkgInfo"
+          xattr -cr "$APP"
+          # Sign inside-out: helpers, the executable, then the bundle. With a Developer ID:
+          # hardened runtime + secure timestamp (needed for notarization); otherwise ad hoc.
+          sign() {
+            if [ -n "${MACOS_SIGN_IDENTITY:-}" ]; then
+              codesign --force --sign "$MACOS_SIGN_IDENTITY" --keychain "$MACOS_KEYCHAIN" --timestamp \
+                --options runtime --entitlements packaging/macos/entitlements.plist "$@"
+            else
+              codesign --force --sign - --timestamp=none "$@"
+            fi
+          }
+          for h in "$APP"/Contents/Resources/helpers/*; do sign "$h"; done
+          sign "$APP/Contents/MacOS/openslate"
+          sign "$APP"
+          codesign --verify --strict --deep --verbose=2 "$APP"
+
+      - name: Notarize the app (if configured)
+        if: env.MACOS_SIGN_IDENTITY != '' && env.APPLE_ID != '' && env.APPLE_PASSWORD != '' && env.APPLE_TEAM_ID != ''
+        run: |
+          ditto -c -k --keepParent build/OpenSlate.app build/notarize.zip
+          xcrun notarytool submit build/notarize.zip --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" --wait --timeout 1h
+          xcrun stapler staple build/OpenSlate.app
+          xcrun stapler validate build/OpenSlate.app
+          spctl --assess --type execute -vvv build/OpenSlate.app
+          echo "NOTARIZED=1" >> "$GITHUB_ENV"
 
       - name: DMG
         run: |
@@ -111,6 +165,14 @@ jobs:
             sleep 10
           done
           test -f "dist/OpenSlate-$VERSION-macos-universal.dmg"
+          # the disk image too: signed, notarized and stapled (with a Developer ID)
+          if [ -n "${NOTARIZED:-}" ]; then
+            DMG="dist/OpenSlate-$VERSION-macos-universal.dmg"
+            codesign --force --sign "$MACOS_SIGN_IDENTITY" --keychain "$MACOS_KEYCHAIN" --timestamp "$DMG"
+            xcrun notarytool submit "$DMG" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" --wait --timeout 1h
+            xcrun stapler staple "$DMG"
+          fi
 
       - uses: actions/upload-artifact@v5
         with:
@@ -220,6 +282,12 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Checksums (the app checks them when it updates itself)
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
       - run: ls -la dist
 
       - uses: softprops/action-gh-release@v2
@@ -233,8 +301,10 @@ jobs:
             ## Install
 
             - **macOS 11+** (Apple Silicon and Intel): `OpenSlate-${{ env.VERSION }}-macos-universal.dmg`.
-              The app is not notarized: the first time, right-click → **Open**, or run
-              `xattr -dr com.apple.quarantine /Applications/OpenSlate.app`.
+              If macOS says it cannot verify the app (builds without the Developer ID), allow it once:
+              right-click → **Open**, or System Settings → Privacy & Security → **Open Anyway**.
+
+            Already installed? OpenSlate updates itself: **Update** in the blue bar.
             - **Debian / Ubuntu**: `sudo apt install ./openslate_${{ env.VERSION }}_amd64.deb`
             - **Other Linux**: `openslate-${{ env.VERSION }}-linux-x86_64.tar.gz`
             - **Windows** (experimental, when present): `openslate-${{ env.VERSION }}-windows-x86_64.zip`

@@ -113,12 +113,14 @@ version number (`v0.2.0`, `v0.2.1`, …).
 ### macOS
 
 1. Open the `.dmg` and drag **OpenSlate** into **Applications**.
-2. The app is not notarized by Apple (that needs a paid developer account), so the first time
-   macOS will say it "cannot be opened". Either right-click the app, choose **Open** and confirm,
-   or run:
+2. Releases built with an Apple Developer ID are signed and notarized: they open with no
+   warning. A build without it (see "Signing and notarization" below) is signed ad hoc, so the
+   first time macOS says it "cannot be opened": open **System Settings → Privacy & Security**
+   and click **Open Anyway**, or run
    ```bash
    xattr -dr com.apple.quarantine /Applications/OpenSlate.app
    ```
+   Only the first install needs this: updates are downloaded by the app and open directly.
 3. Allow **Bluetooth** access when asked.
 
 Nothing else to install: every file is opened and saved with the libraries of the
@@ -151,16 +153,24 @@ their interfaces and without external programs:
 | Photos (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
 | Board and library exports (PDF, SVG, PNG) | VectorCraft draws and writes them; PNG files are written by PhotoCraft |
 
+Formulas in a Markdown file (`$…$`, `$$…$$`, `\\(…\\)`, `\\[…\\]`) become WordCraft equations and
+the figures next to it (`<img src="…">`, `![…](…)`, SVG drawn by VectorCraft) become pictures.
 A signed Markdown, .txt or .html file is saved as PDF (those formats cannot hold the ink).
 
 ## Updates
 
-When a new release is published on GitHub, a blue bar under the ribbon says so, with
-**Download**, **What's new** and **Skip this version** (File → Help and information → Check for
-updates checks right away; Options → Advanced turns the notice off). Install the new version as
-the first time, replacing the app: your settings, AI agents, library, documents and exports live
-in the data folder (macOS: `~/Library/Application Support/OpenSlate`), outside the app, and the
-API keys in the Keychain, so nothing is lost.
+OpenSlate updates itself, as the Craft apps do. When a new release is published on GitHub
+it downloads it in the background, checks it against the release's `SHA256SUMS.txt` and
+installs it in place of the running app; a blue bar under the ribbon shows the progress and
+then **Restart now** (or just use the new version at the next launch). Options → Advanced can
+turn off the automatic install (the bar then offers **Update**) or the check itself; File →
+Help and information → Check for updates checks right away.
+
+Your settings, AI agents, library, documents and exports live in the data folder (macOS:
+`~/Library/Application Support/OpenSlate`), outside the app, and the API keys in the
+Keychain: an update never touches them. On macOS the update replaces `OpenSlate.app`
+(downloaded by the app itself, so Gatekeeper does not ask again); with the `.deb` it asks for
+your password through `pkexec`; on Windows it is installed when you quit the app.
 
 ## First connection
 
@@ -239,7 +249,8 @@ src/document.rs, wordsign.rs, docrender.rs, pdfdoc.rs     Word/PDF opening, rend
 src/ai.rs, chats.rs, tools.rs, ocr.rs                     AI providers, chat, transcription
 src/web.rs, src/web/*                                     web live view, chat and notes pages
 src/wordsign.rs, src/vecsign.rs, src/rasign.rs            signing Word (WordCraft), SVG (VectorCraft), photos (PhotoCraft)
-src/update.rs                                             "new version available" notice (GitHub releases)
+src/update.rs, src/selfupdate.rs                          update check (GitHub releases) and in-app install
+src/mdcraft.rs                                            Markdown formulas and figures for WordCraft
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases
@@ -257,6 +268,26 @@ A file-by-file description is in the [Italian README](README.it.md#struttura).
   `PATCH` is counted automatically from the existing tags (`v0.2.0`, then `v0.2.1`, …).
 - To start a new series (new features: `0.3.0`; first stable: `1.0.0`), change `version` in
   `Cargo.toml`; the next release starts again from patch `0`.
+- Every release has a `SHA256SUMS.txt`: the app checks the file it downloads against it before
+  installing an update.
+
+### Signing and notarization (macOS)
+
+To make macOS trust the app with no warning, as for the Craft apps, the release needs an Apple
+**Developer ID Application** certificate (Apple Developer Program, paid yearly). Add these
+repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|---|---|
+| `APPLE_CERTIFICATE` | the "Developer ID Application" certificate exported as `.p12`, in base64 (`base64 -i cert.p12 \| pbcopy`) |
+| `APPLE_CERTIFICATE_PASSWORD` | the password chosen when exporting the `.p12` |
+| `APPLE_ID` | the Apple ID e-mail of the developer account |
+| `APPLE_PASSWORD` | an app-specific password for that Apple ID (appleid.apple.com → Sign-In and Security) |
+| `APPLE_TEAM_ID` | the 10-character Team ID (developer.apple.com → Membership) |
+
+With them, `release.yml` signs the app with the hardened runtime and a timestamp, sends it to
+Apple's notary service, staples the ticket and does the same for the DMG. Without them the app
+is signed ad hoc and the release still works (first open via **Open Anyway**).
 
 ## Credits
 

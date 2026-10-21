@@ -431,6 +431,7 @@ fn prefs_page(ui: &mut egui::Ui, p: &mut Prefs, ai: &mut bool) {
             row(ui, "Aggiornamenti", |ui| {
                 ui.vertical(|ui| {
                     ui.checkbox(&mut d.update_check, i18n::t("avvisa quando c'è una versione nuova"));
+                    ui.add_enabled(d.update_check, egui::Checkbox::new(&mut d.update_auto, i18n::t("installala da solo (si usa dal prossimo avvio)")));
                     hint(ui, "chiede a GitHub l'ultima release di OpenSlate all'avvio; impostazioni e archivio restano anche aggiornando");
                 });
             });

@@ -39,6 +39,11 @@ Third-party material
   License or the Apache License, Version 2.0, at your option. Used unmodified from GitHub at a
   fixed revision.
 
+- ArtCraft Launcher (https://github.com/storytold/craft-launcher), Copyright (c) 2026 ArtCraft
+  Team, MIT OR Apache-2.0: the design of the in-app updates (src/selfupdate.rs: download,
+  SHA256SUMS check, install in place, restart) and of the Developer ID signing and notarization
+  in .github/workflows/release.yml follows it. No code copied.
+
 - Inter (assets/fonts/Inter-*.ttf), Copyright (c) 2016 The Inter Project Authors,
   SIL Open Font License 1.1 (assets/fonts/OFL-Inter.txt). Subset with fontTools to drop the
   Private Use Area glyphs (U+E000-F8FF), which would hide the Phosphor icons.

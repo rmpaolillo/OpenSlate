@@ -348,8 +348,29 @@ impl App {
         });
     }
 
-    /// Barra «È disponibile OpenSlate x.y.z» (come nel launcher di ArtCraft):
-    /// Scarica, Novità, Salta questa versione, chiudi (per ora).
+    /// Scarica e installa la nuova versione (in un thread), come il launcher di ArtCraft.
+    pub(super) fn install_update(&mut self) {
+        let Some(r) = self.update.clone() else { return };
+        let Some(install) = crate::selfupdate::current() else {
+            crate::platform::open(&r.download);
+            return;
+        };
+        if self.update_phase.is_some() {
+            return;
+        }
+        self.update_error = None;
+        self.update_phase = Some(crate::selfupdate::Phase::Downloading { done: 0, total: 0 });
+        let tx = self.evt_tx.clone();
+        std::thread::spawn(move || {
+            let res = crate::selfupdate::prepare(&install, &r, &mut |p| {
+                let _ = tx.send(crate::actor::UiEvent::UpdatePhase(p));
+            });
+            let _ = tx.send(crate::actor::UiEvent::UpdateDone(res.map_err(|e| format!("{e:#}"))));
+        });
+    }
+
+    /// Barra degli aggiornamenti (come nel launcher di ArtCraft): «È disponibile…»
+    /// con «Aggiorna», poi l'avanzamento, poi «Riavvia ora».
     pub(super) fn update_banner(&mut self, root: &mut egui::Ui, actions: &mut Vec<Action>) {
         let Some(r) = self.update.clone() else { return };
         if self.update_hidden {
@@ -361,28 +382,90 @@ impl App {
         } else {
             (egui::Color32::from_rgb(0xE9, 0xF0, 0xFD), egui::Color32::from_rgb(0xBF, 0xD3, 0xF7))
         };
+        let can_self = crate::selfupdate::current().is_some();
+        let phase = self.update_phase.clone();
+        let ready = self.update_ready.clone();
+        let error = self.update_error.clone();
         egui::Panel::top("update_banner")
             .exact_size(30.0)
             .frame(egui::Frame::NONE.fill(fill).stroke(Stroke::new(1.0, edge)).inner_margin(egui::Margin { left: 14, right: 10, top: 2, bottom: 2 }))
             .show(root, |ui| {
                 ui.horizontal_centered(|ui| {
                     ui.spacing_mut().item_spacing.x = 8.0;
-                    ui.label(egui::RichText::new(ic::ARROW_CIRCLE_UP).font(icon(15.0)).color(t.accent_text));
-                    ui.label(egui::RichText::new(i18n::tf(format!("È disponibile OpenSlate {} (questa è la {}).", r.version, crate::update::current()))).font(medium(11.5)).color(t.text))
-                        .on_hover_text(i18n::t("Le impostazioni, gli agenti AI, l'archivio e i documenti restano: stanno nella cartella dei dati, fuori dall'app, e le chiavi nel Portachiavi."));
+                    let glyph = if ready.is_some() { ic::CHECK_CIRCLE } else if error.is_some() { ic::WARNING } else { ic::ARROW_CIRCLE_UP };
+                    ui.label(egui::RichText::new(glyph).font(icon(15.0)).color(if error.is_some() { t.red } else { t.accent_text }));
+                    let keep = i18n::t("Le impostazioni, gli agenti AI, l'archivio e i documenti restano: stanno nella cartella dei dati, fuori dall'app, e le chiavi nel Portachiavi.");
+                    let text = if let Some(rd) = &ready {
+                        if rd.on_exit {
+                            i18n::tf(format!("OpenSlate {} si installa quando chiudi l'app.", rd.version))
+                        } else {
+                            i18n::tf(format!("OpenSlate {} è installato: si apre col prossimo avvio.", rd.version))
+                        }
+                    } else if let Some(p) = &phase {
+                        use crate::selfupdate::Phase;
+                        match p {
+                            Phase::Downloading { done, total } if *total > 0 => {
+                                i18n::tf(format!("Aggiorno OpenSlate a {}: scarico {:.0} di {:.0} MB…", r.version, *done as f64 / 1e6, *total as f64 / 1e6))
+                            }
+                            Phase::Downloading { .. } => i18n::tf(format!("Aggiorno OpenSlate a {}: scarico…", r.version)),
+                            Phase::Verifying => i18n::tf(format!("Aggiorno OpenSlate a {}: controllo il file…", r.version)),
+                            Phase::Installing => i18n::tf(format!("Aggiorno OpenSlate a {}: installo…", r.version)),
+                        }
+                    } else if let Some(e) = &error {
+                        i18n::tf(format!("Aggiornamento a OpenSlate {} non riuscito: {}", r.version, e.lines().next().unwrap_or("")))
+                    } else {
+                        i18n::tf(format!("È disponibile OpenSlate {} (questa è la {}).", r.version, crate::update::current()))
+                    };
+                    let lbl = ui.add(egui::Label::new(egui::RichText::new(text).font(medium(11.5)).color(t.text)).truncate());
+                    match &error {
+                        Some(e) => lbl.on_hover_text(i18n::tr(e).into_owned()),
+                        None => lbl.on_hover_text(keep),
+                    };
+                    if let Some(crate::selfupdate::Phase::Downloading { done, total }) = &phase {
+                        if *total > 0 {
+                            ui.add(egui::ProgressBar::new(*done as f32 / *total as f32).desired_width(120.0).desired_height(8.0));
+                        }
+                    }
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        let primary = |ui: &mut egui::Ui, label: String| ui.add(egui::Button::new(egui::RichText::new(label).color(egui::Color32::WHITE)).fill(t.accent).small());
+                        if phase.is_some() {
+                            return; // mentre scarica e installa: niente pulsanti
+                        }
                         if super::widgets::icon_button(ui, ic::X, "Più tardi (torna al prossimo avvio)", vec2(20.0, 20.0), true).clicked() {
                             self.update_hidden = true;
                         }
-                        if ui.small_button(i18n::t("Salta questa versione")).clicked() {
+                        if let Some(rd) = &ready {
+                            if !rd.on_exit
+                                && primary(ui, i18n::tf(format!("{}  Riavvia ora", ic::ARROW_CLOCKWISE)))
+                                    .on_hover_text(i18n::t("Chiude OpenSlate e lo riapre aggiornato (quello che hai scritto è già salvato)."))
+                                    .clicked()
+                            {
+                                actions.push(Action::RestartForUpdate);
+                            }
+                            return;
+                        }
+                        if error.is_some() && ui.small_button(i18n::tf(format!("{}  Scarica", ic::DOWNLOAD_SIMPLE))).clicked() {
+                            crate::platform::open(&r.download);
+                        }
+                        if error.is_none() && ui.small_button(i18n::t("Salta questa versione")).clicked() {
                             actions.push(Action::SkipUpdate);
                         }
                         if ui.small_button(i18n::t("Novità")).clicked() {
                             crate::platform::open(&r.page);
                         }
-                        let dl = ui.add(egui::Button::new(egui::RichText::new(i18n::tf(format!("{}  Scarica", ic::DOWNLOAD_SIMPLE))).color(egui::Color32::WHITE)).fill(t.accent).small());
-                        if dl.on_hover_text(i18n::t("Scarica la nuova versione dal sito di GitHub: si installa come la prima volta, sostituendo l'app. Impostazioni e archivio restano.")).clicked() {
-                            crate::platform::open(&r.download);
+                        if can_self {
+                            let label = if error.is_some() { format!("{}  {}", ic::ARROW_CLOCKWISE, i18n::t("Riprova")) } else { format!("{}  {}", ic::ARROW_CIRCLE_UP, i18n::t("Aggiorna")) };
+                            if primary(ui, label)
+                                .on_hover_text(i18n::t("Scarica la nuova versione, controlla il file e la installa al posto di questa. Impostazioni e archivio restano."))
+                                .clicked()
+                            {
+                                actions.push(Action::InstallUpdate);
+                            }
+                        } else {
+                            let dl = primary(ui, i18n::tf(format!("{}  Scarica", ic::DOWNLOAD_SIMPLE)));
+                            if dl.on_hover_text(i18n::t("Scarica la nuova versione dal sito di GitHub: si installa come la prima volta, sostituendo l'app. Impostazioni e archivio restano.")).clicked() {
+                                crate::platform::open(&r.download);
+                            }
                         }
                     });
                 });
