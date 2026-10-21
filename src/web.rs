@@ -191,6 +191,7 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
                 let note = id.strip_prefix("appunto:").and_then(appunto_path).filter(|p| p.exists());
                 let out = match (v["undo"].as_u64(), !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')) {
                     (Some(n), _) if note.is_some() => crate::docagent::note_undo(&note.unwrap(), n),
+                    (Some(n), _) if id == "lavagna" => crate::boardagent::undo(n),
                     (Some(n), true) => {
                         let dir = std::path::Path::new(crate::document::DOC_DIR).join(id);
                         tokio::task::spawn_blocking(move || crate::docagent::undo(&dir, n)).await.map_err(|e| anyhow::anyhow!("{e}")).and_then(|r| r)
@@ -523,6 +524,12 @@ async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
         /// Appunto aperto nell'app (nome in exports/): l'AI ci può scrivere.
         #[serde(default)]
         note: String,
+        /// Appunto aperto ma con la scheda spenta nella chat.
+        #[serde(default)]
+        note_off: String,
+        /// Pagina con la scheda spenta nella chat.
+        #[serde(default, deserialize_with = "flag")]
+        page_off: bool,
     }
     fn si() -> bool {
         true
@@ -555,6 +562,7 @@ async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
     let chat_id = req.chat_id.clone();
     let only = req.provider.trim().to_string();
     let appunto = Some(req.note.trim()).filter(|n| !n.is_empty()).and_then(appunto_path).filter(|p| p.exists());
+    let off = (Some(req.note_off.trim().to_string()).filter(|n| !n.is_empty()), req.page_off);
     let worker = tokio::task::spawn_blocking(move || {
         use crate::ai::{self, Event};
         let mut cfg = match ai::AiConfig::load() {
@@ -580,7 +588,9 @@ async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
         let msgs = ai::chat_messages_with_images(&cfg, &history, ctx.as_ref());
         // il documento allegato alla chat: il modello lo può modificare
         let doc = ctx.as_ref().filter(|c| c.doc).and_then(|c| c.dir.clone().map(|d| (d, c.page, c.title.clone())));
-        let extras = ai::ChatExtras { appunto, doc, chat_tools: true };
+        // il foglio della lavagna allegato: ci si possono mettere grafici
+        let board = ctx.as_ref().is_some_and(|c| !c.doc && c.png.is_some());
+        let extras = ai::ChatExtras { appunto, doc, chat_tools: true, board, note_off: off.0, page_off: off.1 };
         let res = ai::run_chat(&cfg, ai::Task::Chat, &msgs, use_tools, extras, &mut |ev| {
             let j = match ev {
                 Event::Trying { provider, model, context } => serde_json::json!({ "t": "try", "provider": provider, "model": model, "context": context }),

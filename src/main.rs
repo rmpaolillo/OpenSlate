@@ -9,6 +9,7 @@ mod ai;
 mod aiconfig;
 mod ble;
 mod charts;
+mod boardagent;
 mod chats;
 mod craftexport;
 mod device;

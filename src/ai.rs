@@ -573,6 +573,12 @@ pub struct ChatExtras {
     pub doc: Option<(std::path::PathBuf, usize, String)>,
     /// La chat dell'app: grafici, documento e server MCP anche senza la rete.
     pub chat_tools: bool,
+    /// Il foglio della lavagna è allegato: ci si possono mettere grafici.
+    pub board: bool,
+    /// Appunto aperto ma escluso dalla chat (scheda spenta).
+    pub note_off: Option<String>,
+    /// Pagina esclusa dalla chat (scheda spenta).
+    pub page_off: bool,
 }
 
 /// Come `run_with`, e con un appunto aperto il modello lo può leggere e
@@ -1137,7 +1143,7 @@ impl ToolCtx {
     /// Tutti gli strumenti della chat: rete, appunto, grafici, documento
     /// aperto (coi server MCP della suite Craft) e server MCP esterni.
     pub fn full(cfg: &AiConfig, use_web: bool, extras: ChatExtras) -> Self {
-        let mut t = Self::with(&cfg.web, use_web, extras.appunto);
+        let mut t = Self::with(&cfg.web, use_web, extras.appunto.clone());
         if t.note.is_empty() {
             t.note = format!("\n\nOggi è il {}. Hai a disposizione degli strumenti:", chrono::Local::now().format("%d/%m/%Y"));
         }
@@ -1150,6 +1156,23 @@ impl ToolCtx {
                 t.doc = Some(d);
                 t.rounds = 16;
             }
+        }
+        // schede spente a mano: il modello non dice «non ho accesso» ma come riaccenderle
+        if let Some(n) = &extras.note_off {
+            t.note.push_str(&format!(
+                "\n\nNell'app è aperto l'appunto «{n}», ma l'utente ha spento la sua scheda nella chat: non lo puoi leggere né modificare. \
+                 Se te lo chiede, digli di riaccendere la scheda dell'appunto (quella barrata sotto il riquadro di scrittura) con un clic e di riprovare."
+            ));
+        }
+        if extras.page_off {
+            t.note.push_str(
+                "\n\nAccanto alla chat c'è una pagina, ma l'utente ha spento la sua scheda: non la vedi. Se ti chiede della pagina o del foglio, \
+                 digli di riaccendere la scheda della pagina (quella barrata sotto il riquadro di scrittura) con un clic e di riprovare.",
+            );
+        }
+        if t.doc.is_none() && extras.board {
+            t.defs.extend(crate::boardagent::definitions());
+            t.note.push_str(&crate::boardagent::system_note());
         }
         let (defs, note) = crate::mcpclient::definitions(&cfg.mcp);
         if !defs.is_empty() {
@@ -1203,6 +1226,9 @@ impl ToolCtx {
                 },
                 Err(e) => plain((format!("ERRORE: {e:#}"), format!("errore: {e:#}"))),
             };
+        }
+        if let Some(o) = crate::boardagent::execute(name, args) {
+            return ToolRun { text: o.text, short: o.short, images: Vec::new(), media: Vec::new(), edit: o.edit.map(|n| ("lavagna".to_string(), n)) };
         }
         if let Some(d) = &self.doc {
             if let Some(o) = crate::docagent::execute(d, name, args) {
@@ -2308,7 +2334,7 @@ pub(crate) mod tests {
         let mut p = provider("Locale", format!("http://127.0.0.1:{port}/v1"));
         p.model = "m".into();
         let cfg = AiConfig { providers: vec![p], ..Default::default() };
-        let extras = ChatExtras { appunto: None, doc: Some((d.dir.clone(), 0, "es — pagina 1 di 1".into())), chat_tools: true };
+        let extras = ChatExtras { appunto: None, doc: Some((d.dir.clone(), 0, "es — pagina 1 di 1".into())), chat_tools: true, board: false, note_off: None, page_off: false };
         let mut events = Vec::new();
         let r = run_chat(&cfg, Task::Chat, &[Msg::new("system", "S"), Msg::new("user", "disegna il grafico e mettilo nel foglio")], false, extras, &mut |e| {
             events.push(e);

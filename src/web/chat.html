@@ -780,14 +780,15 @@ function editsEl(m) {
   const draw = () => {
     box.innerHTML = "";
     const t = document.createElement("span");
-    const note = String(m.edits[0].doc).startsWith("appunto:");
-    t.textContent = m.undone ? T(note ? "Modifiche all'appunto annullate" : "Modifiche al documento annullate")
-      : T(note ? "Ho modificato l'appunto ({})" : "Ho modificato il documento aperto ({})", m.edits.length);
+    const kind = String(m.edits[0].doc).startsWith("appunto:") ? "note" : m.edits[0].doc === "lavagna" ? "board" : "doc";
+    const note = kind === "note";
+    t.textContent = m.undone ? T({ note: "Modifiche all'appunto annullate", board: "Modifiche al foglio annullate", doc: "Modifiche al documento annullate" }[kind])
+      : T({ note: "Ho modificato l'appunto ({})", board: "Ho modificato il foglio della lavagna ({})", doc: "Ho modificato il documento aperto ({})" }[kind], m.edits.length);
     box.appendChild(t);
     if (m.undone) return;
     const b = document.createElement("button"); b.className = "ib"; b.innerHTML = ic("undo") + "<span></span>";
     b.querySelector("span").textContent = T("Annulla le modifiche");
-    b.title = T(note ? "L'appunto torna com'era prima di questa risposta" : "Il documento torna com'era prima di questa risposta");
+    b.title = T({ note: "L'appunto torna com'era prima di questa risposta", board: "Il foglio torna com'era prima di questa risposta", doc: "Il documento torna com'era prima di questa risposta" }[kind]);
     b.onclick = async () => {
       b.disabled = true;
       const first = m.edits.reduce((a, e) => (e.undo < a.undo ? e : a), m.edits[0]);
@@ -887,7 +888,9 @@ async function send(text, images) {
     const r = await fetch("api/chat", {
       method: "POST", signal: busy.signal,
       body: JSON.stringify({ messages: cur.messages.map(({ role, content, images }) => (images && images.length ? { role, content, images } : { role, content })), attach: !!att, web: !!cur.web,
-                             chat_id: cur.id, provider: cur.provider || "", note: cur.noteOn !== false ? noteName : "" }),
+                             chat_id: cur.id, provider: cur.provider || "", note: cur.noteOn !== false ? noteName : "",
+                             // schede spente a mano: l'AI lo sa e sa dirlo
+                             note_off: cur.noteOn === false ? noteName : "", page_off: !!(cur.page && !att) }),
     });
     if (!r.ok) throw new Error("HTTP " + r.status + ": " + await r.text());
     const rd = r.body.getReader(), dec = new TextDecoder();
@@ -1272,7 +1275,8 @@ async function exportMd() {
 
 // ---------------- dall'app (WebView incorporata) ----------------
 window.wsChat = {
-  setNote: (name) => { noteName = name || ""; if (cur) { drawChips(); drawMeter(); if (!cur.messages.length) drawLog(); } },
+  // un appunto diverso arriva con la sua scheda accesa (non quella spenta di prima)
+  setNote: (name) => { const n = name || ""; if (cur && n && n !== noteName && cur.noteOn === false) { cur.noteOn = true; saveSoon(false); } noteName = n; if (cur) { drawChips(); drawMeter(); if (!cur.messages.length) drawLog(); } },
   attachNow: async () => {
     document.body.classList.remove("drophint");
     await attachIncoming(false);

@@ -69,6 +69,8 @@ pub fn run_app(
     crate::i18n::set_lang(crate::i18n::resolve(&settings.ui_lang));
     let thumb_size = settings.thumb_size;
     let hub = Hub::new(Scene::new(&settings));
+    // la chat AI può mettere grafici sul foglio della lavagna
+    crate::boardagent::set_hub(hub.clone());
 
     // Archivio: al primo avvio importa le pagine già scaricate (copie grezze).
     let first_time = !std::path::Path::new(library::LIB_DIR).exists();
@@ -136,6 +138,8 @@ pub fn run_app(
         web_starting: false,
         last_ocr_md: None,
         last_ocr_note: None,
+        chat_note_key: None,
+        chat_note_sent: None,
         board_from: None,
         lang_changed: false,
         ocr_busy: false,
@@ -319,6 +323,10 @@ struct App {
     last_ocr_md: Option<String>,
     /// Ultima trascrizione: (titolo della pagina, appunto in exports/).
     last_ocr_note: Option<(String, String)>,
+    /// Quello che decide l'appunto della chat (centro, pagina in lavagna,
+    /// appunto aperto, documento) e l'appunto mandato: si ricalcola solo se cambia.
+    chat_note_key: Option<(workspace::Center, Option<String>, Option<String>, bool, Option<(String, String)>)>,
+    chat_note_sent: Option<String>,
     /// Titolo della pagina dell'archivio portata sulla lavagna (per la chat).
     board_from: Option<String>,
     /// Lingua cambiata nelle Opzioni: caratteri e pagine web da rifare.
@@ -771,6 +779,9 @@ impl App {
                     }
                 }
                 UiEvent::UpdatePhase(p) => self.update_phase = Some(p),
+                UiEvent::DocChanged(dir) if dir.as_os_str() == "lavagna" => {
+                    self.status = "Grafico sul foglio dalla chat AI (si può annullare dalla chat).".into();
+                }
                 UiEvent::DocChanged(dir) => self.doc_changed_by_ai(dir),
                 UiEvent::UpdateDone(r) => {
                     self.update_phase = None;
@@ -1106,11 +1117,29 @@ impl App {
         std::path::Path::new(export::EXPORT_DIR).join(&name).exists().then_some(name)
     }
 
-    /// La chat lavora sull'appunto aperto al centro o, se non c'è, su quello
-    /// della pagina sulla lavagna (la sua scheda resta nella chat).
+    /// L'appunto della chat segue quello che si guarda: l'appunto aperto al
+    /// centro; con la lavagna, l'appunto della pagina che c'è sopra (se ne ha
+    /// uno), mai quello di un'altra pagina rimasto aperto in una scheda.
+    pub(crate) fn chat_note_wanted(&self) -> String {
+        match self.center {
+            workspace::Center::Note => self.note.clone().unwrap_or_default(),
+            _ => self.board_note().unwrap_or_default(),
+        }
+    }
+
+    /// Manda alla chat l'appunto giusto (ogni fotogramma: lavora solo se
+    /// qualcosa è cambiato).
     pub(crate) fn sync_chat_note(&mut self) {
-        let n = self.note.clone().or_else(|| self.board_note()).unwrap_or_default();
-        self.embeds.eval(embed::Slot::Chat, &format!("window.wsChat && wsChat.setNote({})", serde_json::Value::String(n)));
+        let key = (self.center, self.board_from.clone(), self.note.clone(), self.docui.doc.is_some(), self.last_ocr_note.clone());
+        if self.chat_note_key.as_ref() == Some(&key) {
+            return;
+        }
+        self.chat_note_key = Some(key);
+        let n = self.chat_note_wanted();
+        if self.chat_note_sent.as_deref() != Some(n.as_str()) {
+            self.embeds.eval(embed::Slot::Chat, &format!("window.wsChat && wsChat.setNote({})", serde_json::Value::String(n.clone())));
+            self.chat_note_sent = Some(n);
+        }
     }
 
     /// Pagina attuale (lavagna o documento) come contesto della chat.
@@ -1123,9 +1152,10 @@ impl App {
         let (_, page) = self.board_page();
         // la trascrizione di questa pagina va con lei: quella appena fatta o
         // il suo appunto salvato
+        // (mai la trascrizione di un'altra pagina)
         let md = match self.board_note() {
             Some(n) => std::fs::read_to_string(std::path::Path::new(export::EXPORT_DIR).join(n)).unwrap_or_default(),
-            None => self.last_ocr_md.clone().unwrap_or_default(),
+            None => String::new(),
         };
         self.sync_chat_note();
         if page.is_empty() {
@@ -1996,9 +2026,13 @@ impl eframe::App for App {
             for slot in [embed::Slot::Chat, embed::Slot::Note, embed::Slot::Settings] {
                 self.embeds.eval(slot, "location.reload()");
             }
+            // la chat ricaricata riparte dall'appunto del suo indirizzo: si rimanda
+            self.chat_note_key = None;
+            self.chat_note_sent = None;
         }
         self.drain_events();
         self.doc_tick(ctx);
+        self.sync_chat_note();
         if let Some(n) = self.hub.lock().last_erased.take() {
             self.status = match n {
                 0 => "Gomma: niente da cancellare lì.".to_string(),

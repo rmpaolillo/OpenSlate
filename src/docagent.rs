@@ -103,6 +103,13 @@ pub fn on_change(f: impl Fn(PathBuf) + Send + Sync + 'static) {
     let _ = NOTIFY.set(Box::new(f));
 }
 
+/// La chat ha cambiato il foglio della lavagna (avvisa l'interfaccia).
+pub fn board_changed() {
+    if let Some(n) = NOTIFY.get() {
+        n(PathBuf::from("lavagna"));
+    }
+}
+
 fn changed(doc: &DocRef) {
     if let Err(e) = crate::document::rebuild(&doc.dir) {
         tracing::warn!("pagine del documento dopo la modifica: {e:#}");

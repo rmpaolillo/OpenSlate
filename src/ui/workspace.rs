@@ -76,8 +76,7 @@ impl App {
         self.show_ribbon = true;
         self.mode = super::Mode::Board;
         self.backstage = None;
-        let n = self.note.clone().unwrap_or_default();
-        self.embeds.eval(Slot::Chat, &format!("window.wsChat && wsChat.setNote({})", js_str(&n)));
+        // l'appunto della chat lo aggiorna sync_chat_note (al prossimo fotogramma)
     }
 
     pub(super) fn close_note(&mut self) {
@@ -113,7 +112,6 @@ impl App {
                 let n = s("name");
                 if !n.is_empty() && self.note.as_deref() != Some(n.as_str()) {
                     self.note = Some(n.clone());
-                    self.embeds.eval(Slot::Chat, &format!("window.wsChat && wsChat.setNote({})", js_str(&n)));
                 }
             }
             "note_state" => {
@@ -150,7 +148,9 @@ impl App {
                 // impostazioni aperte dentro il riquadro della chat (versione
                 // vecchia della pagina): nel riquadro torna la chat
                 if slot == Slot::Chat {
-                    let note = self.note.clone().unwrap_or_default();
+                    let note = self.chat_note_wanted();
+                    self.chat_note_key = None;
+                    self.chat_note_sent = Some(note.clone());
                     if let Some(url) = self.page_url(&format!("chat?pane=1&note={}", super::url_escape(&note))) {
                         self.embeds.load(Slot::Chat, &url);
                     }
@@ -230,7 +230,9 @@ impl App {
         }
         let t = Tokens::get(root.ctx());
         if !self.embeds.has(Slot::Chat) {
-            let note = self.note.clone().unwrap_or_default();
+            let note = self.chat_note_wanted();
+            self.chat_note_key = None;
+            self.chat_note_sent = Some(note.clone());
             let cmd = self.chat_cmd_pending.take().map(|c| format!("&cmd={c}")).unwrap_or_default();
             if let Some(url) = self.page_url(&format!("chat?pane=1&note={}{cmd}", super::url_escape(&note))) {
                 let origin = self.origin();

@@ -170,8 +170,8 @@ impl App {
                     self.hub.edit(|s| s.load(d));
                     self.board_from = Some(t.clone());
                     self.mode = Mode::Board;
-                    // la chat ritrova la trascrizione di questa pagina
-                    self.sync_chat_note();
+                    // la chat vede subito questa pagina (e la sua trascrizione, se c'è)
+                    self.set_chat_context_from_board();
                     self.status = format!("«{t}» sulla lavagna: puoi scriverci sopra (Annulla per tornare indietro).");
                 }
             }

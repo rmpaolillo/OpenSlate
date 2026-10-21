@@ -140,6 +140,7 @@ pub fn label(name: &str, args: &Value) -> String {
         "verifica_partita_iva" => format!("Verifico la partita IVA {}", s("partita_iva")),
         "appunto_leggi" => "Leggo l'appunto aperto".to_string(),
         "appunto_inserisci_grafico" => "Metto il grafico nell'appunto".to_string(),
+        "lavagna_inserisci_grafico" => "Metto il grafico sul foglio".to_string(),
         "appunto_scrivi" => match args["modo"].as_str().unwrap_or("aggiungi") {
             "sostituisci" => "Correggo l'appunto".to_string(),
             "riscrivi" => "Riscrivo l'appunto".to_string(),

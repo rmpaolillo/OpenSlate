@@ -82,7 +82,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   MCP servers of the Craft suite running inside the app: WordCraft for Word, PdfCraft for PDF,
   VectorCraft for SVG (plus text tools for Markdown). Every change shows at once in the document
   next to the chat and can be undone from the chat with one click; the original file on disk is
-  never touched. SVG written by the model in a reply is shown as a picture.
+  never touched. In a transcription note the chart can replace the hand-drawn figure; on the board sheet it replaces the hand-drawn graph (found automatically: axes and labels) or goes under the writing. SVG written by the model in a reply is shown as a picture.
 - **Your own MCP servers.** Add any MCP server (stdio) in `ai.toml`, as in Claude Desktop or DSH:
   its tools become available to the chat.
 - **Live on the web.** A share link lets a TV, phone or PC on your home network watch the board
@@ -282,7 +282,7 @@ src/wordsign.rs, src/vecsign.rs, src/rasign.rs            signing Word (WordCraf
 src/update.rs, src/selfupdate.rs                          update check (GitHub releases) and in-app install
 src/mdcraft.rs, src/mathtex.rs                           Markdown documents: Notes look, formulas drawn by Typst (MiTeX)
 src/charts.rs, src/typstworld.rs, src/typst-pkg/          chat charts (Typst + Lilaq), Typst packages bundled in the app
-src/docagent.rs, src/mcpclient.rs                         chat edits documents via the Craft MCP servers; external MCP servers
+src/docagent.rs, src/boardagent.rs, src/mcpclient.rs      chat edits documents (Craft MCP servers), notes and the board sheet; external MCP servers
 vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
