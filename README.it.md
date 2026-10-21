@@ -236,7 +236,7 @@ Craft di ArtCraft, senza le loro interfacce e senza programmi esterni:
 | Foto (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
 | Export di lavagna e archivio (PDF, SVG, PNG) | li disegna e scrive VectorCraft; i PNG li scrive PhotoCraft |
 
-Un Markdown aperto come documento ha l'aspetto degli Appunti: testo in Source Serif, titoli in Inter, tabelle leggere. Le formule (`$…$`, `$$…$$`, `\\(…\\)`, `\\[…\\]`) le disegna [Typst](https://typst.app) in stile LaTeX (il LaTeX lo converte [MiTeX](https://github.com/mitex-rs/mitex)) e le figure accanto (`<img src="…">`, `![…](…)`, gli SVG disegnati da VectorCraft) diventano immagini.
+Un Markdown aperto come documento ha l'aspetto degli Appunti: testo in Source Serif, titoli in Inter, tabelle leggere. Le formule (`$…$`, `$$…$$`, `\(…\)`, `\[…\]`) le disegna [Typst](https://typst.app) in stile LaTeX (il LaTeX lo converte [MiTeX](https://github.com/mitex-rs/mitex)) e le figure accanto (`<img src="…">`, `![…](…)`, gli SVG disegnati da VectorCraft) diventano immagini.
 Un Markdown, .txt o .html firmato si salva in PDF (quei formati non possono tenere l'inchiostro).
 
 Diagnosi: tutti i comandi scambiati col pad finiscono in `captures/gui.log` (o `cli.log`).
@@ -246,6 +246,8 @@ Diagnosi: tutti i comandi scambiati col pad finiscono in `captures/gui.log` (o `
 Avviata con `cargo run` dalla cartella del progetto, l'app lavora lì. Installata, usa la cartella
 dei dati dell'utente: macOS `~/Library/Application Support/OpenSlate`, Linux
 `~/.local/share/openslate`, Windows `%APPDATA%\OpenSlate` (si cambia con `OPENSLATE_DATA`).
+Lì ci sono anche `crash.log` (se l'app è andata in crash), `web.key` (la chiave del link della
+diretta web) e `updates/` (la versione precedente dell'app, tenuta dopo un aggiornamento).
 
 ## Struttura
 
@@ -267,7 +269,12 @@ src/ui/ribbon.rs  contenuto delle schede (Home, Documento, Visualizza, AI)
 src/ui/backstage.rs pagina File (Nuovo, Apri, Salva, Esporta, Condividi, Informazioni)
 src/ui/options.rs File › Opzioni, scorciatoie, finestre di aiuto
 src/ui/library_view.rs  interfaccia: archivio con anteprime
+src/ui/quit.rs    uscita: «Salvare la lavagna?», salvataggio automatico all'uscita, attesa dell'appunto
+src/ui/savedlg.rs finestre «Salva con nome» (ultima cartella scelta)
+src/ui/zoom.rs    zoom e gesti del trackpad
 src/export.rs     PDF / SVG / PNG
+src/craftexport.rs export con VectorCraft (SVG, PDF) e PhotoCraft (PNG)
+src/figures.rs    figure della trascrizione ridisegnate dai tratti veri della penna
 src/update.rs     controllo degli aggiornamenti (ultima release su GitHub)
 src/selfupdate.rs aggiornamento dentro l'app: scarica, controlla le impronte, installa, riavvia
 src/mdcraft.rs    Markdown per WordCraft con l'aspetto degli Appunti; figure → immagini
@@ -282,7 +289,8 @@ src/rasign.rs     foto (PNG, JPEG…): pagine e firma con le librerie di PhotoCr
 src/vecsign.rs    SVG: pagine e firma col motore di VectorCraft
 src/i18n.rs       lingue: il testo italiano è la chiave, tabelle in src/i18n/<codice>.json
                   (l'inglese fa da riserva), src/web/i18n.js le applica alle pagine web
-src/web.rs        diretta web (HTTP + Server-Sent Events), pagine in src/web/ (index.html, chat.html, appunti.html, impostazioni.html)
+src/web.rs        diretta web (HTTP + Server-Sent Events), pagine in src/web/ (index.html, chat.html, appunti.html, impostazioni.html);
+                  controlli di sicurezza (nome del server, origine, chiave della diretta, CSP), appunti con versione
 src/ocr.rs        trascrizione (agenti AI oppure Apple Vision)
 src/ai.rs         agenti AI: ai.toml, catena di riserva, streaming, strumenti, contesto della chat
 src/chats.rs      conversazioni della chat (chats/*.json e pagina allegata)
@@ -292,7 +300,7 @@ src/viewer.rs     finestra separata con una pagina web (riserva se le pagine inc
 src/ui/embed.rs   pagine web dentro la finestra (WebView): appunto, chat, impostazioni AI
 src/ui/workspace.rs appunto al centro, chat a lato, barra «Slate non collegato», scheda Appunto
 src/ui/paper.rs   rigature del foglio (righe, elementari, quadretti, millimetrata, cartesiano, …)
-src/vendor.rs     KaTeX e marked inclusi (src/web/vendor)
+src/vendor.rs     KaTeX, marked e DOMPurify inclusi (src/web/vendor)
 src/swift.rs      helper Swift per macOS (src/swift/vision_ocr.swift: OCR con Apple Vision)
 src/docimport.rs  documenti → PDF → immagini delle pagine
 src/wordsign.rs   documenti Word: pagine e salvataggio firmato col motore di WordCraft
@@ -302,7 +310,8 @@ src/pdfdoc.rs     PDF: misure delle pagine e tratti sovrapposti (lopdf)
 src/signature.rs  firma registrata
 src/ui/doc_view.rs  interfaccia: documenti e firma
 src/settings.rs   settings.conf e hook
-src/platform.rs   differenze fra sistemi: cartella dei dati, apertura dei file
+src/platform.rs   differenze fra sistemi: cartella dei dati, apertura dei file, paracadute dei lavori in sottofondo
+packaging/collect_licenses.py  testi completi delle licenze per i pacchetti (THIRD-PARTY-LICENSES.txt)
 ```
 
 Test: `cargo test`.

@@ -6,7 +6,7 @@
 
 <p align="center">
   A free, open-source companion app for the <b>Wacom Bamboo Slate</b> (SmartPad family).<br>
-  Live board · offline sync · sign Word and PDF documents with the pen · handwriting to text · AI assistant
+  Live board · offline sync · sign Word and PDF documents with the pen · handwriting to text · AI assistant with charts
 </p>
 
 <p align="center">
@@ -178,7 +178,7 @@ their interfaces and without external programs:
 | Board and library exports (PDF, SVG, PNG) | VectorCraft draws and writes them; PNG files are written by PhotoCraft |
 
 A Markdown file opened as a document looks like the Notes page: Source Serif text, Inter
-headings, light tables. Its formulas (`$…$`, `$$…$$`, `\\(…\\)`, `\\[…\\]`) are drawn in LaTeX style by
+headings, light tables. Its formulas (`$…$`, `$$…$$`, `\(…\)`, `\[…\]`) are drawn in LaTeX style by
 [Typst](https://typst.app) (the LaTeX is converted by [MiTeX](https://github.com/mitex-rs/mitex)),
 and the figures next to it (`<img src="…">`, `![…](…)`, SVG drawn by VectorCraft) become pictures.
 A signed Markdown, .txt or .html file is saved as PDF (those formats cannot hold the ink).
@@ -216,7 +216,9 @@ When installed, OpenSlate keeps your library, documents, chats and settings in:
 - Windows: `%APPDATA%\OpenSlate`
 
 You can override this with the `OPENSLATE_DATA` environment variable. When started with
-`cargo run` from the source folder, it works in that folder instead.
+`cargo run` from the source folder, it works in that folder instead. There you also find
+`crash.log` (if the app ever crashed), `web.key` (the key of the web live link) and `updates/`
+(the previous version of the app, kept after an update).
 
 ## AI providers and API keys
 
@@ -315,6 +317,9 @@ A file-by-file description is in the [Italian README](README.it.md#struttura).
   `PATCH` is counted automatically from the existing tags (`v0.2.0`, then `v0.2.1`, …).
 - To start a new series (new features: `0.3.0`; first stable: `1.0.0`), change `version` in
   `Cargo.toml`; the next release starts again from patch `0`.
+- A release runs the tests first and builds with the locked dependencies (`Cargo.lock`). Each
+  package contains `LICENSE`, `NOTICE`, `THIRD-PARTY.md` and `THIRD-PARTY-LICENSES.txt` (the
+  full text of every third-party licence, made by `packaging/collect_licenses.py`).
 - Every release has a `SHA256SUMS.txt`: the app checks the file it downloads against it before
   installing an update.
 
