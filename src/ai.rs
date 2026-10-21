@@ -374,7 +374,7 @@ impl AiConfig {
         if std::path::Path::new(&path).exists() {
             let _ = std::fs::copy(&path, format!("{path}.bak"));
         }
-        std::fs::write(&path, text).with_context(|| format!("scrittura di {path}"))?;
+        crate::web::write_atomic(std::path::Path::new(&path), text.as_bytes()).with_context(|| format!("scrittura di {path}"))?;
         Ok(())
     }
 
@@ -662,16 +662,25 @@ pub fn run_chat(
         } else {
             msgs
         };
+        // «iniziata» anche quando ha solo usato gli strumenti: un altro agente
+        // ripartirebbe da capo e rifarebbe le modifiche (paragrafo o grafico doppio)
         let mut started = false;
         let tools = tool_ctx.as_ref().filter(|_| p.tools);
         let res = call(p, &key, &model, task, msgs_for, send_image, tools, &mut |e| {
-            if matches!(e, Event::Delta(_)) {
+            if matches!(e, Event::Delta(_) | Event::ToolDone { .. } | Event::DocEdit { .. } | Event::Media { .. }) {
                 started = true;
             }
             on_event(e)
         });
         match res {
             Ok(text) if !text.trim().is_empty() => {
+                return Ok(Reply { text, provider: p.name.clone(), model });
+            }
+            Ok(_) if started => {
+                // ha lavorato con gli strumenti ma non ha scritto niente: una
+                // riga lo dice (anche alla pagina, che altrimenti vedrebbe «nessuna risposta»)
+                let text: String = crate::i18n::t("Fatto (i passaggi sono qui sopra).").into();
+                on_event(Event::Delta(text.clone()));
                 return Ok(Reply { text, provider: p.name.clone(), model });
             }
             Ok(_) => {
@@ -844,11 +853,56 @@ fn short_err(e: &anyhow::Error) -> String {
     }
 }
 
+/// Un agente nel cloud (non questo Mac né la rete di casa).
+fn is_cloud(p: &Provider) -> bool {
+    let rest = p.url.split("://").nth(1).unwrap_or("");
+    let hostport = rest.split('/').next().unwrap_or("");
+    let host = if let Some(h) = hostport.strip_prefix('[') { h.split(']').next().unwrap_or("") } else { hostport.rsplit_once(':').map(|(h, _)| h).unwrap_or(hostport) };
+    let host = host.to_ascii_lowercase();
+    let local = host == "localhost"
+        || host.ends_with(".local")
+        || !host.contains('.') && host.parse::<std::net::IpAddr>().is_err() // nome della rete di casa («mac-studio»)
+        || host.parse::<std::net::IpAddr>().is_ok_and(|ip| match ip {
+            std::net::IpAddr::V4(v) => {
+                let o = v.octets();
+                // anche 100.64/10 (Tailscale e simili)
+                v.is_loopback() || v.is_private() || v.is_link_local() || (o[0] == 100 && (o[1] & 0xc0) == 64)
+            }
+            std::net::IpAddr::V6(v) => v.is_loopback() || (v.segments()[0] & 0xfe00) == 0xfc00 || (v.segments()[0] & 0xffc0) == 0xfe80,
+        });
+    !local
+}
+
+/// Silenzio massimo dal server: in attesa della risposta e fra un pezzo e
+/// l'altro. Nel cloud basta un minuto (chi pensa a lungo manda comunque il
+/// ragionamento); un modello sul Mac può impiegare minuti a leggere un
+/// contesto lungo, lì vale il `timeout_s` dell'agente.
+fn idle_secs(p: &Provider) -> u64 {
+    let t = p.timeout_s.max(5);
+    if is_cloud(p) {
+        t.min(90)
+    } else {
+        t
+    }
+}
+
+/// Attesa massima della prima risposta (e di ogni lettura): nel cloud al più
+/// due minuti (un modello che pensa senza mandare niente ha il tempo), sul
+/// Mac il `timeout_s` dell'agente.
+fn first_secs(p: &Provider) -> u64 {
+    let t = p.timeout_s.max(5);
+    if is_cloud(p) {
+        t.min(120)
+    } else {
+        t
+    }
+}
+
 fn agent(p: &Provider) -> ureq::Agent {
     ureq::AgentBuilder::new()
         // un server spento deve far passare subito al prossimo
         .timeout_connect(Duration::from_secs(4))
-        .timeout_read(Duration::from_secs(p.timeout_s.max(5)))
+        .timeout_read(Duration::from_secs(first_secs(p)))
         .build()
 }
 
@@ -1319,7 +1373,13 @@ fn call(
             }
             answer.push_str(&out.text);
         }
-        let Some(t) = tools.filter(|_| !out.calls.is_empty()) else {
+        // all'ultimo giro gli strumenti non si eseguono più (anche se il modello li chiede)
+        let last = round + 1 >= max_rounds;
+        if last && !out.calls.is_empty() && answer.trim().is_empty() {
+            answer = crate::i18n::t("Mi sono fermato: servivano troppi passaggi con gli strumenti. Dimmi se continuo.").into();
+            on_event(Event::Delta(answer.clone()));
+        }
+        let Some(t) = tools.filter(|_| !out.calls.is_empty() && !last) else {
             // token della conversazione: quelli del server se li dice
             let (used, exact) = match out.usage {
                 Some(u) => (u, true),
@@ -1363,7 +1423,7 @@ fn call(
             if let Some((doc, undo)) = run.edit {
                 on_event(Event::DocEdit { doc, undo });
             }
-            wire.push(serde_json::json!({ "role": "tool", "tool_call_id": c.id, "content": run.text }));
+            wire.push(serde_json::json!({ "role": "tool", "tool_call_id": c.id, "content": cap_tool_text(run.text, context) }));
             if send_image && !run.images.is_empty() {
                 use base64::Engine;
                 let mut parts = vec![serde_json::json!({ "type": "text", "text": format!("Immagine restituita da {}:", c.name) })];
@@ -1377,8 +1437,29 @@ fn call(
         // le immagini vanno dopo tutte le risposte degli strumenti
         wire.append(&mut pending_images);
         round += 1;
+        // contesto quasi pieno: niente altri strumenti, deve rispondere
+        if estimate_wire(&wire) as u64 * 100 > context as u64 * 85 {
+            tracing::info!("{}: contesto quasi pieno, l'ultimo giro risponde", p.name);
+            round = round.max(max_rounds.saturating_sub(1));
+        }
     }
     Ok(clean_reply(&answer))
+}
+
+/// Il risultato di uno strumento, al massimo una parte del contesto del
+/// modello (una pagina web, un documento lungo, un server MCP): il resto si
+/// taglia e glielo si dice.
+fn cap_tool_text(text: String, context: u32) -> String {
+    // ~4 caratteri per token, al massimo un quarto del contesto (e 30 000)
+    let cap = (context as usize).clamp(8_192, 120_000).min(30_000);
+    if text.chars().count() <= cap {
+        return text;
+    }
+    let cut: String = text.chars().take(cap).collect();
+    format!(
+        "{cut}\n\n[… risultato tagliato: altri {} caratteri. Se serve il resto, chiedine un pezzo alla volta.]",
+        text.chars().count() - cap
+    )
 }
 
 struct ToolCall {
@@ -1490,9 +1571,22 @@ fn stream_round(
             add_call(i, c, &mut calls);
         }
     } else {
+        // righe di sola compagnia (": keep-alive") senza dati per troppo tempo = fermo
+        // prima dei primi dati si aspetta come per la prima risposta
+        let (idle, first) = (Duration::from_secs(idle_secs(p)), Duration::from_secs(first_secs(p)));
+        let mut last_data = std::time::Instant::now();
+        let mut got_data = false;
         for line in resp.body.lines() {
             let line = line.map_err(|e| anyhow!("lettura: {e}"))?;
-            let Some(data) = line.strip_prefix("data:") else { continue };
+            let Some(data) = line.strip_prefix("data:") else {
+                let limit = if got_data { idle } else { first };
+                if last_data.elapsed() > limit {
+                    bail!("nessuna risposta da {} s", limit.as_secs());
+                }
+                continue;
+            };
+            last_data = std::time::Instant::now();
+            got_data = true;
             let data = data.trim();
             if data == "[DONE]" {
                 break;
@@ -1588,7 +1682,7 @@ fn http(p: &Provider, key: &str, url: &str, body: Option<&serde_json::Value>) ->
             ONCE.call_once(|| {
                 tracing::info!("macOS blocca la rete locale a questo programma (permesso «Rete locale»): uso curl")
             });
-            http_curl(url, key, body, p.timeout_s)
+            http_curl(url, key, body, first_secs(p))
                 .map_err(|ce| anyhow!("{} — anche con curl: {ce}", transport_msg(&e)))
         }
         Err(e) => bail!("{}", transport_msg(&e)),

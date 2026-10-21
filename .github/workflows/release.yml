@@ -10,6 +10,10 @@ name: Release
 on:
   workflow_dispatch:
 
+# solo lettura di serie; il passo che pubblica la release chiede di più
+permissions:
+  contents: read
+
 concurrency:
   group: release
   cancel-in-progress: false
@@ -47,18 +51,43 @@ jobs:
     env:
       VERSION: ${{ needs.version.outputs.version }}
       MACOSX_DEPLOYMENT_TARGET: '11.0'
-      # Apple Developer ID (optional, as in ArtCraft's Craft apps): with these repository secrets
-      # the app is signed with the Developer ID and notarized by Apple, so macOS opens it with no
-      # warning. Without them it is signed ad hoc (the user must allow it once).
-      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    # Apple Developer ID (optional, as in ArtCraft's Craft apps): with the repository secrets
+    # APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_PASSWORD and APPLE_TEAM_ID
+    # the app is signed with the Developer ID and notarized by Apple, so macOS opens it with no
+    # warning. Without them it is signed ad hoc (the user must allow it once).
+    # The secrets are given only to the signing and notarization steps, after the build: the
+    # build scripts of the dependencies never see them, and the signing keychain does not exist
+    # while they run.
     steps:
       - uses: actions/checkout@v5
 
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Set version
+        run: |
+          perl -0pi -e 's/^version = "[^"]*"/version = "$ENV{VERSION}"/m' Cargo.toml
+          perl -0pi -e 's/(name = "openslate"\nversion = ")[^"]*"/$1$ENV{VERSION}"/' Cargo.lock
+
+      - name: Test
+        run: cargo test --release --locked --target aarch64-apple-darwin
+
+      - name: Build (arm64 + x86_64)
+        run: |
+          cargo build --release --locked --target aarch64-apple-darwin
+          cargo build --release --locked --target x86_64-apple-darwin
+
+      - name: Third-party licences (full texts)
+        run: python3 packaging/collect_licenses.py build/THIRD-PARTY-LICENSES.txt
+
       - name: Signing certificate (Developer ID, if configured)
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          HAS_NOTARY: ${{ secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
         run: |
           if [ -z "$APPLE_CERTIFICATE" ]; then
             echo "::warning::APPLE_CERTIFICATE not set: the app will be signed ad hoc and not notarized"
@@ -80,20 +109,7 @@ jobs:
           test -n "$IDENTITY" || { echo "no 'Developer ID Application' identity in APPLE_CERTIFICATE"; exit 1; }
           echo "MACOS_SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
           echo "MACOS_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Set version
-        run: perl -0pi -e 's/^version = "[^"]*"/version = "$ENV{VERSION}"/m' Cargo.toml
-
-      - name: Build (arm64 + x86_64)
-        run: |
-          cargo build --release --target aarch64-apple-darwin
-          cargo build --release --target x86_64-apple-darwin
+          if [ "$HAS_NOTARY" = "true" ]; then echo "CAN_NOTARIZE=1" >> "$GITHUB_ENV"; fi
 
       - name: Swift helper (Apple Vision OCR)
         run: |
@@ -117,7 +133,7 @@ jobs:
             target/x86_64-apple-darwin/release/openslate
           cp build/helpers/* "$APP/Contents/Resources/helpers/"
           sed "s/@VERSION@/$VERSION/g" packaging/macos/Info.plist > "$APP/Contents/Info.plist"
-          cp LICENSE NOTICE "$APP/Contents/Resources/"
+          cp LICENSE NOTICE THIRD-PARTY.md build/THIRD-PARTY-LICENSES.txt "$APP/Contents/Resources/"
           # icon
           ICONSET=build/OpenSlate.iconset; mkdir -p "$ICONSET"
           for s in 16 32 128 256 512; do
@@ -143,7 +159,11 @@ jobs:
           codesign --verify --strict --deep --verbose=2 "$APP"
 
       - name: Notarize the app (if configured)
-        if: env.MACOS_SIGN_IDENTITY != '' && env.APPLE_ID != '' && env.APPLE_PASSWORD != '' && env.APPLE_TEAM_ID != ''
+        if: env.MACOS_SIGN_IDENTITY != '' && env.CAN_NOTARIZE == '1'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           ditto -c -k --keepParent build/OpenSlate.app build/notarize.zip
           xcrun notarytool submit build/notarize.zip --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" \
@@ -154,6 +174,10 @@ jobs:
           echo "NOTARIZED=1" >> "$GITHUB_ENV"
 
       - name: DMG
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           mkdir -p build/dmg dist
           cp -R build/OpenSlate.app build/dmg/
@@ -206,16 +230,21 @@ jobs:
           tool: cargo-deb
 
       - name: Set version
-        run: perl -0pi -e 's/^version = "[^"]*"/version = "$ENV{VERSION}"/m' Cargo.toml
+        run: |
+          perl -0pi -e 's/^version = "[^"]*"/version = "$ENV{VERSION}"/m' Cargo.toml
+          perl -0pi -e 's/(name = "openslate"\nversion = ")[^"]*"/$1$ENV{VERSION}"/' Cargo.lock
 
       - name: Build
-        run: cargo build --release
+        run: cargo build --release --locked
+
+      - name: Third-party licences (full texts)
+        run: python3 packaging/collect_licenses.py build/THIRD-PARTY-LICENSES.txt
 
       - name: tar.gz
         run: |
           D="openslate-$VERSION-linux-x86_64"
           mkdir -p "build/$D" dist
-          cp target/release/openslate README.md LICENSE NOTICE THIRD-PARTY.md "build/$D/"
+          cp target/release/openslate README.md LICENSE NOTICE THIRD-PARTY.md build/THIRD-PARTY-LICENSES.txt "build/$D/"
           cp packaging/linux/openslate.desktop assets/icon/openslate-256.png "build/$D/"
           tar -C build -czf "dist/$D.tar.gz" "$D"
 
@@ -247,17 +276,22 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Set version
-        run: perl -0pi -e 's/^version = "[^"]*"/version = "$ENV{VERSION}"/m' Cargo.toml
+        run: |
+          perl -0pi -e 's/^version = "[^"]*"/version = "$ENV{VERSION}"/m' Cargo.toml
+          perl -0pi -e 's/(name = "openslate"\r?\nversion = ")[^"]*"/$1$ENV{VERSION}"/' Cargo.lock
 
       - name: Build
-        run: cargo build --release
+        run: cargo build --release --locked
+
+      - name: Third-party licences (full texts)
+        run: python packaging/collect_licenses.py build/THIRD-PARTY-LICENSES.txt
 
       - name: zip
         shell: pwsh
         run: |
           $d = "openslate-$env:VERSION-windows-x86_64"
           New-Item -ItemType Directory -Force -Path "build/$d", dist | Out-Null
-          Copy-Item target/release/openslate.exe, README.md, LICENSE, NOTICE, THIRD-PARTY.md, assets/icon/openslate.ico "build/$d/"
+          Copy-Item target/release/openslate.exe, README.md, LICENSE, NOTICE, THIRD-PARTY.md, build/THIRD-PARTY-LICENSES.txt, assets/icon/openslate.ico "build/$d/"
           Compress-Archive -Path "build/$d" -DestinationPath "dist/$d.zip"
 
       - uses: actions/upload-artifact@v5

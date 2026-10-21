@@ -12,7 +12,7 @@ use crate::library::{strokes_from_fmt, strokes_to_fmt, StrokeFmt};
 use crate::pdfdoc::{self, OverlayStroke, PdfPage};
 use crate::scene::{page_dims, PageBg, PageGeom, View};
 use crate::stroke::{Drawing, Stroke};
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -72,6 +72,9 @@ pub struct Document {
     /// Documento Word: il file originale nella cartella del documento (es.
     /// `source.docx`); «Salva» lo riscrive nello stesso formato, firmato.
     pub original: Option<String>,
+    /// L'inchiostro di pagine che il documento non ha più (una modifica le
+    /// ha tolte): non si butta, torna se le pagine tornano (Annulla).
+    pub extra: Vec<Vec<Stroke>>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -84,6 +87,9 @@ struct DocFmt {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     original: Option<String>,
     pages: Vec<Vec<StrokeFmt>>,
+    /// Inchiostro delle pagine che non ci sono più.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    extra: Vec<Vec<StrokeFmt>>,
 }
 
 /// Riga dell'elenco «Documenti».
@@ -177,6 +183,7 @@ impl Document {
                 pages: Vec::new(),
                 current: 0,
                 original,
+                extra: Vec::new(),
             };
             doc.load_pages(None)?;
             doc.save()?;
@@ -201,6 +208,9 @@ impl Document {
     fn load_pages(&mut self, strokes: Option<Vec<Vec<Stroke>>>) -> Result<()> {
         let pdf = self.source_pdf();
         let info = pdfdoc::pages(&pdf)?;
+        if info.is_empty() {
+            bail!("il documento non ha pagine leggibili");
+        }
         let pages_dir = self.dir.join("pages");
         let expected = |i: usize| pages_dir.join(format!("page-{:04}.png", i + 1));
         let mut pngs: Vec<PathBuf> = (0..info.len()).map(expected).collect();
@@ -215,14 +225,25 @@ impl Document {
             }
             pngs = (0..info.len().min(made.len())).map(expected).collect();
         }
+        // l'inchiostro in più (pagine sparite) resta da parte, non si taglia
         let mut strokes = strokes.unwrap_or_default();
-        strokes.resize_with(pngs.len(), Vec::new);
+        strokes.append(&mut std::mem::take(&mut self.extra));
+        let n = pngs.len();
+        let mut extra = if strokes.len() > n { strokes.split_off(n) } else { Vec::new() };
+        while extra.last().is_some_and(|p| p.is_empty()) {
+            extra.pop();
+        }
+        self.extra = extra;
+        strokes.resize_with(n, Vec::new);
         self.pages = info
             .into_iter()
             .zip(pngs)
             .zip(strokes)
             .map(|((pdf, png), strokes)| DocPage { pdf, png, strokes })
             .collect();
+        if self.pages.is_empty() {
+            bail!("le pagine del documento non si disegnano");
+        }
         self.current = self.current.min(self.pages.len().saturating_sub(1));
         Ok(())
     }
@@ -240,6 +261,7 @@ impl Document {
             pages: Vec::new(),
             current: f.current,
             original: f.original,
+            extra: f.extra.into_iter().map(strokes_from_fmt).collect(),
         };
         doc.load_pages(Some(f.pages.into_iter().map(strokes_from_fmt).collect()))?;
         Ok(doc)
@@ -253,6 +275,7 @@ impl Document {
             current: self.current,
             original: self.original.clone(),
             pages: self.pages.iter().map(|p| strokes_to_fmt(&p.strokes)).collect(),
+            extra: self.extra.iter().map(|p| strokes_to_fmt(p)).collect(),
         };
         let tmp = self.dir.join(".doc.json.tmp");
         std::fs::write(&tmp, serde_json::to_string(&f)?)?;

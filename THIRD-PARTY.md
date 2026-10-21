@@ -6,7 +6,9 @@ authors and contributors.
 
 OpenSlate itself is licensed under the GNU General Public License v3.0 or later
 (see [LICENSE](LICENSE)). The licences of all components below are compatible with it.
-Per-file attributions are in [NOTICE](NOTICE).
+Per-file attributions are in [NOTICE](NOTICE). The release packages also contain
+`THIRD-PARTY-LICENSES.txt` with the full licence text of every component (made by
+`packaging/collect_licenses.py`).
 
 ## Code and ideas that shaped the project
 
@@ -36,6 +38,7 @@ Per-file attributions are in [NOTICE](NOTICE).
 | [Phosphor Icons](https://phosphoricons.com) | Helena Zhang, Tobias Fried | MIT | via the `egui-phosphor` crate |
 | [KaTeX](https://katex.org) | Khan Academy and contributors | MIT | `src/web/vendor/katex*` (formulas) |
 | [marked](https://marked.js.org) | Christopher Jeffrey and the marked contributors | MIT | `src/web/vendor/marked.min.js` (Markdown) |
+| [DOMPurify](https://github.com/cure53/DOMPurify) 3.4.16 | Cure53 and contributors | Apache-2.0 OR MPL-2.0 | `src/web/vendor/purify.min.js` (cleans the HTML of AI answers and notes before showing them) |
 
 ## Platform components used at run time (not bundled)
 

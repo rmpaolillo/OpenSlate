@@ -127,6 +127,26 @@ pub fn attach_current(id: &str) -> Result<Value, String> {
         "dir": c.dir.as_ref().map(|d| d.to_string_lossy().to_string()), "pagina": c.page }))
 }
 
+/// La cartella è un documento dell'app (sotto `documents/`)?
+fn inside_documents(d: &std::path::Path) -> bool {
+    match (std::fs::canonicalize(d), std::fs::canonicalize(crate::document::DOC_DIR)) {
+        (Ok(d), Ok(root)) => d.starts_with(&root) && d != root,
+        _ => false,
+    }
+}
+
+/// Copia la pagina allegata (l'immagine) da una conversazione a un'altra
+/// («Dirama»).
+pub fn copy_page(from: &str, to: &str) -> Result<(), String> {
+    if !valid_id(from) || !valid_id(to) {
+        return Err("id non valido".into());
+    }
+    if png_path(from).exists() {
+        std::fs::copy(png_path(from), png_path(to)).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 /// La pagina di una conversazione, per mandarla al modello.
 pub fn page_context(id: &str) -> Option<crate::ai::ChatContext> {
     let v: Value = serde_json::from_slice(&get(id)?).ok()?;
@@ -145,8 +165,9 @@ pub fn page_context(id: &str) -> Option<crate::ai::ChatContext> {
         markdown: page["markdown"].as_str().unwrap_or("").to_string(),
         doc: page["doc"].as_bool().unwrap_or(false),
         rev: 0,
-        // il documento della conversazione, se c'è ancora
-        dir: page["dir"].as_str().map(std::path::PathBuf::from).filter(|d| d.join("doc.json").exists()),
+        // il documento della conversazione, se c'è ancora, e solo dentro
+        // documents/ (il file della chat non sceglie una cartella qualsiasi)
+        dir: page["dir"].as_str().map(std::path::PathBuf::from).filter(|d| d.join("doc.json").exists() && inside_documents(d)),
         page: page["pagina"].as_u64().unwrap_or(0) as usize,
     })
 }

@@ -36,7 +36,7 @@ pub fn run(url: &str, title: &str) -> Result<()> {
     let builder = wry::WebViewBuilder::new()
         .with_url(url)
         .with_navigation_handler(move |u| {
-            if u.starts_with(&origin) || u.starts_with("about:") || u.starts_with("data:") || u.starts_with("blob:") {
+            if u.starts_with(&origin) || u.starts_with("about:") || u.starts_with("blob:") {
                 true
             } else {
                 open_external(&u);

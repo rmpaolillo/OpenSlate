@@ -114,6 +114,8 @@ impl App {
                     self.note = Some(n.clone());
                 }
             }
+            // l'appunto si è salvato: se si stava uscendo, ora si chiude
+            "note_flushed" => self.note_flushed(),
             "note_state" => {
                 self.note_info.words = v["words"].as_u64().unwrap_or(0) as usize;
                 self.note_info.dirty = v["dirty"].as_bool().unwrap_or(false);

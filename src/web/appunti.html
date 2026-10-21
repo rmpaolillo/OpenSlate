@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="vendor/katex.min.css">
 <script defer src="vendor/katex.min.js"></script>
 <script defer src="vendor/marked.min.js"></script>
+<script defer src="vendor/purify.min.js"></script>
 <style>
   /* Appunto come un documento di Word: foglio bianco sul tavolo grigio.
      Si modifica come in Typora: clic su un paragrafo o una formula = il suo
@@ -125,6 +126,12 @@ function tex(src, display) {
   try { return katex.renderToString(src, { displayMode: display, throwOnError: false, strict: "ignore" }); }
   catch (e) { return esc(src); }
 }
+// Quello che arriva dal modello o dai file passa da DOMPurify: un testo
+// malevolo (una pagina web letta, un appunto) non può eseguire codice qui.
+function clean(html) {
+  if (!window.DOMPurify) return "<div style='white-space:pre-wrap'>" + esc(html.replace(/<[^>]*>/g, "")) + "</div>";
+  return DOMPurify.sanitize(html, { USE_PROFILES: { html: true, svg: true, mathMl: true }, ADD_TAGS: ["semantics", "annotation"], ADD_ATTR: ["encoding", "target"] });
+}
 function renderMd(src) {
   if (!window.marked) return "<div style='white-space:pre-wrap'>" + esc(src) + "</div>";
   const code = [], math = [];
@@ -134,8 +141,8 @@ function renderMd(src) {
   src = src.replace(/\\\(([\s\S]+?)\\\)/g, (m, a) => keep(tex(a, false)));
   src = src.replace(/(^|[^\\$])\$([^\s$](?:[^$\n]*?[^\s\\$])?)\$(?!\d)/g, (m, pre, a) => pre + keep(tex(a, false)));
   src = src.replace(/%%C(\d+)%%/g, (m, i) => code[+i]);
-  return marked.parse(src, { breaks: true })
-    .replace(/%%M(\d+)%%/g, (m, i) => math[+i])
+  return clean(marked.parse(src, { breaks: true })
+    .replace(/%%M(\d+)%%/g, (m, i) => math[+i]))
     .replace(/\[\?\]/g, "<span class='unk' title='illeggibile sul foglio'>[?]</span>")
     // immagini accanto all'appunto (figure ridisegnate): si prendono da exports/
     .replace(/<img src="(?![a-z]+:|\/)([^"]+)"/gi, (m, f) => '<img src="api/appunti-file/' + encodeURIComponent(f) + '"');
@@ -267,24 +274,52 @@ function changed() {
 }
 function words() { return (text().replace(/\$\$[\s\S]*?\$\$|\$[^$\n]*\$/g, " ∑ ").match(/[\p{L}\p{N}∑]+/gu) || []).length; }
 function report() { toApp({ cmd: "note_state", name: cur, words: words(), dirty: !!dirty() }); }
-async function save() {
+// `ver` = versione del file che si sta modificando: il server rifiuta il
+// salvataggio (409) se nel frattempo qualcun altro (l'AI, la chat, Typora)
+// l'ha cambiato, così niente si perde: compare l'avviso per scegliere.
+let ver = null, externalVer = null;
+// Quello che hai scritto, quando l'appunto è cambiato da fuori e non hai
+// ancora scelto (chiusura dell'app, altro appunto): va in una copia accanto,
+// «<nome>-mio-<ora>.md», così non si perde niente.
+let conflictSaved = null;
+async function saveConflictCopy() {
+  const t = text();
+  if (!cur || conflictSaved === t) return;
+  const d = new Date(), p = (n) => String(n).padStart(2, "0");
+  const name = cur.replace(/\.md$/i, "") + "-mio-" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + ".md";
+  try {
+    const r = await fetch("api/appunti/" + encodeURIComponent(name), { method: "POST", body: t, headers: { "If-None-Match": "*" } });
+    if (r.ok) { conflictSaved = t; toApp({ cmd: "status", text: T("La tua versione dell'appunto è in «{}».", name) }); }
+  } catch (e) {}
+}
+async function save(force) {
   clearTimeout(saveT);
   if (!cur || !dirty()) return;
-  const t = text();
+  if (external !== null && !force) return; // prima si sceglie nell'avviso
+  const t = text(), name = cur;
   try {
-    const r = await fetch("api/appunti/" + encodeURIComponent(cur), { method: "POST", body: t });
-    if (r.ok) saved = t;
+    const r = await fetch("api/appunti/" + encodeURIComponent(name), { method: "POST", body: t, headers: ver ? { "If-Match": ver } : {} });
+    if (r.status === 409) {
+      showExternal(await r.text(), r.headers.get("X-Version"));
+    } else if (r.ok && name === cur) {
+      saved = t; ver = r.headers.get("X-Version") || ver;
+    }
   } catch (e) {}
   report();
+}
+function showExternal(t, v) {
+  external = t; externalVer = v;
+  $("bannertext").textContent = "L'appunto è stato cambiato da fuori (forse dall'AI).";
+  $("banner").style.display = "block";
 }
 
 // --- aprire ---
 async function open(name, keepScroll) {
-  if (cur && dirty()) await save();
+  if (cur && dirty()) { if (external !== null) await saveConflictCopy(); else await save(); }
   const r = await fetch("api/appunti/" + encodeURIComponent(name), { cache: "no-store" });
   if (!r.ok) { cur = null; drawBlocks(); return false; }
   const t = await r.text();
-  cur = name; saved = t; blocks = splitBlocks(t); editing = -1;
+  cur = name; saved = t; ver = r.headers.get("X-Version"); external = null; $("banner").style.display = "none"; blocks = splitBlocks(t); editing = -1;
   $("srcmode").value = t;
   $("name").textContent = name;
   document.title = name + " — " + T("Appunti");
@@ -302,15 +337,15 @@ async function open(name, keepScroll) {
 let external = null;
 async function poll() {
   if (!cur || document.hidden) return;
-  let t;
-  try { const r = await fetch("api/appunti/" + encodeURIComponent(cur), { cache: "no-store" }); if (!r.ok) return; t = await r.text(); } catch (e) { return; }
-  if (t === saved) return;
-  if (!dirty() && editing < 0) applyExternal(t);
-  else { external = t; $("bannertext").textContent = "L'appunto è stato cambiato da fuori (forse dall'AI)."; $("banner").style.display = "block"; }
+  let t, v;
+  try { const r = await fetch("api/appunti/" + encodeURIComponent(cur), { cache: "no-store" }); if (!r.ok) return; t = await r.text(); v = r.headers.get("X-Version"); } catch (e) { return; }
+  if (t === saved) { ver = v || ver; return; }
+  if (!dirty() && editing < 0) applyExternal(t, v);
+  else showExternal(t, v);
 }
-function applyExternal(t) {
+function applyExternal(t, v) {
   const old = new Set(blocks.map((b) => b.trim()));
-  saved = t; blocks = splitBlocks(t); editing = -1; $("srcmode").value = t;
+  saved = t; ver = v || externalVer || ver; blocks = splitBlocks(t); editing = -1; $("srcmode").value = t;
   const fresh = new Set(); blocks.forEach((b, i) => { if (!old.has(b.trim())) fresh.add(i); });
   drawBlocks(fresh);
   const first = [...fresh][0];
@@ -318,8 +353,9 @@ function applyExternal(t) {
   external = null; $("banner").style.display = "none";
   report();
 }
-$("reload").onclick = () => external !== null && applyExternal(external);
-$("keep").onclick = () => { external = null; $("banner").style.display = "none"; save(); };
+$("reload").onclick = () => external !== null && applyExternal(external, externalVer);
+// «Tieni il mio»: si salva sopra la versione di fuori (che resta nell'Annulla della chat)
+$("keep").onclick = () => { ver = externalVer; external = null; $("banner").style.display = "none"; save(true); };
 
 // --- elenco degli appunti ---
 function when(t) {
@@ -407,7 +443,9 @@ window.wsNote = {
   reload: () => poll(),
   text: () => text(),
   name: () => cur,
-  flush: () => save(),
+  // prima di chiudere l'app: salva (o, se l'appunto è cambiato da fuori,
+  // mette la tua versione in una copia) e lo dice all'app, che poi chiude
+  flush: async () => { if (external !== null && dirty()) await saveConflictCopy(); else await save(); toApp({ cmd: "note_flushed" }); },
 };
 
 // --- eventi ---
@@ -431,7 +469,12 @@ let gz = 1;
 addEventListener("gesturestart", (e) => { e.preventDefault(); gz = zoom; });
 addEventListener("gesturechange", (e) => { e.preventDefault(); setZoom(gz * e.scale); });
 addEventListener("wheel", (e) => { if (e.ctrlKey) { e.preventDefault(); setZoom(zoom * Math.exp(-e.deltaY / 200)); } }, { passive: false });
-addEventListener("pagehide", () => { if (cur && dirty()) navigator.sendBeacon("api/appunti/" + encodeURIComponent(cur), text()); });
+addEventListener("pagehide", () => {
+  if (!cur || !dirty()) return;
+  if (external === null) { navigator.sendBeacon("api/appunti/" + encodeURIComponent(cur) + (ver ? "?v=" + encodeURIComponent(ver) : ""), text()); return; }
+  // cambiato da fuori e non hai scelto: la tua versione in una copia
+  if (conflictSaved !== text()) navigator.sendBeacon("api/appunti/" + encodeURIComponent(cur.replace(/\.md$/i, "") + "-mio-" + Date.now() + ".md"), text());
+});
 document.addEventListener("visibilitychange", () => { if (document.hidden) save(); });
 
 window.addEventListener("load", async () => {

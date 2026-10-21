@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="vendor/katex.min.css">
 <script defer src="vendor/katex.min.js"></script>
 <script defer src="vendor/marked.min.js"></script>
+<script defer src="vendor/purify.min.js"></script>
 <style>
   /* Chat con gli agenti AI, organizzata come DSH (conversazioni, strumenti,
      ragionamento, comandi «/», contesto) e disegnata come WordCraft. */
@@ -306,6 +307,12 @@ function tex(src, display) {
   try { return katex.renderToString(src, { displayMode: display, throwOnError: false, strict: "ignore" }); } catch (e) { return esc(src); }
 }
 // `settled` = falso durante lo streaming: le formule a metà restano testo (come DSH)
+// Quello che arriva dal modello o dai file passa da DOMPurify: un testo
+// malevolo (una pagina web letta, un appunto) non può eseguire codice qui.
+function clean(html) {
+  if (!window.DOMPurify) return "<div style='white-space:pre-wrap'>" + esc(html.replace(/<[^>]*>/g, "")) + "</div>";
+  return DOMPurify.sanitize(html, { USE_PROFILES: { html: true, svg: true, mathMl: true }, ADD_TAGS: ["semantics", "annotation"], ADD_ATTR: ["encoding", "target"] });
+}
 function renderMd(src, settled = true) {
   src = src || "";
   if (!window.marked) return "<div style='white-space:pre-wrap'>" + esc(src) + "</div>";
@@ -317,7 +324,7 @@ function renderMd(src, settled = true) {
   src = src.replace(/(^|[^\\$])\$([^\s$](?:[^$\n]*?[^\s\\$])?)\$(?!\d)/g, (m, pre, a) => pre + keep(tex(a, false)));
   if (!settled) src = src.replace(/\$\$[^$]*$/, (m) => "`" + m.replace(/`/g, "") + "`");
   src = src.replace(/%%C(\d+)%%/g, (m, i) => code[+i]);
-  return svgBlocks(marked.parse(src, { breaks: true }).replace(/%%M(\d+)%%/g, (m, i) => math[+i]));
+  return svgBlocks(clean(marked.parse(src, { breaks: true }).replace(/%%M(\d+)%%/g, (m, i) => math[+i])));
 }
 // Blocchi di codice SVG (```svg, o xml/html che contengono un <svg>): si
 // vedono disegnati, col codice sotto a richiesta. Come immagine (<img>), così
@@ -407,8 +414,11 @@ async function forkAt(i) {
   c.title = cur.title.replace(/ \(ramo.*\)$/, "") + " (ramo)";
   c.messages = JSON.parse(JSON.stringify(cur.messages.slice(0, i + 1)));
   c.page = cur.page; c.attach = cur.attach; c.provider = cur.provider; c.web = cur.web;
+  const from = cur.id;
   cur = c;
   await saveNow();
+  // anche l'immagine della pagina allegata
+  if (c.page) await api("api/chats/" + c.id + "/copyfrom", { from }).catch(() => {});
   drawAll();
   q.focus();
 }
@@ -825,11 +835,17 @@ function editFrom(i) {
 }
 async function appendToNote(md) {
   if (!noteShown()) return;
+  // si aggiunge alla versione letta: se intanto l'appunto cambia (409), si rilegge e si riprova
   try {
-    const r = await fetch("api/appunti/" + encodeURIComponent(noteName), { cache: "no-store" });
-    const old = r.ok ? await r.text() : "";
-    await fetch("api/appunti/" + encodeURIComponent(noteName), { method: "POST", body: old.trimEnd() + (old.trim() ? "\n\n" : "") + md.trim() + "\n" });
-    toApp({ cmd: "note_reload" }); toApp({ cmd: "status", text: T("Risposta aggiunta all'appunto «{}».", noteName) });
+    for (let tries = 0; tries < 3; tries++) {
+      const r = await fetch("api/appunti/" + encodeURIComponent(noteName), { cache: "no-store" });
+      const old = r.ok ? await r.text() : "", v = r.ok ? r.headers.get("X-Version") : null;
+      const w = await fetch("api/appunti/" + encodeURIComponent(noteName), { method: "POST", body: old.trimEnd() + (old.trim() ? "\n\n" : "") + md.trim() + "\n",
+        headers: v ? { "If-Match": v } : { "If-None-Match": "*" } });
+      if (w.status === 409) continue;
+      if (w.ok) { toApp({ cmd: "note_reload" }); toApp({ cmd: "status", text: T("Risposta aggiunta all'appunto «{}».", noteName) }); }
+      return;
+    }
   } catch (e) {}
 }
 
@@ -850,7 +866,10 @@ function refreshPage() {
 }
 async function send(text, images) {
   busy = busy || new AbortController(); // intanto un altro Invio va in coda
+  drawSend(); // il tasto Stop c'è già mentre si prende il foglio
   await refreshPage();
+  // Stop prima di partire: la domanda torna nel riquadro (non si perde)
+  if (busy.signal.aborted) { busy = null; drawSend(); if (!q.value.trim()) { q.value = text; grow(); } if (images && images.length && !pendingImgs.length) { pendingImgs = images; drawPasted(); } return; }
   const userMsg = { role: "user", content: text, at: Date.now() };
   if (images && images.length) userMsg.images = images;
   cur.messages.push(userMsg);
@@ -880,7 +899,6 @@ async function send(text, images) {
     }
   };
   const steps = () => { if (!pendingSteps) { pendingSteps = true; requestAnimationFrame(paintSteps); } };
-  busy = new AbortController();
   drawSend(); drawMeter();
   try {
     const att = cur.attach && !!cur.page;
@@ -1227,12 +1245,15 @@ function drawChips() {
     () => { cur.web = !cur.web; ls.set("ws-web", cur.web); saveSoon(false); drawChips(); drawMeter(); }, cur.web ? "" : "off");
 }
 async function attachIncoming(fresh) {
-  if (fresh) await newChat(cur.project);
+  if (fresh && !busy) await newChat(cur.project);
   const j = await api("api/chats/" + cur.id + "/attach", "{}");
   if (j.ok && j.page) {
     cur.page = j.page; cur.attach = true;
     if ((j.page.rev || 0) > ctxSeen) ctxSeen = j.page.rev; // già preso: pollContext non lo ripete
   }
+  // mentre risponde non si ridisegna la conversazione (si perderebbe la
+  // risposta che sta arrivando): solo le schede
+  if (busy) { saveSoon(false); drawChips(); drawMeter(); return; }
   await saveNow();
   drawAll();
 }
@@ -1248,6 +1269,7 @@ async function pollContext() {
   if (busy) return; // mentre risponde non si ridisegna la chat
   try {
     const c = await api("api/context");
+    if (busy) return; // è partita una domanda nel frattempo
     if (ctxSeen < 0) { ctxSeen = c.rev; return; }
     if (c.rev > ctxSeen) {
       ctxSeen = c.rev;
@@ -1268,10 +1290,16 @@ async function exportMd() {
   }
   const p = (n) => String(n).padStart(2, "0"), d = new Date();
   const slug = cur.title.normalize("NFD").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-").slice(0, 40) || "chat";
-  const name = "chat-" + slug + "-" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes()) + ".md";
+  const base = "chat-" + slug + "-" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes());
+  let name = base + ".md";
   try {
-    const r = await fetch("api/appunti/" + encodeURIComponent(name), { method: "POST", body: md });
-    if (r.ok) { if (!toApp({ cmd: "open_note", name })) location.href = "appunti?f=" + encodeURIComponent(name); return; }
+    // mai sopra un appunto che c'è già: -2, -3…
+    for (let k = 2; k < 50; k++) {
+      const r = await fetch("api/appunti/" + encodeURIComponent(name), { method: "POST", body: md, headers: { "If-None-Match": "*" } });
+      if (r.status === 409) { name = base + "-" + k + ".md"; continue; }
+      if (r.ok) { if (!toApp({ cmd: "open_note", name })) location.href = "appunti?f=" + encodeURIComponent(name); return; }
+      break;
+    }
   } catch (e) {}
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([md], { type: "text/markdown" })); a.download = name; a.click();

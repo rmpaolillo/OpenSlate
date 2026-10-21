@@ -69,6 +69,12 @@ pub enum UiEvent {
         deleted: usize,
         drawings: Vec<PadDrawing>,
     },
+    /// File scritti da un lavoro in sottofondo (export, documento firmato):
+    /// i file fatti, l'eventuale errore; `doc` = il documento firmato (si apre).
+    Exported { written: Vec<std::path::PathBuf>, error: Option<String>, doc: bool },
+    /// Scaricamento dal pad interrotto (le pagine già tolte si recuperano
+    /// dalle copie grezze).
+    SyncFailed(String),
     /// Pagine ancora nel pad.
     PadFiles(usize),
     Ocr(Result<OcrDone, String>),
@@ -187,7 +193,9 @@ pub async fn ble_actor(
                                 drawings,
                             });
                         }
-                        Err(e) => err(&evt_tx, explain(&e)),
+                        Err(e) => {
+                            let _ = evt_tx.send(UiEvent::SyncFailed(explain(&e)));
+                        }
                     }
                 }
                 _ => err(&evt_tx, "Prima connetti il pad.".into()),
@@ -208,7 +216,7 @@ pub async fn ble_actor(
 
 /// Copia di sicurezza dei byte grezzi, PRIMA di qualunque cancellazione.
 /// Ritorna il nome del file salvato.
-fn save_raw(f: &OfflineFile) -> Option<String> {
+pub(crate) fn save_raw(f: &OfflineFile) -> Option<String> {
     let dir = format!("{EXPORT_DIR}/pad-raw");
     if std::fs::create_dir_all(&dir).is_err() {
         return None;
@@ -221,8 +229,18 @@ fn save_raw(f: &OfflineFile) -> Option<String> {
         path = format!("{dir}/pad-{label}-{n}.bin");
         n += 1;
     }
-    let ok = std::fs::write(&path, &f.raw).is_ok()
-        && std::fs::metadata(&path).map(|m| m.len() as usize == f.raw.len()).unwrap_or(false);
+    // scritto e portato davvero sul disco (fsync) prima che il pad lo cancelli
+    let written = (|| -> std::io::Result<()> {
+        use std::io::Write;
+        let mut file = std::fs::File::create(&path)?;
+        file.write_all(&f.raw)?;
+        file.sync_all()?;
+        if let Ok(d) = std::fs::File::open(&dir) {
+            let _ = d.sync_all();
+        }
+        Ok(())
+    })();
+    let ok = written.is_ok() && std::fs::metadata(&path).map(|m| m.len() as usize == f.raw.len()).unwrap_or(false);
     if !ok {
         return None;
     }

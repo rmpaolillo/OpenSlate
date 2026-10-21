@@ -318,10 +318,9 @@ async fn run_cli(cmd: Cmd, name: Option<String>, scan_secs: u64) -> Result<()> {
         Cmd::Sync { keep } => {
             let uuid = need_uuid(adv)?;
             let (mut pad, _live) = Pad::connect(found).await?;
-            let res = device::sync_offline(&mut pad, &uuid, !keep, |f| {
-                let path = export::new_path("pad-raw", "bin");
-                std::fs::write(&path, &f.raw).is_ok()
-            })
+            // la stessa copia di sicurezza dell'app (exports/pad-raw/): le
+            // pagine finiscono nell'archivio al prossimo avvio
+            let res = device::sync_offline(&mut pad, &uuid, !keep, |f| actor::save_raw(f).is_some())
             .await;
             pad.disconnect().await;
             let res = res?;

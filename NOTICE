@@ -82,5 +82,10 @@ Third-party material
 
 - Phosphor icons (via the egui-phosphor crate), MIT.
 - KaTeX (src/web/vendor/katex), MIT. marked (src/web/vendor/marked.min.js), MIT.
+- DOMPurify 3.4.16 (src/web/vendor/purify.min.js), Cure53 and contributors, Apache-2.0 OR
+  MPL-2.0 (src/web/vendor/LICENSE-dompurify). Unmodified.
+
+The full licence texts of all components are in THIRD-PARTY-LICENSES.txt in the release
+packages (packaging/collect_licenses.py).
 
 A full list of Rust crates with their licences and authors is in THIRD-PARTY.md.

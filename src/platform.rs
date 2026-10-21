@@ -8,6 +8,15 @@ use std::path::{Path, PathBuf};
 /// Nome dell'app (cartella dei dati, titoli).
 pub const APP_NAME: &str = "OpenSlate";
 
+/// Esegue `f` e trasforma un crash (panic) in un errore: un lavoro in
+/// sottofondo che va storto lo dice, invece di lasciare l'app ad aspettare.
+pub fn guarded<T>(f: impl FnOnce() -> T) -> Result<T, String> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| {
+        let msg = p.downcast_ref::<&str>().map(|s| s.to_string()).or_else(|| p.downcast_ref::<String>().cloned()).unwrap_or_default();
+        format!("errore interno ({msg}): dettagli in crash.log")
+    })
+}
+
 /// Apre un file, una cartella o un indirizzo con l'app predefinita del sistema.
 pub fn open(target: impl AsRef<OsStr>) {
     let target = target.as_ref();
@@ -48,7 +57,10 @@ pub fn data_dir() -> Option<PathBuf> {
 /// cartella dei dati dell'utente.
 pub fn enter_data_dir() {
     let here = std::env::current_dir().unwrap_or_default();
-    let portable = here.join("Cargo.toml").exists() || here.join("settings.conf").exists();
+    // il Cargo.toml di OpenSlate (non quello di un altro progetto Rust da
+    // cui si è lanciata l'app installata)
+    let source = std::fs::read_to_string(here.join("Cargo.toml")).is_ok_and(|t| t.contains("name = \"openslate\""));
+    let portable = source || here.join("settings.conf").exists();
     if portable && std::env::var_os("OPENSLATE_DATA").is_none() {
         return;
     }

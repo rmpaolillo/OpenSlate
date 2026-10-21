@@ -6,7 +6,6 @@ use super::{file_stem, Action, App};
 use crate::document::{self, Document};
 use crate::export;
 use crate::scene::{PageBg, PageGeom, Scene};
-use crate::settings::run_hook;
 use crate::signature::Signature;
 use crate::stroke::Stroke;
 use eframe::egui;
@@ -155,7 +154,8 @@ impl App {
         );
         let tx = self.docui.import_tx.clone();
         std::thread::spawn(move || {
-            let _ = tx.send(Document::import(&path).map_err(|e| format!("{e:#}")));
+            let r = crate::platform::guarded(|| Document::import(&path).map_err(|e| format!("{e:#}"))).and_then(|r| r);
+            let _ = tx.send(r);
         });
     }
 
@@ -261,8 +261,9 @@ impl App {
         };
         let Some(d) = &mut self.docui.doc else { return };
         let i = i.min(d.pages.len().saturating_sub(1));
+        let Some(page) = d.pages.get(i) else { return };
+        let strokes = page.strokes.clone();
         d.current = i;
-        let strokes = d.pages[i].strokes.clone();
         let bg = d.page_bg(i, view, w, h);
         self.hub.edit(|s| s.set_page(strokes, bg));
         self.board_zoom.fit();
@@ -471,6 +472,12 @@ impl App {
         if let Some(t) = self.docui.tex.get(&bg.key) {
             return Some(t.id());
         }
+        // non tutte le pagine visitate restano in memoria (100 pagine ≈ 2,7 GB):
+        // oltre una decina si tengono solo quelle di questa pagina
+        if self.docui.tex.len() >= 10 {
+            let k = bg.key.clone();
+            self.docui.tex.retain(|key, _| key.starts_with(&k));
+        }
         let pm = tiny_skia::Pixmap::decode_png(&bg.png).ok()?;
         let img = egui::ColorImage::from_rgba_premultiplied([pm.width() as usize, pm.height() as usize], pm.data());
         let tex = ctx.load_texture(format!("doc-{}", bg.key), img, page_tex_options());
@@ -519,20 +526,23 @@ impl App {
                     return;
                 };
                 let Some(d) = &self.docui.doc else { return };
+                let id = d.id.clone();
                 let (view, pad) = {
                     let s = self.hub.lock();
                     (s.view, s.drawing.clone())
                 };
-                match d.export_signed(view, &pad, &dst) {
-                    Ok(()) => {
-                        run_hook(&self.settings.hook, &dst.to_string_lossy());
-                        self.status = format!("Salvato: {}", dst.display());
-                        // Lo apre subito (Anteprima) per vedere il risultato.
-                        crate::platform::open(&dst);
-                        self.docui.last_export = Some(dst);
-                    }
-                    Err(e) => self.status = format!("⚠ Salvataggio: {e:#}"),
-                }
+                // il documento (appena salvato) si riapre e si scrive in sottofondo:
+                // un Word grande o una foto da 24 MP non bloccano la finestra
+                self.status = "Salvo il documento firmato…".into();
+                let tx = self.evt_tx.clone();
+                std::thread::spawn(move || {
+                    let r = crate::document::Document::open(&id).and_then(|d| d.export_signed(view, &pad, &dst));
+                    let ev = match r {
+                        Ok(()) => crate::actor::UiEvent::Exported { written: vec![dst], error: None, doc: true },
+                        Err(e) => crate::actor::UiEvent::Exported { written: Vec::new(), error: Some(format!("Salvataggio: {e:#}")), doc: true },
+                    };
+                    let _ = tx.send(ev);
+                });
             }
             DocAction::Close => {
                 if let Some(id) = self.docui.doc.as_ref().map(|d| d.id.clone()) {

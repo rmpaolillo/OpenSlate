@@ -28,3 +28,10 @@ captures/
 .idea/
 .vscode/
 *.swp
+# diretta web, aggiornamenti scaricati, file di prova
+web.key
+updates/
+*.part
+.openslate-update-*
+/build
+missing.txt

@@ -59,10 +59,16 @@ impl Renderer {
                     req = newer;
                 }
                 if engine.is_none() {
-                    engine = Some(build(&dir, original.as_deref()));
+                    engine = crate::platform::guarded(|| build(&dir, original.as_deref())).ok();
                 }
                 let r = match engine.as_mut() {
-                    Some(e) => render(e, &req).map_err(|e| format!("{e:#}")),
+                    Some(e) => match crate::platform::guarded(|| render(e, &req).map_err(|e| format!("{e:#}"))) {
+                        Ok(r) => r,
+                        Err(p) => {
+                            engine = None; // si rifà alla prossima richiesta
+                            Err(p)
+                        }
+                    },
                     None => Err("nessun motore".into()),
                 };
                 if done_tx.send(r).is_err() {

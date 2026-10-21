@@ -1,4 +1,4 @@
-//! KaTeX 0.16.11 e marked 12.0.2 dentro il programma (licenza MIT, vedi
+//! KaTeX 0.16.11, marked 12.0.2 (MIT) e DOMPurify 3.4.16 (Apache-2.0 / MPL-2.0) dentro il programma (vedi
 //! src/web/vendor/LICENSE-*): le formule si vedono anche senza internet.
 
 /// (percorso dopo /vendor/, tipo, contenuto)
@@ -6,6 +6,8 @@ pub const FILES: &[(&str, &str, &[u8])] = &[
     ("katex.min.js", "application/javascript", include_bytes!("web/vendor/katex.min.js")),
     ("katex.min.css", "text/css", include_bytes!("web/vendor/katex.min.css")),
     ("marked.min.js", "application/javascript", include_bytes!("web/vendor/marked.min.js")),
+    // DOMPurify 3.4.16 (Apache-2.0 o MPL-2.0, src/web/vendor/LICENSE-dompurify): pulisce l'HTML delle risposte
+    ("purify.min.js", "application/javascript", include_bytes!("web/vendor/purify.min.js")),
     // Inter (SIL OFL 1.1, assets/fonts/OFL-Inter.txt): lo stesso carattere dell'interfaccia
     ("inter/Inter-Regular.ttf", "font/ttf", include_bytes!("../assets/fonts/Inter-Regular.ttf")),
     ("inter/Inter-Medium.ttf", "font/ttf", include_bytes!("../assets/fonts/Inter-Medium.ttf")),

@@ -118,7 +118,8 @@ impl Embeds {
             })
             // le pagine dell'app restano qui; i link esterni nel browser
             .with_navigation_handler(move |u| {
-                if u.starts_with(&o1) || u.starts_with("about:") || u.starts_with("data:") || u.starts_with("blob:") {
+                // niente data: (una pagina data: avrebbe il canale verso l'app)
+                if u.starts_with(&o1) || u.starts_with("about:") || u.starts_with("blob:") {
                     true
                 } else {
                     open_external(&u);

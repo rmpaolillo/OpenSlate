@@ -5647,6 +5647,7 @@ dependencies = [
  "egui-phosphor",
  "exmex",
  "futures",
+ "getrandom 0.3.4",
  "gtk",
  "lopdf",
  "mitex",

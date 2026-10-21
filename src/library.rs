@@ -153,6 +153,9 @@ fn to_fmt(d: &Drawing, meta: &Meta, chart: Option<&PageBg>) -> PageFmt {
 /// Formato JSON → tratti.
 pub fn strokes_from_fmt(v: Vec<StrokeFmt>) -> Vec<Stroke> {
     v.into_iter()
+        // un tratto senza punti (file rovinato o scritto a mano) non serve e
+        // farebbe inciampare chi disegna
+        .filter(|s| !s.p.is_empty())
         .map(|s| {
             let n = s.p.len();
             let mut st = Stroke::new(hex_to_color(&s.c).unwrap_or([20, 20, 20]), s.w);
@@ -281,7 +284,8 @@ impl Library {
             .to_string();
         let mut id = base.clone();
         let mut n = 2;
-        while self.path(&id).exists() || self.get(&id).is_some() {
+        // anche il cestino: un id già usato là non si riusa (si sovrascriverebbe)
+        while self.path(&id).exists() || self.get(&id).is_some() || self.trash_dir().join(format!("{id}.json")).exists() {
             id = format!("{base}-{n}");
             n += 1;
         }
@@ -367,8 +371,10 @@ impl Library {
 
     /// Importa le copie grezze del pad (exports/pad-raw/*.bin) non ancora in archivio.
     pub fn import_raw_dir(&mut self, dir: &Path, width: f32, height: f32) -> usize {
-        let known: std::collections::HashSet<String> =
+        let mut known: std::collections::HashSet<String> =
             self.entries.iter().filter_map(|e| e.meta.raw.clone()).collect();
+        // quelle già passate di qui (anche se poi le hai cestinate o erano doppie)
+        known.extend(raw_seen(dir));
         let Ok(rd) = std::fs::read_dir(dir) else {
             return 0;
         };
@@ -405,13 +411,53 @@ impl Library {
                 })
                 .unwrap_or_else(|| Local::now().naive_local());
             let mut meta = Meta::new(created, SOURCE_PAD);
-            meta.raw = Some(name);
+            meta.raw = Some(name.clone());
             if self.add(&d, meta).is_ok() {
+                mark_raw_seen(dir, &[name]);
                 n += 1;
             }
         }
         n
     }
+}
+
+/// Elenco delle copie grezze del pad già passate nell'archivio
+/// (`exports/pad-raw/.importati`): una pagina cestinata non torna.
+const RAW_SEEN: &str = ".importati";
+
+pub fn raw_seen(dir: &Path) -> std::collections::HashSet<String> {
+    std::fs::read_to_string(dir.join(RAW_SEEN)).unwrap_or_default().lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect()
+}
+
+/// C'è già l'elenco? (Prima di questa versione non c'era.)
+pub fn raw_seen_exists(dir: &Path) -> bool {
+    dir.join(RAW_SEEN).exists()
+}
+
+/// Segna le copie grezze come passate nell'archivio.
+pub fn mark_raw_seen(dir: &Path, names: &[String]) {
+    use std::io::Write;
+    if names.is_empty() && raw_seen_exists(dir) {
+        return;
+    }
+    let _ = std::fs::create_dir_all(dir);
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(dir.join(RAW_SEEN)) {
+        for n in names {
+            let _ = writeln!(f, "{n}");
+        }
+    }
+}
+
+/// Tutte le copie grezze nella cartella (per partire con l'elenco pieno).
+pub fn raw_files(dir: &Path) -> Vec<String> {
+    std::fs::read_dir(dir)
+        .map(|rd| {
+            rd.flatten()
+                .filter_map(|e| e.file_name().to_str().map(String::from))
+                .filter(|n| n.ends_with(".bin"))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// Intestazione del gruppo per giorno: "Oggi", "Ieri", "18 ottobre 2026".

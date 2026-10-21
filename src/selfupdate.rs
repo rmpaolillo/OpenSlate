@@ -222,9 +222,12 @@ fn install_mac(dmg: &Path, bundle: &Path, version: &str) -> Result<(Vec<OsString
             let _ = std::fs::remove_dir_all(&staging);
             bail!("la nuova app dice di essere la {}, non la {version}", v.trim());
         }
-        if run(Command::new("/usr/bin/codesign").args(["--verify", "--deep"]).arg(&staged), "firma della nuova app").is_err() {
+        // firma valida e, se questa copia è firmata da uno sviluppatore Apple,
+        // dello **stesso** sviluppatore: un file messo nella release da altri
+        // (anche con le impronte giuste) non si installa
+        if let Err(e) = check_signature(bundle, &staged) {
             let _ = std::fs::remove_dir_all(&staging);
-            bail!("la firma della nuova app non è valida");
+            return Err(e);
         }
         // lo scambio: la vecchia da parte, la nuova al suo posto
         let old = staging.join("OpenSlate-vecchia.app");
@@ -233,6 +236,14 @@ fn install_mac(dmg: &Path, bundle: &Path, version: &str) -> Result<(Vec<OsString
             let _ = std::fs::rename(&old, bundle);
             bail!("sostituzione dell'app: {e}");
         }
+        // la versione di prima resta da parte nella cartella dei dati
+        // (updates/OpenSlate-precedente.app) finché non ne arriva un'altra:
+        // se la nuova non parte, si può rimettere a mano
+        let keep = work_dir().join("OpenSlate-precedente.app");
+        let _ = std::fs::remove_dir_all(&keep);
+        if std::fs::rename(&old, &keep).is_err() {
+            tracing::warn!("la versione precedente non resta da parte");
+        }
         let _ = std::fs::remove_dir_all(&staging);
         Ok(())
     })();
@@ -240,6 +251,31 @@ fn install_mac(dmg: &Path, bundle: &Path, version: &str) -> Result<(Vec<OsString
     let _ = std::fs::remove_dir(&mount);
     result?;
     Ok((vec!["/usr/bin/open".into(), bundle.as_os_str().to_owned()], false))
+}
+
+/// Lo sviluppatore che ha firmato un'app (`TeamIdentifier` di codesign);
+/// `None` per una firma ad hoc.
+fn team_id(app: &Path) -> Option<String> {
+    let out = Command::new("/usr/bin/codesign").args(["-dv", "--verbose=2"]).arg(app).output().ok()?;
+    let text = String::from_utf8_lossy(&out.stderr).into_owned() + &String::from_utf8_lossy(&out.stdout);
+    text.lines()
+        .find_map(|l| l.strip_prefix("TeamIdentifier="))
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty() && t != "not set" && t.chars().all(|c| c.is_ascii_alphanumeric()))
+}
+
+/// La nuova app è firmata bene, e dallo stesso sviluppatore di questa.
+fn check_signature(current: &Path, new: &Path) -> Result<()> {
+    if run(Command::new("/usr/bin/codesign").args(["--verify", "--deep", "--strict"]).arg(new), "firma della nuova app").is_err() {
+        bail!("la firma della nuova app non è valida");
+    }
+    if let Some(team) = team_id(current) {
+        let req = format!("=anchor apple generic and certificate leaf[subject.OU] = \"{team}\"");
+        if run(Command::new("/usr/bin/codesign").args(["--verify", "--deep", "--strict", "-R"]).arg(&req).arg(new), "sviluppatore della nuova app").is_err() {
+            bail!("la nuova app non è firmata dallo stesso sviluppatore ({team}): non la installo");
+        }
+    }
+    Ok(())
 }
 
 /// Linux .deb: il gestore dei pacchetti, con la password chiesta dal sistema.
@@ -252,8 +288,12 @@ fn install_deb(deb: &Path, exe: &Path) -> Result<(Vec<OsString>, bool)> {
 
 /// Linux .tar.gz: i file nuovi al posto di quelli della cartella.
 fn install_tar(tgz: &Path, exe: &Path) -> Result<(Vec<OsString>, bool)> {
+    install_tar_in(tgz, exe, &work_dir())
+}
+
+fn install_tar_in(tgz: &Path, exe: &Path, work: &Path) -> Result<(Vec<OsString>, bool)> {
     let dir = exe.parent().ok_or_else(|| anyhow!("il programma non è in una cartella"))?;
-    let tmp = work_dir().join(format!("estratto-{}", std::process::id()));
+    let tmp = work.join(format!("estratto-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&tmp);
     std::fs::create_dir_all(&tmp)?;
     run(Command::new("tar").arg("-xzf").arg(tgz).arg("-C").arg(&tmp), "apertura dell'archivio")?;
@@ -356,10 +396,8 @@ mod tests {
         std::fs::write(src.join("README.md"), b"nuovo").unwrap();
         let tgz = base.join("rel.tar.gz");
         assert!(Command::new("tar").arg("-czf").arg(&tgz).arg("-C").arg(base.join("src")).arg("openslate-9.9.9-linux-x86_64").status().unwrap().success());
-        let cwd = std::env::current_dir().unwrap();
-        std::env::set_current_dir(&base).unwrap();
-        let r = install_tar(&tgz, &inst.join("openslate"));
-        std::env::set_current_dir(cwd).unwrap();
+        // senza cambiare la cartella corrente (gli altri test girano insieme)
+        let r = install_tar_in(&tgz, &inst.join("openslate"), &base.join("updates"));
         let (relaunch, on_exit) = r.unwrap();
         assert!(!on_exit && relaunch[0] == inst.join("openslate").as_os_str());
         assert_eq!(std::fs::read(inst.join("openslate")).unwrap(), b"nuovo");

@@ -87,19 +87,47 @@ fn keychain_store(service: &str, value: &str) -> Result<()> {
     Ok(())
 }
 
+/// Stesso server (nome o IP), anche con porta o percorso diversi?
+fn same_host(a: &str, b: &str) -> bool {
+    let host = |u: &str| {
+        let r = u.trim().split("://").nth(1).unwrap_or("").split('/').next().unwrap_or("").to_ascii_lowercase();
+        r.rsplit_once(':').map(|(h, _)| h.to_string()).unwrap_or(r)
+    };
+    host(a) == host(b)
+}
+
+/// Stesso indirizzo (senza la barra finale e gli spazi)?
+fn same_url(a: &str, b: &str) -> bool {
+    a.trim().trim_end_matches('/').eq_ignore_ascii_case(b.trim().trim_end_matches('/'))
+}
+
+/// La chiave salvata di un agente va solo al **suo** indirizzo: se nella
+/// pagina l'indirizzo è cambiato, la chiave va scritta di nuovo (così una
+/// pagina manomessa non può farla arrivare a un server qualsiasi).
+fn stored_key_for(old: &AiConfig, name: &str, url: &str) -> Option<String> {
+    old.providers.iter().find(|o| o.name == name && same_url(&o.url, url)).map(|o| o.key.clone())
+}
+
 /// Chiave per una prova: quella nuova scritta nella pagina, altrimenti quella
-/// salvata (anche se in chiaro).
+/// salvata (anche se in chiaro) se l'indirizzo è lo stesso.
 fn provider_for_test(body: &Value) -> Result<Provider> {
     let mut p: Provider = serde_json::from_value(body["provider"].clone()).map_err(|e| anyhow!("dati dell'agente: {e}"))?;
+    if p.url.trim().is_empty() {
+        bail!("manca l'indirizzo");
+    }
     let new_key = body["new_key"].as_str().unwrap_or("").trim();
+    let old = AiConfig::load().unwrap_or_default();
     if !new_key.is_empty() {
         p.key = new_key.to_string();
     } else if p.key == HIDDEN {
-        let old = AiConfig::load()?;
-        p.key = old.providers.iter().find(|o| o.name == p.name).map(|o| o.key.clone()).unwrap_or_default();
-    }
-    if p.url.trim().is_empty() {
-        bail!("manca l'indirizzo");
+        p.key = stored_key_for(&old, &p.name, &p.url).ok_or_else(|| anyhow!("l'indirizzo è cambiato: scrivi di nuovo la chiave"))?;
+    } else if !p.key.trim().is_empty() {
+        // un riferimento (keychain:, env:, dsh:) già usato da un agente salvato
+        // vale solo col suo indirizzo
+        let users: Vec<&Provider> = old.providers.iter().filter(|o| o.key == p.key).collect();
+        if !users.is_empty() && !users.iter().any(|o| same_host(&o.url, &p.url)) {
+            bail!("questa chiave è di un altro indirizzo: scrivila di nuovo per questo agente");
+        }
     }
     Ok(p)
 }
@@ -126,14 +154,27 @@ pub fn save_from_json(body: &[u8]) -> Value {
                 keychain_store(&name, k)?;
                 p.key = format!("keychain:{name}");
             } else if p.key == HIDDEN {
-                p.key = old.providers.iter().find(|o| o.name == p.name).map(|o| o.key.clone()).unwrap_or_default();
+                // indirizzo cambiato: la chiave salvata non lo segue
+                p.key = stored_key_for(&old, &p.name, &p.url).unwrap_or_default();
+            } else if !p.key.trim().is_empty() && !p.key.contains("__") {
+                // un riferimento (keychain:, env:, dsh:) già usato da un agente salvato
+                // non va a un server diverso (un'altra macchina); cambiare la porta sì
+                let users: Vec<&Provider> = old.providers.iter().filter(|o| o.key == p.key).collect();
+                if !users.is_empty() && !users.iter().any(|o| same_host(&o.url, &p.url)) {
+                    p.key = String::new();
+                }
             }
         }
+        // i server MCP esterni si scrivono solo a mano in ai.toml: la pagina
+        // non li vede e non li cambia (un comando da eseguire non arriva da qui)
+        cfg.mcp = old.mcp.clone();
         if let Some(k) = v["web_new_key"].as_str().map(str::trim).filter(|k| !k.is_empty()) {
             keychain_store("WACOM_AI_WEB_KEY", k)?;
             cfg.web.key = "keychain:WACOM_AI_WEB_KEY".into();
         } else if cfg.web.key == HIDDEN {
-            cfg.web.key = old.web.key.clone();
+            cfg.web.key = if same_url(&cfg.web.url, &old.web.url) { old.web.key.clone() } else { String::new() };
+        } else if cfg.web.key == old.web.key && !same_host(&cfg.web.url, &old.web.url) {
+            cfg.web.key = String::new();
         }
         cfg.chat.compact_at = cfg.chat.compact_at.min(95);
         cfg.save()

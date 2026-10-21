@@ -28,8 +28,11 @@ pub(super) struct Quit {
     pub go: bool,
     /// «Esci senza salvare»: all'uscita non si salva da soli.
     pub discard: bool,
-    /// Chiusura rimandata di un attimo (l'appunto finisce di salvarsi).
+    /// Chiusura rimandata finché l'appunto aperto non dice di essersi
+    /// salvato (al massimo fino a quest'ora).
     pub close_at: Option<Instant>,
+    /// L'appunto aperto si è salvato: si può chiudere.
+    pub flushed: bool,
 }
 
 /// Firma dei tratti (numero, punti, colori) e del grafico dell'AI: cambia
@@ -60,6 +63,12 @@ impl App {
     /// I tratti della lavagna e il grafico dell'AI che c'è sopra.
     fn board_drawing(&self) -> (Drawing, Option<PageBg>) {
         let s = self.hub.lock();
+        // mentre si registra una firma la lavagna è da parte
+        if self.docui.doc.is_none() {
+            if let Some((strokes, bg)) = &self.docui.capture {
+                return (Drawing { strokes: strokes.clone(), width: s.drawing.width, height: s.drawing.height }, bg.clone().filter(|b| b.is_chart()));
+            }
+        }
         match (&self.docui.doc, self.docui.board_stash_ref()) {
             (Some(_), Some((stash, chart))) => {
                 (Drawing { strokes: stash.clone(), width: s.drawing.width, height: s.drawing.height }, chart.clone())
@@ -97,17 +106,24 @@ impl App {
     /// rosso, Cmd+Q, File › Esci) passa da qui.
     pub(super) fn guard_close(&mut self, ctx: &egui::Context) {
         if let Some(t) = self.quit.close_at {
-            if Instant::now() >= t {
+            if self.quit.flushed || Instant::now() >= t {
+                // salvato (o la pagina non risponde: si chiude lo stesso)
                 self.quit.close_at = None;
+                self.quit.flushed = true;
                 ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             } else {
                 ctx.request_repaint_after(Duration::from_millis(50));
             }
         }
-        if !ctx.input(|i| i.viewport().close_requested()) || self.quit.go {
+        if !ctx.input(|i| i.viewport().close_requested()) {
             return;
         }
-        if self.board_unsaved() {
+        // si sta già aspettando l'appunto
+        if self.quit.close_at.is_some() {
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            return;
+        }
+        if !self.quit.go && self.board_unsaved() {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             self.quit.asking = true;
             // la finestra potrebbe essere nascosta dietro le altre
@@ -116,11 +132,19 @@ impl App {
             return;
         }
         self.quit.go = true;
-        if self.note.is_some() {
-            // l'appunto aperto finisce di salvarsi, poi si chiude
+        if self.note.is_some() && !self.quit.flushed {
+            // l'appunto aperto si salva, poi si chiude (su ogni strada: anche
+            // dopo «Salva ed esci» o «Esci senza salvare»)
             self.embeds.eval(super::embed::Slot::Note, "window.wsNote && wsNote.flush()");
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
-            self.quit.close_at = Some(Instant::now() + Duration::from_millis(400));
+            self.quit.close_at = Some(Instant::now() + Duration::from_millis(1500));
+        }
+    }
+
+    /// La pagina dell'appunto ha finito di salvare.
+    pub(super) fn note_flushed(&mut self) {
+        if self.quit.close_at.is_some() {
+            self.quit.flushed = true;
         }
     }
 

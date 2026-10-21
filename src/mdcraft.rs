@@ -121,10 +121,21 @@ pub fn export_note(src: &Path, dst: &Path) -> anyhow::Result<()> {
             if !same {
                 for rel in images(&md, base) {
                     let to = out.join(&rel);
+                    let from = base.join(&rel);
+                    // una figura con lo stesso nome che c'è già là: se è di questo
+                    // appunto (il nome comincia come il suo) si aggiorna, se è
+                    // un altro file non si sovrascrive (lo si dice)
+                    if to.exists() && std::fs::read(&to).ok() != std::fs::read(&from).ok() {
+                        let stem = src.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+                        let ours = Path::new(&rel).file_name().is_some_and(|n| n.to_string_lossy().starts_with(&stem));
+                        if !ours {
+                            bail!("nella cartella c'è già «{rel}», diverso da quello dell'appunto: non lo sovrascrivo (scegli un'altra cartella)");
+                        }
+                    }
                     if let Some(d) = to.parent() {
                         std::fs::create_dir_all(d)?;
                     }
-                    std::fs::copy(base.join(&rel), &to).with_context(|| format!("figura {rel}"))?;
+                    std::fs::copy(&from, &to).with_context(|| format!("figura {rel}"))?;
                 }
             }
         }

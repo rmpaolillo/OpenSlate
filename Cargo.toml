@@ -18,6 +18,8 @@ publish = false
 # BLE cross-platform (su macOS usa CoreBluetooth, su Linux BlueZ/DBus, su Windows WinRT)
 btleplug = "0.11"
 uuid = "1"
+# chiave della diretta web (casuale, dal sistema)
+getrandom = "0.3"
 futures = "0.3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "signal", "net", "io-util"] }
 
@@ -137,6 +139,9 @@ assets = [
     ["assets/icon/openslate-256.png", "usr/share/icons/hicolor/256x256/apps/openslate.png", "644"],
     ["assets/icon/openslate-512.png", "usr/share/icons/hicolor/512x512/apps/openslate.png", "644"],
     ["README.md", "usr/share/doc/openslate/README.md", "644"],
+    ["NOTICE", "usr/share/doc/openslate/NOTICE", "644"],
+    ["THIRD-PARTY.md", "usr/share/doc/openslate/THIRD-PARTY.md", "644"],
+    ["build/THIRD-PARTY-LICENSES.txt", "usr/share/doc/openslate/THIRD-PARTY-LICENSES.txt", "644"],
 ]
 
 # L'impaginazione di WordCraft con le immagini nel testo spostabili sopra/sotto la riga

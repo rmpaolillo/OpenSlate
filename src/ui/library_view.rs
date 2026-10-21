@@ -169,6 +169,25 @@ impl App {
                 }
             }
             LibAction::ToBoard(id) => {
+                if self.lib.get(&id).is_none() {
+                    return;
+                }
+                // un documento aperto si chiude (salvato): la pagina va sulla
+                // lavagna, non sopra il documento
+                if self.docui.doc.is_some() {
+                    self.apply_doc(super::doc_view::DocAction::TabBoard);
+                }
+                // quello che c'era sulla lavagna e non era nell'archivio ci va ora
+                let mut saved_prev = None;
+                if self.board_unsaved() {
+                    match self.save_board_to_library() {
+                        Ok(prev) => saved_prev = Some(prev),
+                        Err(e) => {
+                            self.status = e;
+                            return;
+                        }
+                    }
+                }
                 if let Some(e) = self.lib.get(&id) {
                     let d = e.drawing.clone();
                     let chart = e.chart.clone();
@@ -177,10 +196,15 @@ impl App {
                     // è già nell'archivio: uscendo non c'è da chiedere
                     self.mark_board_saved();
                     self.board_from = Some(t.clone());
+                    self.board_from_id = Some(id.clone());
                     self.mode = Mode::Board;
                     // la chat vede subito questa pagina (e la sua trascrizione, se c'è)
                     self.set_chat_context_from_board();
-                    self.status = format!("«{t}» sulla lavagna: puoi scriverci sopra (Annulla per tornare indietro).");
+                    self.status = if saved_prev.is_some() {
+                        format!("«{t}» sulla lavagna; quello che c'era prima è nell'archivio.")
+                    } else {
+                        format!("«{t}» sulla lavagna: puoi scriverci sopra (Annulla per tornare indietro).")
+                    };
                 }
             }
             LibAction::Export(ids, fmt) => {
@@ -331,11 +355,16 @@ impl App {
             for s in &mut page.strokes {
                 s.width *= 1.6;
             }
-            if let Ok((w, h, px)) = crate::export::page_to_rgba(&page, need) {
-                let img = egui::ColorImage::from_rgba_unmultiplied([w, h], &px);
-                let tex = ctx.load_texture(format!("thumb-{id}"), img, egui::TextureOptions::LINEAR);
-                self.lui.thumbs.insert(id.clone(), (view, need, tex));
-            }
+            // un'anteprima che non si fa resta bianca (non si riprova a ogni fotogramma)
+            let img = match crate::export::page_to_rgba(&page, need) {
+                Ok((w, h, px)) => egui::ColorImage::from_rgba_unmultiplied([w, h], &px),
+                Err(e) => {
+                    tracing::warn!("anteprima di {id}: {e}");
+                    egui::ColorImage::new([2, 3], vec![egui::Color32::WHITE; 6])
+                }
+            };
+            let tex = ctx.load_texture(format!("thumb-{id}"), img, egui::TextureOptions::LINEAR);
+            self.lui.thumbs.insert(id.clone(), (view, need, tex));
             made += 1;
         }
     }

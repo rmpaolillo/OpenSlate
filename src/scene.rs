@@ -320,6 +320,16 @@ impl Scene {
         self.rev += 1;
     }
 
+    /// Tratti e sfondo nuovi in un colpo solo, annullabile con Cmd+Z (il
+    /// grafico che la chat mette sul foglio).
+    pub fn replace_page(&mut self, strokes: Vec<Stroke>, bg: Option<PageBg>) {
+        self.active = false;
+        let old = std::mem::replace(&mut self.drawing.strokes, strokes);
+        let old_bg = std::mem::replace(&mut self.bg, bg);
+        self.push_undo(Undo::Replace(old, old_bg));
+        self.rev += 1;
+    }
+
     /// Aggiunge più tratti in un colpo solo (es. la firma). Annullabile.
     pub fn add_strokes(&mut self, strokes: Vec<Stroke>) {
         if strokes.is_empty() {
@@ -773,6 +783,16 @@ impl Hub {
 
     pub fn lock(&self) -> MutexGuard<'_, Scene> {
         self.scene.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// Come `lock`, ma senza aspettare (se è preso ritorna `None`): per chi
+    /// non può fermarsi, come il paracadute dei crash.
+    pub fn try_lock(&self) -> Option<MutexGuard<'_, Scene>> {
+        match self.scene.try_lock() {
+            Ok(g) => Some(g),
+            Err(std::sync::TryLockError::Poisoned(e)) => Some(e.into_inner()),
+            Err(std::sync::TryLockError::WouldBlock) => None,
+        }
     }
 
     pub fn subscribe(&self) -> broadcast::Receiver<WebMsg> {

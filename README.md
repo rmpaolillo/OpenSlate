@@ -32,8 +32,8 @@ of Inkspace, the app the pad depends on, so the hardware was about to become a p
 So I built my own app, for my own needs. **OpenSlate is a vibe-coded project**: I described
 what I wanted and wrote it together with an AI coding assistant ([Claude](https://claude.ai)),
 iterating on real use rather than following a big design up front. It works well for me on
-macOS. It is shared in case it is useful to other Slate owners. Expect rough edges, an
-interface that is still mostly **in Italian**, and code comments in Italian too.
+macOS. It is shared in case it is useful to other Slate owners. Expect rough edges and code
+comments in Italian (the interface itself is translated into nine languages).
 Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 > OpenSlate is an independent project. It is **not affiliated with, endorsed by or supported by
@@ -88,6 +88,19 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   its tools become available to the chat.
 - **Live on the web.** A share link lets a TV, phone or PC on your home network watch the board
   in real time. Stable endpoints are `/page.pdf`, `/page.svg`, `/page.png` and `/state.json`.
+  The live board is open to the home network; the chat, notes and conversations need the key
+  that is part of the link OpenSlate shows (`?k=…`, then remembered by the browser). The server
+  only answers to IP addresses, `localhost` and `.local` names, and refuses writes coming from
+  other websites, so a page you visit cannot drive the app.
+- **Nothing gets lost.** Quitting with something on the board that is not in the library asks
+  *Save and quit / Quit without saving / Don't quit*; when the app quits without asking (Dock,
+  shutdown, update) the board goes to the library by itself, and if the interface ever crashes
+  the board is saved too (the reason goes to `crash.log` in the data folder). Notes are saved
+  with a version check, so an edit from the AI or another app is never silently overwritten.
+  Pages already removed from the pad are recovered from their raw safety copies if a download
+  is interrupted.
+- **Page only.** The button next to Copy/Paste in the title bar (or `Cmd+Shift+F`, View → Page
+  only) hides the menu bar and the ribbon; click again to bring them back.
 - **Save and export.** Export to vector PDF and SVG at true A4 size, or to PNG. Every save or
   export opens the system "Save as" dialog, so you always see where the file goes. It starts in the
   last folder you chose (the first time, in `exports/`). You can also copy the page as an image
@@ -99,7 +112,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Screenshots
 
-The interface is in Italian (for now). The handwriting and documents below are sample content.
+The screenshots show the Italian interface. The handwriting and documents are sample content.
 
 | | |
 |---|---|

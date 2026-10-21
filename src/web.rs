@@ -12,6 +12,15 @@
 //! - `/api/appunti`, `/api/appunti/<nome>` (GET legge, POST salva), `POST /api/context`
 //!
 //! Nessuna dipendenza esterna: HTTP/1.1 minimale su tokio.
+//!
+//! Sicurezza (vedi `gate`):
+//! - si risponde solo a indirizzi IP, `localhost` o nomi `.local` (niente
+//!   «DNS rebinding» da un sito qualsiasi);
+//! - le richieste POST con un'origine diversa dalla pagina stessa (un sito
+//!   aperto nel browser che prova a scrivere qui) si rifiutano;
+//! - dagli altri dispositivi della rete si vede liberamente solo la lavagna
+//!   in diretta; chat, appunti, impostazioni e conversazioni chiedono la
+//!   chiave della diretta (nell'indirizzo mostrato dall'app, poi un cookie).
 
 use crate::export;
 use crate::scene::{Hub, WebMsg};
@@ -42,6 +51,87 @@ pub fn navigate(path: &str) {
 /// Corpo massimo di una richiesta POST (la chat manda anche le immagini incollate).
 const MAX_BODY: usize = 40 << 20;
 
+/// La chiave della diretta web: casuale, la prima volta scritta in `web.key`
+/// nella cartella dei dati (resta uguale fra un avvio e l'altro, così il
+/// segnalibro sul telefono continua a valere).
+pub fn key() -> &'static str {
+    static KEY: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    KEY.get_or_init(|| {
+        const FILE: &str = "web.key";
+        if let Ok(k) = std::fs::read_to_string(FILE) {
+            let k = k.trim().to_string();
+            if k.len() >= 20 && k.chars().all(|c| c.is_ascii_alphanumeric()) {
+                return k;
+            }
+        }
+        let mut b = [0u8; 24];
+        if getrandom::fill(&mut b).is_err() {
+            // senza il generatore del sistema: tempo e processo (meglio di niente)
+            let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+            for (i, x) in b.iter_mut().enumerate() {
+                *x = ((t >> ((i % 16) * 8)) as u8) ^ (std::process::id() as u8).wrapping_mul(i as u8 + 1);
+            }
+        }
+        const AL: &[u8] = b"abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let k: String = b.iter().map(|x| AL[*x as usize % AL.len()] as char).collect();
+        if !cfg!(test) {
+            let _ = std::fs::write(FILE, &k);
+        }
+        k
+    })
+}
+
+/// Pagine che chiunque nella rete di casa può vedere senza chiave: la
+/// lavagna in diretta e quello che le serve.
+fn public_path(p: &str) -> bool {
+    matches!(
+        p,
+        "/" | "/index.html" | "/events" | "/state.json" | "/bg.png" | "/wc.css" | "/i18n.js" | "/favicon.ico" | "/page.svg" | "/page.pdf" | "/page.png"
+    ) || p.starts_with("/vendor/")
+}
+
+/// Un'intestazione della richiesta.
+fn header<'a>(head: &'a str, name: &str) -> Option<&'a str> {
+    head.lines().skip(1).find_map(|l| {
+        let (k, v) = l.split_once(':')?;
+        k.trim().eq_ignore_ascii_case(name).then(|| v.trim())
+    })
+}
+
+/// Il nome del server richiesto è uno di questo Mac (IP, localhost, .local)?
+/// Un sito che si fa risolvere su 127.0.0.1 («DNS rebinding») manda il suo nome.
+fn host_ok(host: Option<&str>) -> bool {
+    let Some(h) = host else { return true }; // HTTP/1.0 senza Host: niente browser
+    let name = if let Some(rest) = h.strip_prefix('[') {
+        rest.split(']').next().unwrap_or("")
+    } else {
+        h.rsplit_once(':').map(|(n, _)| n).unwrap_or(h)
+    };
+    let name = name.to_ascii_lowercase();
+    name == "localhost" || name.ends_with(".local") || name.parse::<IpAddr>().is_ok()
+}
+
+/// Una richiesta da una pagina di un altro sito (Origin diverso da questo
+/// server) non deve poter scrivere qui.
+fn origin_ok(origin: Option<&str>, host: Option<&str>) -> bool {
+    match (origin, host) {
+        (None, _) => true, // non da un browser (curl, script sul Mac)
+        (Some(o), Some(h)) => o.eq_ignore_ascii_case(&format!("http://{h}")),
+        (Some(_), None) => false,
+    }
+}
+
+/// Il cookie o il parametro `k=` con la chiave della diretta.
+fn has_key(head: &str, query: &str) -> bool {
+    let k = key();
+    let in_cookie = header(head, "cookie").is_some_and(|c| c.split(';').any(|p| p.trim() == format!("os_k={k}")));
+    in_cookie || query_key(query) == Some(k)
+}
+
+fn query_key(query: &str) -> Option<&str> {
+    query.split('&').find_map(|kv| kv.strip_prefix("k="))
+}
+
 /// Indirizzo del Mac nella rete locale (nessun pacchetto viene inviato).
 pub fn lan_ip() -> Option<IpAddr> {
     let s = std::net::UdpSocket::bind("0.0.0.0:0").ok()?;
@@ -56,7 +146,8 @@ pub async fn start(hub: Arc<Hub>, port: u16) -> std::io::Result<String> {
     let host = lan_ip().map(|ip| ip.to_string()).unwrap_or_else(|| "localhost".into());
     tracing::info!("Diretta web su http://{host}:{port}/");
     serve(listener, hub);
-    Ok(format!("http://{host}:{port}/"))
+    // la chiave nell'indirizzo: chi lo apre può usare anche chat e appunti
+    Ok(format!("http://{host}:{port}/?k={}", key()))
 }
 
 /// Server solo per questo Mac (127.0.0.1, porta libera): le pagine della
@@ -111,17 +202,57 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
     let head = String::from_utf8_lossy(&buf[..head_end]).into_owned();
     let mut parts = head.lines().next().unwrap_or("").split_whitespace();
     let method = parts.next().unwrap_or("").to_string();
-    let path = parts.next().unwrap_or("/").split('?').next().unwrap_or("/").to_string();
+    let target = parts.next().unwrap_or("/").to_string();
+    let (path, query) = target.split_once('?').unwrap_or((target.as_str(), ""));
+    let (path, query) = (path.to_string(), query.to_string());
     let path = path.as_str();
 
+    // --- chi può fare cosa ---
+    let peer = sock.peer_addr().map(|a| a.ip()).ok();
+    let from_mac = peer.is_some_and(is_loopback);
+    let host = header(&head, "host");
+    if !host_ok(host) {
+        return respond(&mut sock, "421 Misdirected Request", "text/plain", b"nome del server sconosciuto").await;
+    }
+    if method != "GET" && method != "HEAD" && !origin_ok(header(&head, "origin"), host) {
+        return respond(&mut sock, "403 Forbidden", "text/plain", b"richiesta da un altro sito").await;
+    }
+    // un sito qualsiasi non legge le API (i browser moderni lo dicono qui)
+    if path.starts_with("/api/") && header(&head, "sec-fetch-site").is_some_and(|s| s.eq_ignore_ascii_case("cross-site")) {
+        return respond(&mut sock, "403 Forbidden", "text/plain", b"richiesta da un altro sito").await;
+    }
+    if !from_mac && !public_path(path) {
+        if !has_key(&head, &query) {
+            return respond(
+                &mut sock,
+                "403 Forbidden",
+                "text/plain; charset=utf-8",
+                "Serve la chiave della diretta: apri l'indirizzo completo mostrato da OpenSlate sul Mac.".as_bytes(),
+            )
+            .await;
+        }
+    }
+    // chiave nell'indirizzo aprendo una pagina: diventa un cookie (e sparisce
+    // dall'indirizzo); per le altre richieste (script, immagini) vale e basta
+    let page_nav = header(&head, "sec-fetch-mode").map_or(matches!(path, "/" | "/index.html" | "/chat" | "/appunti" | "/impostazioni"), |m| m.eq_ignore_ascii_case("navigate"));
+    if !from_mac && method == "GET" && page_nav && query_key(&query) == Some(key()) {
+        let rest: Vec<&str> = query.split('&').filter(|kv| !kv.starts_with("k=")).collect();
+        let to = if rest.is_empty() { path.to_string() } else { format!("{path}?{}", rest.join("&")) };
+        let resp = format!(
+            "HTTP/1.1 303 See Other\r\nLocation: {to}\r\nSet-Cookie: os_k={}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000\r\n\
+             Content-Length: 0\r\nConnection: close\r\n\r\n",
+            key()
+        );
+        sock.write_all(resp.as_bytes()).await?;
+        return sock.flush().await;
+    }
+
     if method == "POST" {
-        let len: usize = head
-            .lines()
-            .find_map(|l| {
-                let (k, v) = l.split_once(':')?;
-                k.trim().eq_ignore_ascii_case("content-length").then(|| v.trim().parse().ok())?
-            })
-            .unwrap_or(0);
+        // senza Content-Length il corpo è vuoto (regola HTTP); a pezzi no
+        if header(&head, "transfer-encoding").is_some() {
+            return respond(&mut sock, "411 Length Required", "text/plain", b"serve Content-Length").await;
+        }
+        let len = header(&head, "content-length").and_then(|v| v.parse::<usize>().ok()).unwrap_or(0);
         if len > MAX_BODY {
             return respond(&mut sock, "413 Payload Too Large", "text/plain", b"troppo grande").await;
         }
@@ -131,14 +262,14 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
                 .await
                 .map_err(|_| std::io::Error::other("timeout corpo"))??;
             if n == 0 {
-                break;
+                // la connessione si è chiusa a metà: niente file scritti a metà
+                return Ok(());
             }
             body.extend_from_slice(&chunk[..n]);
         }
         body.truncate(len);
-        let peer = sock.peer_addr().map(|a| a.ip()).ok();
         // Impostazioni e chiavi: solo dal Mac stesso.
-        if path.starts_with("/api/config") && !peer.is_some_and(|ip| ip.is_loopback()) {
+        if path.starts_with("/api/config") && !from_mac {
             return respond(&mut sock, "403 Forbidden", "text/plain", b"impostazioni solo dal Mac").await;
         }
         if !peer.is_some_and(is_local) {
@@ -175,6 +306,10 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
                     "delete" => crate::chats::trash(&id).map(|_| serde_json::json!({ "ok": true })),
                     "restore" => crate::chats::restore(&id).map(|_| serde_json::json!({ "ok": true })),
                     "attach" => crate::chats::attach_current(&id).map(|page| serde_json::json!({ "ok": true, "page": page })),
+                    "copyfrom" => {
+                        let v: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
+                        crate::chats::copy_page(v["from"].as_str().unwrap_or(""), &id).map(|_| serde_json::json!({ "ok": true }))
+                    }
                     _ => Err("operazione sconosciuta".into()),
                 };
                 let out = out.unwrap_or_else(|e| serde_json::json!({ "ok": false, "error": e }));
@@ -219,12 +354,28 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
                     );
                     return respond(&mut sock, "200 OK", "application/json", b"{\"ok\":true}").await;
                 }
-                match appunto_path(&p["/api/appunti/".len()..]) {
-                    Some(f) => match std::fs::create_dir_all(export::EXPORT_DIR).and_then(|_| std::fs::write(&f, &body)) {
-                        Ok(()) => respond(&mut sock, "200 OK", "application/json", b"{\"ok\":true}").await,
-                        Err(e) => respond(&mut sock, "500 Internal Server Error", "text/plain", e.to_string().as_bytes()).await,
-                    },
-                    None => respond(&mut sock, "400 Bad Request", "text/plain", b"nome non valido").await,
+                let Some(f) = appunto_path(&p["/api/appunti/".len()..]) else {
+                    return respond(&mut sock, "400 Bad Request", "text/plain", b"nome non valido").await;
+                };
+                // chi salva dice quale versione aveva (If-Match, o ?v= da sendBeacon):
+                // se il file è cambiato nel frattempo non si scrive sopra
+                let want = header(&head, "if-match").map(String::from).or_else(|| {
+                    query.split('&').find_map(|kv| kv.strip_prefix("v=")).and_then(percent_decode)
+                });
+                let create_only = header(&head, "if-none-match") == Some("*");
+                // svuotare un appunto che c'è si può solo dicendo quale versione si aveva
+                let blind_empty = body.is_empty() && f.exists() && want.is_none();
+                if (create_only && f.exists()) || blind_empty || want.as_ref().is_some_and(|w| f.exists() && note_version(&f) != *w) {
+                    let now = std::fs::read(&f).unwrap_or_default();
+                    let h = format!("X-Version: {}\r\n", note_version(&f));
+                    return respond_h(&mut sock, "409 Conflict", "text/markdown; charset=utf-8", &now, &h).await;
+                }
+                match std::fs::create_dir_all(export::EXPORT_DIR).and_then(|_| write_atomic(&f, &body)) {
+                    Ok(()) => {
+                        let h = format!("X-Version: {}\r\n", note_version(&f));
+                        respond_h(&mut sock, "200 OK", "application/json", b"{\"ok\":true}", &h).await
+                    }
+                    Err(e) => respond(&mut sock, "500 Internal Server Error", "text/plain", e.to_string().as_bytes()).await,
                 }
             }
             _ => respond(&mut sock, "404 Not Found", "text/plain", b"non trovato").await,
@@ -292,7 +443,10 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
         },
         p if p.starts_with("/api/appunti/") => match appunto_path(&p["/api/appunti/".len()..]) {
             Some(f) => match std::fs::read(&f) {
-                Ok(b) => respond(&mut sock, "200 OK", "text/markdown; charset=utf-8", &b).await,
+                Ok(b) => {
+                    let h = format!("X-Version: {}\r\n", note_version(&f));
+                    respond_h(&mut sock, "200 OK", "text/markdown; charset=utf-8", &b, &h).await
+                }
                 Err(_) => respond(&mut sock, "404 Not Found", "text/plain", b"non trovato").await,
             },
             None => respond(&mut sock, "400 Bad Request", "text/plain", b"nome non valido").await,
@@ -385,10 +539,48 @@ async fn respond_cached(sock: &mut TcpStream, ctype: &str, body: &[u8]) -> std::
     sock.flush().await
 }
 
+/// Regole per le pagine: script, stili e richieste solo da qui (un testo
+/// malevolo in una risposta non può mandare dati altrove né caricare codice).
+const CSP: &str = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; \
+                   img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' data: blob:; \
+                   object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+
 async fn respond(sock: &mut TcpStream, status: &str, ctype: &str, body: &[u8]) -> std::io::Result<()> {
+    respond_h(sock, status, ctype, body, "").await
+}
+
+/// Versione di un appunto sul disco (ora di modifica e grandezza).
+fn note_version(f: &std::path::Path) -> String {
+    match std::fs::metadata(f) {
+        Ok(m) => {
+            let t = m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_nanos()).unwrap_or(0);
+            format!("{t}-{}", m.len())
+        }
+        Err(_) => "none".into(),
+    }
+}
+
+/// Scrive in un file accanto e poi lo rinomina: mai un file scritto a metà.
+pub fn write_atomic(f: &std::path::Path, data: &[u8]) -> std::io::Result<()> {
+    // un collegamento (per esempio ai.toml nei propri dotfile) resta tale
+    if std::fs::symlink_metadata(f).is_ok_and(|m| m.file_type().is_symlink()) {
+        return std::fs::write(f, data);
+    }
+    let name = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let tmp = f.with_file_name(format!(".{name}.tmp"));
+    std::fs::write(&tmp, data)?;
+    // gli stessi permessi del file di prima (un ai.toml in chmod 600 resta così)
+    if let Ok(m) = std::fs::metadata(f) {
+        let _ = std::fs::set_permissions(&tmp, m.permissions());
+    }
+    std::fs::rename(&tmp, f)
+}
+
+async fn respond_h(sock: &mut TcpStream, status: &str, ctype: &str, body: &[u8], more: &str) -> std::io::Result<()> {
+    let extra = if ctype.starts_with("text/html") { format!("Content-Security-Policy: {CSP}\r\nX-Content-Type-Options: nosniff\r\n") } else { "X-Content-Type-Options: nosniff\r\n".into() };
     let head = format!(
         "HTTP/1.1 {status}\r\nContent-Type: {ctype}\r\nContent-Length: {}\r\n\
-         Cache-Control: no-store\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n",
+         Cache-Control: no-store\r\n{extra}{more}Connection: close\r\n\r\n",
         body.len()
     );
     sock.write_all(head.as_bytes()).await?;
@@ -470,6 +662,14 @@ fn list_appunti() -> serde_json::Value {
     }
     items.sort_by(|a, b| b["mtime"].as_u64().cmp(&a["mtime"].as_u64()).then(a["name"].as_str().cmp(&b["name"].as_str())));
     serde_json::Value::Array(items)
+}
+
+/// Il Mac stesso (anche come IPv6 con dentro un IPv4).
+fn is_loopback(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(v) => v.is_loopback(),
+        IpAddr::V6(v) => v.is_loopback() || v.to_ipv4_mapped().is_some_and(|v4| v4.is_loopback()),
+    }
 }
 
 /// Indirizzi della rete di casa (o del Mac stesso).
@@ -563,6 +763,10 @@ async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
     let only = req.provider.trim().to_string();
     let appunto = Some(req.note.trim()).filter(|n| !n.is_empty()).and_then(appunto_path).filter(|p| p.exists());
     let off = (Some(req.note_off.trim().to_string()).filter(|n| !n.is_empty()), req.page_off);
+    // «Stop» nel browser = connessione chiusa: lo si vede subito (non alla
+    // prossima scrittura) e il lavoro si ferma prima del prossimo strumento
+    let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let stop_w = stop.clone();
     let worker = tokio::task::spawn_blocking(move || {
         use crate::ai::{self, Event};
         let mut cfg = match ai::AiConfig::load() {
@@ -606,7 +810,7 @@ async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
                 Event::DocEdit { doc, undo } => serde_json::json!({ "t": "docedit", "doc": doc, "undo": undo }),
             };
             // false = il browser ha chiuso: si interrompe
-            tx.send(j).is_ok()
+            !stop_w.load(std::sync::atomic::Ordering::SeqCst) && tx.send(j).is_ok()
         });
         let _ = tx.send(match res {
             Ok(r) => serde_json::json!({ "t": "done", "provider": r.provider, "model": r.model }),
@@ -628,11 +832,29 @@ async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
                 None => break,
             },
             _ = ping.tick() => {
-                sock.write_all(b": ping\n\n").await?;
-                sock.flush().await?;
+                if sock.write_all(b": ping\n\n").await.is_err() || sock.flush().await.is_err() {
+                    stop.store(true, std::sync::atomic::Ordering::SeqCst);
+                    break;
+                }
+            }
+            r = sock.readable() => {
+                let mut probe = [0u8; 256];
+                let closed = match r {
+                    Ok(()) => match sock.try_read(&mut probe) {
+                        Ok(0) => true,
+                        Ok(_) => false,
+                        Err(e) => e.kind() != std::io::ErrorKind::WouldBlock,
+                    },
+                    Err(_) => true,
+                };
+                if closed {
+                    stop.store(true, std::sync::atomic::Ordering::SeqCst);
+                    break;
+                }
             }
         }
     }
+    drop(rx);
     let _ = worker.await;
     sock.shutdown().await
 }
@@ -641,7 +863,7 @@ async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
 async fn events(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
     sock.write_all(
         b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\n\
-          Access-Control-Allow-Origin: *\r\nConnection: keep-alive\r\n\r\nretry: 2000\n\n",
+          Connection: keep-alive\r\n\r\nretry: 2000\n\n",
     )
     .await?;
     // Prima ci si iscrive, poi si manda lo stato: così non si perde nulla.
@@ -690,17 +912,64 @@ mod tests {
 
     async fn get(port: u16, path: &str) -> String {
         let mut s = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
-        s.write_all(format!("GET {path} HTTP/1.1\r\nHost: x\r\n\r\n").as_bytes()).await.unwrap();
+        s.write_all(format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n\r\n").as_bytes()).await.unwrap();
         let mut out = Vec::new();
         s.read_to_end(&mut out).await.unwrap();
         String::from_utf8_lossy(&out).into_owned()
+    }
+
+    /// Una richiesta a mano: (stato, corpo).
+    async fn raw(port: u16, req: String) -> String {
+        let mut s = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
+        s.write_all(req.as_bytes()).await.unwrap();
+        let mut out = Vec::new();
+        s.read_to_end(&mut out).await.unwrap();
+        String::from_utf8_lossy(&out).into_owned()
+    }
+
+    #[test]
+    fn nomi_e_origini() {
+        assert!(host_ok(Some("127.0.0.1:8080")) && host_ok(Some("localhost:1")) && host_ok(Some("[::1]:9")));
+        assert!(host_ok(Some("192.168.1.20:8080")) && host_ok(Some("mac-di-marco.local:8080")));
+        assert!(!host_ok(Some("evil.example.com:8080")) && !host_ok(Some("rebind.attacker.net")));
+        assert!(origin_ok(None, Some("127.0.0.1:5")));
+        assert!(origin_ok(Some("http://127.0.0.1:5"), Some("127.0.0.1:5")));
+        assert!(!origin_ok(Some("https://evil.example"), Some("127.0.0.1:5")));
+        assert!(!origin_ok(Some("null"), Some("127.0.0.1:5")));
+        assert!(public_path("/") && public_path("/events") && public_path("/vendor/katex.min.js"));
+        assert!(!public_path("/chat") && !public_path("/api/chats") && !public_path("/api/appunti/x.md"));
+    }
+
+    /// Un sito aperto nel browser non può scrivere le impostazioni (né niente
+    /// altro); un nome di server estraneo (DNS rebinding) non ha risposta.
+    #[tokio::test]
+    async fn richieste_da_altri_siti() {
+        let hub = Hub::new(Scene::new(&Settings::default()));
+        let port = start_local(hub).await.unwrap();
+        let body = r#"{"config":{"providers":[],"mcp":[{"name":"x","command":"/bin/sh"}]}}"#;
+        let evil = raw(
+            port,
+            format!("POST /api/config HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nOrigin: https://evil.example\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{body}", body.len()),
+        )
+        .await;
+        assert!(evil.starts_with("HTTP/1.1 403"), "{evil}");
+        let rebind = raw(port, format!("GET /api/chats HTTP/1.1\r\nHost: rebind.attacker.net:{port}\r\n\r\n")).await;
+        assert!(rebind.starts_with("HTTP/1.1 421"), "{rebind}");
+        let cross = raw(port, format!("GET /api/config HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nSec-Fetch-Site: cross-site\r\n\r\n")).await;
+        assert!(cross.starts_with("HTTP/1.1 403"), "{cross}");
+        // nessuna pagina d'altri può leggere le risposte
+        let page = raw(port, format!("GET /chat HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n\r\n")).await;
+        assert!(!page.contains("Access-Control-Allow-Origin") && page.contains("Content-Security-Policy"));
+        // a pezzi (Transfer-Encoding) no: serve la lunghezza
+        let chunked = raw(port, format!("POST /api/appunti/prova-vuota.md HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n")).await;
+        assert!(chunked.starts_with("HTTP/1.1 411"), "{chunked}");
     }
 
     #[tokio::test]
     async fn pagina_stato_ed_eventi() {
         let hub = Hub::new(Scene::new(&Settings::default()));
         let url = start(hub.clone(), 0).await.unwrap();
-        let port: u16 = url.rsplit(':').next().unwrap().trim_end_matches('/').parse().unwrap();
+        let port: u16 = url.split("://").nth(1).unwrap().split('/').next().unwrap().rsplit(':').next().unwrap().parse().unwrap();
 
         let index = get(port, "/").await;
         assert!(index.starts_with("HTTP/1.1 200") && index.contains("EventSource"));
@@ -732,7 +1001,7 @@ mod tests {
     async fn post(port: u16, path: &str, body: &str) -> String {
         let mut s = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
         s.write_all(
-            format!("POST {path} HTTP/1.1\r\nHost: x\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}", body.len())
+            format!("POST {path} HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}", body.len())
                 .as_bytes(),
         )
         .await
@@ -777,7 +1046,7 @@ mod tests {
         crate::ai::set_context("Es. 1", Some(Arc::new(b"\x89PNG".to_vec())), "$f(x)=1/x$");
         let hub = Hub::new(Scene::new(&Settings::default()));
         let url = start(hub, 0).await.unwrap();
-        let port: u16 = url.rsplit(':').next().unwrap().trim_end_matches('/').parse().unwrap();
+        let port: u16 = url.split("://").nth(1).unwrap().split('/').next().unwrap().rsplit(':').next().unwrap().parse().unwrap();
 
         assert!(get(port, "/chat").await.contains("vendor/katex.min.js"));
         assert!(get(port, "/vendor/katex.min.js").await.contains("Cache-Control: public"));

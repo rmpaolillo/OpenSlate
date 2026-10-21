@@ -253,7 +253,8 @@ impl Settings {
             self.update_skip,
             b(self.update_auto),
         );
-        if let Err(e) = std::fs::write(FILE, text) {
+        // un file scritto a metà (crash) farebbe ripartire coi valori di serie
+        if let Err(e) = crate::web::write_atomic(std::path::Path::new(FILE), text.as_bytes()) {
             tracing::warn!("salvataggio {FILE}: {e}");
         }
     }

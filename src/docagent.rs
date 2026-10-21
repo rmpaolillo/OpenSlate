@@ -110,19 +110,44 @@ pub fn board_changed() {
     }
 }
 
-fn changed(doc: &DocRef) {
+/// Dopo una modifica: pagine ridisegnate, l'app avvisata. Se il numero di
+/// pagine è cambiato e sul documento c'era inchiostro, ritorna l'avviso da
+/// dare all'utente (le firme stanno sulle pagine per numero).
+fn changed(doc: &DocRef) -> Option<String> {
+    let id = doc.dir.file_name().and_then(|n| n.to_str()).map(String::from);
+    // prima: dalle pagine salvate in doc.json (il file è già cambiato, per un PDF anche source.pdf)
+    let before = ink_pages(&doc.dir);
     if let Err(e) = crate::document::rebuild(&doc.dir) {
         tracing::warn!("pagine del documento dopo la modifica: {e:#}");
     }
     // le pagine si ridisegnano qui, non nell'interfaccia
-    if let Some(id) = doc.dir.file_name().and_then(|n| n.to_str()) {
-        if let Err(e) = crate::document::Document::open(id) {
+    let after = id.as_deref().and_then(|id| match crate::document::Document::open(id) {
+        Ok(d) => Some(d),
+        Err(e) => {
             tracing::warn!("pagine del documento dopo la modifica: {e:#}");
+            None
         }
-    }
+    });
     if let Some(n) = NOTIFY.get() {
         n(doc.dir.clone());
     }
+    let ((n_before, ink), a) = (before?, after?);
+    (ink && n_before != a.pages.len()).then(|| {
+        format!(
+            "ATTENZIONE: il documento è passato da {} a {} pagine e l'utente ci aveva scritto sopra (firme o note a mano, \
+             legate al numero della pagina): dillo all'utente, che controlli dove sono finite; con «Annulla le modifiche» torna tutto com'era.",
+            n_before,
+            a.pages.len()
+        )
+    })
+}
+
+/// Da doc.json: quante pagine aveva il documento e se c'era inchiostro.
+fn ink_pages(dir: &Path) -> Option<(usize, bool)> {
+    let v: Value = serde_json::from_str(&std::fs::read_to_string(dir.join("doc.json")).ok()?).ok()?;
+    let pages = v["pages"].as_array()?;
+    let has = |a: &Value| a.as_array().is_some_and(|ps| ps.iter().any(|p| p.as_array().is_some_and(|s| !s.is_empty())));
+    Some((pages.len(), has(&v["pages"]) || has(&v["extra"])))
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +165,8 @@ fn snapshot(doc: &DocRef) -> Result<u64> {
     let n = std::fs::read_dir(&base)?.filter_map(|e| e.ok()?.file_name().to_str()?.parse::<u64>().ok()).max().unwrap_or(0) + 1;
     let d = undo_dir(&doc.dir, n);
     std::fs::create_dir_all(&d)?;
+    // (l'inchiostro, in doc.json, non si tocca: se le pagine cambiano resta
+    // da parte e torna quando tornano)
     for f in [doc.file.clone(), doc.dir.join("source.pdf")] {
         if f.exists() {
             std::fs::copy(&f, d.join(f.file_name().context("nome del file")?))?;
@@ -156,6 +183,16 @@ pub fn undo(dir: &Path, n: u64) -> Result<()> {
     if !d.is_dir() {
         bail!("questa modifica non si può più annullare");
     }
+    // il documento com'è adesso resta da parte (ai-undo/annullato-<ora>/)
+    let keep = dir.join("ai-undo").join(format!("annullato-{}", chrono::Local::now().format("%Y%m%d-%H%M%S")));
+    if std::fs::create_dir_all(&keep).is_ok() {
+        for e in std::fs::read_dir(&d)?.flatten() {
+            let cur = dir.join(e.file_name());
+            if cur.exists() {
+                let _ = std::fs::copy(&cur, keep.join(e.file_name()));
+            }
+        }
+    }
     for e in std::fs::read_dir(&d)? {
         let e = e?;
         std::fs::copy(e.path(), dir.join(e.file_name()))?;
@@ -168,7 +205,7 @@ pub fn undo(dir: &Path, n: u64) -> Result<()> {
     }
     drop_session(dir);
     let doc = DocRef::of(dir, 0).context("documento non trovato")?;
-    changed(&doc);
+    let _ = changed(&doc);
     Ok(())
 }
 
@@ -198,20 +235,27 @@ type Job = Box<dyn FnOnce(&mut Option<Session>) + Send>;
 
 fn session_thread() -> &'static Mutex<std::sync::mpsc::Sender<Job>> {
     static TX: OnceLock<Mutex<std::sync::mpsc::Sender<Job>>> = OnceLock::new();
-    TX.get_or_init(|| {
-        let (tx, rx) = std::sync::mpsc::channel::<Job>();
-        std::thread::Builder::new()
-            .name("documento-mcp".into())
-            .spawn(move || {
-                let mut session: Option<Session> = None;
-                while let Ok(job) = rx.recv() {
-                    job(&mut session);
-                }
-            })
-            .expect("thread dei server MCP");
-        Mutex::new(tx)
-    })
+    TX.get_or_init(|| Mutex::new(new_session_thread()))
 }
+
+/// Il thread dei server MCP. Un lavoro che va in crash azzera la sessione
+/// (si riapre al prossimo), il thread resta.
+fn new_session_thread() -> std::sync::mpsc::Sender<Job> {
+    let (tx, rx) = std::sync::mpsc::channel::<Job>();
+    let _ = std::thread::Builder::new().name("documento-mcp".into()).spawn(move || {
+        let mut session: Option<Session> = None;
+        while let Ok(job) = rx.recv() {
+            if crate::platform::guarded(|| job(&mut session)).is_err() {
+                session = None;
+            }
+        }
+    });
+    tx
+}
+
+/// Tempo massimo di un lavoro sul documento (un file che fa impazzire
+/// l'impaginazione non deve bloccare la chat per sempre).
+const JOB_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(180);
 
 /// Esegue `f` nel thread dei server MCP e ne aspetta il risultato.
 fn on_session_thread<T: Send + 'static>(f: impl FnOnce(&mut Option<Session>) -> T + Send + 'static) -> Result<T> {
@@ -219,8 +263,16 @@ fn on_session_thread<T: Send + 'static>(f: impl FnOnce(&mut Option<Session>) -> 
     let job: Job = Box::new(move |s| {
         let _ = tx.send(f(s));
     });
-    session_thread().lock().unwrap().send(job).map_err(|_| anyhow!("server MCP fermi"))?;
-    rx.recv().map_err(|_| anyhow!("server MCP: lavoro interrotto"))
+    session_thread().lock().unwrap_or_else(|e| e.into_inner()).send(job).map_err(|_| anyhow!("server MCP fermi"))?;
+    match rx.recv_timeout(JOB_TIMEOUT) {
+        Ok(v) => Ok(v),
+        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+            // (il lavoro continua nel suo thread: non se ne apre un altro sullo
+            // stesso file, che scriverebbero in due)
+            bail!("il documento non risponde da {} s: riprova fra poco", JOB_TIMEOUT.as_secs())
+        }
+        Err(_) => bail!("server MCP: lavoro interrotto (errore interno, vedi crash.log)"),
+    }
 }
 
 fn mtime(p: &Path) -> Option<std::time::SystemTime> {
@@ -509,13 +561,46 @@ fn edit_file(doc: &DocRef, bytes: &[u8]) -> Result<u64> {
     let n = snapshot(doc)?;
     std::fs::write(&doc.file, bytes)?;
     drop_session(&doc.dir);
-    changed(doc);
+    if let Some(w) = changed(doc) {
+        tracing::warn!("{w}");
+    }
     Ok(n)
+}
+
+/// I comandi «generici» (execute, batch, command_run…) non possono aprire,
+/// salvare o esportare file: lo fa l'app (il file giusto, nel posto giusto,
+/// con la copia per «Annulla»).
+fn forbidden_command(args: &Value) -> Option<String> {
+    fn walk(v: &Value, out: &mut Option<String>) {
+        match v {
+            Value::Object(o) => {
+                for (k, x) in o {
+                    if matches!(k.as_str(), "command" | "cmd" | "id") {
+                        if let Some(c) = x.as_str() {
+                            let c = c.trim().to_ascii_lowercase();
+                            if c.starts_with("file.") || c.starts_with("app.") || c.starts_with("document.save") || c.starts_with("document.export") || c.starts_with("document.open") {
+                                *out = Some(c);
+                            }
+                        }
+                    }
+                    walk(x, out);
+                }
+            }
+            Value::Array(a) => a.iter().for_each(|x| walk(x, out)),
+            _ => {}
+        }
+    }
+    let mut out = None;
+    walk(args, &mut out);
+    out
 }
 
 fn mcp_call(doc: &DocRef, tool: &str, args: &Value) -> Result<Outcome> {
     if !allowed(doc.kind, tool) {
         bail!("strumento non disponibile: {tool}");
+    }
+    if let Some(c) = forbidden_command(args) {
+        bail!("il comando «{c}» non si usa dalla chat: aprire, salvare ed esportare li fa l'app da sola");
     }
     let before = std::fs::read(&doc.file)?;
     let n = snapshot(doc)?;
@@ -541,12 +626,14 @@ fn mcp_call(doc: &DocRef, tool: &str, args: &Value) -> Result<Outcome> {
             return Err(e);
         }
     };
-    let text = result_text(&r);
+    let mut text = result_text(&r);
     let images = result_images(&r);
     let error = r["isError"].as_bool() == Some(true);
     let after = std::fs::read(&doc.file)?;
     let edit = if after != before {
-        changed(doc);
+        if let Some(w) = changed(doc) {
+            text = format!("{text}\n\n{w}");
+        }
         Some(n)
     } else {
         let _ = std::fs::remove_dir_all(undo_dir(&doc.dir, n));
@@ -602,6 +689,9 @@ pub fn note_undo(note: &Path, n: u64) -> Result<()> {
     if !f.is_file() {
         bail!("questa modifica non si può più annullare");
     }
+    // quello che c'è adesso (anche ciò che hai scritto dopo la modifica
+    // dell'AI) resta da parte: «annullato-<ora>.md» accanto alle copie
+    let _ = std::fs::copy(note, d.join(format!("annullato-{}.md", chrono::Local::now().format("%Y%m%d-%H%M%S"))));
     std::fs::copy(&f, note)?;
     for e in std::fs::read_dir(&d)?.flatten() {
         if e.path().file_stem().and_then(|s| s.to_str()).and_then(|s| s.parse::<u64>().ok()).is_some_and(|k| k >= n) {
@@ -708,9 +798,9 @@ fn insert_image(doc: &DocRef, args: &Value) -> Result<Outcome> {
         return Err(e);
     }
     drop_session(&doc.dir);
-    changed(doc);
+    let warn = changed(doc).map(|w| format!("\n\n{w}")).unwrap_or_default();
     Ok(Outcome {
-        text: format!("Fatto: il grafico {} è nel documento ({:.1} × {:.1} cm).", chart.id, width / CM, height / CM),
+        text: format!("Fatto: il grafico {} è nel documento ({:.1} × {:.1} cm).{warn}", chart.id, width / CM, height / CM),
         short: "grafico inserito nel documento".into(),
         edit: Some(n),
         ..Default::default()
@@ -720,6 +810,13 @@ fn insert_image(doc: &DocRef, args: &Value) -> Result<Outcome> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn comandi_di_file_vietati() {
+        assert!(forbidden_command(&json!({ "command": "file.save", "params": { "path": "/tmp/x.docx" } })).is_some());
+        assert!(forbidden_command(&json!({ "commands": [{ "command": "format.bold" }, { "command": "File.Open" }] })).is_some());
+        assert!(forbidden_command(&json!({ "command": "insert.text", "params": { "text": "salva il file.docx" } })).is_none());
+    }
 
     #[test]
     fn paragrafo_dopo_un_testo() {

@@ -72,16 +72,27 @@ pub fn run_app(
     let hub = Hub::new(Scene::new(&settings));
     // la chat AI può mettere grafici sul foglio della lavagna
     crate::boardagent::set_hub(hub.clone());
+    crash_guard(hub.clone());
 
     // Archivio: al primo avvio importa le pagine già scaricate (copie grezze).
     let first_time = !std::path::Path::new(library::LIB_DIR).exists();
     let mut lib = Library::open();
     let mut status = "Pronto. Premi «Collega».".to_string();
+    let raw_dir = std::path::Path::new(export::EXPORT_DIR).join("pad-raw");
     if first_time {
-        let dir = std::path::Path::new(export::EXPORT_DIR).join("pad-raw");
-        let n = lib.import_raw_dir(&dir, 0.0, 0.0);
+        let n = lib.import_raw_dir(&raw_dir, 0.0, 0.0);
         if n > 0 {
             status = format!("Archivio creato: importate {n} pagine già scaricate dal pad.");
+        }
+    } else if !library::raw_seen_exists(&raw_dir) {
+        // archivio di una versione di prima: quello che c'è è già passato di qui
+        library::mark_raw_seen(&raw_dir, &library::raw_files(&raw_dir));
+    } else {
+        // pagine tolte dal pad ma non arrivate nell'archivio (scaricamento
+        // interrotto, app chiusa a metà): si recuperano dalla copia grezza
+        let n = lib.import_raw_dir(&raw_dir, 0.0, 0.0);
+        if n > 0 {
+            status = format!("Recuperate {n} pagine del pad dalle copie di sicurezza.");
         }
     }
 
@@ -142,6 +153,8 @@ pub fn run_app(
         chat_note_key: None,
         chat_note_sent: None,
         board_from: None,
+        board_from_id: None,
+        ocr_started: None,
         lang_changed: false,
         ocr_busy: false,
         page_pending: None,
@@ -327,10 +340,14 @@ struct App {
     last_ocr_note: Option<(String, String)>,
     /// Quello che decide l'appunto della chat (centro, pagina in lavagna,
     /// appunto aperto, documento) e l'appunto mandato: si ricalcola solo se cambia.
-    chat_note_key: Option<(workspace::Center, Option<String>, Option<String>, bool, Option<(String, String)>)>,
+    chat_note_key: Option<(workspace::Center, Option<String>, Option<String>, bool, Option<(String, String)>, usize)>,
     chat_note_sent: Option<String>,
     /// Titolo della pagina dell'archivio portata sulla lavagna (per la chat).
     board_from: Option<String>,
+    /// L'id nell'archivio della pagina messa sulla lavagna (i titoli si ripetono).
+    board_from_id: Option<String>,
+    /// Trascrizione della lavagna in corso: di quale pagina e com'era (firma dei tratti).
+    ocr_started: Option<(String, u64)>,
     /// Lingua cambiata nelle Opzioni: caratteri e pagine web da rifare.
     lang_changed: bool,
     ocr_busy: bool,
@@ -740,6 +757,16 @@ impl App {
                     self.link = l;
                 }
                 UiEvent::Synced { files, deleted, drawings } => self.on_synced(files, deleted, drawings),
+                UiEvent::Exported { written, error, doc } => self.on_exported(written, error, doc),
+                UiEvent::SyncFailed(e) => {
+                    // scaricamento interrotto: le pagine già tolte dal pad hanno la copia grezza
+                    let dir = std::path::Path::new(export::EXPORT_DIR).join("pad-raw");
+                    let n = self.lib.import_raw_dir(&dir, 0.0, 0.0);
+                    self.status = if n > 0 { format!("⚠ {e} (recuperate {n} pagine già scaricate)") } else { format!("⚠ {e}") };
+                    if n > 0 {
+                        self.mode = Mode::Library;
+                    }
+                }
                 UiEvent::PadFiles(n) => self.lui.pad_files = Some(n),
                 UiEvent::Ocr(r) => {
                     self.ocr_busy = false;
@@ -747,6 +774,7 @@ impl App {
                         Ok(d) => self.on_ocr(d),
                         Err(e) => {
                             tracing::warn!("trascrizione: {e}");
+                            self.ocr_started = None;
                             self.status = "⚠ Trascrizione non riuscita — clic per i dettagli".into();
                             self.error_box = Some(("Trascrizione non riuscita".into(), e));
                             self.error_open = true;
@@ -838,18 +866,26 @@ impl App {
         }
         let mut new_ids = Vec::new();
         let mut dup = 0;
+        let raw_dir = std::path::Path::new(export::EXPORT_DIR).join("pad-raw");
+        let mut seen = Vec::new();
         for d in drawings {
             if self.lib.has_pad_page(d.created, d.drawing.strokes.len()) {
                 dup += 1;
+                seen.extend(d.raw.clone());
                 continue;
             }
             let mut meta = Meta::new(d.created, library::SOURCE_PAD);
-            meta.raw = d.raw;
+            meta.raw = d.raw.clone();
             match self.lib.add(&d.drawing, meta) {
-                Ok(id) => new_ids.push(id),
+                Ok(id) => {
+                    new_ids.push(id);
+                    seen.extend(d.raw);
+                }
                 Err(e) => self.status = format!("⚠ archivio: {e}"),
             }
         }
+        // passate nell'archivio: non si reimportano (la copia grezza resta)
+        library::mark_raw_seen(&raw_dir, &seen);
         let left = files.saturating_sub(deleted);
         self.status = format!(
             "Dal pad: {} nell'archivio{}{}",
@@ -882,6 +918,12 @@ impl App {
 
     /// Riconosce la scrittura di una o più pagine (in sequenza).
     fn ocr_pages(&mut self, pages: Vec<(String, Page)>) {
+        self.ocr_pages_for(pages, None);
+    }
+
+    /// Come `ocr_pages`; `board` = la pagina della lavagna (chiave e firma dei
+    /// tratti) a cui legare l'appunto che ne uscirà.
+    fn ocr_pages_for(&mut self, pages: Vec<(String, Page)>, board: Option<(String, u64)>) {
         if self.ocr_busy {
             return;
         }
@@ -890,6 +932,7 @@ impl App {
             self.status = "Pagina vuota: niente da riconoscere.".into();
             return;
         }
+        self.ocr_started = board;
         self.ocr_busy = true;
         self.status = if self.settings.ocr_engine == "vision" {
             "Riconosco la scrittura (Apple Vision)…".into()
@@ -898,7 +941,19 @@ impl App {
         };
         let cfg = self.settings.clone();
         let tx = self.evt_tx.clone();
+        let tx_crash = self.evt_tx.clone();
         std::thread::spawn(move || {
+            // un crash nella trascrizione lo dice, invece di lasciare «Trascrivo…» per sempre
+            if let Err(e) = crate::platform::guarded(move || ocr_job(pages, cfg, tx)) {
+                let _ = tx_crash.send(UiEvent::Ocr(Err(e)));
+            }
+        });
+    }
+}
+
+/// Il lavoro della trascrizione (in un thread).
+fn ocr_job(pages: Vec<(String, Page)>, cfg: Settings, tx: tokio::sync::mpsc::UnboundedSender<UiEvent>) {
+        {
             let many = pages.len() > 1;
             let title = if many { format!("{} pagine", pages.len()) } else { pages[0].0.clone() };
             let mut out = String::new();
@@ -907,6 +962,8 @@ impl App {
             let mut markdown = false;
             // le figure ridisegnate prendono il nome dall'ora, come l'appunto
             let ts = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
+            let total = pages.len();
+            let mut failed = 0;
             for (i, (title, page)) in pages.into_iter().enumerate() {
                 let page = ai_page(page);
                 let r = export::page_to_png(&page, 2000).and_then(|png| {
@@ -937,11 +994,24 @@ impl App {
                         out.push_str(r.text.trim());
                         out.push_str("\n");
                     }
+                    // con più pagine quelle fatte non si buttano: la pagina che
+                    // non riesce resta segnata nel testo
+                    Err(e) if many => {
+                        failed += 1;
+                        if i > 0 {
+                            out.push_str("\n---\n\n");
+                        }
+                        out.push_str(&format!("<!-- {title} -->\n> ⚠ {}: {}\n", crate::i18n::t("pagina non trascritta"), format!("{e:#}").lines().next().unwrap_or("")));
+                    }
                     Err(e) => {
                         let _ = tx.send(UiEvent::Ocr(Err(format!("{e:#}"))));
                         return;
                     }
                 }
+            }
+            if failed == total {
+                let _ = tx.send(UiEvent::Ocr(Err(crate::i18n::t("nessuna pagina trascritta").into())));
+                return;
             }
             let _ = tx.send(UiEvent::Ocr(Ok(OcrDone {
                 text: out.trim().to_string(),
@@ -950,9 +1020,10 @@ impl App {
                 title,
                 png: first_png,
             })));
-        });
-    }
+        }
+}
 
+impl App {
     /// Trascrizione arrivata: si salva come appunto (.md) e si apre al centro,
     /// come un documento, con le formule impaginate.
     fn on_ocr(&mut self, d: OcrDone) {
@@ -973,8 +1044,13 @@ impl App {
         self.last_ocr_md = Some(text);
         let name = path.file_name().map(|n| n.to_string_lossy().to_string());
         if let Some(n) = &name {
-            // la pagina ricorda il suo appunto: la chat lo ritrova quando la pagina torna sulla lavagna
-            link_ocr_note(&d.title, n);
+            // la pagina ricorda il suo appunto (e com'era il foglio trascritto):
+            // la chat lo ritrova quando la pagina torna sulla lavagna, ma non
+            // se nel frattempo sul foglio si è scritto altro
+            match self.ocr_started.take() {
+                Some((key, sig)) => link_ocr_note(&key, n, Some(sig)),
+                None => link_ocr_note(&d.title, n, None),
+            }
             self.last_ocr_note = Some((d.title.clone(), n.clone()));
         }
         self.open_note(name);
@@ -1039,7 +1115,9 @@ impl App {
 
     fn open_page_now(&mut self, page: &str) {
         let Some(url) = &self.web_url else { return };
-        let port = url.trim_end_matches('/').rsplit(':').next().unwrap_or("8080").to_string();
+        // http://host:porta/?k=… → porta
+        let hostport = url.split("://").nth(1).unwrap_or("").split('/').next().unwrap_or("");
+        let port = hostport.rsplit(':').next().filter(|p| p.chars().all(|c| c.is_ascii_digit()) && !p.is_empty()).unwrap_or("8080").to_string();
         let full = format!("http://localhost:{port}/{page}");
         let title = if page.starts_with("chat") {
             "Chat AI"
@@ -1152,11 +1230,21 @@ impl App {
         if self.docui.doc.is_some() {
             return None;
         }
-        let name = match &self.board_from {
-            Some(t) => ocr_note_for(t),
-            None => self.last_ocr_note.as_ref().filter(|(t, _)| t.starts_with("Lavagna")).map(|(_, n)| n.clone()),
-        }?;
+        let sig = crate::stroke::strokes_sig(&self.hub.lock().drawing.strokes);
+        let name = ocr_note_for(&self.board_key(), sig)
+            // collegamenti di prima (per titolo, senza firma)
+            .or_else(|| self.board_from.as_deref().and_then(|t| ocr_note_for(t, sig)))?;
         std::path::Path::new(export::EXPORT_DIR).join(&name).exists().then_some(name)
+    }
+
+    /// Come si chiama la pagina sulla lavagna per le trascrizioni: l'id
+    /// nell'archivio se viene da lì, altrimenti «lavagna».
+    fn board_key(&self) -> String {
+        match (&self.board_from_id, &self.board_from) {
+            (Some(id), _) => format!("lib:{id}"),
+            (None, Some(t)) => t.clone(),
+            (None, None) => "lavagna".into(),
+        }
     }
 
     /// L'appunto della chat segue quello che si guarda: l'appunto aperto al
@@ -1172,7 +1260,9 @@ impl App {
     /// Manda alla chat l'appunto giusto (ogni fotogramma: lavora solo se
     /// qualcosa è cambiato).
     pub(crate) fn sync_chat_note(&mut self) {
-        let key = (self.center, self.board_from.clone(), self.note.clone(), self.docui.doc.is_some(), self.last_ocr_note.clone());
+        // anche il numero di tratti: scrivendo sul foglio la trascrizione non vale più
+        let strokes = self.hub.lock().drawing.strokes.len();
+        let key = (self.center, self.board_from.clone(), self.note.clone(), self.docui.doc.is_some(), self.last_ocr_note.clone(), strokes);
         if self.chat_note_key.as_ref() == Some(&key) {
             return;
         }
@@ -1341,9 +1431,13 @@ impl App {
                 file_stem(title)
             }
         };
-        let mut written = Vec::new();
-        let mut error = None;
-        if matches!(fmt, Fmt::Pdf) || pages.len() == 1 {
+        // prima le finestre «Salva con nome», poi la scrittura in sottofondo
+        // (tante pagine in PDF richiedono tempo: la finestra non si blocca)
+        enum Job {
+            One(std::path::PathBuf),
+            Many(std::path::PathBuf),
+        }
+        let job = if matches!(fmt, Fmt::Pdf) || pages.len() == 1 {
             let name = if pages.len() == 1 { stem(&pages[0].0) } else { format!("pagine-{}", pages.len()) };
             let what = if pages.len() == 1 { "la pagina".to_string() } else { format!("{} pagine", pages.len()) };
             let title = format!("Esporta {what} in {}", ext.to_uppercase());
@@ -1351,42 +1445,70 @@ impl App {
                 self.status = "Esportazione annullata.".into();
                 return;
             };
-            let r = match fmt {
-                Fmt::Pdf => {
-                    let refs: Vec<&Page> = pages.iter().map(|(_, p)| p).collect();
-                    export::save_pdf(&refs, &path).map_err(|e| e.to_string())
-                }
-                Fmt::Png => export::save_png(&pages[0].1, &path).map_err(|e| e.to_string()),
-                Fmt::Svg => export::save_svg(&pages[0].1, &path).map_err(|e| e.to_string()),
-            };
-            match r {
-                Ok(()) => written.push(path),
-                Err(e) => error = Some(e),
-            }
+            Job::One(path)
         } else {
             let title = format!("Scegli la cartella per {} immagini {}", pages.len(), ext.to_uppercase());
             let Some(dir) = savedlg::pick_folder(&mut self.settings, &title) else {
                 self.status = "Esportazione annullata.".into();
                 return;
             };
-            for (title, page) in &pages {
-                let path = savedlg::free_path(&dir, &stem(title), ext);
-                let r = if matches!(fmt, Fmt::Png) {
-                    export::save_png(page, &path).map_err(|e| e.to_string())
-                } else {
-                    export::save_svg(page, &path).map_err(|e| e.to_string())
-                };
-                match r {
-                    Ok(()) => written.push(path),
-                    Err(e) => error = Some(e),
+            Job::Many(dir)
+        };
+        let names: Vec<String> = pages.iter().map(|(t, _)| stem(t)).collect();
+        self.status = "Esporto…".into();
+        let tx = self.evt_tx.clone();
+        std::thread::spawn(move || {
+            let mut written = Vec::new();
+            let mut error = None;
+            match job {
+                Job::One(path) => {
+                    let r = match fmt {
+                        Fmt::Pdf => {
+                            let refs: Vec<&Page> = pages.iter().map(|(_, p)| p).collect();
+                            export::save_pdf(&refs, &path).map_err(|e| e.to_string())
+                        }
+                        Fmt::Png => export::save_png(&pages[0].1, &path).map_err(|e| e.to_string()),
+                        Fmt::Svg => export::save_svg(&pages[0].1, &path).map_err(|e| e.to_string()),
+                    };
+                    match r {
+                        Ok(()) => written.push(path),
+                        Err(e) => error = Some(e),
+                    }
+                }
+                Job::Many(dir) => {
+                    for ((_, page), stem) in pages.iter().zip(&names) {
+                        let path = savedlg::free_path(&dir, stem, ext);
+                        let r = if matches!(fmt, Fmt::Png) {
+                            export::save_png(page, &path).map_err(|e| e.to_string())
+                        } else {
+                            export::save_svg(page, &path).map_err(|e| e.to_string())
+                        };
+                        match r {
+                            Ok(()) => written.push(path),
+                            Err(e) => error = Some(e),
+                        }
+                    }
                 }
             }
-        }
+            let _ = tx.send(UiEvent::Exported { written, error: error.map(|e| format!("export: {e}")), doc: false });
+        });
+    }
+
+    /// Fine di un export in sottofondo.
+    fn on_exported(&mut self, written: Vec<std::path::PathBuf>, error: Option<String>, doc: bool) {
         for p in &written {
             run_hook(&self.settings.hook, &p.to_string_lossy());
         }
+        if doc {
+            if let Some(p) = written.first() {
+                // lo apre subito (Anteprima) per vedere il risultato
+                crate::platform::open(p);
+                self.docui.last_export = Some(p.clone());
+            }
+        }
         self.status = match (error, written.len()) {
-            (Some(e), _) => format!("⚠ export: {e}"),
+            (Some(e), _) => format!("⚠ {e}"),
+            (None, 0) => String::new(),
             (None, 1) => format!("Salvato in {}", written[0].display()),
             (None, n) => format!(
                 "Salvati {n} file in {}",
@@ -1430,6 +1552,7 @@ impl App {
             Action::Clear => {
                 self.hub.edit(|s| s.clear());
                 self.board_from = None;
+                self.board_from_id = None;
                 // la lavagna pulita non ha più la trascrizione di prima
                 self.last_ocr_note = None;
                 self.last_ocr_md = None;
@@ -1646,7 +1769,8 @@ impl App {
             Action::Ocr => {
                 let (_, p) = self.board_page();
                 let title = self.board_title();
-                self.ocr_pages(vec![(title, p)]);
+                let next = self.docui.doc.is_none().then(|| (self.board_key(), crate::stroke::strokes_sig(&self.hub.lock().drawing.strokes)));
+                self.ocr_pages_for(vec![(title, p)], next);
             }
             Action::Appunti => self.open_note(None),
             Action::AiSettings => {
@@ -2189,6 +2313,46 @@ impl eframe::App for App {
     }
 }
 
+/// Paracadute: se l'interfaccia va in crash, prima di chiudere il motivo va
+/// in `crash.log` (cartella dei dati) e la lavagna nell'archivio (in diretta
+/// il pad non la conserva). I crash dei lavori in sottofondo non chiudono
+/// l'app: lì si scrive solo il log.
+fn crash_guard(hub: Arc<Hub>) {
+    let prev = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let now = chrono::Local::now();
+        let thread = std::thread::current().name().unwrap_or("?").to_string();
+        let text = format!(
+            "\n--- {} OpenSlate {} (thread {thread})\n{info}\n{}\n",
+            now.format("%Y-%m-%d %H:%M:%S"),
+            crate::update::current(),
+            std::backtrace::Backtrace::force_capture()
+        );
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("crash.log") {
+            use std::io::Write;
+            let _ = f.write_all(text.as_bytes());
+        }
+        static RESCUED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+        if thread == "main" && !RESCUED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+            if let Some(s) = hub.try_lock() {
+                // solo la lavagna (un documento aperto si salva da solo)
+                if s.bg.as_ref().is_none_or(|b| b.is_chart()) {
+                    let d = s.drawing.clone();
+                    let chart = s.bg.clone();
+                    drop(s);
+                    if !d.is_empty() || chart.is_some() {
+                        let mut meta = Meta::new(now.naive_local(), library::SOURCE_BOARD);
+                        meta.title = "Lavagna salvata dopo un errore".into();
+                        let mut lib = Library::open();
+                        let _ = lib.add_with_chart(&d, meta, chart.as_ref());
+                    }
+                }
+            }
+        }
+        prev(info);
+    }));
+}
+
 /// macOS: barra dei menu dell'app. Serve il menu «Modifica» perché Cmd+C,
 /// Cmd+V e Cmd+A funzionino nelle pagine incorporate (chat, appunti).
 #[cfg(target_os = "macos")]
@@ -2246,18 +2410,29 @@ fn png_from_rgba(w: u32, h: u32, rgba: &[u8]) -> Option<Vec<u8>> {
 /// della pagina → nome dell'appunto, l'ultimo vince).
 const OCR_LINKS: &str = "exports/.trascrizioni.json";
 
-fn link_ocr_note(title: &str, note: &str) {
-    if title.trim().is_empty() {
+fn link_ocr_note(key: &str, note: &str, sig: Option<u64>) {
+    if key.trim().is_empty() {
         return;
     }
     let mut map: serde_json::Map<String, serde_json::Value> =
         std::fs::read_to_string(OCR_LINKS).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
-    map.insert(title.to_string(), serde_json::Value::String(note.to_string()));
+    let v = match sig {
+        Some(s) => serde_json::json!({ "note": note, "sig": s.to_string() }),
+        None => serde_json::Value::String(note.to_string()),
+    };
+    map.insert(key.to_string(), v);
     let _ = std::fs::create_dir_all(export::EXPORT_DIR);
-    let _ = std::fs::write(OCR_LINKS, serde_json::Value::Object(map).to_string());
+    let _ = web::write_atomic(std::path::Path::new(OCR_LINKS), serde_json::Value::Object(map).to_string().as_bytes());
 }
 
-fn ocr_note_for(title: &str) -> Option<String> {
+/// L'appunto della pagina `key`, se il foglio è ancora quello trascritto
+/// (`sig` = firma dei tratti adesso). I collegamenti vecchi (solo il nome)
+/// valgono sempre.
+fn ocr_note_for(key: &str, sig: u64) -> Option<String> {
     let map: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(OCR_LINKS).ok()?).ok()?;
-    map[title].as_str().map(String::from)
+    let v = &map[key];
+    if let Some(n) = v.as_str() {
+        return Some(n.to_string());
+    }
+    (v["sig"].as_str() == Some(sig.to_string().as_str())).then(|| v["note"].as_str().map(String::from)).flatten()
 }

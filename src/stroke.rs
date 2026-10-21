@@ -26,6 +26,22 @@ pub struct PenEvent {
     pub phase: PenPhase,
 }
 
+/// Firma di una lista di tratti (tutti i punti): due liste con la stessa
+/// firma sono lo stesso disegno.
+pub fn strokes_sig(strokes: &[Stroke]) -> u64 {
+    let mut h: u64 = 1469598103934665603;
+    let mut mix = |v: u64| h = (h ^ v).wrapping_mul(1099511628211);
+    mix(strokes.len() as u64);
+    for s in strokes {
+        mix(s.points.len() as u64 ^ ((s.highlight as u64) << 40));
+        mix(u32::from_le_bytes([s.color[0], s.color[1], s.color[2], 0]) as u64 ^ (s.width.to_bits() as u64) << 24);
+        for p in &s.points {
+            mix(p.x.to_bits() as u64 | (p.y.to_bits() as u64) << 32);
+        }
+    }
+    h
+}
+
 /// Un tratto continuo (dalla penna giù alla penna su).
 #[derive(Clone, Debug)]
 pub struct Stroke {

@@ -62,7 +62,21 @@ impl Drop for Proc {
     }
 }
 
-static POOL: Mutex<Vec<Proc>> = Mutex::new(Vec::new());
+/// Un server acceso: configurazione e strumenti (letti senza fermarlo) e il
+/// processo, col suo lucchetto: una chiamata lunga a un server non blocca
+/// gli altri server né le altre chat.
+struct Entry {
+    cfg: McpServerCfg,
+    tools: Vec<Value>,
+    proc: std::sync::Arc<Mutex<Proc>>,
+}
+
+/// L'elenco si tiene solo per un attimo (mai durante una chiamata).
+static POOL: Mutex<Vec<Entry>> = Mutex::new(Vec::new());
+
+fn pool() -> std::sync::MutexGuard<'static, Vec<Entry>> {
+    POOL.lock().unwrap_or_else(|e| e.into_inner())
+}
 
 /// Nome sicuro per il modello: lettere, cifre, `_` e `-`.
 fn safe(s: &str) -> String {
@@ -154,16 +168,25 @@ impl Proc {
 /// Avvia (o riusa) i server accesi in configurazione; ritorna gli errori di
 /// quelli che non partono (la chat va avanti senza).
 fn ensure(cfgs: &[McpServerCfg]) -> Vec<String> {
-    let mut pool = POOL.lock().unwrap();
     let wanted: Vec<&McpServerCfg> = cfgs.iter().filter(|c| c.enabled && !c.name.trim().is_empty()).collect();
-    pool.retain_mut(|p| p.alive() && wanted.iter().any(|c| **c == p.cfg));
+    let missing: Vec<McpServerCfg> = {
+        let mut pool = pool();
+        // via quelli tolti dalla configurazione o usciti (uno occupato in una
+        // chiamata è vivo per forza)
+        pool.retain(|e| wanted.iter().any(|c| **c == e.cfg) && e.proc.try_lock().map(|mut p| p.alive()).unwrap_or(true));
+        wanted.iter().filter(|c| !pool.iter().any(|e| e.cfg == ***c)).map(|c| (*c).clone()).collect()
+    };
+    // si avviano fuori dal lucchetto (fino a 30 s l'uno)
     let mut errors = Vec::new();
-    for c in wanted {
-        if pool.iter().any(|p| p.cfg == *c) {
-            continue;
-        }
-        match Proc::start(c) {
-            Ok(p) => pool.push(p),
+    for c in missing {
+        match Proc::start(&c) {
+            Ok(p) => {
+                let tools = p.tools.clone();
+                let mut pool = pool();
+                if !pool.iter().any(|e| e.cfg == c) {
+                    pool.push(Entry { cfg: c, tools, proc: std::sync::Arc::new(Mutex::new(p)) });
+                }
+            }
             Err(e) => errors.push(format!("{e:#}")),
         }
     }
@@ -178,7 +201,7 @@ pub fn definitions(cfgs: &[McpServerCfg]) -> (Vec<Value>, String) {
     for e in ensure(cfgs) {
         tracing::warn!("{e}");
     }
-    let pool = POOL.lock().unwrap();
+    let pool = pool();
     let mut defs = Vec::new();
     let mut names = Vec::new();
     for p in pool.iter() {
@@ -207,10 +230,13 @@ pub fn definitions(cfgs: &[McpServerCfg]) -> (Vec<Value>, String) {
 /// Esegue lo strumento `name` se è di un server esterno: (testo per il
 /// modello, esito breve, immagini).
 pub fn execute(name: &str, args: &Value) -> Option<(String, String, Vec<Vec<u8>>)> {
-    let mut pool = POOL.lock().unwrap();
-    let p = pool.iter_mut().find(|p| name.starts_with(&format!("{}__", safe(&p.cfg.name))))?;
-    let tool = p.tools.iter().filter_map(|t| t["name"].as_str()).find(|t| tool_name(&p.cfg.name, t) == name)?.to_string();
-    let timeout = Duration::from_secs(p.cfg.timeout.clamp(5, 3600));
+    let (proc, tool, timeout) = {
+        let pool = pool();
+        let e = pool.iter().find(|e| name.starts_with(&format!("{}__", safe(&e.cfg.name))))?;
+        let tool = e.tools.iter().filter_map(|t| t["name"].as_str()).find(|t| tool_name(&e.cfg.name, t) == name)?.to_string();
+        (e.proc.clone(), tool, Duration::from_secs(e.cfg.timeout.clamp(5, 3600)))
+    };
+    let mut p = proc.lock().unwrap_or_else(|e| e.into_inner());
     let out = match p.request("tools/call", json!({ "name": tool, "arguments": args }), timeout) {
         Ok(r) => {
             use base64::Engine;
@@ -237,8 +263,7 @@ pub fn execute(name: &str, args: &Value) -> Option<(String, String, Vec<Vec<u8>>
 
 /// Strumento esterno? (per l'etichetta nella chat)
 pub fn server_of(name: &str) -> Option<String> {
-    let pool = POOL.lock().unwrap();
-    pool.iter().find(|p| name.starts_with(&format!("{}__", safe(&p.cfg.name)))).map(|p| p.cfg.name.clone())
+    pool().iter().find(|e| name.starts_with(&format!("{}__", safe(&e.cfg.name)))).map(|e| e.cfg.name.clone())
 }
 
 #[cfg(test)]

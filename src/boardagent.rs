@@ -6,7 +6,7 @@
 //! tolgono; «Annulla» nella chat rimette tutto com'era.
 
 use crate::scene::{Hub, PageBg};
-use crate::stroke::Stroke;
+use crate::stroke::{strokes_sig, Stroke};
 use anyhow::{bail, Context, Result};
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -18,8 +18,19 @@ pub fn set_hub(hub: Arc<Hub>) {
     let _ = HUB.set(hub);
 }
 
-/// Copie del foglio prima delle modifiche della chat: (numero, tratti, sfondo).
-static UNDO: Mutex<Vec<(u64, Vec<Stroke>, Option<PageBg>)>> = Mutex::new(Vec::new());
+/// Una modifica della chat al foglio, per «Annulla».
+struct Edit {
+    n: u64,
+    /// Il foglio prima: tratti e sfondo.
+    before: Vec<Stroke>,
+    before_bg: Option<PageBg>,
+    /// Dopo: quanti tratti erano rimasti e la loro firma, lo sfondo messo.
+    kept: usize,
+    kept_sig: u64,
+    chart_key: String,
+}
+
+static UNDO: Mutex<Vec<Edit>> = Mutex::new(Vec::new());
 
 pub fn definitions() -> Vec<Value> {
     vec![json!({
@@ -86,7 +97,14 @@ pub fn find_drawing(boxes: &[Option<[f32; 4]>]) -> Option<([f32; 4], Vec<usize>)
         }
         groups.push(g);
     }
-    let (mut zone, mut members) = groups.into_iter().max_by(|a, b| {
+    // un disegno da sostituire ha gli assi: almeno una riga lunga orizzontale
+    // e una verticale (così parole in corsivo o sottolineature non si toccano)
+    let axes = |members: &[usize]| {
+        let horiz = members.iter().any(|&i| boxes[i].is_some_and(|b| b[2] - b[0] > LONG && (b[3] - b[1]) < (b[2] - b[0]) * 0.25));
+        let vert = members.iter().any(|&i| boxes[i].is_some_and(|b| b[3] - b[1] > LONG && (b[2] - b[0]) < (b[3] - b[1]) * 0.25));
+        horiz && vert
+    };
+    let (mut zone, mut members) = groups.into_iter().filter(|g| axes(&g.1)).max_by(|a, b| {
         let area = |r: [f32; 4]| (r[2] - r[0]) * (r[3] - r[1]);
         area(a.0).total_cmp(&area(b.0))
     })?;
@@ -193,21 +211,40 @@ fn insert(args: &Value) -> Result<(String, u64)> {
         bail!("zona troppo piccola per il grafico");
     }
     let rect = fit(zone, aspect);
-    // copia per «Annulla»
-    let n = {
-        let mut u = UNDO.lock().unwrap();
-        let n = u.last().map(|x| x.0 + 1).unwrap_or(1);
-        u.push((n, s.drawing.strokes.clone(), s.bg.clone()));
-        n
-    };
-    let kept: Vec<Stroke> = s.drawing.strokes.iter().enumerate().filter(|(i, _)| !remove.contains(i)).map(|(_, st)| st.clone()).collect();
+    // il lavoro pesante (fondere le immagini) senza tenere ferma la lavagna
+    let before = s.drawing.strokes.clone();
+    let before_bg = s.bg.clone();
+    let ratio = g.w / g.h;
+    drop(s);
+    let before_sig = strokes_sig(&before);
+    let kept: Vec<Stroke> = before.iter().enumerate().filter(|(i, _)| !remove.contains(i)).map(|(_, st)| st.clone()).collect();
     // un grafico già messo prima resta: i due si fondono in un'immagine sola
-    let bg = match s.bg.clone() {
-        Some(old) => merge(&old, &png, rect, g.w / g.h)?,
+    let bg = match before_bg.clone() {
+        Some(old) => merge(&old, &png, rect, ratio)?,
         None => PageBg { png, rect, key: format!("chart:{}", chart.id) },
     };
-    drop(s);
-    hub.edit(|s| s.set_page(kept, Some(bg)));
+    let edit = Edit { n: 0, before, before_bg, kept: kept.len(), kept_sig: strokes_sig(&kept), chart_key: bg.key.clone() };
+    let applied = hub.edit(|s| {
+        // nel frattempo il foglio non è cambiato (un tratto, un'altra pagina)?
+        if strokes_sig(&s.drawing.strokes) != before_sig || s.bg.as_ref().map(|b| &b.key) != edit.before_bg.as_ref().map(|b| &b.key) {
+            return false;
+        }
+        s.replace_page(kept, Some(bg));
+        true
+    });
+    if !applied {
+        bail!("il foglio è cambiato mentre preparavo il grafico: riprova");
+    }
+    let n = {
+        let mut u = UNDO.lock().unwrap();
+        let n = u.last().map(|x| x.n + 1).unwrap_or(1);
+        u.push(Edit { n, ..edit });
+        // non serve tenerne tante
+        if u.len() > 20 {
+            u.remove(0);
+        }
+        n
+    };
     crate::docagent::board_changed();
     Ok((
         format!(
@@ -265,14 +302,36 @@ fn merge(old: &PageBg, new_png: &[u8], rect: [f32; 4], aspect: f32) -> Result<Pa
 }
 
 /// «Annulla» della chat sul foglio: com'era prima della modifica `n`.
+/// Toglie il grafico e rimette i tratti che aveva sostituito; quello che hai
+/// scritto dopo resta. Non tocca un documento aperto, né un foglio cambiato
+/// in altro modo (cancellature, un'altra pagina): lì serve Cmd+Z.
 pub fn undo(n: u64) -> Result<()> {
     let hub = HUB.get().context("lavagna non disponibile")?;
     let mut u = UNDO.lock().unwrap();
-    let i = u.iter().position(|x| x.0 == n).context("questa modifica non si può più annullare")?;
-    let (_, strokes, bg) = u[i].clone();
+    let i = u.iter().position(|x| x.n == n).context("questa modifica non si può più annullare")?;
+    if i + 1 != u.len() {
+        bail!("prima annulla il grafico messo dopo questo");
+    }
+    let e = &u[i];
+    let res = hub.edit(|s| -> Result<()> {
+        match &s.bg {
+            Some(b) if !b.is_chart() => bail!("al centro c'è un documento: torna alla lavagna e riprova"),
+            Some(b) if b.key == e.chart_key => {}
+            _ => bail!("il grafico non è più sul foglio (pagina cambiata o pulita)"),
+        }
+        let now = &s.drawing.strokes;
+        if now.len() < e.kept || strokes_sig(&now[..e.kept]) != e.kept_sig {
+            bail!("dopo il grafico il foglio è cambiato (cancellature): usa Cmd+Z per tornare indietro");
+        }
+        // i tratti di prima, più quelli scritti dopo il grafico
+        let mut strokes = e.before.clone();
+        strokes.extend(now[e.kept..].iter().cloned());
+        s.replace_page(strokes, e.before_bg.clone());
+        Ok(())
+    });
+    res?;
     u.truncate(i);
     drop(u);
-    hub.edit(|s| s.set_page(strokes, bg));
     crate::docagent::board_changed();
     Ok(())
 }
@@ -304,6 +363,8 @@ mod tests {
         assert_eq!(m, vec![2, 3, 4, 5]);
         assert!(zone[0] <= 0.30 && zone[2] >= 0.70 && zone[1] <= 0.25 && zone[3] >= 0.60);
         assert!(find_drawing(&[b(0.1, 0.1, 0.12, 0.12)]).is_none());
+        // solo righe di testo in corsivo (lunghe ma basse) e una sottolineatura: niente da sostituire
+        assert!(find_drawing(&[b(0.10, 0.20, 0.80, 0.24), b(0.10, 0.30, 0.75, 0.34), b(0.10, 0.36, 0.60, 0.365)]).is_none());
         // bianco → trasparente, il nero resta nero e pieno
         let mut pm = tiny_skia::Pixmap::new(2, 1).unwrap();
         pm.pixels_mut()[0] = tiny_skia::ColorU8::from_rgba(255, 255, 255, 255).premultiply();
@@ -360,9 +421,19 @@ mod tests {
         let o2 = execute("lavagna_inserisci_grafico", &json!({ "grafico": id, "al_posto_del_disegno": false })).unwrap();
         assert!(o2.text.starts_with("Fatto"), "{}", o2.text);
         assert_eq!(hub.lock().bg.as_ref().unwrap().rect, [0.0, 0.0, 1.0, 1.0]);
+        // prima il più recente
+        assert!(undo(o.edit.unwrap()).is_err());
+        undo(o2.edit.unwrap()).unwrap();
+        // l'utente scrive ancora: Annulla toglie il grafico ma non il tratto nuovo
+        hub.edit(|s| s.add_strokes(vec![line((0.8, 0.9), (0.9, 0.92))]));
         undo(o.edit.unwrap()).unwrap();
-        let s = hub.lock();
-        assert_eq!(s.drawing.strokes.len(), 5);
-        assert!(s.bg.is_none());
+        {
+            let s = hub.lock();
+            assert_eq!(s.drawing.strokes.len(), 6);
+            assert!(s.bg.is_none());
+        }
+        // e Cmd+Z rimette il grafico (l'annullamento della chat è annullabile)
+        assert!(hub.edit(|s| s.undo()));
+        assert!(hub.lock().bg.is_some());
     }
 }
