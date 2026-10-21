@@ -188,7 +188,9 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
                 }
                 let v: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
                 let id = v["doc"].as_str().unwrap_or("");
+                let note = id.strip_prefix("appunto:").and_then(appunto_path).filter(|p| p.exists());
                 let out = match (v["undo"].as_u64(), !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')) {
+                    (Some(n), _) if note.is_some() => crate::docagent::note_undo(&note.unwrap(), n),
                     (Some(n), true) => {
                         let dir = std::path::Path::new(crate::document::DOC_DIR).join(id);
                         tokio::task::spawn_blocking(move || crate::docagent::undo(&dir, n)).await.map_err(|e| anyhow::anyhow!("{e}")).and_then(|r| r)

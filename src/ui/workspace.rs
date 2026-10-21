@@ -89,7 +89,8 @@ impl App {
         if self.tab == Tab::Appunto {
             self.tab = Tab::Home;
         }
-        self.embeds.eval(Slot::Chat, "window.wsChat && wsChat.setNote('')");
+        // resta quello della pagina sulla lavagna, se ne ha uno
+        self.sync_chat_note();
     }
 
     /// Mostra/nasconde la chat a destra.

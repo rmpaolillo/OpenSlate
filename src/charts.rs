@@ -63,7 +63,7 @@ pub fn definition() -> Value {
                             "required": ["type"]
                         }
                     },
-                    "notes": { "type": "array", "description": "Text placed on the chart: [{x, y, text}], text may contain $...$.",
+                    "notes": { "type": "array", "description": "Extra text placed on the chart: [{x, y, text}], text may contain $...$. Do not repeat point names (they go in `names`) nor tick numbers or the origin: the axes already show them. Keep the chart clean.",
                         "items": { "type": "object", "properties": { "x": { "type": "number" }, "y": { "type": "number" }, "text": { "type": "string" } }, "required": ["x", "y", "text"] } },
                     "width_cm": { "type": "number", "description": "Drawing width (default 10)." },
                     "height_cm": { "type": "number", "description": "Drawing height (default 7, or from equal_scale)." }
@@ -501,7 +501,7 @@ pub fn typst_source(spec: &Value) -> Result<String> {
     if centered {
         // assi che si incrociano nell'origine, con le frecce (come a scuola),
         // stesso passo delle tacche sui due assi e i nomi degli assi in punta
-        let step = nice_step((xmax - xmin).max(ymax - ymin) / 9.0);
+        let step = nice_step((xmax - xmin).max(ymax - ymin) / 7.0);
         let filt = "filter: (value, distance) => value != 0";
         let _ = writeln!(
             src,

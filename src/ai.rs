@@ -1163,8 +1163,28 @@ impl ToolCtx {
     /// Esegue uno strumento chiesto dal modello.
     fn run_tool(&self, name: &str, args: &serde_json::Value) -> ToolRun {
         let plain = |(text, short): (String, String)| ToolRun { text, short, images: Vec::new(), media: Vec::new(), edit: None };
-        if let Some(r) = self.appunto.as_deref().and_then(|p| crate::tools::note_execute(p, name, args)) {
-            return plain(r);
+        if let Some(p) = self.appunto.as_deref() {
+            // le modifiche all'appunto si possono annullare dalla chat, come quelle ai documenti
+            let changes = matches!(name, "appunto_scrivi" | "appunto_inserisci_grafico");
+            let snap = if changes { crate::docagent::note_snapshot(p).ok() } else { None };
+            if let Some(r) = crate::tools::note_execute(p, name, args) {
+                let failed = r.0.starts_with("Errore") || r.0.starts_with("ERRORE");
+                let edit = match snap {
+                    Some(n) if !failed => {
+                        let name = p.file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or_default();
+                        Some((format!("appunto:{name}"), n))
+                    }
+                    Some(n) => {
+                        crate::docagent::note_forget(p, n);
+                        None
+                    }
+                    None => None,
+                };
+                return ToolRun { text: r.0, short: r.1, images: Vec::new(), media: Vec::new(), edit };
+            }
+            if let Some(n) = snap {
+                crate::docagent::note_forget(p, n);
+            }
         }
         if name == "draw_chart" {
             return match crate::charts::draw(args) {

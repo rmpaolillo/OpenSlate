@@ -562,6 +562,71 @@ fn mcp_call(doc: &DocRef, tool: &str, args: &Value) -> Result<Outcome> {
 }
 
 // ---------------------------------------------------------------------------
+// Appunti (le trascrizioni in exports/): grafico e «Annulla»
+// ---------------------------------------------------------------------------
+
+fn note_undo_dir(note: &Path) -> PathBuf {
+    let name = note.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    note.parent().unwrap_or(Path::new(".")).join(".ai-undo").join(name)
+}
+
+/// Copia dell'appunto prima che la chat lo modifichi; ritorna il suo numero.
+pub fn note_snapshot(note: &Path) -> Result<u64> {
+    let d = note_undo_dir(note);
+    std::fs::create_dir_all(&d)?;
+    let n = std::fs::read_dir(&d)?
+        .filter_map(|e| e.ok()?.path().file_stem()?.to_str()?.parse::<u64>().ok())
+        .max()
+        .unwrap_or(0)
+        + 1;
+    std::fs::copy(note, d.join(format!("{n}.md")))?;
+    Ok(n)
+}
+
+/// Toglie una copia non servita (la modifica non c'è stata).
+pub fn note_forget(note: &Path, n: u64) {
+    let _ = std::fs::remove_file(note_undo_dir(note).join(format!("{n}.md")));
+}
+
+/// «Annulla» della chat su un appunto: torna com'era prima della modifica `n`.
+pub fn note_undo(note: &Path, n: u64) -> Result<()> {
+    let d = note_undo_dir(note);
+    let f = d.join(format!("{n}.md"));
+    if !f.is_file() {
+        bail!("questa modifica non si può più annullare");
+    }
+    std::fs::copy(&f, note)?;
+    for e in std::fs::read_dir(&d)?.flatten() {
+        if e.path().file_stem().and_then(|s| s.to_str()).and_then(|s| s.parse::<u64>().ok()).is_some_and(|k| k >= n) {
+            let _ = std::fs::remove_file(e.path());
+        }
+    }
+    Ok(())
+}
+
+/// Il grafico `grafico` nell'appunto: al posto di un testo, dopo un paragrafo o in fondo.
+pub fn note_insert_chart(note: &Path, args: &Value) -> Result<(String, String)> {
+    let id = args["grafico"].as_str().or(args["image"].as_str()).context("manca «grafico» (l'id di draw_chart)")?;
+    let chart = crate::charts::find(id).with_context(|| format!("non trovo il grafico «{id}»: fallo prima con draw_chart"))?;
+    let stem = note.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+    let name = format!("{stem}-{}.svg", chart.id);
+    std::fs::copy(&chart.svg, note.parent().unwrap_or(Path::new(".")).join(&name))?;
+    let pct = args["larghezza_percento"].as_f64().unwrap_or(60.0).clamp(10.0, 100.0).round();
+    let tag = format!("<img src=\"{name}\" alt=\"grafico\" width=\"{pct}%\">");
+    let text = std::fs::read_to_string(note).unwrap_or_default();
+    let new = match args["al_posto_di"].as_str().filter(|t| !t.trim().is_empty()) {
+        Some(old) => match text.matches(old).count() {
+            1 => text.replacen(old, &tag, 1),
+            0 => bail!("il testo da sostituire non c'è nell'appunto: rileggilo con appunto_leggi"),
+            n => bail!("il testo da sostituire compare {n} volte: allunga «al_posto_di»"),
+        },
+        None => insert_paragraph(&text, args["dopo"].as_str(), &tag)?,
+    };
+    std::fs::write(note, new)?;
+    Ok((format!("Fatto: il grafico {} è nell'appunto (file {name}).", chart.id), "grafico nell'appunto".into()))
+}
+
+// ---------------------------------------------------------------------------
 // Un grafico nel documento
 // ---------------------------------------------------------------------------
 
@@ -777,6 +842,22 @@ mod e2e {
             let pngs = crate::docimport::render_pages(&m.dir.join("source.pdf"), &Path::new(o).join("md"), 1400).unwrap();
             std::fs::copy(&pngs[0], format!("{o}/md.png")).unwrap();
         }
+
+        // --- Appunto di una trascrizione: il grafico al posto della figura a mano, poi Annulla
+        std::fs::create_dir_all("exports").unwrap();
+        let note = work.join("exports/appunti-x.md");
+        let fig = "<img src=\"appunti-x-p1-fig1.svg\" alt=\"assi\" width=\"50%\">";
+        let before = format!("Risolvi il sistema.\n\n{fig}\n\n*Figura: piano cartesiano*\n\nGiusto?\n");
+        std::fs::write(&note, &before).unwrap();
+        let n = note_snapshot(&note).unwrap();
+        let (text, _) = note_insert_chart(&note, &json!({ "grafico": id, "al_posto_di": fig })).unwrap();
+        assert!(text.starts_with("Fatto"), "{text}");
+        let after = std::fs::read_to_string(&note).unwrap();
+        assert!(!after.contains("fig1.svg") && after.contains(&format!("appunti-x-{id}.svg")) && after.contains("*Figura: piano cartesiano*"), "{after}");
+        assert!(work.join(format!("exports/appunti-x-{id}.svg")).exists());
+        assert!(note_insert_chart(&note, &json!({ "grafico": id, "al_posto_di": "assente" })).is_err());
+        note_undo(&note, n).unwrap();
+        assert_eq!(std::fs::read_to_string(&note).unwrap(), before);
     }
 
     fn zip_names(b: &[u8]) -> Vec<String> {

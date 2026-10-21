@@ -135,6 +135,7 @@ pub fn run_app(
         web_url: None,
         web_starting: false,
         last_ocr_md: None,
+        last_ocr_note: None,
         board_from: None,
         lang_changed: false,
         ocr_busy: false,
@@ -316,6 +317,8 @@ struct App {
     web_starting: bool,
     /// Ultima trascrizione in Markdown (va alla chat insieme al foglio).
     last_ocr_md: Option<String>,
+    /// Ultima trascrizione: (titolo della pagina, appunto in exports/).
+    last_ocr_note: Option<(String, String)>,
     /// Titolo della pagina dell'archivio portata sulla lavagna (per la chat).
     board_from: Option<String>,
     /// Lingua cambiata nelle Opzioni: caratteri e pagine web da rifare.
@@ -946,6 +949,11 @@ impl App {
         ai::set_context(&d.title, d.png.clone(), &text);
         self.last_ocr_md = Some(text);
         let name = path.file_name().map(|n| n.to_string_lossy().to_string());
+        if let Some(n) = &name {
+            // la pagina ricorda il suo appunto: la chat lo ritrova quando la pagina torna sulla lavagna
+            link_ocr_note(&d.title, n);
+            self.last_ocr_note = Some((d.title.clone(), n.clone()));
+        }
         self.open_note(name);
     }
 
@@ -1084,6 +1092,27 @@ impl App {
         }
     }
 
+    /// L'appunto con la trascrizione della pagina sulla lavagna, se c'è: una
+    /// pagina dell'archivio lo ritrova dal suo titolo (anche dopo un riavvio),
+    /// la lavagna dall'ultima trascrizione fatta.
+    pub(crate) fn board_note(&self) -> Option<String> {
+        if self.docui.doc.is_some() {
+            return None;
+        }
+        let name = match &self.board_from {
+            Some(t) => ocr_note_for(t),
+            None => self.last_ocr_note.as_ref().filter(|(t, _)| t.starts_with("Lavagna")).map(|(_, n)| n.clone()),
+        }?;
+        std::path::Path::new(export::EXPORT_DIR).join(&name).exists().then_some(name)
+    }
+
+    /// La chat lavora sull'appunto aperto al centro o, se non c'è, su quello
+    /// della pagina sulla lavagna (la sua scheda resta nella chat).
+    pub(crate) fn sync_chat_note(&mut self) {
+        let n = self.note.clone().or_else(|| self.board_note()).unwrap_or_default();
+        self.embeds.eval(embed::Slot::Chat, &format!("window.wsChat && wsChat.setNote({})", serde_json::Value::String(n)));
+    }
+
     /// Pagina attuale (lavagna o documento) come contesto della chat.
     fn set_chat_context_from_board(&mut self) {
         if self.docui.doc.is_some() {
@@ -1092,8 +1121,13 @@ impl App {
         }
         let title = self.board_title();
         let (_, page) = self.board_page();
-        // se la trascrizione di questa pagina è aperta, va anche quella
-        let md = self.last_ocr_md.clone().unwrap_or_default();
+        // la trascrizione di questa pagina va con lei: quella appena fatta o
+        // il suo appunto salvato
+        let md = match self.board_note() {
+            Some(n) => std::fs::read_to_string(std::path::Path::new(export::EXPORT_DIR).join(n)).unwrap_or_default(),
+            None => self.last_ocr_md.clone().unwrap_or_default(),
+        };
+        self.sync_chat_note();
         if page.is_empty() {
             ai::set_context("", None, "");
             return;
@@ -1323,6 +1357,10 @@ impl App {
             Action::Clear => {
                 self.hub.edit(|s| s.clear());
                 self.board_from = None;
+                // la lavagna pulita non ha più la trascrizione di prima
+                self.last_ocr_note = None;
+                self.last_ocr_md = None;
+                self.sync_chat_note();
             }
             Action::Color(c) => self.hub.lock().pen.color = c,
             Action::Width(d) => {
@@ -2108,4 +2146,24 @@ fn png_from_rgba(w: u32, h: u32, rgba: &[u8]) -> Option<Vec<u8>> {
         *dst = tiny_skia::ColorU8::from_rgba(src[0], src[1], src[2], src[3]).premultiply();
     }
     px.encode_png().ok()
+}
+
+/// Pagina trascritta → suo appunto, in `exports/.trascrizioni.json` (titolo
+/// della pagina → nome dell'appunto, l'ultimo vince).
+const OCR_LINKS: &str = "exports/.trascrizioni.json";
+
+fn link_ocr_note(title: &str, note: &str) {
+    if title.trim().is_empty() {
+        return;
+    }
+    let mut map: serde_json::Map<String, serde_json::Value> =
+        std::fs::read_to_string(OCR_LINKS).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
+    map.insert(title.to_string(), serde_json::Value::String(note.to_string()));
+    let _ = std::fs::create_dir_all(export::EXPORT_DIR);
+    let _ = std::fs::write(OCR_LINKS, serde_json::Value::Object(map).to_string());
+}
+
+fn ocr_note_for(title: &str) -> Option<String> {
+    let map: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(OCR_LINKS).ok()?).ok()?;
+    map[title].as_str().map(String::from)
 }

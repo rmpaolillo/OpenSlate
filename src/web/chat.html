@@ -388,15 +388,19 @@ async function openChat(id) {
 async function newChat(project) {
   if (busy) return;
   document.body.classList.remove("drawer");
-  if (cur && cur.messages.length === 0 && !cur.page && cur.project === (project ?? cur.project)) { q.focus(); return; }
+  if (cur && cur.messages.length === 0 && !cur.page && cur.project === (project ?? cur.project)) { attachOpen(); q.focus(); return; }
   await saveNow();
   cur = blank(project ?? (cur ? cur.project : ""));
   ls.set("ws-cur", cur.id);
   meter.last = null;
   await saveNow();
   drawAll();
+  attachOpen();
   q.focus();
 }
+// Una chat nuova (anche dopo aver eliminato tutte le altre) si prende subito
+// il foglio o il documento aperto accanto: la sua scheda c'è da subito.
+function attachOpen() { if (embed && cur && !cur.page) toApp({ cmd: "attach_board" }); }
 // Dirama (come il «branch» di DSH): una chat nuova con la conversazione fino a qui.
 async function forkAt(i) {
   if (busy) return;
@@ -776,12 +780,14 @@ function editsEl(m) {
   const draw = () => {
     box.innerHTML = "";
     const t = document.createElement("span");
-    t.textContent = m.undone ? T("Modifiche al documento annullate") : T("Ho modificato il documento aperto ({})", m.edits.length);
+    const note = String(m.edits[0].doc).startsWith("appunto:");
+    t.textContent = m.undone ? T(note ? "Modifiche all'appunto annullate" : "Modifiche al documento annullate")
+      : T(note ? "Ho modificato l'appunto ({})" : "Ho modificato il documento aperto ({})", m.edits.length);
     box.appendChild(t);
     if (m.undone) return;
     const b = document.createElement("button"); b.className = "ib"; b.innerHTML = ic("undo") + "<span></span>";
     b.querySelector("span").textContent = T("Annulla le modifiche");
-    b.title = T("Il documento torna com'era prima di questa risposta");
+    b.title = T(note ? "L'appunto torna com'era prima di questa risposta" : "Il documento torna com'era prima di questa risposta");
     b.onclick = async () => {
       b.disabled = true;
       const first = m.edits.reduce((a, e) => (e.undo < a.undo ? e : a), m.edits[0]);
@@ -789,6 +795,7 @@ function editsEl(m) {
         const r = await (await fetch("api/docedit", { method: "POST", body: JSON.stringify({ doc: first.doc, undo: first.undo }) })).json();
         if (!r.ok) throw new Error(r.error || "errore");
         m.undone = true; saveSoon(); draw();
+        if (String(first.doc).startsWith("appunto:")) toApp({ cmd: "note_reload" });
       } catch (e) { b.disabled = false; t.textContent = "⚠ " + e.message; }
     };
     box.appendChild(b);
@@ -1352,7 +1359,7 @@ window.addEventListener("load", async () => {
   const want = params.get("c") || ls.get("ws-cur", null);
   if (want && chats.some((c) => c.id === want)) await openChat(want);
   else if (chats.length) await openChat(chats[0].id);
-  else { cur = blank(""); await saveNow(); drawAll(); }
+  else { cur = blank(""); await saveNow(); drawAll(); attachOpen(); }
   if (params.get("nuova")) {
     const j0 = await api("api/context");
     if (j0.image || j0.markdown) {

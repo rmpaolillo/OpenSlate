@@ -139,6 +139,7 @@ pub fn label(name: &str, args: &Value) -> String {
         "web_fetch" => format!("Leggo la pagina {}", s("url")),
         "verifica_partita_iva" => format!("Verifico la partita IVA {}", s("partita_iva")),
         "appunto_leggi" => "Leggo l'appunto aperto".to_string(),
+        "appunto_inserisci_grafico" => "Metto il grafico nell'appunto".to_string(),
         "appunto_scrivi" => match args["modo"].as_str().unwrap_or("aggiungi") {
             "sostituisci" => "Correggo l'appunto".to_string(),
             "riscrivi" => "Riscrivo l'appunto".to_string(),
@@ -399,6 +400,26 @@ pub fn note_definitions() -> Vec<Value> {
         json!({
             "type": "function",
             "function": {
+                "name": "appunto_inserisci_grafico",
+                "description": "Mette nell'appunto aperto un grafico fatto con draw_chart (il suo id). \
+                    Con `al_posto_di` sostituisce un pezzo esatto dell'appunto, per esempio la riga <img src=\"…-fig1.svg\" …> \
+                    di una figura ridisegnata dal foglio o la descrizione [figura: …] (leggi prima l'appunto con appunto_leggi); \
+                    con `dopo` lo mette dopo il paragrafo che contiene quel testo; altrimenti in fondo.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "grafico": { "type": "string", "description": "L'id del grafico, es. chart-20261021…" },
+                        "al_posto_di": { "type": "string", "description": "Testo esatto da sostituire col grafico (deve comparire una volta sola)" },
+                        "dopo": { "type": "string", "description": "Mettilo dopo il paragrafo che contiene questo testo" },
+                        "larghezza_percento": { "type": "number", "description": "Larghezza rispetto alla pagina (default 60)" }
+                    },
+                    "required": ["grafico"]
+                }
+            }
+        }),
+        json!({
+            "type": "function",
+            "function": {
                 "name": "appunto_scrivi",
                 "description": "Scrive nell'appunto aperto nell'app, che l'utente vede subito sulla pagina. \
                     modo=aggiungi: aggiunge il testo in fondo; modo=sostituisci: sostituisce il testo esatto `cerca` \
@@ -425,7 +446,10 @@ pub fn note_system_note(path: &std::path::Path) -> String {
         "\n\nNell'app è aperto l'appunto «{name}» (Markdown). Quando l'utente chiede di scrivere, \
          aggiungere, correggere o riordinare qualcosa NELL'APPUNTO (o «sul foglio», «nel documento»), usa \
          appunto_leggi per vederlo e appunto_scrivi per modificarlo; poi nella risposta di' in breve cosa hai \
-         cambiato. Non riscrivere tutto se basta aggiungere o correggere una parte."
+         cambiato. Non riscrivere tutto se basta aggiungere o correggere una parte. Le figure disegnate a mano \
+         sul foglio sono nell'appunto come righe <img src=\"…-figN.svg\" …> (con la didascalia *Figura: …* sotto) o \
+         come [figura: …]: per rifarne una pulita, disegnala con draw_chart e mettila al suo posto con \
+         appunto_inserisci_grafico (al_posto_di = quella riga). Ogni modifica all'appunto l'utente la può annullare dalla chat."
     )
 }
 
@@ -439,6 +463,7 @@ pub fn note_execute(path: &std::path::Path, name: &str, args: &Value) -> Option<
             })
             .map_err(|e| format!("non riesco a leggere l'appunto: {e}")),
         "appunto_scrivi" => note_write(path, args),
+        "appunto_inserisci_grafico" => crate::docagent::note_insert_chart(path, args).map_err(|e| format!("{e:#}")),
         _ => return None,
     };
     Some(r.unwrap_or_else(|e| (format!("Errore: {e}"), e)))
