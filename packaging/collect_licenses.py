@@ -48,7 +48,8 @@ def main():
     meta = json.loads(
         subprocess.run(
             ["cargo", "metadata", "--format-version", "1", "--locked"],
-            cwd=ROOT, check=True, capture_output=True, text=True,
+            # in UTF-8 anche su Windows (lì il testo di serie sarebbe cp1252)
+            cwd=ROOT, check=True, capture_output=True, text=True, encoding="utf-8", errors="replace",
         ).stdout
     )
     parts = []

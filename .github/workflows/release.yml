@@ -284,6 +284,9 @@ jobs:
         run: cargo build --release --locked
 
       - name: Third-party licences (full texts)
+        # Python su Windows legge e scrive in cp1252 se non glielo si dice
+        env:
+          PYTHONUTF8: "1"
         run: python packaging/collect_licenses.py build/THIRD-PARTY-LICENSES.txt
 
       - name: zip
