@@ -185,12 +185,12 @@ A signed Markdown, .txt or .html file is saved as PDF (those formats cannot hold
 
 ## Updates
 
-OpenSlate updates itself, as the Craft apps do. When a new release is published on GitHub
-it downloads it in the background, checks it against the release's `SHA256SUMS.txt` and
-installs it in place of the running app; a blue bar under the ribbon shows the progress and
-then **Restart now** (or just use the new version at the next launch). Options → Advanced can
-turn off the automatic install (the bar then offers **Update**) or the check itself; File →
-Help and information → Check for updates checks right away.
+OpenSlate updates itself, as the Craft apps do, after you confirm. When a new release is
+published on GitHub a blue bar under the ribbon says so and offers **Update**; then it
+downloads it, checks it against the release's `SHA256SUMS.txt` and the developer signature,
+installs it in place of the running app and offers **Restart now** (or just use the new version
+at the next launch). Options → Advanced can make it install without asking, or turn off the
+check itself; File → Help and information → Check for updates checks right away.
 
 Your settings, AI agents, library, documents and exports live in the data folder (macOS:
 `~/Library/Application Support/OpenSlate`), outside the app, and the API keys in the

@@ -108,7 +108,8 @@ impl Default for Settings {
             compact_ui: false,
             update_check: true,
             update_skip: String::new(),
-            update_auto: true,
+            // si chiede prima: la barra azzurra offre «Aggiorna»
+            update_auto: false,
             paper: "bianco".into(),
             paper_margin: true,
         }
@@ -190,7 +191,10 @@ impl Settings {
             "chat_zoom" => self.chat_zoom = v.parse::<f32>().unwrap_or(self.chat_zoom).clamp(0.6, 2.5),
             "update_check" => self.update_check = b(v),
             "update_skip" => self.update_skip = v.trim().into(),
-            "update_auto" => self.update_auto = b(v),
+            // la vecchia chiave (installazione automatica di serie) non vale più:
+            // l'aggiornamento si conferma col pulsante, a meno di sceglierlo di nuovo
+            "update_auto" => {}
+            "update_install_auto" => self.update_auto = b(v),
             "chat_width" => self.chat_width = v.parse::<f32>().unwrap_or(self.chat_width).clamp(0.2, 0.85),
             _ => tracing::warn!("settings.conf: chiave sconosciuta «{k}»"),
         }
@@ -219,7 +223,7 @@ impl Settings {
              # rigatura del foglio: bianco, righe, righe10, quadretti5, quadretti4, quadretti10; margini rossi (solo righe)\npaper = {}\npaper_margin = {}\n\
              # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
              # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n\
-             # aggiornamenti: avvisa quando c'è una versione nuova su GitHub; versione saltata; installa da solo\nupdate_check = {}\nupdate_skip = {}\nupdate_auto = {}\n",
+             # aggiornamenti: avvisa quando c'è una versione nuova su GitHub; versione saltata; installa da solo senza chiedere\nupdate_check = {}\nupdate_skip = {}\nupdate_install_auto = {}\n",
             self.rot,
             b(self.flip_x),
             b(self.flip_y),
