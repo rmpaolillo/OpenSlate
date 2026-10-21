@@ -88,9 +88,11 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
   by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,
   arrows, ticks and crosses, and writes in handwriting (print or cursive, made of strokes with
-  the [Hershey](https://en.wikipedia.org/wiki/Hershey_fonts) single-line fonts). It only adds,
-  never erases what you wrote; everything it adds is ordinary ink (saved, exported and erased
-  like yours) and one click in the chat takes it all away again.
+  the [Hershey](https://en.wikipedia.org/wiki/Hershey_fonts) single-line fonts). On request it
+  also moves, enlarges, recolours or erases what is on the sheet ("make the title bigger and
+  blue", "move the last line down", "remove my highlights"); on its own it only adds. Clearing
+  most of the sheet needs your yes in the chat. Everything it does is ordinary ink (saved,
+  exported and erased like yours) and one click in the chat takes it all away again.
 - **Your own MCP servers.** Add any MCP server (stdio) in `ai.toml`, as in Claude Desktop or DSH:
   its tools become available to the chat.
 - **Live on the web.** A share link lets a TV, phone or PC on your home network watch the board

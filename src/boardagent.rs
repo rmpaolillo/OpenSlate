@@ -3,6 +3,9 @@
 //!   riquadro (vedi `boardread`), più l'immagine con i nomi;
 //! - `lavagna_annota`: evidenzia, sottolinea, cerchia, frecce, testo a mano…
 //!   (vedi `boardmarks`): tratti come quelli del pennino;
+//! - `lavagna_modifica`: sposta, ridimensiona, ricolora o cancella quello che
+//!   c'è (anche quello che hai scritto tu), ma solo se lo chiedi; per
+//!   cancellare buona parte del foglio serve la tua conferma nella chat;
 //! - `lavagna_inserisci_grafico`: un grafico fatto da `draw_chart` sul foglio,
 //!   anche al posto di un disegno fatto a mano (che si trova da solo: le righe
 //!   lunghe, come gli assi, e le scritte lì attorno). Il grafico diventa
@@ -15,6 +18,7 @@ use crate::scene::{Hub, PageBg};
 use crate::stroke::{strokes_sig, Stroke};
 use anyhow::{bail, Context, Result};
 use serde_json::{json, Value};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
 static HUB: OnceLock<Arc<Hub>> = OnceLock::new();
@@ -48,6 +52,24 @@ static UNDO: Mutex<Vec<Edit>> = Mutex::new(Vec::new());
 
 /// L'ultima lettura del foglio: i nomi (`r2p3`) che il modello ha visto.
 static LAST: Mutex<Option<crate::boardread::Reading>> = Mutex::new(None);
+
+/// Ogni domanda nella chat è un «giro»: una conferma chiesta in un giro vale
+/// solo nei giri dopo, cioè dopo la risposta dell'utente.
+static TURN: AtomicU64 = AtomicU64::new(0);
+
+/// Una cancellazione grande in attesa della conferma dell'utente.
+struct Pending {
+    turn: u64,
+    sig: u64,
+    code: String,
+}
+
+static PENDING: Mutex<Option<Pending>> = Mutex::new(None);
+
+/// Comincia un giro nuovo della chat (una domanda dell'utente).
+pub fn new_turn() {
+    TURN.fetch_add(1, Ordering::SeqCst);
+}
 
 const MARKS: &str = "evidenzia, sottolinea, barra, cerchia, riquadro, freccia, linea, spunta, croce, testo";
 
@@ -106,6 +128,46 @@ pub fn definitions() -> Vec<Value> {
             }
         }),
         json!({
+            "type": "function",
+            "function": {
+                "name": "lavagna_modifica",
+                "description": "Cambia quello che c'è sul foglio della lavagna, anche la scrittura dell'utente: SOLO se l'utente lo chiede. \
+                    «azioni» si fanno tutte insieme (un solo Annulla). Ogni azione: azione (sposta, ridimensiona, ricolora, cancella); \
+                    cosa: «su» un nome di lavagna_leggi (\"r2p3\", \"r2\", \"r2p1-p4\", \"r2-r4\", \"d1\", \"e1\", \"grafico\", \"tutto\") o una lista di nomi, \
+                    oppure «riquadro» [x1, y1, x2, y2] in 0–1000 (i tratti dentro); filtri facoltativi «colore» (solo i tratti di quel colore) e \
+                    «solo» (evidenziatore o inchiostro). sposta: «dx», «dy» in 0–1000 oppure «a» [x, y] dove va l'angolo in alto a sinistra. \
+                    ridimensiona: «fattore» (2 = il doppio), dall'angolo in alto a sinistra. ricolora: «nuovo_colore». \
+                    Per cancellare buona parte del foglio lo strumento chiede la conferma dell'utente e dà un codice: chiedi all'utente e, \
+                    se dice sì, richiama con «conferma» e il codice. Dopo una modifica i nomi del foglio cambiano: rileggilo.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "azioni": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "azione": { "type": "string", "enum": ["sposta", "ridimensiona", "ricolora", "cancella"] },
+                                    "su": { "description": "Nome di lavagna_leggi o lista di nomi" },
+                                    "riquadro": { "type": "array", "items": { "type": "number" }, "description": "[x1, y1, x2, y2] in 0–1000" },
+                                    "colore": { "type": "string", "description": "Solo i tratti di questo colore" },
+                                    "solo": { "type": "string", "enum": ["evidenziatore", "inchiostro"] },
+                                    "dx": { "type": "number" },
+                                    "dy": { "type": "number" },
+                                    "a": { "type": "array", "items": { "type": "number" }, "description": "[x, y] in 0–1000" },
+                                    "fattore": { "type": "number" },
+                                    "nuovo_colore": { "type": "string" }
+                                },
+                                "required": ["azione"]
+                            }
+                        },
+                        "conferma": { "type": "string", "description": "Il codice dato dallo strumento, dopo il sì dell'utente" }
+                    },
+                    "required": ["azioni"]
+                }
+            }
+        }),
+        json!({
         "type": "function",
         "function": {
             "name": "lavagna_inserisci_grafico",
@@ -132,8 +194,9 @@ pub fn system_note() -> String {
      lavagna_leggi per vedere righe e parole coi loro nomi, poi lavagna_annota per evidenziare, sottolineare, cerchiare, \
      barrare, mettere frecce, spunte o croci e scrivere a mano (correzioni, risultati, note accanto alle righe). \
      Per un grafico, anche al posto di un disegno fatto a mano: prima draw_chart, poi lavagna_inserisci_grafico. \
-     Non dire che non puoi: gli strumenti ci sono. Non cancelli né sposti quello che ha scritto l'utente: aggiungi soltanto. \
-     L'utente vede subito il risultato e lo può annullare dalla chat."
+     Se l'utente chiede di spostare, ingrandire, ricolorare o cancellare qualcosa sul foglio (anche quello che ha scritto lui, \
+     o i segni che hai messo tu): lavagna_modifica. Di tua iniziativa non cancelli e non sposti niente: aggiungi soltanto. \
+     Non dire che non puoi: gli strumenti ci sono. L'utente vede subito il risultato e lo può annullare dalla chat."
         .into()
 }
 
@@ -239,6 +302,11 @@ pub fn execute(name: &str, args: &Value) -> Option<crate::docagent::Outcome> {
             Ok((text, n)) => Outcome { text, short: "segni sul foglio".into(), edit: Some(n), ..Default::default() },
             Err(e) => fail(e),
         },
+        "lavagna_modifica" => match modify(args) {
+            Ok((text, Some(n))) => Outcome { text, short: "foglio modificato".into(), edit: Some(n), ..Default::default() },
+            Ok((text, None)) => Outcome { text, short: "conferma chiesta".into(), ..Default::default() },
+            Err(e) => fail(e),
+        },
         _ => return None,
     })
 }
@@ -322,6 +390,274 @@ fn annotate(args: &Value) -> Result<(String, u64)> {
     let n = remember(edit);
     crate::docagent::board_changed();
     Ok((format!("Fatto: sul foglio ci sono {} (l'utente li vede e li può annullare dalla chat).", done.join(", ")), n))
+}
+
+/// I tratti scelti da un'azione di `lavagna_modifica`, e se c'è il grafico.
+fn select(r: &crate::boardread::Reading, strokes: &[Stroke], g: &crate::scene::PageGeom, a: &Value) -> Result<(Vec<usize>, bool, String)> {
+    let mut idx: Vec<usize> = Vec::new();
+    let mut chart = false;
+    let mut what = Vec::new();
+    let names: Vec<String> = match &a["su"] {
+        Value::String(x) => vec![x.clone()],
+        Value::Array(v) => v.iter().filter_map(|x| x.as_str().map(String::from)).collect(),
+        _ => Vec::new(),
+    };
+    for n in &names {
+        if matches!(n.trim().to_lowercase().as_str(), "grafico" | "chart") {
+            chart = r.chart.is_some();
+            if !chart {
+                bail!("sul foglio non c'è un grafico");
+            }
+        } else {
+            idx.extend(r.strokes_of(n).with_context(|| format!("non trovo «{n}» sul foglio: rileggilo con lavagna_leggi"))?);
+        }
+        what.push(n.clone());
+    }
+    if names.is_empty() {
+        let b = crate::boardmarks::target(r, &a["riquadro"])?.context("manca cosa: «su» con un nome del foglio, o «riquadro»")?;
+        if b[2] - b[0] < 1e-4 {
+            bail!("«riquadro» è [x1, y1, x2, y2]");
+        }
+        // i tratti che stanno dentro (per più di metà)
+        for (i, st) in strokes.iter().enumerate() {
+            let pts: Vec<(f32, f32)> = st.points.iter().map(|p| g.unit(p.x, p.y)).collect();
+            if pts.is_empty() {
+                continue;
+            }
+            let inside = pts.iter().filter(|p| p.0 >= b[0] && p.0 <= b[2] && p.1 >= b[1] && p.1 <= b[3]).count();
+            if inside * 2 > pts.len() {
+                idx.push(i);
+            }
+        }
+        if let Some(c) = r.chart {
+            // il grafico, se sta tutto nel riquadro
+            chart = c[0] >= b[0] && c[2] <= b[2] && c[1] >= b[1] && c[3] <= b[3];
+        }
+        what.push("il riquadro".to_string());
+    }
+    if let Some(c) = a["colore"].as_str() {
+        let want = crate::boardmarks::parse_color(c, false).map(crate::boardread::color_name).with_context(|| format!("colore «{c}» sconosciuto"))?;
+        idx.retain(|&i| crate::boardread::color_name(strokes[i].color) == want || (strokes[i].highlight && crate::boardmarks::parse_color(c, true) == Some(strokes[i].color)));
+        chart = false;
+        what.push(format!("in {c}"));
+    }
+    match a["solo"].as_str().map(|x| x.trim().to_lowercase()) {
+        Some(x) if x.starts_with("evidenz") || x == "highlighter" => {
+            idx.retain(|&i| strokes[i].highlight);
+            chart = false;
+        }
+        Some(x) if x.starts_with("inchiostro") || x == "ink" || x == "penna" => {
+            idx.retain(|&i| !strokes[i].highlight);
+            chart = false;
+        }
+        _ => {}
+    }
+    idx.sort_unstable();
+    idx.dedup();
+    idx.retain(|&i| i < strokes.len());
+    Ok((idx, chart, what.join(", ")))
+}
+
+/// Un codice corto per la conferma (lettere che non si confondono).
+fn confirm_code(seed: u64) -> String {
+    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos() as u64).unwrap_or(0);
+    let mut x = t ^ seed;
+    (0..4)
+        .map(|_| {
+            x = x.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            b"ACDEFHJKMNPRTWXY"[(x >> 60) as usize] as char
+        })
+        .collect()
+}
+
+/// Sposta, ridimensiona, ricolora, cancella. Ritorna il testo e il numero per
+/// «Annulla» (None: serve prima la conferma dell'utente).
+fn modify(args: &Value) -> Result<(String, Option<u64>)> {
+    let hub = HUB.get().context("lavagna non disponibile")?;
+    let list: Vec<Value> = match &args["azioni"] {
+        Value::Array(a) => a.clone(),
+        Value::Object(_) => vec![args["azioni"].clone()],
+        _ if args.get("azione").is_some() => vec![args.clone()],
+        _ => bail!("manca «azioni» (la lista delle azioni)"),
+    };
+    if list.is_empty() || list.len() > 40 {
+        bail!("da 1 a 40 azioni");
+    }
+    let code_given = args["conferma"].as_str().map(|c| c.trim().to_uppercase());
+    let res = hub.edit(|s| -> Result<std::result::Result<(Edit, String), String>> {
+        if s.bg.as_ref().is_some_and(|b| !b.is_chart()) {
+            bail!("al centro c'è la pagina di un documento, non la lavagna");
+        }
+        let g = s.geom();
+        let reading = reading_for(s);
+        let mut strokes = s.drawing.strokes.clone();
+        let mut bg = s.bg.clone();
+        let mut deleted: std::collections::BTreeSet<usize> = std::collections::BTreeSet::new();
+        let mut report: Vec<String> = Vec::new();
+        let mut moved: Vec<(Vec<usize>, [f32; 4])> = Vec::new();
+        let unit_box = |sts: &[Stroke], idx: &[usize]| -> Option<[f32; 4]> {
+            let mut b = [f32::MAX, f32::MAX, f32::MIN, f32::MIN];
+            for &i in idx {
+                for p in &sts[i].points {
+                    let (u, v) = g.unit(p.x, p.y);
+                    b = [b[0].min(u), b[1].min(v), b[2].max(u), b[3].max(v)];
+                }
+            }
+            (b[0] <= b[2]).then_some(b)
+        };
+        let num = |v: &Value| v.as_f64().map(|x| x as f32 / 1000.0);
+        for (k, a) in list.iter().enumerate() {
+            let act = a["azione"].as_str().or(a["action"].as_str()).with_context(|| format!("azione {}: manca «azione»", k + 1))?.trim().to_lowercase();
+            let (mut idx, chart, what) = select(&reading, &strokes, &g, a).with_context(|| format!("azione {}", k + 1))?;
+            idx.retain(|i| !deleted.contains(i));
+            if idx.is_empty() && !chart {
+                bail!("azione {} ({what}): non c'è nessun tratto lì", k + 1);
+            }
+            let chart_box = bg.as_ref().filter(|_| chart).map(|b| [b.rect[0], b.rect[1], b.rect[0] + b.rect[2], b.rect[1] + b.rect[3]]);
+            let sel_box = match (unit_box(&strokes, &idx), chart_box) {
+                (Some(a), Some(b)) => Some(crate::boardread::union(a, b)),
+                (a, b) => a.or(b),
+            };
+            match act.as_str() {
+                "sposta" | "move" => {
+                    let Some(b) = sel_box else { bail!("azione {}: niente da spostare", k + 1) };
+                    let (mut du, mut dv) = match a["a"].as_array() {
+                        Some(p) if p.len() == 2 => (num(&p[0]).unwrap_or(b[0]) - b[0], num(&p[1]).unwrap_or(b[1]) - b[1]),
+                        _ => (num(&a["dx"]).unwrap_or(0.0), num(&a["dy"]).unwrap_or(0.0)),
+                    };
+                    if du == 0.0 && dv == 0.0 {
+                        bail!("azione {} (sposta): servono «dx»/«dy» o «a»", k + 1);
+                    }
+                    // resta tutto sul foglio
+                    du = du.clamp(0.003 - b[0], (0.997 - b[2]).max(0.003 - b[0]));
+                    dv = dv.clamp(0.003 - b[1], (0.997 - b[3]).max(0.003 - b[1]));
+                    for &i in &idx {
+                        for p in &mut strokes[i].points {
+                            let (u, v) = g.unit(p.x, p.y);
+                            (p.x, p.y) = g.pad(u + du, v + dv);
+                        }
+                    }
+                    if chart {
+                        if let Some(c) = bg.as_mut() {
+                            c.rect[0] = (c.rect[0] + du).clamp(0.0, (1.0 - c.rect[2]).max(0.0));
+                            c.rect[1] = (c.rect[1] + dv).clamp(0.0, (1.0 - c.rect[3]).max(0.0));
+                        }
+                    }
+                    moved.push((idx.clone(), [b[0] + du, b[1] + dv, b[2] + du, b[3] + dv]));
+                    report.push(format!("spostato {what}"));
+                }
+                "ridimensiona" | "scala" | "ingrandisci" | "rimpicciolisci" | "resize" | "scale" => {
+                    let f = a["fattore"].as_f64().or(a["factor"].as_f64()).map(|f| f as f32).with_context(|| format!("azione {} (ridimensiona): manca «fattore»", k + 1))?;
+                    if !(0.1..=8.0).contains(&f) {
+                        bail!("azione {}: «fattore» fra 0.1 e 8", k + 1);
+                    }
+                    let Some(b) = sel_box else { bail!("azione {}: niente da ridimensionare", k + 1) };
+                    // non oltre il bordo del foglio
+                    let fit = ((0.997 - b[0]) / (b[2] - b[0]).max(1e-4)).min((0.997 - b[1]) / (b[3] - b[1]).max(1e-4));
+                    let f = f.min(fit).max(0.1);
+                    for &i in &idx {
+                        for p in &mut strokes[i].points {
+                            let (u, v) = g.unit(p.x, p.y);
+                            (p.x, p.y) = g.pad(b[0] + (u - b[0]) * f, b[1] + (v - b[1]) * f);
+                        }
+                        let w = strokes[i].width;
+                        strokes[i].width = if strokes[i].highlight { w * f } else { (w * f.sqrt()).clamp(0.5, 12.0) };
+                    }
+                    if chart {
+                        if let Some(c) = bg.as_mut() {
+                            c.rect[0] = b[0] + (c.rect[0] - b[0]) * f;
+                            c.rect[1] = b[1] + (c.rect[1] - b[1]) * f;
+                            c.rect[2] *= f;
+                            c.rect[3] *= f;
+                        }
+                    }
+                    moved.push((idx.clone(), [b[0], b[1], b[0] + (b[2] - b[0]) * f, b[1] + (b[3] - b[1]) * f]));
+                    report.push(format!("ridimensionato {what} (×{f:.2})"));
+                }
+                "ricolora" | "colora" | "recolor" | "color" => {
+                    let c = a["nuovo_colore"].as_str().or(a["new_color"].as_str()).with_context(|| format!("azione {} (ricolora): manca «nuovo_colore»", k + 1))?;
+                    for &i in &idx {
+                        strokes[i].color = crate::boardmarks::parse_color(c, strokes[i].highlight).with_context(|| format!("colore «{c}» sconosciuto"))?;
+                    }
+                    report.push(format!("ricolorato {what} in {c}"));
+                }
+                "cancella" | "togli" | "elimina" | "delete" | "erase" => {
+                    deleted.extend(idx.iter().copied());
+                    if chart {
+                        bg = None;
+                    }
+                    report.push(format!("cancellato {what}"));
+                }
+                other => bail!("azione «{other}» sconosciuta: sposta, ridimensiona, ricolora, cancella"),
+            }
+        }
+        // cancellare buona parte del foglio: prima il sì dell'utente (in un
+        // giro dopo: la sua risposta)
+        let n_ink = s.drawing.strokes.iter().filter(|x| !x.points.is_empty()).count();
+        let sig = strokes_sig(&s.drawing.strokes);
+        if deleted.len() >= 20 && deleted.len() * 3 >= n_ink {
+            let turn = TURN.load(Ordering::SeqCst);
+            let mut p = PENDING.lock().unwrap();
+            let ok = match (&code_given, p.as_ref()) {
+                (Some(c), Some(pd)) if *c == pd.code && pd.sig == sig && pd.turn < turn => true,
+                (Some(c), Some(pd)) if *c == pd.code && pd.turn >= turn => {
+                    *LAST.lock().unwrap() = Some(reading);
+                    return Ok(Err("NON FATTO: la conferma la dà l'utente. Chiedigli se va bene e aspetta la sua risposta prima di richiamare.".into()));
+                }
+                _ => false,
+            };
+            if !ok {
+                let code = confirm_code(sig);
+                *p = Some(Pending { turn, sig, code: code.clone() });
+                *LAST.lock().unwrap() = Some(reading);
+                return Ok(Err(format!(
+                    "NON FATTO: cancellerebbe {} tratti su {} ({}). Chiedi all'utente se va bene (potrà comunque annullare); se risponde di sì, \
+                     richiama lavagna_modifica con le stesse azioni e \"conferma\": \"{code}\".",
+                    deleted.len(),
+                    n_ink,
+                    report.join("; ")
+                )));
+            }
+            *p = None;
+        }
+        // dopo uno spostamento: tocca altro scritto?
+        let m = 0.1 * reading.char_h;
+        let mut warn = String::new();
+        'w: for (idx, mb) in &moved {
+            for w in reading.lines.iter().flat_map(|l| l.words.iter()) {
+                if w.strokes.iter().any(|i| idx.contains(i)) {
+                    continue;
+                }
+                let o = w.bbox;
+                if mb[0] < o[2] - m && o[0] + m < mb[2] && mb[1] < o[3] - m && o[1] + m < mb[3] {
+                    warn = format!(" Attenzione: ora tocca altro scritto (vicino a {}).", w.id);
+                    break 'w;
+                }
+            }
+        }
+        let kept: Vec<Stroke> = strokes.into_iter().enumerate().filter(|(i, _)| !deleted.contains(i)).map(|(_, st)| st).collect();
+        let before = s.drawing.strokes.clone();
+        let before_bg = s.bg.clone();
+        s.replace_page(kept, bg);
+        let now = &s.drawing.strokes;
+        let edit = Edit { n: 0, before, before_bg, kept: now.len(), kept_sig: strokes_sig(now), bg_key: s.bg.as_ref().map(|b| b.key.clone()) };
+        Ok(Ok((edit, format!("{}.{warn}", report.join("; ")))))
+    })?;
+    match res {
+        Err(text) => Ok((text, None)),
+        Ok((edit, done)) => {
+            *LAST.lock().unwrap() = None;
+            let n = remember(edit);
+            crate::docagent::board_changed();
+            Ok((
+                format!(
+                    "Fatto: {done} L'utente lo vede e lo può annullare dalla chat. I nomi del foglio sono cambiati: rileggilo con lavagna_leggi \
+                     prima di altri segni o modifiche."
+                ),
+                Some(n),
+            ))
+        }
+    }
 }
 
 /// Tiene la modifica per «Annulla»; ritorna il suo numero.
@@ -613,6 +949,81 @@ mod tests {
         undo(n).unwrap();
         assert_eq!(hub.lock().drawing.strokes.len(), strokes.len() + 1);
         assert!(undo(n).is_err());
+    }
+
+    /// Spostare, ridimensionare, ricolorare e cancellare; la conferma per
+    /// cancellare quasi tutto. cargo test -- --ignored modifica_la_lavagna
+    #[test]
+    #[ignore]
+    fn modifica_la_lavagna() {
+        use crate::stroke::{PenEvent, PenPhase};
+        let hub = test_hub();
+        let g = hub.lock().geom();
+        let aspect = g.w / g.h;
+        let mut strokes = Vec::new();
+        for (i, t) in ["Lista della spesa", "pane e latte", "mele rosse"].iter().enumerate() {
+            let laid = crate::handwrite::layout(t, crate::handwrite::Style::Corsivo, 0.03, aspect, (0.1, 0.1 + i as f32 * 0.08), 0.85, false);
+            for pts in laid.strokes {
+                let mut st = Stroke::new([20, 20, 30], 2.0);
+                for (k, (u, v)) in pts.into_iter().enumerate() {
+                    let (x, y) = g.pad(u, v);
+                    st.points.push(PenEvent { x, y, pressure: 0.5, phase: if k == 0 { PenPhase::Down } else { PenPhase::Move } });
+                }
+                strokes.push(st);
+            }
+        }
+        hub.edit(|s| s.set_page(strokes.clone(), None));
+        let r = execute("lavagna_leggi", &json!({})).unwrap();
+        assert!(r.text.contains("r3 ["), "{}", r.text);
+        let box_of = |id: &str| {
+            let s = hub.lock();
+            crate::boardread::read(&s.drawing.strokes, &s.geom(), None).find(id).unwrap()
+        };
+        let r3 = box_of("r3");
+        let o = execute(
+            "lavagna_modifica",
+            &json!({ "azioni": [
+                { "azione": "ricolora", "su": "r1", "nuovo_colore": "blu" },
+                { "azione": "ridimensiona", "su": "r1", "fattore": 1.4 },
+                { "azione": "sposta", "su": "r3", "dy": 300 },
+                { "azione": "cancella", "su": "r2p2" }
+            ] }),
+        )
+        .unwrap();
+        assert!(o.text.starts_with("Fatto"), "{}", o.text);
+        let n1 = o.edit.unwrap();
+        {
+            let s = hub.lock();
+            let blue = s.drawing.strokes.iter().filter(|st| st.color == [30, 80, 200]).count();
+            assert!(blue > 0);
+            assert!(s.drawing.strokes.len() < strokes.len(), "una parola in meno");
+        }
+        if let Ok(o) = std::env::var("BOARD_OUT") {
+            std::fs::create_dir_all(&o).unwrap();
+            std::fs::write(std::path::Path::new(&o).join("modificato.png"), crate::export::page_to_png(&hub.lock().page(), 1400).unwrap()).unwrap();
+        }
+        // «mele rosse» è scesa di 0.3: la riga più in basso
+        let bottom = box_of("tutto")[3];
+        assert!((bottom - r3[3] - 0.3).abs() < 0.01, "{bottom} {r3:?}");
+        // cancellare tutto: prima la conferma, e non nello stesso giro
+        execute("lavagna_leggi", &json!({})).unwrap();
+        let ask = execute("lavagna_modifica", &json!({ "azioni": [{ "azione": "cancella", "su": "tutto" }] })).unwrap();
+        assert!(ask.text.starts_with("NON FATTO") && ask.edit.is_none(), "{}", ask.text);
+        let code: String = ask.text.split("\"conferma\": \"").nth(1).unwrap().chars().take(4).collect();
+        let again = execute("lavagna_modifica", &json!({ "azioni": [{ "azione": "cancella", "su": "tutto" }], "conferma": code })).unwrap();
+        assert!(again.text.contains("aspetta la sua risposta"), "{}", again.text);
+        new_turn();
+        let done = execute("lavagna_modifica", &json!({ "azioni": [{ "azione": "cancella", "su": "tutto" }], "conferma": code })).unwrap();
+        assert!(done.text.starts_with("Fatto"), "{}", done.text);
+        assert!(hub.lock().drawing.strokes.is_empty());
+        // Annulla dalla chat, uno alla volta
+        assert!(undo(n1).is_err());
+        undo(done.edit.unwrap()).unwrap();
+        undo(n1).unwrap();
+        assert_eq!(crate::stroke::strokes_sig(&hub.lock().drawing.strokes), crate::stroke::strokes_sig(&strokes));
+        // un nome che non c'è
+        let bad = execute("lavagna_modifica", &json!({ "azioni": [{ "azione": "cancella", "su": "r7" }] })).unwrap();
+        assert!(bad.text.starts_with("ERRORE"), "{}", bad.text);
     }
 
     /// Il grafico al posto degli assi disegnati a mano, poi Annulla. Cambia

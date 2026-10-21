@@ -143,6 +143,7 @@ pub fn label(name: &str, args: &Value) -> String {
         "lavagna_inserisci_grafico" => "Metto il grafico sul foglio".to_string(),
         "lavagna_leggi" => "Leggo il foglio della lavagna".to_string(),
         "lavagna_annota" => "Scrivo sul foglio".to_string(),
+        "lavagna_modifica" => "Modifico il foglio".to_string(),
         "appunto_scrivi" => match args["modo"].as_str().unwrap_or("aggiungi") {
             "sostituisci" => "Correggo l'appunto".to_string(),
             "riscrivi" => "Riscrivo l'appunto".to_string(),

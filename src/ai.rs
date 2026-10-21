@@ -1229,6 +1229,7 @@ impl ToolCtx {
             t.note.push_str(&crate::boardagent::system_note());
             // leggere, annotare, controllare: qualche giro in più
             t.rounds = t.rounds.max(10);
+            crate::boardagent::new_turn();
         }
         let (defs, note) = crate::mcpclient::definitions(&cfg.mcp);
         if !defs.is_empty() {

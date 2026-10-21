@@ -81,6 +81,29 @@ impl Reading {
         None
     }
 
+    /// I tratti di un nome (`r2`, `r2p3`, `d1`, `e1`, `tutto`) o di un tratto
+    /// di nomi nell'ordine di lettura (`r2p1-p3`, `r2p3-r4p1`, `r2-r4`).
+    pub fn strokes_of(&self, id: &str) -> Option<Vec<usize>> {
+        let id = id.trim().to_lowercase();
+        if id == "tutto" || id == "all" {
+            return Some((0..self.n).collect());
+        }
+        if let Some((a, b)) = id.split_once('-').filter(|(a, b)| !a.is_empty() && !b.is_empty()) {
+            // «r2p1-p3»: la riga è quella di prima
+            let b = if b.starts_with('p') { format!("{}{b}", a.split('p').next().unwrap_or("")) } else { b.to_string() };
+            if a.contains('p') != b.contains('p') {
+                return None;
+            }
+            let items: Vec<&Group> =
+                if a.contains('p') { self.lines.iter().flat_map(|l| l.words.iter()).collect() } else { self.lines.iter().map(|l| &l.group).collect() };
+            let (ia, ib) = (items.iter().position(|g| g.id == a)?, items.iter().position(|g| g.id == b)?);
+            let (lo, hi) = (ia.min(ib), ia.max(ib));
+            return Some(items[lo..=hi].iter().flat_map(|g| g.strokes.iter().copied()).collect());
+        }
+        let groups = self.lines.iter().flat_map(|l| std::iter::once(&l.group).chain(l.words.iter())).chain(self.drawing.iter()).chain(self.highlights.iter());
+        groups.into_iter().find(|g| g.id == id).map(|g| g.strokes.clone())
+    }
+
     pub fn is_empty(&self) -> bool {
         self.lines.is_empty() && self.drawing.is_none() && self.highlights.is_empty() && self.chart.is_none()
     }
@@ -443,6 +466,13 @@ pub mod tests {
         let b = r.find("r1p2").unwrap();
         assert!(b[0] > 0.15 && b[2] < 0.25 && (b[1] - 0.10).abs() < 0.005, "{b:?}");
         assert!(r.find("r3").is_none());
+        // i tratti dietro i nomi, anche da una parola all'altra
+        assert_eq!(r.strokes_of("r1p1").unwrap().len(), 4);
+        assert_eq!(r.strokes_of("r1p1-p2").unwrap().len(), 7);
+        assert_eq!(r.strokes_of("r1p3-r2p1").unwrap().len(), 5 + 6 + 1);
+        assert_eq!(r.strokes_of("r1-r2").unwrap().len(), strokes.len());
+        assert_eq!(r.strokes_of("tutto").unwrap().len(), strokes.len());
+        assert!(r.strokes_of("r1p9").is_none() && r.strokes_of("r1-r2p1").is_none());
         let t = describe(&r);
         assert!(t.contains("r1 [") && t.contains("r2p2") && t.contains("nero"), "{t}");
         // un foglio vuoto
