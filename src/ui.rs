@@ -820,7 +820,7 @@ impl App {
                 }
                 UiEvent::UpdatePhase(p) => self.update_phase = Some(p),
                 UiEvent::DocChanged(dir) if dir.as_os_str() == "lavagna" => {
-                    self.status = "Grafico sul foglio dalla chat AI (si può annullare dalla chat).".into();
+                    self.status = "Foglio modificato dalla chat AI (si può annullare dalla chat).".into();
                 }
                 UiEvent::DocChanged(dir) => self.doc_changed_by_ai(dir),
                 UiEvent::UpdateDone(r) => {

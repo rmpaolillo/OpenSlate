@@ -1065,6 +1065,7 @@ impl<'a> Builder<'a> {
                 // caret, selection and line breaking never stop inside the character.
                 bounds.retain(|b| map_starts.binary_search(b).is_ok());
             }
+            let seg_c0 = self.clusters.len();
             let mut gi = 0usize;
             for (bi, &gs) in bounds.iter().enumerate() {
                 let ge = bounds.get(bi + 1).copied().unwrap_or(shape_text.len());
@@ -1105,6 +1106,47 @@ impl<'a> Builder<'a> {
                     dot: s == "." || s == ",",
                 });
             }
+            if matches!(dir, Dir::Para) {
+                self.split_ligature_advances(seg_c0, rc.spacing, key.rtl);
+            }
+        }
+    }
+
+    /// A ligature glyph (fi, ffi, lam-alef) sits on the first cluster of the letters it draws and
+    /// the clusters after it have no glyph and no width, so the caret, clicks and selection edges
+    /// inside it all land after the whole glyph. Give each letter an even share of the glyph's
+    /// advance, as Word and browsers do (#1974). The glyph stays on the first cluster; in
+    /// right-to-left text that cluster is the rightmost, so the glyph moves back by the other
+    /// letters' shares to start at the ligature's left edge. Clusters are grapheme clusters, so a
+    /// letter with a combining mark is never split.
+    fn split_ligature_advances(&mut self, from: usize, spacing: f32, rtl: bool) {
+        let mut i = from;
+        while let Some(head) = self.clusters.get(i) {
+            if head.kind != ClKind::Text || head.g1 <= head.g0 {
+                i += 1;
+                continue;
+            }
+            let n =
+                self.clusters.get(i + 1..).unwrap_or(&[]).iter().take_while(|c| c.kind == ClKind::Text && c.g1 <= c.g0 && c.adv == spacing).count();
+            if n == 0 {
+                i += 1;
+                continue;
+            }
+            // The letters after the head are glyphless and carry only their character spacing, so
+            // the ligature's width is the glyph's advance (spacing included) plus those spacings.
+            let unit = (head.adv + spacing * n as f32) / (n + 1) as f32;
+            let (g0, g1) = (head.g0 as usize, head.g1 as usize);
+            if unit.is_finite() {
+                for c in self.clusters.get_mut(i..=i + n).unwrap_or(&mut []) {
+                    c.adv = unit;
+                }
+                if rtl {
+                    for g in self.glyphs.get_mut(g0..g1).unwrap_or(&mut []) {
+                        g.dx -= unit * n as f32;
+                    }
+                }
+            }
+            i += n + 1;
         }
     }
 
@@ -2158,6 +2200,22 @@ fn break_lines(pl: &mut ParaLayout, env: &ParaEnv, mark_style: u32, level: Optio
                         .sum();
                     let full = base_right - row_lo;
                     skip = narrowed && skipped < 50 && word <= full + 0.01;
+                    // Never split a ligature's letters across lines: the glyph sits on the first
+                    // letter, so back up to it (unless it starts the line).
+                    let glyphless = |k: usize| pl.clusters.get(k).is_some_and(|c| c.kind == ClKind::Text && c.g1 <= c.g0);
+                    let mut b = j;
+                    while b > c0 + 1 && glyphless(b) {
+                        b -= 1;
+                    }
+                    if b < j
+                        && b > c0
+                        && !skip
+                        && let Some(bx) = xs.get(b - c0).copied()
+                    {
+                        xs.truncate(b - c0);
+                        x = bx;
+                        j = b;
+                    }
                 }
                 break;
             }
@@ -2221,7 +2279,10 @@ fn break_lines(pl: &mut ParaLayout, env: &ParaEnv, mark_style: u32, level: Optio
                 if !hyph {
                     last_break = Some(j);
                     last_plain = Some((j, x));
-                } else if hyph_ok && x + hyphen_glyph(pl, c.style, &mut hcache).2 <= right_edge + shrink + 0.01 {
+                } else if hyph_ok
+                    && !pl.clusters.get(j + 1).is_some_and(|n| n.kind == ClKind::Text && n.g1 <= n.g0)
+                    && x + hyphen_glyph(pl, c.style, &mut hcache).2 <= right_edge + shrink + 0.01
+                {
                     last_break = Some(j);
                 }
             }

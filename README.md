@@ -84,6 +84,13 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   VectorCraft for SVG (plus text tools for Markdown). Every change shows at once in the document
   next to the chat and can be undone from the chat with one click; the original file on disk is
   never touched. In a transcription note the chart can replace the hand-drawn figure; on the board sheet it replaces the hand-drawn graph (found automatically: axes and labels) or goes under the writing. SVG written by the model in a reply is shown as a picture.
+- **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
+  "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
+  by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,
+  arrows, ticks and crosses, and writes in handwriting (print or cursive, made of strokes with
+  the [Hershey](https://en.wikipedia.org/wiki/Hershey_fonts) single-line fonts). It only adds,
+  never erases what you wrote; everything it adds is ordinary ink (saved, exported and erased
+  like yours) and one click in the chat takes it all away again.
 - **Your own MCP servers.** Add any MCP server (stdio) in `ai.toml`, as in Claude Desktop or DSH:
   its tools become available to the chat.
 - **Live on the web.** A share link lets a TV, phone or PC on your home network watch the board
@@ -299,6 +306,7 @@ src/update.rs, src/selfupdate.rs                          update check (GitHub r
 src/mdcraft.rs, src/mathtex.rs                           Markdown documents: Notes look, formulas drawn by Typst (MiTeX)
 src/charts.rs, src/typstworld.rs, src/typst-pkg/          chat charts (Typst + Lilaq), Typst packages bundled in the app
 src/docagent.rs, src/boardagent.rs, src/mcpclient.rs      chat edits documents (Craft MCP servers), notes and the board sheet; external MCP servers
+src/boardread.rs, src/boardmarks.rs, src/handwrite.rs     the chat reads the board (lines, words) and marks it; handwriting from Hershey fonts
 vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
@@ -393,6 +401,11 @@ OpenSlate would not exist without these projects and their authors:
   formulas and Markdown in the chat and notes, MIT;
   **[DOMPurify](https://github.com/cure53/DOMPurify)** (Cure53, Apache-2.0 OR MPL-2.0) cleans
   that HTML before it is shown.
+- **[Hershey fonts](https://en.wikipedia.org/wiki/Hershey_fonts)** (Dr. A. V. Hershey, U.S.
+  National Bureau of Standards; `.jhf` format by James Hurt, Cognition Inc.; files from
+  [hershey-fonts](https://github.com/kamalmostafa/hershey-fonts) by Kamal Mostafa): the
+  single-line letters the chat writes with on the board (`src/handwrite/`, free licence with
+  acknowledgement).
 - **[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)**: inspiration for the
   chat (ideas only, no code copied).
 - Written with **[Claude](https://claude.ai)** by Anthropic as an AI pair programmer.

@@ -39,6 +39,7 @@ Per-file attributions are in [NOTICE](NOTICE). The release packages also contain
 | [KaTeX](https://katex.org) | Khan Academy and contributors | MIT | `src/web/vendor/katex*` (formulas) |
 | [marked](https://marked.js.org) | Christopher Jeffrey and the marked contributors | MIT | `src/web/vendor/marked.min.js` (Markdown) |
 | [DOMPurify](https://github.com/cure53/DOMPurify) 3.4.16 | Cure53 and contributors | Apache-2.0 OR MPL-2.0 | `src/web/vendor/purify.min.js` (cleans the HTML of AI answers and notes before showing them) |
+| [Hershey fonts](https://github.com/kamalmostafa/hershey-fonts) (`futural`, `cursive`) | Dr. A. V. Hershey (U.S. NBS); `.jhf` format by James Hurt (Cognition, Inc.); files by Kamal Mostafa | Hershey fonts licence (free use with acknowledgement, `src/handwrite/LICENSE-hershey.txt`) | `src/handwrite/*.jhf` (the chat's handwriting on the board) |
 
 ## Platform components used at run time (not bundled)
 

@@ -57,25 +57,25 @@ lopdf = { version = "0.45", default-features = false }  # quello di PdfCraft (ve
 rfd = { version = "0.14", default-features = false, features = ["gtk3"] }
 # Documenti Word (.docx, .doc, .odt, .rtf): pagine e firma col motore di WordCraft
 # (MIT OR Apache-2.0, © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
-wordcraft-engine = { git = "https://github.com/storytold/wordcraft", rev = "117aea31a8e61bd3e306e9210800cdc42897e3c1" }
+wordcraft-engine = { git = "https://github.com/storytold/wordcraft", rev = "e05b7fe86f3b85454000dffc321de638d7009817" }
 # Foto (PNG, JPEG, WebP, TIFF…): le librerie di PhotoCraft per leggerle, scriverle e
 # disegnarci sopra col pennello (MIT OR Apache-2.0, © ArtCraft Team), senza la sua
 # interfaccia. Da GitHub, versione fissa.
-photocraft-codecs = { git = "https://github.com/storytold/photocraft", rev = "872748fb5b2a53e09dd4e385e31968d985c0515b" }
-photocraft-paint = { git = "https://github.com/storytold/photocraft", rev = "872748fb5b2a53e09dd4e385e31968d985c0515b" }
-photocraft-raster = { git = "https://github.com/storytold/photocraft", rev = "872748fb5b2a53e09dd4e385e31968d985c0515b" }
-photocraft-color = { git = "https://github.com/storytold/photocraft", rev = "872748fb5b2a53e09dd4e385e31968d985c0515b" }
-photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "872748fb5b2a53e09dd4e385e31968d985c0515b" }
+photocraft-codecs = { git = "https://github.com/storytold/photocraft", rev = "68348dcafcf42599846afaab42a8a724b630eed5" }
+photocraft-paint = { git = "https://github.com/storytold/photocraft", rev = "68348dcafcf42599846afaab42a8a724b630eed5" }
+photocraft-raster = { git = "https://github.com/storytold/photocraft", rev = "68348dcafcf42599846afaab42a8a724b630eed5" }
+photocraft-color = { git = "https://github.com/storytold/photocraft", rev = "68348dcafcf42599846afaab42a8a724b630eed5" }
+photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "68348dcafcf42599846afaab42a8a724b630eed5" }
 # Immagini SVG: pagine e firma col motore di VectorCraft (MIT OR Apache-2.0,
 # © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
-vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "bc1ae0825264c5ca4b27bd718d6e04f2121b8bb3" }
-vectorcraft-render = { git = "https://github.com/storytold/vectorcraft", rev = "bc1ae0825264c5ca4b27bd718d6e04f2121b8bb3" }
+vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "cb0a7d9b31522dd57742b4cfe4550f2ec0a5e5c3" }
+vectorcraft-render = { git = "https://github.com/storytold/vectorcraft", rev = "cb0a7d9b31522dd57742b4cfe4550f2ec0a5e5c3" }
 # La chat AI modifica i documenti aperti coi server MCP della suite Craft, in
 # modalità headless dentro l'app (MIT OR Apache-2.0, © ArtCraft Team)
-wordcraft-mcp = { git = "https://github.com/storytold/wordcraft", rev = "117aea31a8e61bd3e306e9210800cdc42897e3c1" }
-vectorcraft-mcp = { git = "https://github.com/storytold/vectorcraft", rev = "bc1ae0825264c5ca4b27bd718d6e04f2121b8bb3" }
-pdfcraft-automation = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
-pdfcraft-engine = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
+wordcraft-mcp = { git = "https://github.com/storytold/wordcraft", rev = "e05b7fe86f3b85454000dffc321de638d7009817" }
+vectorcraft-mcp = { git = "https://github.com/storytold/vectorcraft", rev = "cb0a7d9b31522dd57742b4cfe4550f2ec0a5e5c3" }
+pdfcraft-automation = { git = "https://github.com/storytold/pdfcraft", rev = "416495145354828a9efefc39df381ba3ee8f864f" }
+pdfcraft-engine = { git = "https://github.com/storytold/pdfcraft", rev = "416495145354828a9efefc39df381ba3ee8f864f" }
 # Espressioni delle funzioni nei grafici dell'AI (x^2 + sin(x)…)
 exmex = "0.20"
 # Formule dei Markdown aperti come documento: il LaTeX diventa Typst (MiTeX) e
@@ -87,10 +87,10 @@ typst-svg = "0.15.1"
 typst-assets = { version = "0.15.1", features = ["fonts"] }
 mitex = "0.2.4"
 # I font dei documenti Markdown (Source Serif, Inter) registrati nel motore di WordCraft
-wordcraft-fonts = { git = "https://github.com/storytold/wordcraft", rev = "117aea31a8e61bd3e306e9210800cdc42897e3c1" }
+wordcraft-fonts = { git = "https://github.com/storytold/wordcraft", rev = "e05b7fe86f3b85454000dffc321de638d7009817" }
 # PDF: il disegno nitido delle pagine col motore di PdfCraft (MIT OR Apache-2.0,
 # © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
-pdfcraft-render = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
+pdfcraft-render = { git = "https://github.com/storytold/pdfcraft", rev = "416495145354828a9efefc39df381ba3ee8f864f" }
 # Chat e appunti dentro la finestra (WebView di sistema: WKWebView su macOS)
 wry = "0.57"
 tao = "0.37"
@@ -120,8 +120,8 @@ hayro-interpret = { git = "https://github.com/storytold/craft-libs", rev = "ca50
 hayro = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
 hayro-syntax = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
 hayro-jbig2 = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
-lopdf = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
-vello_common = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
+lopdf = { git = "https://github.com/storytold/pdfcraft", rev = "416495145354828a9efefc39df381ba3ee8f864f" }
+vello_common = { git = "https://github.com/storytold/pdfcraft", rev = "416495145354828a9efefc39df381ba3ee8f864f" }
 
 # Pacchetto .deb (Linux), fatto dalla CI con cargo-deb
 [package.metadata.deb]

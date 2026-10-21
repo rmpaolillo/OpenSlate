@@ -1227,6 +1227,8 @@ impl ToolCtx {
         if t.doc.is_none() && extras.board {
             t.defs.extend(crate::boardagent::definitions());
             t.note.push_str(&crate::boardagent::system_note());
+            // leggere, annotare, controllare: qualche giro in più
+            t.rounds = t.rounds.max(10);
         }
         let (defs, note) = crate::mcpclient::definitions(&cfg.mcp);
         if !defs.is_empty() {
@@ -1282,7 +1284,7 @@ impl ToolCtx {
             };
         }
         if let Some(o) = crate::boardagent::execute(name, args) {
-            return ToolRun { text: o.text, short: o.short, images: Vec::new(), media: Vec::new(), edit: o.edit.map(|n| ("lavagna".to_string(), n)) };
+            return ToolRun { text: o.text, short: o.short, images: o.images, media: Vec::new(), edit: o.edit.map(|n| ("lavagna".to_string(), n)) };
         }
         if let Some(d) = &self.doc {
             if let Some(o) = crate::docagent::execute(d, name, args) {
@@ -2444,6 +2446,57 @@ pub(crate) mod tests {
         drop(reqs);
         let b = std::fs::read(&d.dir.join("source.docx")).unwrap();
         assert!(String::from_utf8_lossy(&b).contains("word/media/"));
+    }
+
+    /// La chat legge il foglio della lavagna e lo annota; Annulla dalla chat.
+    /// cargo test -- --ignored --test-threads=1 chat_annota_la_lavagna
+    #[test]
+    #[ignore]
+    fn chat_annota_la_lavagna() {
+        fn call(name: &str, args: serde_json::Value) -> String {
+            let c = serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"id":format!("c-{name}"),"type":"function","function":{"name":name,"arguments":args.to_string()}}]}}]});
+            let body = format!("data: {c}\n\ndata: [DONE]\n\n");
+            format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len())
+        }
+        let (port, log) = fake_server(|req| {
+            if req.contains("Fatto: sul foglio") {
+                sse_reply(&["Ho sottolineato ", "la prima riga."])
+            } else if req.contains("Righe scritte a mano") {
+                call("lavagna_annota", serde_json::json!({ "segni": [{ "tipo": "sottolinea", "su": "r1" }, { "tipo": "testo", "su": "r1", "testo": "ok!" }] }))
+            } else {
+                call("lavagna_leggi", serde_json::json!({}))
+            }
+        });
+        let hub = crate::boardagent::test_hub();
+        let g = hub.lock().geom();
+        let (mut strokes, end) = crate::boardread::tests::word(&g, 0.1, 0.1, 5);
+        strokes.extend(crate::boardread::tests::word(&g, end + 0.03, 0.1, 4).0);
+        hub.edit(|s| s.set_page(strokes.clone(), None));
+        let mut p = provider("Locale", format!("http://127.0.0.1:{port}/v1"));
+        p.model = "m".into();
+        let cfg = AiConfig { providers: vec![p], ..Default::default() };
+        let extras = ChatExtras { appunto: None, doc: None, chat_tools: true, board: true, note_off: None, page_off: false };
+        let mut events = Vec::new();
+        let r = run_chat(&cfg, Task::Chat, &[Msg::new("system", "S"), Msg::new("user", "sottolinea la prima riga")], false, extras, &mut |e| {
+            events.push(e);
+            true
+        })
+        .unwrap();
+        assert_eq!(r.text, "Ho sottolineato la prima riga.");
+        let reqs = log.lock().unwrap();
+        assert!(reqs[0].contains("\"lavagna_leggi\"") && reqs[0].contains("\"lavagna_annota\"") && reqs[0].contains("lavagna_inserisci_grafico"));
+        assert!(reqs[1].contains("r1p1") && reqs[1].contains("r1p2"), "{}", &reqs[1][..reqs[1].len().min(3000)]);
+        drop(reqs);
+        let n = events
+            .iter()
+            .find_map(|e| match e {
+                Event::DocEdit { doc, undo } if doc == "lavagna" => Some(*undo),
+                _ => None,
+            })
+            .expect("modifica del foglio");
+        assert!(hub.lock().drawing.strokes.len() > strokes.len() + 1);
+        crate::boardagent::undo(n).unwrap();
+        assert_eq!(hub.lock().drawing.strokes.len(), strokes.len());
     }
 
     /// Il modello chiede uno strumento (in streaming, argomenti a pezzi),

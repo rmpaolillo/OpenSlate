@@ -1,9 +1,15 @@
-//! La chat AI sul foglio della lavagna: lo strumento `lavagna_inserisci_grafico`
-//! mette un grafico fatto da `draw_chart` sul foglio, anche al posto di un
-//! disegno fatto a mano (che si trova da solo: le righe lunghe, come gli assi,
-//! e le scritte lì attorno). Il grafico diventa l'immagine sotto i tratti
-//! (come la pagina di un documento), i tratti a mano che sostituisce si
-//! tolgono; «Annulla» nella chat rimette tutto com'era.
+//! La chat AI sul foglio della lavagna:
+//! - `lavagna_leggi`: il foglio a righe e parole, ognuna col suo nome e il suo
+//!   riquadro (vedi `boardread`), più l'immagine con i nomi;
+//! - `lavagna_annota`: evidenzia, sottolinea, cerchia, frecce, testo a mano…
+//!   (vedi `boardmarks`): tratti come quelli del pennino;
+//! - `lavagna_inserisci_grafico`: un grafico fatto da `draw_chart` sul foglio,
+//!   anche al posto di un disegno fatto a mano (che si trova da solo: le righe
+//!   lunghe, come gli assi, e le scritte lì attorno). Il grafico diventa
+//!   l'immagine sotto i tratti, i tratti a mano che sostituisce si tolgono.
+//!
+//! Ogni modifica si annulla dalla chat («Annulla» rimette il foglio com'era e
+//! lascia quello che hai scritto dopo) e con Cmd+Z.
 
 use crate::scene::{Hub, PageBg};
 use crate::stroke::{strokes_sig, Stroke};
@@ -18,22 +24,88 @@ pub fn set_hub(hub: Arc<Hub>) {
     let _ = HUB.set(hub);
 }
 
+/// Per le prove: la lavagna di tutte le prove, col foglio vuoto.
+#[cfg(test)]
+pub fn test_hub() -> Arc<Hub> {
+    let hub = HUB.get_or_init(|| Hub::new(crate::scene::Scene::new(&crate::settings::Settings::default()))).clone();
+    hub.edit(|s| s.set_page(Vec::new(), None));
+    hub
+}
+
 /// Una modifica della chat al foglio, per «Annulla».
 struct Edit {
     n: u64,
     /// Il foglio prima: tratti e sfondo.
     before: Vec<Stroke>,
     before_bg: Option<PageBg>,
-    /// Dopo: quanti tratti erano rimasti e la loro firma, lo sfondo messo.
+    /// Dopo: quanti tratti c'erano e la loro firma, lo sfondo (la sua chiave).
     kept: usize,
     kept_sig: u64,
-    chart_key: String,
+    bg_key: Option<String>,
 }
 
 static UNDO: Mutex<Vec<Edit>> = Mutex::new(Vec::new());
 
+/// L'ultima lettura del foglio: i nomi (`r2p3`) che il modello ha visto.
+static LAST: Mutex<Option<crate::boardread::Reading>> = Mutex::new(None);
+
+const MARKS: &str = "evidenzia, sottolinea, barra, cerchia, riquadro, freccia, linea, spunta, croce, testo";
+
 pub fn definitions() -> Vec<Value> {
-    vec![json!({
+    vec![
+        json!({
+            "type": "function",
+            "function": {
+                "name": "lavagna_leggi",
+                "description": "Legge il foglio della lavagna (scritto a mano col pennino, accanto alla chat): righe dall'alto e parole da sinistra, \
+                    ognuna con un nome (r1, r2…; r2p3 = terza parola della seconda riga) e il riquadro [x1, y1, x2, y2] in 0–1000; \
+                    il disegno a mano (d1), gli evidenziatori (e1…), il grafico. Restituisce anche l'immagine del foglio con i nomi scritti \
+                    accanto alle righe e un riquadro per parola. Chiamalo prima di annotare il foglio.",
+                "parameters": { "type": "object", "properties": {} }
+            }
+        }),
+        json!({
+            "type": "function",
+            "function": {
+                "name": "lavagna_annota",
+                "description": format!("Scrive e disegna sul foglio della lavagna, a mano (tratti come quelli del pennino, annullabili dalla chat). \
+                    «segni» è la lista dei segni, fatti tutti insieme. Ogni segno: tipo ({MARKS}); dove: «su» un nome di lavagna_leggi \
+                    (\"r2p3\", \"r2\", \"r2p1-p4\" da una parola all'altra, [\"r1p2\", \"r3p1\"] più pezzi, \"tutto\") oppure «riquadro» \
+                    [x1, y1, x2, y2] o un punto [x, y] in 0–1000. freccia e linea: «da» e «a» (nomi o punti; con solo «a» o «su» la freccia arriva lì \
+                    da in alto a destra). testo: «testo», «dove» rispetto a «su» (destra di serie, sotto, sopra, sinistra) oppure «riquadro» \
+                    per scriverci dentro (va a capo), «altezza» delle maiuscole in 0–1000 (di serie come la scrittura del foglio), \
+                    «stile» stampatello (di serie) o corsivo. Facoltativi: «colore» (rosso di serie; l'evidenziatore usa il suo), \
+                    «spessore», «doppia» per la sottolineatura."),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "segni": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "tipo": { "type": "string", "enum": ["evidenzia", "sottolinea", "barra", "cerchia", "riquadro", "freccia", "linea", "spunta", "croce", "testo"] },
+                                    "su": { "description": "Nome di lavagna_leggi (r2p3, r2, r2p1-p4, d1, tutto) o lista di nomi" },
+                                    "riquadro": { "type": "array", "items": { "type": "number" }, "description": "[x1, y1, x2, y2] o [x, y] in 0–1000" },
+                                    "da": { "description": "freccia/linea: da dove (nome o [x, y])" },
+                                    "a": { "description": "freccia/linea: dove arriva (nome o [x, y])" },
+                                    "testo": { "type": "string" },
+                                    "dove": { "type": "string", "enum": ["destra", "sotto", "sopra", "sinistra"] },
+                                    "altezza": { "type": "number", "description": "Altezza delle maiuscole, 0–1000" },
+                                    "stile": { "type": "string", "enum": ["stampatello", "corsivo"] },
+                                    "colore": { "type": "string", "description": "rosso, blu, verde, giallo, arancione, viola, rosa, nero, grigio o #rrggbb" },
+                                    "spessore": { "type": "number" },
+                                    "doppia": { "type": "boolean" }
+                                },
+                                "required": ["tipo"]
+                            }
+                        }
+                    },
+                    "required": ["segni"]
+                }
+            }
+        }),
+        json!({
         "type": "function",
         "function": {
             "name": "lavagna_inserisci_grafico",
@@ -51,13 +123,17 @@ pub fn definitions() -> Vec<Value> {
                 "required": ["grafico"]
             }
         }
-    })]
+    }),
+    ]
 }
 
 pub fn system_note() -> String {
-    "\n\nAccanto alla chat c'è il foglio della lavagna (scritto a mano col pennino): per metterci un grafico, anche al posto di un \
-     disegno fatto a mano, prima draw_chart e poi lavagna_inserisci_grafico con l'id del grafico. Non dire che non puoi: \
-     lo strumento c'è. L'utente vede subito il risultato e lo può annullare."
+    "\n\nAccanto alla chat c'è il foglio della lavagna (scritto a mano col pennino) e lo puoi leggere e annotare: \
+     lavagna_leggi per vedere righe e parole coi loro nomi, poi lavagna_annota per evidenziare, sottolineare, cerchiare, \
+     barrare, mettere frecce, spunte o croci e scrivere a mano (correzioni, risultati, note accanto alle righe). \
+     Per un grafico, anche al posto di un disegno fatto a mano: prima draw_chart, poi lavagna_inserisci_grafico. \
+     Non dire che non puoi: gli strumenti ci sono. Non cancelli né sposti quello che ha scritto l'utente: aggiungi soltanto. \
+     L'utente vede subito il risultato e lo può annullare dalla chat."
         .into()
 }
 
@@ -148,13 +224,116 @@ fn fit(zone: [f32; 4], aspect: f32) -> [f32; 4] {
 
 /// Esegue lo strumento della lavagna; None se `name` non è suo.
 pub fn execute(name: &str, args: &Value) -> Option<crate::docagent::Outcome> {
-    if name != "lavagna_inserisci_grafico" {
-        return None;
-    }
-    Some(match insert(args) {
-        Ok((text, n)) => crate::docagent::Outcome { text, short: "grafico sul foglio".into(), edit: Some(n), ..Default::default() },
-        Err(e) => crate::docagent::Outcome { text: format!("ERRORE: {e:#}"), short: format!("errore: {e:#}"), ..Default::default() },
+    use crate::docagent::Outcome;
+    let fail = |e: anyhow::Error| Outcome { text: format!("ERRORE: {e:#}"), short: format!("errore: {e:#}"), ..Default::default() };
+    Some(match name {
+        "lavagna_inserisci_grafico" => match insert(args) {
+            Ok((text, n)) => Outcome { text, short: "grafico sul foglio".into(), edit: Some(n), ..Default::default() },
+            Err(e) => fail(e),
+        },
+        "lavagna_leggi" => match read_board() {
+            Ok((text, images)) => Outcome { text, short: "foglio letto".into(), images, ..Default::default() },
+            Err(e) => fail(e),
+        },
+        "lavagna_annota" => match annotate(args) {
+            Ok((text, n)) => Outcome { text, short: "segni sul foglio".into(), edit: Some(n), ..Default::default() },
+            Err(e) => fail(e),
+        },
+        _ => return None,
     })
+}
+
+/// Il foglio letto, in parole e in immagine (coi nomi).
+fn read_board() -> Result<(String, Vec<Vec<u8>>)> {
+    let hub = HUB.get().context("lavagna non disponibile")?;
+    let (reading, page) = {
+        let s = hub.lock();
+        if s.bg.as_ref().is_some_and(|b| !b.is_chart()) {
+            bail!("al centro c'è la pagina di un documento, non la lavagna");
+        }
+        (crate::boardread::read(&s.drawing.strokes, &s.geom(), s.bg.as_ref()), s.page())
+    };
+    let text = crate::boardread::describe(&reading);
+    let images = if reading.is_empty() { Vec::new() } else { crate::boardread::labelled_png(&page, &reading).ok().into_iter().collect() };
+    *LAST.lock().unwrap() = Some(reading);
+    Ok((text, images))
+}
+
+/// La lettura da usare per i nomi: l'ultima vista dal modello, se il foglio da
+/// allora ha solo tratti in più; altrimenti una nuova.
+fn reading_for(s: &crate::scene::Scene) -> crate::boardread::Reading {
+    let strokes = &s.drawing.strokes;
+    if let Some(r) = LAST.lock().unwrap().take() {
+        if strokes.len() >= r.n && strokes_sig(&strokes[..r.n]) == r.sig {
+            return r;
+        }
+    }
+    crate::boardread::read(strokes, &s.geom(), s.bg.as_ref())
+}
+
+/// Aggiunge al foglio i segni chiesti, tutti insieme (un solo Annulla).
+fn annotate(args: &Value) -> Result<(String, u64)> {
+    use crate::stroke::{PenEvent, PenPhase};
+    let hub = HUB.get().context("lavagna non disponibile")?;
+    let list: Vec<Value> = match &args["segni"] {
+        Value::Array(a) => a.clone(),
+        Value::Object(_) => vec![args["segni"].clone()],
+        _ if args.get("tipo").is_some() => vec![args.clone()],
+        _ => bail!("manca «segni» (la lista dei segni)"),
+    };
+    if list.is_empty() {
+        bail!("«segni» è vuota");
+    }
+    if list.len() > 60 {
+        bail!("troppi segni insieme (al massimo 60)");
+    }
+    let mut done: Vec<String> = Vec::new();
+    let res = hub.edit(|s| -> Result<Edit> {
+        if s.bg.as_ref().is_some_and(|b| !b.is_chart()) {
+            bail!("al centro c'è la pagina di un documento, non la lavagna");
+        }
+        let g = s.geom();
+        let reading = reading_for(s);
+        let ctx = crate::boardmarks::Ctx::new(&reading, g.w / g.h, s.pen.width, s.highlighter.color);
+        let mut add: Vec<Stroke> = Vec::new();
+        for (i, m) in list.iter().enumerate() {
+            let (marks, what) = crate::boardmarks::build(&ctx, m, i).with_context(|| format!("segno {}", i + 1))?;
+            done.push(what);
+            for mk in marks {
+                let mut st = if mk.highlight { Stroke::highlighter(mk.color, mk.width) } else { Stroke::new(mk.color, mk.width) };
+                let last = mk.pts.len().saturating_sub(1);
+                for (k, (u, v)) in mk.pts.into_iter().enumerate() {
+                    let (x, y) = g.pad(u, v);
+                    let phase = if k == 0 { PenPhase::Down } else if k == last { PenPhase::Up } else { PenPhase::Move };
+                    st.points.push(PenEvent { x, y, pressure: 0.6, phase });
+                }
+                add.push(st);
+            }
+        }
+        // la lettura vale ancora: i tratti vecchi non cambiano
+        *LAST.lock().unwrap() = Some(reading);
+        let before = s.drawing.strokes.clone();
+        let before_bg = s.bg.clone();
+        s.add_strokes(add);
+        let now = &s.drawing.strokes;
+        Ok(Edit { n: 0, before, before_bg, kept: now.len(), kept_sig: strokes_sig(now), bg_key: s.bg.as_ref().map(|b| b.key.clone()) })
+    });
+    let edit = res?;
+    let n = remember(edit);
+    crate::docagent::board_changed();
+    Ok((format!("Fatto: sul foglio ci sono {} (l'utente li vede e li può annullare dalla chat).", done.join(", ")), n))
+}
+
+/// Tiene la modifica per «Annulla»; ritorna il suo numero.
+fn remember(edit: Edit) -> u64 {
+    let mut u = UNDO.lock().unwrap();
+    let n = u.last().map(|x| x.n + 1).unwrap_or(1);
+    u.push(Edit { n, ..edit });
+    // non serve tenerne tante
+    if u.len() > 20 {
+        u.remove(0);
+    }
+    n
 }
 
 fn insert(args: &Value) -> Result<(String, u64)> {
@@ -223,7 +402,7 @@ fn insert(args: &Value) -> Result<(String, u64)> {
         Some(old) => merge(&old, &png, rect, ratio)?,
         None => PageBg { png, rect, key: format!("chart:{}", chart.id) },
     };
-    let edit = Edit { n: 0, before, before_bg, kept: kept.len(), kept_sig: strokes_sig(&kept), chart_key: bg.key.clone() };
+    let edit = Edit { n: 0, before, before_bg, kept: kept.len(), kept_sig: strokes_sig(&kept), bg_key: Some(bg.key.clone()) };
     let applied = hub.edit(|s| {
         // nel frattempo il foglio non è cambiato (un tratto, un'altra pagina)?
         if strokes_sig(&s.drawing.strokes) != before_sig || s.bg.as_ref().map(|b| &b.key) != edit.before_bg.as_ref().map(|b| &b.key) {
@@ -235,16 +414,8 @@ fn insert(args: &Value) -> Result<(String, u64)> {
     if !applied {
         bail!("il foglio è cambiato mentre preparavo il grafico: riprova");
     }
-    let n = {
-        let mut u = UNDO.lock().unwrap();
-        let n = u.last().map(|x| x.n + 1).unwrap_or(1);
-        u.push(Edit { n, ..edit });
-        // non serve tenerne tante
-        if u.len() > 20 {
-            u.remove(0);
-        }
-        n
-    };
+    let n = remember(edit);
+    *LAST.lock().unwrap() = None;
     crate::docagent::board_changed();
     Ok((
         format!(
@@ -302,26 +473,26 @@ fn merge(old: &PageBg, new_png: &[u8], rect: [f32; 4], aspect: f32) -> Result<Pa
 }
 
 /// «Annulla» della chat sul foglio: com'era prima della modifica `n`.
-/// Toglie il grafico e rimette i tratti che aveva sostituito; quello che hai
-/// scritto dopo resta. Non tocca un documento aperto, né un foglio cambiato
+/// Toglie i segni o il grafico e rimette i tratti che il grafico aveva
+/// sostituito; quello che hai scritto dopo resta. Non tocca un documento aperto, né un foglio cambiato
 /// in altro modo (cancellature, un'altra pagina): lì serve Cmd+Z.
 pub fn undo(n: u64) -> Result<()> {
     let hub = HUB.get().context("lavagna non disponibile")?;
     let mut u = UNDO.lock().unwrap();
     let i = u.iter().position(|x| x.n == n).context("questa modifica non si può più annullare")?;
     if i + 1 != u.len() {
-        bail!("prima annulla il grafico messo dopo questo");
+        bail!("prima annulla la modifica al foglio fatta dopo questa");
     }
     let e = &u[i];
     let res = hub.edit(|s| -> Result<()> {
         match &s.bg {
             Some(b) if !b.is_chart() => bail!("al centro c'è un documento: torna alla lavagna e riprova"),
-            Some(b) if b.key == e.chart_key => {}
-            _ => bail!("il grafico non è più sul foglio (pagina cambiata o pulita)"),
+            b if b.as_ref().map(|b| &b.key) == e.bg_key.as_ref() => {}
+            _ => bail!("il foglio non è più quello di questa modifica (pagina cambiata o pulita)"),
         }
         let now = &s.drawing.strokes;
         if now.len() < e.kept || strokes_sig(&now[..e.kept]) != e.kept_sig {
-            bail!("dopo il grafico il foglio è cambiato (cancellature): usa Cmd+Z per tornare indietro");
+            bail!("dopo questa modifica il foglio è cambiato (cancellature): usa Cmd+Z per tornare indietro");
         }
         // i tratti di prima, più quelli scritti dopo il grafico
         let mut strokes = e.before.clone();
@@ -332,6 +503,7 @@ pub fn undo(n: u64) -> Result<()> {
     res?;
     u.truncate(i);
     drop(u);
+    *LAST.lock().unwrap() = None;
     crate::docagent::board_changed();
     Ok(())
 }
@@ -376,19 +548,84 @@ mod tests {
         assert!((r[2] - 0.6).abs() < 1e-6 && (r[3] - 0.3).abs() < 1e-6);
     }
 
+    /// Leggere e annotare un foglio scritto «a mano» (col corsivo di
+    /// handwrite, che fa da scrittura dell'utente), poi Annulla. Scrive le
+    /// immagini in $BOARD_OUT se c'è: cargo test -- --ignored annota_la_lavagna
+    #[test]
+    #[ignore]
+    fn annota_la_lavagna() {
+        use crate::stroke::{PenEvent, PenPhase};
+        let hub = test_hub();
+        let g = hub.lock().geom();
+        let aspect = g.w / g.h;
+        let mut strokes = Vec::new();
+        let righe = ["Esercizio 3: 12 + 7 = 19", "Il perimetro del quadrato è 4 × l", "Domani: ripassare le frazioni"];
+        for (i, t) in righe.iter().enumerate() {
+            let laid = crate::handwrite::layout(t, crate::handwrite::Style::Corsivo, 0.028, aspect, (0.08, 0.10 + i as f32 * 0.07), 0.88, false);
+            for pts in laid.strokes {
+                let mut st = Stroke::new([20, 20, 30], 2.0);
+                for (k, (u, v)) in pts.into_iter().enumerate() {
+                    let (x, y) = g.pad(u, v);
+                    st.points.push(PenEvent { x, y, pressure: 0.5, phase: if k == 0 { PenPhase::Down } else { PenPhase::Move } });
+                }
+                strokes.push(st);
+            }
+        }
+        hub.edit(|s| s.set_page(strokes.clone(), None));
+        let r = execute("lavagna_leggi", &json!({})).unwrap();
+        println!("{}", r.text);
+        assert_eq!(r.images.len(), 1);
+        let out = std::env::var("BOARD_OUT").ok().map(std::path::PathBuf::from);
+        if let Some(o) = &out {
+            std::fs::create_dir_all(o).unwrap();
+            std::fs::write(o.join("letto.png"), &r.images[0]).unwrap();
+        }
+        assert!(r.text.contains("r3") && !r.text.contains("r4 ["), "{}", r.text);
+        let a = execute(
+            "lavagna_annota",
+            &json!({ "segni": [
+                { "tipo": "cerchia", "su": "r1p6" },
+                { "tipo": "spunta", "su": "r1", "colore": "verde" },
+                { "tipo": "sottolinea", "su": "r2p2-p3", "colore": "blu" },
+                { "tipo": "evidenzia", "su": "r3p1" },
+                { "tipo": "testo", "su": "r2", "dove": "sotto", "testo": "Giusto: P = 4 × l. Così l'area è l²?", "colore": "rosso" },
+                { "tipo": "freccia", "da": [700, 520], "a": "r3p4", "colore": "viola" },
+                { "tipo": "testo", "riquadro": [600, 480, 950, 600], "testo": "anche i decimali!", "stile": "corsivo", "colore": "viola" },
+                { "tipo": "barra", "su": "r3p3" }
+            ] }),
+        )
+        .unwrap();
+        println!("{}", a.text);
+        assert!(a.text.starts_with("Fatto"), "{}", a.text);
+        let n = a.edit.unwrap();
+        let after = hub.lock().drawing.strokes.len();
+        assert!(after > strokes.len());
+        if let Some(o) = &out {
+            let page = hub.lock().page();
+            std::fs::write(o.join("annotato.png"), crate::export::page_to_png(&page, 1600).unwrap()).unwrap();
+        }
+        // un nome sbagliato: niente cambia, l'errore lo dice
+        let bad = execute("lavagna_annota", &json!({ "segni": [{ "tipo": "cerchia", "su": "r9p1" }] })).unwrap();
+        assert!(bad.text.starts_with("ERRORE") && bad.text.contains("r9p1"), "{}", bad.text);
+        assert_eq!(hub.lock().drawing.strokes.len(), after);
+        // l'utente scrive ancora, poi Annulla: via i segni, resta il tratto nuovo
+        hub.edit(|s| s.add_strokes(vec![crate::boardread::tests::line(&g, (0.8, 0.9), (0.9, 0.92))]));
+        undo(n).unwrap();
+        assert_eq!(hub.lock().drawing.strokes.len(), strokes.len() + 1);
+        assert!(undo(n).is_err());
+    }
+
     /// Il grafico al posto degli assi disegnati a mano, poi Annulla. Cambia
     /// la cartella corrente: cargo test -- --ignored --test-threads=1 grafico_sulla_lavagna
     #[test]
     #[ignore]
     fn grafico_sulla_lavagna() {
-        use crate::scene::Scene;
         use crate::stroke::{PenEvent, PenPhase};
         let work = std::env::temp_dir().join(format!("openslate-board-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&work);
         std::fs::create_dir_all(&work).unwrap();
         std::env::set_current_dir(&work).unwrap();
-        let hub = crate::scene::Hub::new(Scene::new(&crate::settings::Settings::default()));
-        set_hub(hub.clone());
+        let hub = test_hub();
         let g = hub.lock().geom();
         let line = |a: (f32, f32), b: (f32, f32)| {
             let mut st = Stroke::new([0, 0, 0], 2.0);

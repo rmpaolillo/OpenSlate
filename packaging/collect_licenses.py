@@ -106,6 +106,7 @@ def main():
         ("KaTeX (src/web/vendor)", "src/web/vendor/LICENSE-katex"),
         ("marked (src/web/vendor)", "src/web/vendor/LICENSE-marked.md"),
         ("DOMPurify (src/web/vendor)", "src/web/vendor/LICENSE-dompurify"),
+        ("Hershey fonts (src/handwrite)", "src/handwrite/LICENSE-hershey.txt"),
     ]
     pkg_root = os.path.join(ROOT, "src", "typst-pkg")
     for dirpath, _dirs, files in os.walk(pkg_root):

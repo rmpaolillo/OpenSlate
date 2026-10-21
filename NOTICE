@@ -84,6 +84,14 @@ Third-party material
 - KaTeX (src/web/vendor/katex), MIT. marked (src/web/vendor/marked.min.js), MIT.
 - DOMPurify 3.4.16 (src/web/vendor/purify.min.js), Cure53 and contributors, Apache-2.0 OR
   MPL-2.0 (src/web/vendor/LICENSE-dompurify). Unmodified.
+- Hershey fonts (src/handwrite/futural.jhf, cursive.jhf), from
+  https://github.com/kamalmostafa/hershey-fonts. As their licence requires:
+  - The Hershey Fonts were originally created by Dr. A. V. Hershey while working at the
+    U. S. National Bureau of Standards.
+  - The format of the Font data in this distribution was originally created by
+    James Hurt, Cognition, Inc., 900 Technology Park Drive, Billerica, MA 01821
+    (mit-eddie!ci-dandelion!hurt).
+  Full terms in src/handwrite/LICENSE-hershey.txt. Unmodified.
 
 The full licence texts of all components are in THIRD-PARTY-LICENSES.txt in the release
 packages (packaging/collect_licenses.py).
