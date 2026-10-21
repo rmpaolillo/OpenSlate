@@ -15,6 +15,7 @@ mod embed;
 mod library_view;
 mod options;
 mod paper;
+mod quit;
 mod savedlg;
 mod ribbon;
 mod theme;
@@ -176,6 +177,7 @@ pub fn run_app(
         settings_open: false,
         #[cfg(target_os = "macos")]
         mac_menu: None,
+        quit: Default::default(),
         lib,
         lui: library_view::LibUi::new(thumb_size),
         board_zoom: ZoomView::default(),
@@ -391,6 +393,8 @@ struct App {
     settings_open: bool,
     #[cfg(target_os = "macos")]
     mac_menu: Option<muda::Menu>,
+    /// Uscita: «Salvare la lavagna?».
+    quit: quit::Quit,
     lib: Library,
     lui: library_view::LibUi,
     /// Zoom della lavagna.
@@ -1734,21 +1738,13 @@ impl App {
             Action::SaveBoard if self.docui.doc.is_some() => {
                 self.status = "Con un documento aperto usa «Salva PDF firmato».".into();
             }
-            Action::SaveBoard => {
-                let d = self.hub.lock().drawing.clone();
-                if d.is_empty() {
-                    self.status = "La lavagna è vuota.".into();
-                    return;
+            Action::SaveBoard => match self.save_board_to_library() {
+                Ok(id) => {
+                    self.status = "Lavagna salvata nell'archivio.".into();
+                    self.lui.selected = [id].into_iter().collect();
                 }
-                let meta = Meta::new(chrono::Local::now().naive_local(), library::SOURCE_BOARD);
-                match self.lib.add(&d, meta) {
-                    Ok(id) => {
-                        self.status = "Lavagna salvata nell'archivio.".into();
-                        self.lui.selected = [id].into_iter().collect();
-                    }
-                    Err(e) => self.status = format!("⚠ archivio: {e}"),
-                }
-            }
+                Err(e) => self.status = e,
+            },
             Action::Zoom(op) if self.mode == Mode::Board && self.center == workspace::Center::Note => {
                 let js = match op {
                     ZoomOp::In => workspace::note_js("zoomin"),
@@ -2049,6 +2045,8 @@ impl App {
 impl eframe::App for App {
     fn on_exit(&mut self) {
         self.save_doc_on_exit();
+        // uscita senza «Salvare la lavagna?» (Dock, spegnimento, aggiornamento)
+        self.save_board_on_exit();
         // la finestra Chat/Appunti vive del server di questa app
         if let Some(mut ch) = self.viewer.take() {
             let _ = ch.kill();
@@ -2153,10 +2151,18 @@ impl eframe::App for App {
         if self.settings.update_check && crate::update::from_release() && self.update_next.is_some_and(|t| std::time::Instant::now() >= t) {
             self.check_updates(false);
         }
+        self.guard_close(ctx);
+        #[cfg(target_os = "macos")]
+        while let Ok(ev) = muda::MenuEvent::receiver().try_recv() {
+            if ev.id() == "quit" {
+                actions.push(Action::Quit);
+            }
+        }
         self.menu_keys(ctx, &mut actions);
         self.chat_drop(ctx, &mut actions);
         self.help_window(ctx);
         self.error_window(ctx, &mut actions);
+        self.quit_window(ctx);
         self.palette_ui(ctx, &mut actions);
         self.place_pages(ctx);
 
@@ -2189,7 +2195,14 @@ fn mac_menu() -> Option<muda::Menu> {
         &PredefinedMenuItem::hide_others(None),
         &PredefinedMenuItem::show_all(None),
         &PredefinedMenuItem::separator(),
-        &PredefinedMenuItem::quit(None),
+        // non il «Esci» di sistema (chiude e basta): questo passa da
+        // «Salvare la lavagna?»
+        &muda::MenuItem::with_id(
+            "quit",
+            i18n::t("Esci da OpenSlate"),
+            true,
+            Some(muda::accelerator::Accelerator::new(Some(muda::accelerator::Modifiers::SUPER), muda::accelerator::Code::KeyQ)),
+        ),
     ])
     .ok()?;
     edit.append_items(&[

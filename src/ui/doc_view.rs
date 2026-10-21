@@ -74,6 +74,11 @@ fn page_tex_options() -> egui::TextureOptions {
 const DETAIL_MAX: f32 = 4096.0;
 
 impl DocUi {
+    /// La lavagna messa da parte mentre al centro c'è un documento.
+    pub(super) fn board_stash_ref(&self) -> Option<&Vec<Stroke>> {
+        self.board_stash.as_ref()
+    }
+
     pub fn new() -> Self {
         let (import_tx, import_rx) = std::sync::mpsc::channel();
         let (comp_tx, comp_rx) = std::sync::mpsc::channel();

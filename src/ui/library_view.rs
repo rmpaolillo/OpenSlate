@@ -168,6 +168,8 @@ impl App {
                     let d = e.drawing.clone();
                     let t = e.meta.display_title();
                     self.hub.edit(|s| s.load(d));
+                    // è già nell'archivio: uscendo non c'è da chiedere
+                    self.mark_board_saved();
                     self.board_from = Some(t.clone());
                     self.mode = Mode::Board;
                     // la chat vede subito questa pagina (e la sua trascrizione, se c'è)
