@@ -82,6 +82,8 @@ Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le
 | Compattazione | Prima che il contesto si riempia (di serie all'80%) la parte vecchia della conversazione diventa un riassunto (argomento, risultati, decisioni, domande aperte) e gli ultimi messaggi restano interi; «Compatta» lo fa a mano. Il riassunto resta leggibile nella chat |
 | Impostazioni AI | Pulsante con l'ingranaggio (o «Impostazioni AI» nella chat): agenti in ordine con le frecce, indirizzo API in formato OpenAI, modello («Leggi modelli» li elenca con il loro contesto), **contesto massimo**, chiave (da DSH, Portachiavi, variabile d'ambiente, o incollata: va nel Portachiavi), «Prova». Anche la soglia di compattazione e la ricerca web. Si salva in `ai.toml` (copia della versione precedente in `ai.toml.bak`) e vale subito |
 | Agenti AI con riserva | In `ai.toml`: prima i modelli locali (LM Studio, Ollama), poi DeepSeek, Google Gemini, Anthropic Claude. Se uno non risponde si passa al successivo; la chat dice chi ha risposto e chi è stato saltato. Vedi sotto |
+| Grafici e modifiche nei documenti | Chiedi alla chat un grafico («disegna le due rette e la soluzione»): lo disegna in stile LaTeX con [Typst](https://typst.app) e [Lilaq](https://lilaq.org) (funzioni, punti, rette, barre, curve parametriche) e lo mostra nella risposta. Con un documento allegato alla chat lo può anche leggere e **modificare**, e metterci il grafico, coi server MCP della suite Craft che girano dentro l'app: WordCraft per i Word, PdfCraft per i PDF, VectorCraft per gli SVG (e strumenti sul testo per i Markdown). Ogni modifica si vede subito nel documento accanto e si annulla dalla chat con un clic; il file originale sul disco non si tocca. Un SVG scritto dal modello nella risposta si vede disegnato |
+| Server MCP | Altri server MCP (stdio) in `ai.toml`, come in Claude Desktop o DSH: `[[mcp]]` con `name`, `command`, `args`, `env` (valori come le chiavi: `env:`, `keychain:`, `dsh:`), `enabled`, `timeout`. I loro strumenti arrivano alla chat come `nome__strumento` |
 | Diretta web | «Diretta web»: link da aprire nel browser della TV, del telefono o di un PC della rete di casa. Si aggiorna in tempo reale |
 | Integrazione | Pagina attuale in `http://<mac>:8080/page.pdf`, `/page.svg`, `/page.png`, `/state.json`; chat su `/chat`. Il comando `hook` parte dopo ogni file prodotto |
 
@@ -267,7 +269,11 @@ src/export.rs     PDF / SVG / PNG
 src/update.rs     controllo degli aggiornamenti (ultima release su GitHub)
 src/selfupdate.rs aggiornamento dentro l'app: scarica, controlla le impronte, installa, riavvia
 src/mdcraft.rs    Markdown per WordCraft con l'aspetto degli Appunti; figure → immagini
-src/mathtex.rs    formule LaTeX disegnate da Typst (via MiTeX; definizioni in src/mitex/)
+src/mathtex.rs    formule LaTeX disegnate da Typst (via MiTeX)
+src/typstworld.rs Typst dentro l'app: font e pacchetti inclusi (src/typst-pkg/: Lilaq e dipendenze, definizioni di MiTeX)
+src/charts.rs     strumento draw_chart della chat: grafici con Typst + Lilaq (SVG e PNG in charts/)
+src/docagent.rs   la chat nel documento aperto: server MCP di WordCraft, PdfCraft, VectorCraft in memoria; Annulla
+src/mcpclient.rs  server MCP esterni da ai.toml ([[mcp]], trasporto stdio)
 vendor/           copie di librerie di Typst e WordCraft con piccole modifiche (vendor/README.md)
 src/rasign.rs     foto (PNG, JPEG…): pagine e firma con le librerie di PhotoCraft
 src/vecsign.rs    SVG: pagine e firma col motore di VectorCraft

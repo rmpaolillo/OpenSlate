@@ -46,9 +46,17 @@ Third-party material
   Computer Modern fonts (GUST Font License), Libertinus Serif (SIL OFL 1.1) and DejaVu Sans Mono;
   their licences are in that crate's NOTICE file.
 
+- Lilaq (https://github.com/lilaq-project/lilaq, Mc-Zen, MIT) and the Typst packages it uses:
+  zero and tiptoe (Mc-Zen, MIT), elembic (PgBiel, MIT OR Apache-2.0), suiji (liuguangxi, MIT).
+  Bundled unmodified in src/typst-pkg/ with their licence files; they draw the AI chat's charts.
+
+- The MCP servers of the Craft suite (wordcraft-mcp, pdfcraft-automation, vectorcraft-mcp;
+  ArtCraft Team, MIT OR Apache-2.0) run in-process, unmodified, so the AI chat can read and edit
+  the document open next to it.
+
 - MiTeX (https://github.com/mitex-rs/mitex), the MiTeX contributors, Apache License 2.0: the
   mitex crate converts LaTeX formulas to Typst; the Typst definitions of its package are
-  bundled unmodified in src/mitex/ (licence in src/mitex/LICENSE).
+  bundled unmodified in src/typst-pkg/mitex-specs/ (licence there).
 
 - WordCraft layout (crates/layout of https://github.com/storytold/wordcraft), Copyright (c) 2026
   ArtCraft Team and the WordCraft contributors, MIT OR Apache-2.0: copied in

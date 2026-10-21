@@ -80,6 +80,8 @@ pub enum UiEvent {
     /// Aggiornamento dall'app: a che punto è, poi com'è finito.
     UpdatePhase(crate::selfupdate::Phase),
     UpdateDone(Result<crate::selfupdate::Ready, String>),
+    /// La chat AI ha modificato il documento in questa cartella.
+    DocChanged(std::path::PathBuf),
 }
 
 pub async fn ble_actor(

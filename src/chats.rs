@@ -123,7 +123,8 @@ pub fn attach_current(id: &str) -> Result<Value, String> {
     if !image && c.markdown.trim().is_empty() {
         return Ok(json!(null));
     }
-    Ok(json!({ "title": c.title, "markdown": c.markdown, "image": image, "doc": c.doc, "rev": c.rev }))
+    Ok(json!({ "title": c.title, "markdown": c.markdown, "image": image, "doc": c.doc, "rev": c.rev,
+        "dir": c.dir.as_ref().map(|d| d.to_string_lossy().to_string()), "pagina": c.page }))
 }
 
 /// La pagina di una conversazione, per mandarla al modello.
@@ -144,6 +145,9 @@ pub fn page_context(id: &str) -> Option<crate::ai::ChatContext> {
         markdown: page["markdown"].as_str().unwrap_or("").to_string(),
         doc: page["doc"].as_bool().unwrap_or(false),
         rev: 0,
+        // il documento della conversazione, se c'è ancora
+        dir: page["dir"].as_str().map(std::path::PathBuf::from).filter(|d| d.join("doc.json").exists()),
+        page: page["pagina"].as_u64().unwrap_or(0) as usize,
     })
 }
 

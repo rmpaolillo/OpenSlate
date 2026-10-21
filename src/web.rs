@@ -180,6 +180,27 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
                 let out = out.unwrap_or_else(|e| serde_json::json!({ "ok": false, "error": e }));
                 respond(&mut sock, "200 OK", "application/json", out.to_string().as_bytes()).await
             }
+            "/api/docedit" => {
+                // «Annulla» di una modifica della chat al documento: solo dalla rete di casa
+                let local = sock.peer_addr().map(|a| is_local(a.ip())).unwrap_or(false);
+                if !local {
+                    return respond(&mut sock, "403 Forbidden", "text/plain", b"solo dalla rete locale").await;
+                }
+                let v: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
+                let id = v["doc"].as_str().unwrap_or("");
+                let out = match (v["undo"].as_u64(), !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')) {
+                    (Some(n), true) => {
+                        let dir = std::path::Path::new(crate::document::DOC_DIR).join(id);
+                        tokio::task::spawn_blocking(move || crate::docagent::undo(&dir, n)).await.map_err(|e| anyhow::anyhow!("{e}")).and_then(|r| r)
+                    }
+                    _ => Err(anyhow::anyhow!("richiesta non valida")),
+                };
+                let j = match out {
+                    Ok(()) => serde_json::json!({ "ok": true }),
+                    Err(e) => serde_json::json!({ "ok": false, "error": crate::i18n::tf(format!("{e:#}")) }),
+                };
+                respond(&mut sock, "200 OK", "application/json", j.to_string().as_bytes()).await
+            }
             p if p.starts_with("/api/appunti/") || p == "/api/context" => {
                 // Scrivere file e cambiare il contesto: solo dalla rete di casa.
                 let local = sock.peer_addr().map(|a| is_local(a.ip())).unwrap_or(false);
@@ -237,6 +258,13 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
             };
             respond(&mut sock, "200 OK", "application/json", j.to_string().as_bytes()).await
         }
+        p if p.starts_with("/api/charts/") => match crate::charts::file(&p["/api/charts/".len()..]) {
+            Some((f, mime)) => match std::fs::read(&f) {
+                Ok(b) => respond(&mut sock, "200 OK", mime, &b).await,
+                Err(_) => respond(&mut sock, "404 Not Found", "text/plain", b"non trovato").await,
+            },
+            None => respond(&mut sock, "404 Not Found", "text/plain", b"non trovato").await,
+        },
         "/context.png" => match crate::ai::context().and_then(|c| c.png) {
             Some(png) => respond(&mut sock, "200 OK", "image/png", &png).await,
             None => respond(&mut sock, "404 Not Found", "text/plain", b"nessuna pagina").await,
@@ -548,7 +576,10 @@ async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
             (true, true) => ai::context(),
         };
         let msgs = ai::chat_messages_with_images(&cfg, &history, ctx.as_ref());
-        let res = ai::run_chat(&cfg, ai::Task::Chat, &msgs, use_tools, appunto, &mut |ev| {
+        // il documento allegato alla chat: il modello lo può modificare
+        let doc = ctx.as_ref().filter(|c| c.doc).and_then(|c| c.dir.clone().map(|d| (d, c.page, c.title.clone())));
+        let extras = ai::ChatExtras { appunto, doc, chat_tools: true };
+        let res = ai::run_chat(&cfg, ai::Task::Chat, &msgs, use_tools, extras, &mut |ev| {
             let j = match ev {
                 Event::Trying { provider, model, context } => serde_json::json!({ "t": "try", "provider": provider, "model": model, "context": context }),
                 Event::Usage { used, max, exact, output } => serde_json::json!({ "t": "usage", "used": used, "max": max, "exact": exact, "output": output }),
@@ -559,6 +590,8 @@ async fn chat(mut sock: TcpStream, body: &[u8]) -> std::io::Result<()> {
                 // `key` = il testo italiano, per riconoscere lo strumento nella pagina
                 Event::Tool { label } => serde_json::json!({ "t": "tool", "key": label.clone(), "label": crate::i18n::tf(label) }),
                 Event::ToolDone { label, result } => serde_json::json!({ "t": "tooldone", "key": label.clone(), "label": crate::i18n::tf(label), "result": crate::i18n::tf(result) }),
+                Event::Media { url, caption } => serde_json::json!({ "t": "media", "url": url, "caption": caption }),
+                Event::DocEdit { doc, undo } => serde_json::json!({ "t": "docedit", "doc": doc, "undo": undo }),
             };
             // false = il browser ha chiuso: si interrompe
             tx.send(j).is_ok()

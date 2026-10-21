@@ -4,7 +4,7 @@
 //! Apache-2.0) e Typst (https://typst.app, Apache-2.0) lo impagina coi suoi
 //! font New Computer Modern, gli stessi disegni di LaTeX e di KaTeX: le
 //! formule escono come negli Appunti. Le definizioni che MiTeX si aspetta
-//! (`src/mitex/*.typ`, dal suo pacchetto Typst) sono dentro l'app: niente rete,
+//! (`src/typst-pkg/mitex-specs/`, dal suo pacchetto Typst) sono dentro l'app: niente rete,
 //! niente programmi esterni.
 //!
 //! Il risultato è un PNG ad alta risoluzione con le misure in punti e la
@@ -12,24 +12,11 @@
 
 use anyhow::{anyhow, bail, Result};
 use std::collections::HashMap;
-use std::sync::{Mutex, OnceLock};
-use typst::diag::{FileError, FileResult};
-use typst::foundations::{Bytes, Datetime};
+use std::sync::Mutex;
 use typst::layout::{Abs, FrameItem, FrameKind, Point};
-use typst::syntax::{FileId, RootedPath, Source, VirtualPath, VirtualRoot};
-use typst::text::{Font, FontBook};
-use typst::utils::LazyHash;
-use typst::{Library, LibraryExt, World};
 
 /// Risoluzione delle formule (pixel per pollice).
 const PPI: f32 = 600.0;
-
-/// I file del pacchetto MiTeX (le definizioni usate dal codice convertito).
-const MITEX: &[(&str, &str)] = &[
-    ("/mitex/mod.typ", include_str!("mitex/mod.typ")),
-    ("/mitex/prelude.typ", include_str!("mitex/prelude.typ")),
-    ("/mitex/latex/standard.typ", include_str!("mitex/latex/standard.typ")),
-];
 
 /// Una formula disegnata.
 #[derive(Clone)]
@@ -40,59 +27,6 @@ pub struct Formula {
     pub height: f32,
     /// Quanto scende sotto la linea di base del testo (punti).
     pub depth: f32,
-}
-
-struct Shared {
-    library: LazyHash<Library>,
-    book: LazyHash<FontBook>,
-    fonts: Vec<Font>,
-}
-
-fn shared() -> &'static Shared {
-    static S: OnceLock<Shared> = OnceLock::new();
-    S.get_or_init(|| {
-        let fonts: Vec<Font> = typst_assets::fonts().flat_map(|d| Font::iter(Bytes::new(d))).collect();
-        Shared { library: LazyHash::new(Library::default()), book: LazyHash::new(FontBook::from_fonts(&fonts)), fonts }
-    })
-}
-
-fn id(path: &str) -> FileId {
-    RootedPath::new(VirtualRoot::Project, VirtualPath::new(path).expect("percorso")).intern()
-}
-
-struct MathWorld {
-    main: Source,
-}
-
-impl World for MathWorld {
-    fn library(&self) -> &LazyHash<Library> {
-        &shared().library
-    }
-    fn book(&self) -> &LazyHash<FontBook> {
-        &shared().book
-    }
-    fn main(&self) -> FileId {
-        self.main.id()
-    }
-    fn source(&self, fid: FileId) -> FileResult<Source> {
-        if fid == self.main.id() {
-            return Ok(self.main.clone());
-        }
-        MITEX
-            .iter()
-            .find(|(p, _)| id(p) == fid)
-            .map(|(_, text)| Source::new(fid, text.to_string()))
-            .ok_or(FileError::AccessDenied)
-    }
-    fn file(&self, _: FileId) -> FileResult<Bytes> {
-        Err(FileError::AccessDenied)
-    }
-    fn font(&self, index: usize) -> Option<Font> {
-        shared().fonts.get(index).cloned()
-    }
-    fn today(&self, _: Option<typst::foundations::Duration>) -> Option<Datetime> {
-        None
-    }
 }
 
 /// La formula `latex` (senza `$`), in blocco (`display`) o nel testo, con il
@@ -126,11 +60,8 @@ fn render_uncached(latex: &str, display: bool, size: f32) -> Result<Formula> {
          #let f = math.equation(block: {display}, eval(\"$\" + {code:?} + \"$\", scope: mitex-scope))\n\
          #box(f)\n"
     );
-    let world = MathWorld { main: Source::new(id("/main.typ"), src) };
-    let doc = typst::compile::<typst_layout::PagedDocument>(&world)
-        .output
-        .map_err(|errs| anyhow!("Typst: {}", errs.iter().map(|e| e.message.to_string()).collect::<Vec<_>>().join("; ")))?;
-    let page = doc.pages().first().ok_or_else(|| anyhow!("Typst: nessuna pagina"))?;
+    let doc = crate::typstworld::compile(src)?;
+    let page = &doc.pages()[0];
     let frame = &page.frame;
     let (w, h) = (frame.width().to_pt() as f32, frame.height().to_pt() as f32);
     if w <= 0.0 || h <= 0.0 {
@@ -138,8 +69,7 @@ fn render_uncached(latex: &str, display: bool, size: f32) -> Result<Formula> {
     }
     // la linea di base: quella del riquadro della formula
     let base = baseline(frame, Point::zero()).map(|b| b.to_pt() as f32).unwrap_or(h);
-    let pixmap = typst_render::render(page, &typst_render::RenderOptions { pixel_per_pt: typst::utils::Scalar::new(PPI as f64 / 72.0), ..Default::default() });
-    let png = pixmap.encode_png().map_err(|e| anyhow!("PNG: {e}"))?;
+    let png = crate::typstworld::png(&doc, PPI)?;
     Ok(Formula { png, width: w, height: h, depth: (h - base).max(0.0) })
 }
 

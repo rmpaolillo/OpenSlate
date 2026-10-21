@@ -103,6 +103,13 @@ pub fn run_app(
         rt.spawn(demo_strokes(hub.clone()));
     }
 
+    {
+        // la chat AI che modifica un documento avvisa l'interfaccia
+        let tx = evt_tx.clone();
+        crate::docagent::on_change(move |dir| {
+            let _ = tx.send(UiEvent::DocChanged(dir));
+        });
+    }
     let mut app = App {
         rt: rt.handle().clone(),
         hub,
@@ -761,6 +768,7 @@ impl App {
                     }
                 }
                 UiEvent::UpdatePhase(p) => self.update_phase = Some(p),
+                UiEvent::DocChanged(dir) => self.doc_changed_by_ai(dir),
                 UiEvent::UpdateDone(r) => {
                     self.update_phase = None;
                     match r {
@@ -1104,6 +1112,7 @@ impl App {
         let Some(d) = &self.docui.doc else { return };
         let title = format!("{} — pagina {} di {}", d.title, d.current + 1, d.pages.len());
         let dir = d.dir.clone();
+        let page_no = d.current;
         let (_, page) = self.board_page();
         let png = match page_png_for_ai(page) {
             Ok(p) => Some(Arc::new(p)),
@@ -1121,11 +1130,11 @@ impl App {
         };
         if dir.join("text.txt").exists() {
             let text = crate::document::text_of(&dir).unwrap_or_default();
-            ai::set_context_doc(&title, png, &text);
+            ai::set_context_doc(&title, png, &text, &dir, page_no);
             self.status = done(&text);
             return;
         }
-        ai::set_context_doc(&title, png.clone(), "");
+        ai::set_context_doc(&title, png.clone(), "", &dir, page_no);
         self.status = "Leggo il testo del documento per la chat…".into();
         let tx = self.evt_tx.clone();
         std::thread::spawn(move || {
@@ -1134,7 +1143,7 @@ impl App {
                     // solo se nel frattempo non si è allegato altro
                     let same = ai::context().is_some_and(|c| c.doc && c.title == title);
                     if same && !text.is_empty() {
-                        ai::set_context_doc(&title, png, &text);
+                        ai::set_context_doc(&title, png, &text, &dir, page_no);
                     }
                     done(&text)
                 }

@@ -352,6 +352,30 @@ impl Document {
 }
 
 /// Documenti salvati, dal più recente.
+/// Dopo una modifica al file del documento (dalla chat AI): rifà il PDF delle
+/// pagine e dimentica pagine disegnate e testo, che si rifanno alla riapertura.
+pub fn rebuild(dir: &Path) -> Result<()> {
+    let f: DocFmt = serde_json::from_str(&std::fs::read_to_string(dir.join("doc.json"))?)?;
+    let pdf = dir.join("source.pdf");
+    if let Some(name) = &f.original {
+        let src = dir.join(name);
+        let tmp = dir.join("source.nuovo.pdf");
+        if crate::wordsign::is_word(&src) {
+            crate::wordsign::to_pdf(&src, &tmp)?;
+        } else if crate::rasign::is_raster(&src) {
+            crate::rasign::to_pdf(&src, &tmp)?;
+        } else if crate::vecsign::is_image(&src) {
+            crate::vecsign::to_pdf(&src, &tmp)?;
+        }
+        if tmp.exists() {
+            std::fs::rename(&tmp, &pdf)?;
+        }
+    }
+    let _ = std::fs::remove_dir_all(dir.join("pages"));
+    let _ = std::fs::remove_file(dir.join("text.txt"));
+    Ok(())
+}
+
 pub fn list() -> Vec<DocSummary> {
     let mut v = Vec::new();
     if let Ok(rd) = std::fs::read_dir(DOC_DIR) {

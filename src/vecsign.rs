@@ -96,10 +96,36 @@ fn add_ink(s: &mut Session, strokes: &[InkStroke]) -> Result<()> {
 pub fn save_with_ink(src: &Path, dst: &Path, strokes: &[InkStroke]) -> Result<()> {
     let mut s = open(src)?;
     add_ink(&mut s, strokes)?;
+    save_like(&mut s, src, dst)
+}
+
+/// Mette l'SVG `svg` (un grafico della chat) nell'immagine `file`, alla
+/// larghezza e altezza date (punti), con l'angolo in alto a sinistra in `at`
+/// (punti dalla tavola) o al centro; riscrive il file nel suo formato.
+pub fn place_svg(file: &Path, svg: &Path, at: Option<[f32; 2]>, w: f32, h: f32) -> Result<()> {
+    use base64::Engine;
+    let mut s = open(file)?;
+    let [bx, by, bw, bh] = *artboards(&s)?.first().ok_or_else(|| anyhow!("VectorCraft: nessuna tavola"))?;
+    let (w, h) = if (w as f64) > bw * 0.95 { (bw * 0.95, h as f64 * bw * 0.95 / w as f64) } else { (w as f64, h as f64) };
+    let [x, y] = at.map(|[x, y]| [x as f64, y as f64]).unwrap_or([(bw - w) / 2.0, (bh - h) / 2.0]);
+    run(&mut s, "select.none", json!({}))?;
+    let data = base64::engine::general_purpose::STANDARD.encode(std::fs::read(svg)?);
+    run(&mut s, "file.place", json!({ "name": "grafico.svg", "dataBase64": data }))?;
+    run(&mut s, "object.setBounds", json!({ "x": bx + x, "y": by + y, "width": w, "height": h, "reference": 0 }))?;
+    run(&mut s, "select.none", json!({}))?;
+    let tmp = file.with_extension(format!("nuovo.{}", ext(file)));
+    save_like(&mut s, file, &tmp)?;
+    std::fs::rename(&tmp, file)?;
+    Ok(())
+}
+
+/// Scrive la sessione in `dst` nel formato di `src` (un raster alla sua risoluzione).
+fn save_like(s: &mut Session, src: &Path, dst: &Path) -> Result<()> {
+    let s = s;
     match ext(src).as_str() {
         "svg" | "svgz" => {
             let format = if ext(dst) == "svgz" { "svgz" } else { "svg" };
-            run(&mut s, "document.save", json!({ "path": dst.to_string_lossy(), "format": format, "acknowledgeLoss": true }))?;
+            run(s, "document.save", json!({ "path": dst.to_string_lossy(), "format": format, "acknowledgeLoss": true }))?;
         }
         e @ ("png" | "jpg" | "jpeg") => {
             // stessa risoluzione dell'originale: i pixel restano quelli
@@ -110,7 +136,7 @@ pub fn save_with_ink(src: &Path, dst: &Path, strokes: &[InkStroke]) -> Result<()
             if format == "jpg" {
                 p["background"] = json!("white");
             }
-            run(&mut s, "document.export", p)?;
+            run(s, "document.export", p)?;
         }
         other => bail!("formato non gestito: {other}"),
     }

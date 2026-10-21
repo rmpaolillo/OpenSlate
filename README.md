@@ -75,6 +75,16 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   read by the agent chosen under *Page reading (OCR)* and handed over as text. Behind it is a fallback chain of OpenAI-compatible providers:
   LM Studio, Ollama, DeepSeek, Google Gemini and Anthropic Claude. It shows context usage and
   compacts automatically. Drag a document tab onto the chat to attach it.
+- **Charts and edits in your documents.** Ask the chat for a graph ("plot the two equations and
+  the solution") and it draws it in LaTeX style with [Typst](https://typst.app) and
+  [Lilaq](https://lilaq.org): functions, points, lines, bars, parametric curves. With a document
+  attached to the chat, it can also read and **edit it**, and put the chart into it, through the
+  MCP servers of the Craft suite running inside the app: WordCraft for Word, PdfCraft for PDF,
+  VectorCraft for SVG (plus text tools for Markdown). Every change shows at once in the document
+  next to the chat and can be undone from the chat with one click; the original file on disk is
+  never touched. SVG written by the model in a reply is shown as a picture.
+- **Your own MCP servers.** Add any MCP server (stdio) in `ai.toml`, as in Claude Desktop or DSH:
+  its tools become available to the chat.
 - **Live on the web.** A share link lets a TV, phone or PC on your home network watch the board
   in real time. Stable endpoints are `/page.pdf`, `/page.svg`, `/page.png` and `/state.json`.
 - **Save and export.** Export to vector PDF and SVG at true A4 size, or to PNG. Every save or
@@ -218,6 +228,24 @@ key = "env:GEMINI_API_KEY | keychain:GEMINI_API_KEY"   # first one found wins
 security add-generic-password -a "$USER" -s DEEPSEEK_API_KEY -w 'sk-...'
 ```
 
+### MCP servers
+
+The chat can use tools of external [MCP](https://modelcontextprotocol.io) servers (stdio
+transport), configured in `ai.toml` as in Claude Desktop:
+
+```toml
+[[mcp]]
+name = "filesystem"
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/Users/me/Documents"]
+env = { TOKEN = "keychain:MY_TOKEN" }   # values resolved like API keys
+# enabled = false   to turn it off; timeout = 120 (seconds per tool)
+```
+
+OpenSlate starts the program when the chat needs it and keeps it running; its tools reach the
+model as `name__tool`. The Craft suite's own MCP servers (WordCraft, PdfCraft, VectorCraft) need
+no configuration: they run inside the app on the document attached to the chat.
+
 ## Build from source
 
 You need **Rust 1.95 or newer** (`rustup update`).
@@ -252,7 +280,9 @@ src/ai.rs, chats.rs, tools.rs, ocr.rs                     AI providers, chat, tr
 src/web.rs, src/web/*                                     web live view, chat and notes pages
 src/wordsign.rs, src/vecsign.rs, src/rasign.rs            signing Word (WordCraft), SVG (VectorCraft), photos (PhotoCraft)
 src/update.rs, src/selfupdate.rs                          update check (GitHub releases) and in-app install
-src/mdcraft.rs, src/mathtex.rs, src/mitex/               Markdown documents: Notes look, formulas drawn by Typst (MiTeX)
+src/mdcraft.rs, src/mathtex.rs                           Markdown documents: Notes look, formulas drawn by Typst (MiTeX)
+src/charts.rs, src/typstworld.rs, src/typst-pkg/          chat charts (Typst + Lilaq), Typst packages bundled in the app
+src/docagent.rs, src/mcpclient.rs                         chat edits documents via the Craft MCP servers; external MCP servers
 vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)

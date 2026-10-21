@@ -68,11 +68,20 @@ photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "8727
 # © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
 vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "bc1ae0825264c5ca4b27bd718d6e04f2121b8bb3" }
 vectorcraft-render = { git = "https://github.com/storytold/vectorcraft", rev = "bc1ae0825264c5ca4b27bd718d6e04f2121b8bb3" }
+# La chat AI modifica i documenti aperti coi server MCP della suite Craft, in
+# modalità headless dentro l'app (MIT OR Apache-2.0, © ArtCraft Team)
+wordcraft-mcp = { git = "https://github.com/storytold/wordcraft", rev = "117aea31a8e61bd3e306e9210800cdc42897e3c1" }
+vectorcraft-mcp = { git = "https://github.com/storytold/vectorcraft", rev = "bc1ae0825264c5ca4b27bd718d6e04f2121b8bb3" }
+pdfcraft-automation = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
+pdfcraft-engine = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
+# Espressioni delle funzioni nei grafici dell'AI (x^2 + sin(x)…)
+exmex = "0.20"
 # Formule dei Markdown aperti come documento: il LaTeX diventa Typst (MiTeX) e
 # Typst lo disegna in stile LaTeX (Apache-2.0), con i suoi font New Computer Modern.
 typst = "0.15.1"
 typst-render = "0.15.1"
 typst-layout = "0.15.1"
+typst-svg = "0.15.1"
 typst-assets = { version = "0.15.1", features = ["fonts"] }
 mitex = "0.2.4"
 # I font dei documenti Markdown (Source Serif, Inter) registrati nel motore di WordCraft

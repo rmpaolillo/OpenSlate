@@ -144,7 +144,20 @@ pub fn label(name: &str, args: &Value) -> String {
             "riscrivi" => "Riscrivo l'appunto".to_string(),
             _ => "Scrivo nell'appunto".to_string(),
         },
-        other => format!("Strumento {other}"),
+        "draw_chart" => match args["title"].as_str().filter(|t| !t.trim().is_empty()) {
+            Some(t) => format!("Disegno il grafico «{t}»"),
+            None => "Disegno un grafico".to_string(),
+        },
+        "document_insert_image" => "Metto il grafico nel documento".to_string(),
+        "text_read" => "Leggo il documento".to_string(),
+        "text_replace" | "text_insert" => "Modifico il documento".to_string(),
+        other => match other.split_once("__") {
+            Some(("word", t)) => format!("WordCraft: {t}"),
+            Some(("pdf", t)) => format!("PdfCraft: {t}"),
+            Some(("svg", t)) => format!("VectorCraft: {t}"),
+            Some((server, t)) => format!("{}: {t}", crate::mcpclient::server_of(other).unwrap_or_else(|| server.to_string())),
+            None => format!("Strumento {other}"),
+        },
     }
 }
 

@@ -15,6 +15,7 @@ library/
 documents/
 exports/
 chats/
+charts/
 signatures/
 captures/
 *.log

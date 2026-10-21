@@ -301,6 +301,9 @@ pub struct AiConfig {
     pub web: crate::tools::WebTools,
     #[serde(default)]
     pub chat: ChatOpts,
+    /// Server MCP esterni per la chat (`[[mcp]]`, come in Claude Desktop o DSH).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mcp: Vec<crate::mcpclient::McpServerCfg>,
     /// Lettura dei fogli (OCR).
     #[serde(default)]
     pub ocr: OcrOpts,
@@ -515,6 +518,10 @@ pub enum Event {
     Tool { label: String },
     /// Strumento finito, con l'esito breve.
     ToolDone { label: String, result: String },
+    /// Un'immagine da mostrare nella risposta (un grafico, una pagina disegnata).
+    Media { url: String, caption: String },
+    /// La chat ha modificato il documento aperto (`doc` = id): `undo` lo riporta indietro.
+    DocEdit { doc: String, undo: u64 },
     /// Token usati dalla conversazione (esatti se il server li dice,
     /// altrimenti stimati), token della risposta e contesto massimo del modello.
     Usage { used: u32, max: u32, exact: bool, output: u32 },
@@ -555,7 +562,17 @@ pub fn run_with(
     use_tools: bool,
     on_event: &mut dyn FnMut(Event) -> bool,
 ) -> Result<Reply> {
-    run_chat(cfg, task, msgs, use_tools, None, on_event)
+    run_chat(cfg, task, msgs, use_tools, ChatExtras::default(), on_event)
+}
+
+/// Quello che la chat può toccare oltre alla rete: l'appunto aperto e il
+/// documento aperto accanto (cartella, pagina vista, titolo).
+#[derive(Default, Clone)]
+pub struct ChatExtras {
+    pub appunto: Option<std::path::PathBuf>,
+    pub doc: Option<(std::path::PathBuf, usize, String)>,
+    /// La chat dell'app: grafici, documento e server MCP anche senza la rete.
+    pub chat_tools: bool,
 }
 
 /// Come `run_with`, e con un appunto aperto il modello lo può leggere e
@@ -565,11 +582,12 @@ pub fn run_chat(
     task: Task,
     msgs: &[Msg],
     use_tools: bool,
-    appunto: Option<std::path::PathBuf>,
+    extras: ChatExtras,
     on_event: &mut dyn FnMut(Event) -> bool,
 ) -> Result<Reply> {
     let use_web = use_tools && cfg.web.enabled;
-    let tool_ctx = (task == Task::Chat && (use_web || appunto.is_some())).then(|| ToolCtx::with(&cfg.web, use_web, appunto));
+    // in chat: grafici, documento aperto e server MCP sempre; la rete se scelta
+    let tool_ctx = (task == Task::Chat && (use_web || extras.chat_tools || extras.appunto.is_some())).then(|| ToolCtx::full(cfg, use_web, extras));
     let has_image = msgs.iter().any(Msg::has_images);
     let mut fails: Vec<String> = Vec::new();
     // il foglio letto da un modello con visione, per chi risponde senza vederlo
@@ -727,7 +745,7 @@ fn read_png(cfg: &AiConfig, answering: &str, png: Arc<Vec<u8>>, what: &str, on_e
     let t0 = std::time::Instant::now();
     let mut open: Option<String> = None; // riga «Leggo il foglio con …» aperta
     let mut alive = true;
-    let res = run_chat(&ocr, Task::Ocr, &req, false, None, &mut |e| {
+    let res = run_chat(&ocr, Task::Ocr, &req, false, ChatExtras::default(), &mut |e| {
         match e {
             Event::Trying { provider, .. } => {
                 // si dice anche perché: chi risponde non ha la spunta «legge le immagini»
@@ -1082,8 +1100,20 @@ pub struct ToolCtx {
     pub key: Option<String>,
     /// Appunto aperto nell'app: il modello lo può leggere e scriverci.
     pub appunto: Option<std::path::PathBuf>,
+    /// Documento aperto accanto: lo può leggere e modificare (`docagent`).
+    pub doc: Option<crate::docagent::DocRef>,
     defs: Vec<serde_json::Value>,
     note: String,
+    rounds: usize,
+}
+
+/// Esito di uno strumento per il giro con il modello.
+struct ToolRun {
+    text: String,
+    short: String,
+    images: Vec<Vec<u8>>,
+    media: Vec<(String, String)>,
+    edit: Option<(String, u64)>,
 }
 
 impl ToolCtx {
@@ -1101,7 +1131,69 @@ impl ToolCtx {
             defs.extend(crate::tools::note_definitions());
             note.push_str(&crate::tools::note_system_note(p));
         }
-        Self { web: web.clone(), defs, note, key, appunto }
+        Self { web: web.clone(), defs, note, key, appunto, doc: None, rounds: MAX_ROUNDS }
+    }
+
+    /// Tutti gli strumenti della chat: rete, appunto, grafici, documento
+    /// aperto (coi server MCP della suite Craft) e server MCP esterni.
+    pub fn full(cfg: &AiConfig, use_web: bool, extras: ChatExtras) -> Self {
+        let mut t = Self::with(&cfg.web, use_web, extras.appunto);
+        if t.note.is_empty() {
+            t.note = format!("\n\nOggi è il {}. Hai a disposizione degli strumenti:", chrono::Local::now().format("%d/%m/%Y"));
+        }
+        t.defs.push(crate::charts::definition());
+        t.note.push_str("\n- draw_chart: disegna grafici e figure matematiche (funzioni, punti, rette, barre) e li mostra nella chat; non scrivere mai SVG o disegni in ASCII al suo posto.");
+        if let Some((dir, page, title)) = extras.doc {
+            if let Some(d) = crate::docagent::DocRef::of(&dir, page) {
+                t.defs.extend(crate::docagent::definitions(&d));
+                t.note.push_str(&crate::docagent::system_note(&d, &title));
+                t.doc = Some(d);
+                t.rounds = 16;
+            }
+        }
+        let (defs, note) = crate::mcpclient::definitions(&cfg.mcp);
+        if !defs.is_empty() {
+            t.defs.extend(defs);
+            t.note.push_str(&note);
+            t.rounds = t.rounds.max(12);
+        }
+        t
+    }
+
+    /// Esegue uno strumento chiesto dal modello.
+    fn run_tool(&self, name: &str, args: &serde_json::Value) -> ToolRun {
+        let plain = |(text, short): (String, String)| ToolRun { text, short, images: Vec::new(), media: Vec::new(), edit: None };
+        if let Some(r) = self.appunto.as_deref().and_then(|p| crate::tools::note_execute(p, name, args)) {
+            return plain(r);
+        }
+        if name == "draw_chart" {
+            return match crate::charts::draw(args) {
+                Ok(c) => ToolRun {
+                    text: format!(
+                        "Grafico fatto e mostrato all'utente: id {} ({:.1} × {:.1} cm). Per metterlo nel documento aperto: document_insert_image con image = \"{}\".",
+                        c.id,
+                        c.width / 28.35,
+                        c.height / 28.35,
+                        c.id
+                    ),
+                    short: format!("grafico {}", c.id),
+                    images: Vec::new(),
+                    media: vec![(format!("api/charts/{}.svg", c.id), c.id.clone())],
+                    edit: None,
+                },
+                Err(e) => plain((format!("ERRORE: {e:#}"), format!("errore: {e:#}"))),
+            };
+        }
+        if let Some(d) = &self.doc {
+            if let Some(o) = crate::docagent::execute(d, name, args) {
+                let id = d.dir.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+                return ToolRun { text: o.text, short: o.short, images: o.images, media: Vec::new(), edit: o.edit.map(|n| (id, n)) };
+            }
+        }
+        if let Some((text, short, images)) = crate::mcpclient::execute(name, args) {
+            return ToolRun { text, short, images, media: Vec::new(), edit: None };
+        }
+        plain(crate::tools::execute(&self.web, self.key.as_deref(), name, args))
     }
 }
 
@@ -1134,10 +1226,11 @@ fn call(
             _ => wire.insert(0, serde_json::json!({ "role": "system", "content": t.note.trim() })),
         }
     }
+    let max_rounds = tools.map_or(MAX_ROUNDS, |t| t.rounds);
     let mut tools = tools;
     let mut answer = String::new();
     let mut round = 0;
-    while round < MAX_ROUNDS {
+    while round < max_rounds {
         let mut body = serde_json::json!({ "model": model, "stream": true, "messages": wire });
         if p.stream_usage() {
             body["stream_options"] = serde_json::json!({ "include_usage": true });
@@ -1152,7 +1245,7 @@ fn call(
         if let Some(t) = tools {
             body["tools"] = serde_json::json!(t.defs);
             // all'ultimo giro deve rispondere, non cercare ancora
-            body["tool_choice"] = serde_json::json!(if round + 1 < MAX_ROUNDS { "auto" } else { "none" });
+            body["tool_choice"] = serde_json::json!(if round + 1 < max_rounds { "auto" } else { "none" });
         }
         let sep = !answer.is_empty();
         let mut first = true;
@@ -1201,21 +1294,42 @@ fn call(
             asst["reasoning_content"] = serde_json::json!(out.reasoning);
         }
         wire.push(asst);
+        let mut pending_images: Vec<serde_json::Value> = Vec::new();
         for c in &out.calls {
             let args: serde_json::Value = serde_json::from_str(&c.args).unwrap_or(serde_json::json!({}));
             let label = crate::tools::label(&c.name, &args);
             if !on_event(Event::Tool { label: label.clone() }) {
                 bail!("interrotto");
             }
-            let (result, short) = match t.appunto.as_deref().and_then(|p| crate::tools::note_execute(p, &c.name, &args)) {
-                Some(r) => r,
-                None => crate::tools::execute(&t.web, t.key.as_deref(), &c.name, &args),
-            };
-            if !on_event(Event::ToolDone { label, result: short }) {
+            let run = t.run_tool(&c.name, &args);
+            if !on_event(Event::ToolDone { label, result: run.short }) {
                 bail!("interrotto");
             }
-            wire.push(serde_json::json!({ "role": "tool", "tool_call_id": c.id, "content": result }));
+            for (url, caption) in run.media {
+                on_event(Event::Media { url, caption });
+            }
+            // immagini restituite (pagine disegnate…): alla chat e, se le vede, al modello
+            for png in &run.images {
+                if let Ok(url) = crate::charts::save_shot(png) {
+                    on_event(Event::Media { url, caption: String::new() });
+                }
+            }
+            if let Some((doc, undo)) = run.edit {
+                on_event(Event::DocEdit { doc, undo });
+            }
+            wire.push(serde_json::json!({ "role": "tool", "tool_call_id": c.id, "content": run.text }));
+            if send_image && !run.images.is_empty() {
+                use base64::Engine;
+                let mut parts = vec![serde_json::json!({ "type": "text", "text": format!("Immagine restituita da {}:", c.name) })];
+                for png in run.images.iter().take(2) {
+                    let b = base64::engine::general_purpose::STANDARD.encode(png);
+                    parts.push(serde_json::json!({ "type": "image_url", "image_url": { "url": format!("data:image/png;base64,{b}") } }));
+                }
+                pending_images.push(serde_json::json!({ "role": "user", "content": parts }));
+            }
         }
+        // le immagini vanno dopo tutte le risposte degli strumenti
+        wire.append(&mut pending_images);
         round += 1;
     }
     Ok(clean_reply(&answer))
@@ -1671,6 +1785,10 @@ pub struct ChatContext {
     pub doc: bool,
     /// Cresce a ogni cambio (la pagina web se ne accorge).
     pub rev: u64,
+    /// Cartella del documento aperto (`documents/<id>`) e pagina vista: la
+    /// chat lo può modificare.
+    pub dir: Option<std::path::PathBuf>,
+    pub page: usize,
 }
 
 static CONTEXT: Mutex<Option<ChatContext>> = Mutex::new(None);
@@ -1679,15 +1797,15 @@ static CONTEXT: Mutex<Option<ChatContext>> = Mutex::new(None);
 pub fn set_context(title: &str, png: Option<Arc<Vec<u8>>>, markdown: &str) {
     let mut g = CONTEXT.lock().unwrap();
     let rev = g.as_ref().map(|c| c.rev + 1).unwrap_or(1);
-    *g = Some(ChatContext { title: title.into(), png, markdown: markdown.into(), doc: false, rev });
+    *g = Some(ChatContext { title: title.into(), png, markdown: markdown.into(), doc: false, rev, dir: None, page: 0 });
 }
 
 /// Imposta un documento da discutere: l'immagine della pagina aperta e il
 /// testo di tutto il documento.
-pub fn set_context_doc(title: &str, png: Option<Arc<Vec<u8>>>, text: &str) {
+pub fn set_context_doc(title: &str, png: Option<Arc<Vec<u8>>>, text: &str, dir: &std::path::Path, page: usize) {
     let mut g = CONTEXT.lock().unwrap();
     let rev = g.as_ref().map(|c| c.rev + 1).unwrap_or(1);
-    *g = Some(ChatContext { title: title.into(), png, markdown: text.into(), doc: true, rev });
+    *g = Some(ChatContext { title: title.into(), png, markdown: text.into(), doc: true, rev, dir: Some(dir.to_path_buf()), page });
 }
 
 pub fn context() -> Option<ChatContext> {
@@ -2135,6 +2253,59 @@ pub(crate) mod tests {
         assert!(http_curl(&format!("http://127.0.0.1:{dead}/v1/models"), "", None, 5).is_err());
     }
 
+    /// Chat con il documento aperto: il modello (finto) disegna un grafico,
+    /// lo mette nel Word aperto e risponde. Cambia la cartella corrente:
+    /// cargo test -- --ignored --test-threads=1 chat_grafico_nel_word
+    #[test]
+    #[ignore]
+    fn chat_grafico_nel_word() {
+        fn call(name: &str, args: serde_json::Value) -> String {
+            let c = serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"id":format!("c-{name}"),"type":"function","function":{"name":name,"arguments":args.to_string()}}]}}]});
+            let body = format!("data: {c}\n\ndata: [DONE]\n\n");
+            format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len())
+        }
+        let (port, log) = fake_server(|req| {
+            if req.contains("Fatto: il grafico") {
+                sse_reply(&["Ecco il grafico ", "nel documento."])
+            } else if let Some(i) = req.find("id chart-") {
+                let id: String = req[i + 3..].chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '-').collect();
+                call("document_insert_image", serde_json::json!({ "image": id, "after_text": "Risolvi", "width_cm": 8 }))
+            } else {
+                call("draw_chart", serde_json::json!({ "x": { "min": -4, "max": 4 }, "series": [
+                    { "type": "function", "expr": "1 - x", "label": "$x + y = 1$" },
+                    { "type": "vline", "value": -1 }, { "type": "points", "points": [[-1, 2]], "names": ["$P$"] } ] }))
+            }
+        });
+        let work = std::env::temp_dir().join(format!("openslate-chat-e2e-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&work);
+        std::fs::create_dir_all(&work).unwrap();
+        std::env::set_current_dir(&work).unwrap();
+        let docx = work.join("es.docx");
+        let mut s = wordcraft_engine::Session::new(wordcraft_engine::doc::Document::new());
+        s.run("text.insert", &serde_json::json!({ "text": "Risolvi il sistema." })).unwrap();
+        s.run("file.save", &serde_json::json!({ "path": docx.to_string_lossy() })).unwrap();
+        let d = crate::document::Document::import(&docx).unwrap();
+        let mut p = provider("Locale", format!("http://127.0.0.1:{port}/v1"));
+        p.model = "m".into();
+        let cfg = AiConfig { providers: vec![p], ..Default::default() };
+        let extras = ChatExtras { appunto: None, doc: Some((d.dir.clone(), 0, "es — pagina 1 di 1".into())), chat_tools: true };
+        let mut events = Vec::new();
+        let r = run_chat(&cfg, Task::Chat, &[Msg::new("system", "S"), Msg::new("user", "disegna il grafico e mettilo nel foglio")], false, extras, &mut |e| {
+            events.push(e);
+            true
+        })
+        .unwrap();
+        assert_eq!(r.text, "Ecco il grafico nel documento.");
+        assert!(events.iter().any(|e| matches!(e, Event::Media { url, .. } if url.starts_with("api/charts/chart-"))));
+        assert!(events.iter().any(|e| matches!(e, Event::DocEdit { doc, .. } if *doc == d.id)));
+        let reqs = log.lock().unwrap();
+        assert!(reqs[0].contains("\"draw_chart\"") && reqs[0].contains("word__execute") && reqs[0].contains("document_insert_image"));
+        assert!(reqs[0].contains("Accanto alla chat è aperto"));
+        drop(reqs);
+        let b = std::fs::read(&d.dir.join("source.docx")).unwrap();
+        assert!(String::from_utf8_lossy(&b).contains("word/media/"));
+    }
+
     /// Il modello chiede uno strumento (in streaming, argomenti a pezzi),
     /// lo si esegue e la risposta finale arriva al secondo giro.
     #[test]
@@ -2178,7 +2349,7 @@ pub(crate) mod tests {
     #[test]
     fn contesto_nel_primo_messaggio() {
         let cfg = AiConfig::default();
-        let ctx = ChatContext { title: "Es. 3".into(), png: Some(Arc::new(vec![9])), markdown: "$x=2$".into(), doc: false, rev: 1 };
+        let ctx = ChatContext { title: "Es. 3".into(), png: Some(Arc::new(vec![9])), markdown: "$x=2$".into(), doc: false, rev: 1, dir: None, page: 0 };
         let h = vec![("user".to_string(), "è giusto?".to_string()), ("assistant".into(), "no".into()), ("user".into(), "perché?".into())];
         let m = chat_messages(&cfg, &h, Some(&ctx));
         assert_eq!(m.len(), 4);

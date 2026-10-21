@@ -209,6 +209,33 @@ impl App {
         }
     }
 
+    /// La chat AI ha cambiato il documento in `dir`: se è quello aperto, lo si
+    /// riapre (pagine nuove, stessi tratti) restando sulla stessa pagina.
+    pub(super) fn doc_changed_by_ai(&mut self, dir: PathBuf) {
+        if self.docui.doc.as_ref().is_none_or(|d| d.dir != dir) {
+            return;
+        }
+        self.sync_doc_strokes();
+        self.save_doc();
+        let Some(d) = &self.docui.doc else { return };
+        let (id, cur) = (d.id.clone(), d.current);
+        match Document::open(&id) {
+            Ok(mut nd) => {
+                nd.current = cur.min(nd.pages.len().saturating_sub(1));
+                let cur = nd.current;
+                self.docui.doc = Some(nd);
+                self.docui.tex.clear();
+                self.docui.renderer = None;
+                self.docui.detail = None;
+                self.docui.detail_want = None;
+                self.load_page(cur);
+                self.set_chat_context_from_doc();
+                self.status = "Documento aggiornato dalla chat AI (si può annullare dalla chat).".into();
+            }
+            Err(e) => self.status = format!("⚠ documento modificato dalla chat: {e:#}"),
+        }
+    }
+
     /// Passa a un'altra pagina conservando i tratti di quella attuale.
     fn show_page(&mut self, i: usize) {
         self.sync_doc_strokes();
