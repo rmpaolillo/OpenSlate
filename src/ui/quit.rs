@@ -11,6 +11,7 @@ use super::theme::Tokens;
 use super::App;
 use crate::i18n;
 use crate::library::{self, Meta};
+use crate::scene::PageBg;
 use crate::stroke::{Drawing, Stroke};
 use eframe::egui;
 use std::time::{Duration, Instant};
@@ -31,10 +32,17 @@ pub(super) struct Quit {
     pub close_at: Option<Instant>,
 }
 
-/// Firma dei tratti (numero, punti, colori): cambia se cambia il disegno.
-pub(super) fn sig(strokes: &[Stroke]) -> u64 {
+/// Firma dei tratti (numero, punti, colori) e del grafico dell'AI: cambia
+/// se cambia il foglio.
+pub(super) fn sig(strokes: &[Stroke], chart: Option<&PageBg>) -> u64 {
     let mut h: u64 = 1469598103934665603;
     let mut mix = |v: u64| h = (h ^ v).wrapping_mul(1099511628211);
+    if let Some(c) = chart {
+        mix(c.png.len() as u64);
+        for v in c.rect {
+            mix(v.to_bits() as u64);
+        }
+    }
     for s in strokes.iter().filter(|s| !s.points.is_empty()) {
         mix(s.points.len() as u64);
         mix(u32::from_le_bytes([s.color[0], s.color[1], s.color[2], s.highlight as u8]) as u64);
@@ -49,36 +57,39 @@ pub(super) fn sig(strokes: &[Stroke]) -> u64 {
 impl App {
     /// I tratti della lavagna (anche se in questo momento al centro c'è un
     /// documento: allora la lavagna è da parte).
-    fn board_drawing(&self) -> Drawing {
+    /// I tratti della lavagna e il grafico dell'AI che c'è sopra.
+    fn board_drawing(&self) -> (Drawing, Option<PageBg>) {
         let s = self.hub.lock();
         match (&self.docui.doc, self.docui.board_stash_ref()) {
-            (Some(_), Some(stash)) => Drawing { strokes: stash.clone(), width: s.drawing.width, height: s.drawing.height },
-            (Some(_), None) => Drawing { strokes: Vec::new(), width: 0.0, height: 0.0 },
-            (None, _) => s.drawing.clone(),
+            (Some(_), Some((stash, chart))) => {
+                (Drawing { strokes: stash.clone(), width: s.drawing.width, height: s.drawing.height }, chart.clone())
+            }
+            (Some(_), None) => (Drawing { strokes: Vec::new(), width: 0.0, height: 0.0 }, None),
+            (None, _) => (s.drawing.clone(), s.bg.clone().filter(|b| b.is_chart())),
         }
     }
 
     /// C'è qualcosa sulla lavagna che non è nell'archivio?
     pub(super) fn board_unsaved(&self) -> bool {
-        let d = self.board_drawing();
-        !d.is_empty() && sig(&d.strokes) != self.quit.saved_sig
+        let (d, chart) = self.board_drawing();
+        (!d.is_empty() || chart.is_some()) && sig(&d.strokes, chart.as_ref()) != self.quit.saved_sig
     }
 
     /// La lavagna così com'è adesso conta come salvata.
     pub(super) fn mark_board_saved(&mut self) {
-        let d = self.board_drawing();
-        self.quit.saved_sig = sig(&d.strokes);
+        let (d, chart) = self.board_drawing();
+        self.quit.saved_sig = sig(&d.strokes, chart.as_ref());
     }
 
     /// Mette la lavagna nell'archivio. Ritorna l'id della pagina.
     pub(super) fn save_board_to_library(&mut self) -> Result<String, String> {
-        let d = self.board_drawing();
-        if d.is_empty() {
+        let (d, chart) = self.board_drawing();
+        if d.is_empty() && chart.is_none() {
             return Err("La lavagna è vuota.".into());
         }
         let meta = Meta::new(chrono::Local::now().naive_local(), library::SOURCE_BOARD);
-        let id = self.lib.add(&d, meta).map_err(|e| format!("⚠ archivio: {e}"))?;
-        self.quit.saved_sig = sig(&d.strokes);
+        let id = self.lib.add_with_chart(&d, meta, chart.as_ref()).map_err(|e| format!("⚠ archivio: {e}"))?;
+        self.quit.saved_sig = sig(&d.strokes, chart.as_ref());
         Ok(id)
     }
 
@@ -192,12 +203,14 @@ mod tests {
         };
         let a = vec![tratto(0.0)];
         let b = vec![tratto(0.0), tratto(50.0)];
-        assert_eq!(sig(&a), sig(&a.clone()));
-        assert_ne!(sig(&a), sig(&b), "un tratto in più = da salvare");
-        assert_ne!(sig(&a), sig(&[tratto(1.0)]), "un tratto diverso = da salvare");
+        assert_eq!(sig(&a, None), sig(&a.clone(), None));
+        assert_ne!(sig(&a, None), sig(&b, None), "un tratto in più = da salvare");
+        assert_ne!(sig(&a, None), sig(&[tratto(1.0)], None), "un tratto diverso = da salvare");
+        let g = PageBg { png: std::sync::Arc::new(vec![1, 2, 3]), rect: [0.1, 0.1, 0.5, 0.5], key: "chart:1".into() };
+        assert_ne!(sig(&a, None), sig(&a, Some(&g)), "un grafico in più = da salvare");
         // i tratti vuoti non contano
         let mut c = a.clone();
         c.push(Stroke::new([0, 0, 0], 2.0));
-        assert_eq!(sig(&a), sig(&c));
+        assert_eq!(sig(&a, None), sig(&c, None));
     }
 }

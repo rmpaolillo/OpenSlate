@@ -117,6 +117,14 @@ pub struct PageBg {
     pub key: String,
 }
 
+impl PageBg {
+    /// Un grafico messo dall'AI sulla lavagna (non la pagina di un
+    /// documento): sta col foglio, si salva nell'archivio con lui.
+    pub fn is_chart(&self) -> bool {
+        self.key.starts_with("chart:")
+    }
+}
+
 /// Una pagina pronta per export/web/OCR.
 #[derive(Default)]
 pub struct Page {
@@ -193,14 +201,15 @@ enum Undo {
     Add,
     /// Tratti cancellati (indice originale, tratto), in ordine crescente.
     Remove(Vec<(usize, Stroke)>),
-    /// Tutti i tratti sostituiti (Pulisci, caricamento pagina): i vecchi.
-    Replace(Vec<Stroke>),
+    /// Tutti i tratti sostituiti (Pulisci, caricamento pagina): i vecchi,
+    /// con lo sfondo di prima (il grafico dell'AI va e viene con loro).
+    Replace(Vec<Stroke>, Option<PageBg>),
 }
 
 enum Redo {
     Add(Stroke),
     Remove(Vec<usize>),
-    Replace(Vec<Stroke>),
+    Replace(Vec<Stroke>, Option<PageBg>),
 }
 
 const UNDO_MAX: usize = 300;
@@ -319,7 +328,8 @@ impl Scene {
         self.active = false;
         let old = self.drawing.strokes.clone();
         self.drawing.strokes.extend(strokes);
-        self.push_undo(Undo::Replace(old));
+        let bg = self.bg.clone();
+        self.push_undo(Undo::Replace(old, bg));
     }
 
     /// Indice del tratto in corso (penna appoggiata), se c'è.
@@ -589,7 +599,8 @@ impl Scene {
         let Some((old, n)) = self.mouse_erase.take() else { return 0 };
         if n > 0 {
             self.active = false;
-            self.push_undo(Undo::Replace(old));
+            let bg = self.bg.clone();
+            self.push_undo(Undo::Replace(old, bg));
         }
         self.last_erased = Some(n);
         n
@@ -611,24 +622,39 @@ impl Scene {
         true
     }
 
+    /// Pulisce il foglio: i tratti e il grafico dell'AI (non la pagina di un
+    /// documento). Annullabile.
     pub fn clear(&mut self) {
-        if self.drawing.strokes.is_empty() {
+        let chart = self.bg.as_ref().is_some_and(|b| b.is_chart());
+        if self.drawing.strokes.is_empty() && !chart {
             return;
         }
         self.active = false;
         let old = std::mem::take(&mut self.drawing.strokes);
-        self.push_undo(Undo::Replace(old));
+        let bg = self.bg.clone();
+        if chart {
+            self.bg = None;
+            self.rev += 1;
+        }
+        self.push_undo(Undo::Replace(old, bg));
     }
 
-    /// Sostituisce i tratti (es. pagina scaricata dal pad), annullabile.
-    pub fn load(&mut self, d: Drawing) {
+    /// Sostituisce i tratti (es. pagina dell'archivio), col suo grafico
+    /// dell'AI se ne ha uno; annullabile. La pagina di un documento sotto
+    /// resta dov'è.
+    pub fn load(&mut self, d: Drawing, chart: Option<PageBg>) {
         self.active = false;
         if d.width > 0.0 && d.height > 0.0 {
             self.drawing.width = d.width;
             self.drawing.height = d.height;
         }
         let old = std::mem::replace(&mut self.drawing.strokes, d.strokes);
-        self.push_undo(Undo::Replace(old));
+        let bg = self.bg.clone();
+        if bg.as_ref().is_none_or(|b| b.is_chart()) {
+            self.bg = chart;
+            self.rev += 1;
+        }
+        self.push_undo(Undo::Replace(old, bg));
     }
 
     pub fn undo(&mut self) -> bool {
@@ -650,7 +676,7 @@ impl Scene {
                 }
                 Redo::Remove(idx)
             }
-            Undo::Replace(old) => Redo::Replace(std::mem::replace(strokes, old)),
+            Undo::Replace(old, bg) => Redo::Replace(std::mem::replace(strokes, old), std::mem::replace(&mut self.bg, bg)),
         };
         self.redo.push(redo);
         true
@@ -677,7 +703,7 @@ impl Scene {
                 removed.reverse();
                 Undo::Remove(removed)
             }
-            Redo::Replace(new) => Undo::Replace(std::mem::replace(strokes, new)),
+            Redo::Replace(new, bg) => Undo::Replace(std::mem::replace(strokes, new), std::mem::replace(&mut self.bg, bg)),
         };
         // Non passa da push_undo: non deve svuotare le altre voci di "ripeti".
         self.undo.push(undo);
@@ -818,6 +844,36 @@ impl Hub {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Il grafico dell'AI sta col foglio: Pulisci lo toglie (Annulla lo
+    /// rimette), una pagina dell'archivio porta il suo; la pagina di un
+    /// documento invece non si tocca.
+    #[test]
+    fn grafico_col_foglio() {
+        let g = |k: &str| PageBg { png: Arc::new(vec![1]), rect: [0.1, 0.1, 0.5, 0.5], key: k.into() };
+        let mut sc = Scene::new(&Settings::default());
+        let mut st = Stroke::new([0, 0, 0], 2.0);
+        st.points.push(PenEvent { x: 1.0, y: 1.0, pressure: 0.5, phase: PenPhase::Down });
+        sc.set_page(vec![st.clone()], Some(g("chart:1")));
+        sc.clear();
+        assert!(sc.bg.is_none() && sc.drawing.strokes.is_empty());
+        assert!(sc.undo());
+        assert_eq!(sc.bg.as_ref().unwrap().key, "chart:1");
+        assert_eq!(sc.drawing.strokes.len(), 1);
+        assert!(sc.redo());
+        assert!(sc.bg.is_none());
+        // una pagina dell'archivio col suo grafico
+        sc.load(Drawing { strokes: vec![st.clone()], width: 0.0, height: 0.0 }, Some(g("chart:lib-a")));
+        assert_eq!(sc.bg.as_ref().unwrap().key, "chart:lib-a");
+        sc.load(Drawing { strokes: vec![], width: 0.0, height: 0.0 }, None);
+        assert!(sc.bg.is_none());
+        // la pagina di un documento resta
+        sc.set_page(vec![st], Some(g("doc:x:1")));
+        sc.clear();
+        assert_eq!(sc.bg.as_ref().unwrap().key, "doc:x:1");
+        sc.load(Drawing { strokes: vec![], width: 0.0, height: 0.0 }, Some(g("chart:lib-b")));
+        assert_eq!(sc.bg.as_ref().unwrap().key, "doc:x:1");
+    }
 
     fn ev(x: f32, y: f32, phase: PenPhase) -> PenEvent {
         PenEvent { x, y, pressure: 0.5, phase }

@@ -6,12 +6,16 @@
 //!
 //! Ogni pagina è un file `library/<id>.json` leggibile (tratti, colori, data,
 //! titolo). Eliminare sposta il file in `library/cestino/` (recuperabile).
+//! Se sulla lavagna c'era un grafico dell'AI, l'immagine sta accanto in
+//! `library/<id>.grafico.png` (e va nel cestino con la pagina).
 
+use crate::scene::PageBg;
 use crate::settings::{color_to_hex, hex_to_color};
 use crate::stroke::{Drawing, PenEvent, PenPhase, Stroke};
 use chrono::{Local, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 pub const LIB_DIR: &str = "library";
 const TRASH_DIR: &str = "library/cestino";
@@ -83,12 +87,35 @@ struct PageFmt {
     width: f32,
     height: f32,
     strokes: Vec<StrokeFmt>,
+    /// Il grafico dell'AI sul foglio: dove sta (u, v, larghezza, altezza
+    /// sulla pagina, 0..1); l'immagine è `<id>.grafico.png`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    chart: Option<[f32; 4]>,
 }
 
 pub struct Entry {
     pub id: String,
     pub meta: Meta,
     pub drawing: Drawing,
+    /// Il grafico dell'AI messo sul foglio, se c'era.
+    pub chart: Option<PageBg>,
+}
+
+/// L'immagine del grafico accanto alla pagina.
+fn chart_file(dir: &Path, id: &str) -> PathBuf {
+    dir.join(format!("{id}.grafico.png"))
+}
+
+/// Il grafico salvato con la pagina `id` (se c'è e si legge).
+fn read_chart(dir: &Path, id: &str, rect: Option<[f32; 4]>) -> Option<PageBg> {
+    let rect = rect?;
+    match std::fs::read(chart_file(dir, id)) {
+        Ok(png) => Some(PageBg { png: Arc::new(png), rect, key: format!("chart:lib-{id}") }),
+        Err(e) => {
+            tracing::warn!("archivio: grafico di {id} illeggibile: {e}");
+            None
+        }
+    }
 }
 
 #[derive(Default)]
@@ -112,13 +139,14 @@ pub fn strokes_to_fmt(strokes: &[Stroke]) -> Vec<StrokeFmt> {
         .collect()
 }
 
-fn to_fmt(d: &Drawing, meta: &Meta) -> PageFmt {
+fn to_fmt(d: &Drawing, meta: &Meta, chart: Option<&PageBg>) -> PageFmt {
     PageFmt {
         version: 1,
         meta: meta.clone(),
         width: d.width,
         height: d.height,
         strokes: strokes_to_fmt(&d.strokes),
+        chart: chart.map(|c| c.rect),
     }
 }
 
@@ -151,16 +179,19 @@ pub fn strokes_from_fmt(v: Vec<StrokeFmt>) -> Vec<Stroke> {
         .collect()
 }
 
-fn from_fmt(f: PageFmt) -> (Meta, Drawing) {
+fn from_fmt(f: PageFmt, dir: &Path, id: &str) -> Entry {
+    let chart = read_chart(dir, id, f.chart);
     let strokes = strokes_from_fmt(f.strokes);
-    (
-        f.meta,
-        Drawing {
+    Entry {
+        id: id.to_string(),
+        meta: f.meta,
+        drawing: Drawing {
             strokes,
             width: f.width,
             height: f.height,
         },
-    )
+        chart,
+    }
 }
 
 impl Library {
@@ -189,8 +220,8 @@ impl Library {
                     .and_then(|t| serde_json::from_str::<PageFmt>(&t).map_err(|e| e.to_string()))
                 {
                     Ok(f) => {
-                        let (meta, drawing) = from_fmt(f);
-                        lib.entries.push(Entry { id, meta, drawing });
+                        let e = from_fmt(f, dir, &id);
+                        lib.entries.push(e);
                     }
                     Err(e) => tracing::warn!("archivio: {} illeggibile: {e}", path.display()),
                 }
@@ -225,8 +256,11 @@ impl Library {
         self.entries.iter().position(|e| e.id == id)
     }
 
-    fn write(&self, id: &str, d: &Drawing, meta: &Meta) -> std::io::Result<()> {
-        let json = serde_json::to_string(&to_fmt(d, meta)).map_err(std::io::Error::other)?;
+    fn write(&self, id: &str, d: &Drawing, meta: &Meta, chart: Option<&PageBg>) -> std::io::Result<()> {
+        if let Some(c) = chart {
+            std::fs::write(chart_file(&self.dir, id), c.png.as_slice())?;
+        }
+        let json = serde_json::to_string(&to_fmt(d, meta, chart)).map_err(std::io::Error::other)?;
         // Scrittura sicura: file temporaneo e poi rinomina.
         let tmp = self.dir.join(format!(".{id}.tmp"));
         std::fs::write(&tmp, json)?;
@@ -235,6 +269,11 @@ impl Library {
 
     /// Aggiunge una pagina; ritorna il suo id.
     pub fn add(&mut self, d: &Drawing, meta: Meta) -> std::io::Result<String> {
+        self.add_with_chart(d, meta, None)
+    }
+
+    /// Aggiunge una pagina col grafico dell'AI che c'era sopra.
+    pub fn add_with_chart(&mut self, d: &Drawing, meta: Meta, chart: Option<&PageBg>) -> std::io::Result<String> {
         let base = meta
             .created_dt()
             .unwrap_or_else(|| Local::now().naive_local())
@@ -246,11 +285,12 @@ impl Library {
             id = format!("{base}-{n}");
             n += 1;
         }
-        self.write(&id, d, &meta)?;
+        self.write(&id, d, &meta, chart)?;
         self.entries.push(Entry {
             id: id.clone(),
             meta,
             drawing: d.clone(),
+            chart: chart.map(|c| PageBg { key: format!("chart:lib-{id}"), ..c.clone() }),
         });
         self.sort();
         Ok(id)
@@ -271,7 +311,11 @@ impl Library {
         };
         self.entries[i].meta.title = title.trim().to_string();
         let e = &self.entries[i];
-        self.write(id, &e.drawing, &e.meta)
+        // l'immagine del grafico c'è già: si riscrive solo il JSON
+        let json = serde_json::to_string(&to_fmt(&e.drawing, &e.meta, e.chart.as_ref())).map_err(std::io::Error::other)?;
+        let tmp = self.dir.join(format!(".{id}.tmp"));
+        std::fs::write(&tmp, json)?;
+        std::fs::rename(&tmp, self.path(id))
     }
 
     /// Sposta le pagine nel cestino. Ritorna quante.
@@ -283,6 +327,10 @@ impl Library {
             let src = self.path(id);
             if src.exists() {
                 std::fs::rename(&src, tdir.join(format!("{id}.json")))?;
+            }
+            let chart = chart_file(&self.dir, id);
+            if chart.exists() {
+                std::fs::rename(&chart, chart_file(&tdir, id))?;
             }
             if let Some(i) = self.index_of(id) {
                 self.entries.remove(i);
@@ -303,9 +351,13 @@ impl Library {
             }
             let dst = self.path(id);
             std::fs::rename(&src, &dst)?;
+            let chart = chart_file(&tdir, id);
+            if chart.exists() {
+                std::fs::rename(&chart, chart_file(&self.dir, id))?;
+            }
             if let Ok(f) = serde_json::from_str::<PageFmt>(&std::fs::read_to_string(&dst)?) {
-                let (meta, drawing) = from_fmt(f);
-                self.entries.push(Entry { id: id.clone(), meta, drawing });
+                let e = from_fmt(f, &self.dir, id);
+                self.entries.push(e);
                 n += 1;
             }
         }
@@ -423,6 +475,31 @@ mod tests {
         assert_eq!(Library::open_in(&dir).entries.len(), 1);
         assert_eq!(lib3.restore(&[a.clone()]).unwrap(), 1);
         assert_eq!(Library::open_in(&dir).entries.len(), 2);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Il grafico dell'AI sul foglio va nell'archivio con la pagina, e nel
+    /// cestino e ritorno con lei.
+    #[test]
+    fn pagina_col_grafico() {
+        let dir = tmpdir("grafico");
+        let mut lib = Library::open_in(&dir);
+        let t = NaiveDateTime::parse_from_str("2026-10-21 12:00:00", TIME_FMT).unwrap();
+        let bg = PageBg { png: Arc::new(b"\x89PNG finto".to_vec()), rect: [0.2, 0.3, 0.5, 0.4], key: "chart:x".into() };
+        let id = lib.add_with_chart(&drawing(), Meta::new(t, SOURCE_BOARD), Some(&bg)).unwrap();
+        let senza = lib.add(&drawing(), Meta::new(t, SOURCE_BOARD)).unwrap();
+        lib.rename(&id, "Sistema").unwrap();
+        let lib2 = Library::open_in(&dir);
+        let c = lib2.get(&id).unwrap().chart.as_ref().expect("il grafico torna");
+        assert_eq!(c.rect, [0.2, 0.3, 0.5, 0.4]);
+        assert_eq!(c.png.as_slice(), b"\x89PNG finto");
+        assert!(c.is_chart());
+        assert!(lib2.get(&senza).unwrap().chart.is_none());
+        let mut lib3 = lib2;
+        lib3.trash(std::slice::from_ref(&id)).unwrap();
+        assert!(!chart_file(&dir, &id).exists());
+        lib3.restore(std::slice::from_ref(&id)).unwrap();
+        assert!(Library::open_in(&dir).get(&id).unwrap().chart.is_some());
         let _ = std::fs::remove_dir_all(&dir);
     }
 

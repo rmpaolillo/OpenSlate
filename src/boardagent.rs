@@ -154,7 +154,7 @@ fn insert(args: &Value) -> Result<(String, u64)> {
         })
     });
     let s = hub.lock();
-    if s.bg.as_ref().is_some_and(|b| !b.key.starts_with("chart:")) {
+    if s.bg.as_ref().is_some_and(|b| !b.is_chart()) {
         bail!("sul foglio c'è la pagina di un documento: usa document_insert_image");
     }
     let g = s.geom();

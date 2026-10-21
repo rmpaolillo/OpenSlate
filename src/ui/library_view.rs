@@ -110,7 +110,12 @@ impl App {
         let mut v: Vec<&library::Entry> = ids.iter().filter_map(|id| self.lib.get(id)).collect();
         v.sort_by(|a, b| a.meta.created.cmp(&b.meta.created));
         v.into_iter()
-            .map(|e| (e.meta.display_title(), Page::from_drawing(&e.drawing, view)))
+            .map(|e| {
+                let mut p = Page::from_drawing(&e.drawing, view);
+                // il grafico dell'AI fa parte della pagina (export, trascrizione)
+                p.bg = e.chart.clone();
+                (e.meta.display_title(), p)
+            })
             .collect()
     }
 
@@ -166,8 +171,9 @@ impl App {
             LibAction::ToBoard(id) => {
                 if let Some(e) = self.lib.get(&id) {
                     let d = e.drawing.clone();
+                    let chart = e.chart.clone();
                     let t = e.meta.display_title();
-                    self.hub.edit(|s| s.load(d));
+                    self.hub.edit(|s| s.load(d, chart));
                     // è già nell'archivio: uscendo non c'è da chiedere
                     self.mark_board_saved();
                     self.board_from = Some(t.clone());
@@ -320,6 +326,7 @@ impl App {
             }
             let Some(e) = self.lib.get(id) else { continue };
             let mut page = Page::from_drawing(&e.drawing, view);
+            page.bg = e.chart.clone();
             // tratti un po' più marcati: in piccolo restano leggibili
             for s in &mut page.strokes {
                 s.width *= 1.6;
@@ -352,8 +359,14 @@ impl App {
                     _ => {}
                 }
                 let view = self.view();
+                let chart = self.lib.get(id).and_then(|e| e.chart.clone());
+                // il grafico dell'AI salvato con la pagina, sotto i tratti
+                let bg = chart.and_then(|c| {
+                    let tex = self.bg_texture(ctx, &c)?;
+                    Some(super::BgImage { tex, paper: true, rect: c.rect, baked: false, keep: None, detail: None })
+                });
                 if let Some(e) = self.lib.get(id) {
-                    paint_page(&ui.painter_at(rect), rect, &e.drawing, view, None, &mut self.lui.viewer_zoom, None);
+                    paint_page(&ui.painter_at(rect), rect, &e.drawing, view, bg, &mut self.lui.viewer_zoom, None);
                 }
             }
             None => self.grid(ui, ctx, actions),

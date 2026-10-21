@@ -32,7 +32,9 @@ pub(super) struct Stamp {
 pub(super) struct DocUi {
     pub doc: Option<Document>,
     /// Tratti della lavagna mentre è aperto un documento.
-    board_stash: Option<Vec<Stroke>>,
+    /// La lavagna messa da parte mentre al centro c'è un documento: tratti
+    /// e grafico dell'AI.
+    board_stash: Option<(Vec<Stroke>, Option<PageBg>)>,
     tex: HashMap<String, egui::TextureHandle>,
     saved_rev: u64,
     last_save: Instant,
@@ -75,7 +77,7 @@ const DETAIL_MAX: f32 = 4096.0;
 
 impl DocUi {
     /// La lavagna messa da parte mentre al centro c'è un documento.
-    pub(super) fn board_stash_ref(&self) -> Option<&Vec<Stroke>> {
+    pub(super) fn board_stash_ref(&self) -> Option<&(Vec<Stroke>, Option<PageBg>)> {
         self.board_stash.as_ref()
     }
 
@@ -191,7 +193,9 @@ impl App {
         if self.docui.doc.is_some() {
             self.save_doc();
         } else {
-            self.docui.board_stash = Some(self.hub.lock().drawing.strokes.clone());
+            let s = self.hub.lock();
+            let chart = s.bg.clone().filter(|b| b.is_chart());
+            self.docui.board_stash = Some((s.drawing.strokes.clone(), chart));
         }
         self.docui.stamp = None;
         if !self.docui.tabs.iter().any(|(id, _)| id == &d.id) {
@@ -273,8 +277,8 @@ impl App {
         self.docui.renderer = None;
         self.docui.detail = None;
         self.docui.detail_want = None;
-        let stash = self.docui.board_stash.take().unwrap_or_default();
-        self.hub.edit(|s| s.set_page(stash, None));
+        let (stash, chart) = self.docui.board_stash.take().unwrap_or_default();
+        self.hub.edit(|s| s.set_page(stash, chart));
         self.status = "Documento chiuso (resta in «Documenti recenti»).".into();
     }
 
@@ -342,7 +346,7 @@ impl App {
         // evidenziature si disegnano sopra, trasparenti
         let detail = self.detail_tile(ctx, &bg);
         // un grafico dell'AI sulla lavagna: carta sotto, evidenziature sopra
-        let chart = bg.key.starts_with("chart:");
+        let chart = bg.is_chart();
         if hl.is_empty() || detail.is_some() || chart {
             let tex = self.bg_texture(ctx, &bg)?;
             return Some(super::BgImage { tex, paper: chart, rect: bg.rect, baked: false, keep: None, detail });
