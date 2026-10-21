@@ -166,6 +166,7 @@ pub fn definitions() -> Vec<Value> {
                     oppure «riquadro» [x1, y1, x2, y2] in 0–1000 (i tratti dentro); filtri facoltativi «colore» (solo i tratti di quel colore) e \
                     «solo» (evidenziatore o inchiostro). sposta: «dx», «dy» in 0–1000 oppure «a» [x, y] dove va l'angolo in alto a sinistra. \
                     ridimensiona: «fattore» (2 = il doppio), dall'angolo in alto a sinistra. ricolora: «nuovo_colore». \
+                    inchiostro: le evidenziature scelte diventano scrittura con la penna (per chi ha scritto con l'evidenziatore senza volerlo). \
                     Per cancellare buona parte del foglio lo strumento chiede la conferma dell'utente e dà un codice: chiedi all'utente e, \
                     se dice sì, richiama con «conferma» e il codice. Dopo una modifica i nomi del foglio cambiano: rileggilo.",
                 "parameters": {
@@ -176,7 +177,7 @@ pub fn definitions() -> Vec<Value> {
                             "items": {
                                 "type": "object",
                                 "properties": {
-                                    "azione": { "type": "string", "enum": ["sposta", "ridimensiona", "ricolora", "cancella"] },
+                                    "azione": { "type": "string", "enum": ["sposta", "ridimensiona", "ricolora", "cancella", "inchiostro"] },
                                     "su": { "description": "Nome di lavagna_leggi o lista di nomi" },
                                     "riquadro": { "type": "array", "items": { "type": "number" }, "description": "[x1, y1, x2, y2] in 0–1000" },
                                     "colore": { "type": "string", "description": "Solo i tratti di questo colore" },
@@ -610,6 +611,18 @@ fn modify(args: &Value) -> Result<(String, Option<u64>)> {
                     }
                     report.push(format!("ricolorato {what} in {c}"));
                 }
+                "inchiostro" | "scrittura" | "ink" => {
+                    let mut n = 0;
+                    for &i in &idx {
+                        if strokes[i].highlight {
+                            strokes[i].highlight = false;
+                            strokes[i].color = s.pen.color;
+                            strokes[i].width = s.pen.width;
+                            n += 1;
+                        }
+                    }
+                    report.push(format!("{n} evidenziature di {what} diventate scrittura"));
+                }
                 "cancella" | "togli" | "elimina" | "delete" | "erase" => {
                     deleted.extend(idx.iter().copied());
                     if chart {
@@ -617,7 +630,7 @@ fn modify(args: &Value) -> Result<(String, Option<u64>)> {
                     }
                     report.push(format!("cancellato {what}"));
                 }
-                other => bail!("azione «{other}» sconosciuta: sposta, ridimensiona, ricolora, cancella"),
+                other => bail!("azione «{other}» sconosciuta: sposta, ridimensiona, ricolora, cancella, inchiostro"),
             }
         }
         // cancellare buona parte del foglio: prima il sì dell'utente (in un

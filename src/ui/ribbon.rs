@@ -45,7 +45,7 @@ impl App {
                 ui,
                 ic::HIGHLIGHTER,
                 "Evidenziatore",
-                "Evidenziatore (H, o tocco lungo col pennino).\nAnche col mouse: tasto sinistro; con Shift linea dritta orizzontale o verticale.\nCol mouse il foglio si sposta col tasto centrale.",
+                "Evidenziatore (H; col pennino tocco lungo, se acceso nelle Opzioni).\nAnche col mouse: tasto sinistro; con Shift linea dritta orizzontale o verticale.\nCol mouse il foglio si sposta col tasto centrale.",
                 true,
                 tool == Tool::Highlighter && !eraser,
                 false,
@@ -64,6 +64,9 @@ impl App {
                 }
                 if menu_item(ui, true, ic::HIGHLIGHTER, "Solo le evidenziature", "Shift+H") {
                     actions.push(Action::ClearHighlights);
+                }
+                if menu_item(ui, true, ic::PEN, "Evidenziature → scrittura", "") {
+                    actions.push(Action::HighlightsToInk);
                 }
                 ui.label(egui::RichText::new(i18n::t("Una sola evidenziatura: Alt+clic sopra")).weak().small());
             });

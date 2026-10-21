@@ -21,7 +21,9 @@ pub struct Settings {
     /// Evidenziatore: colore (chiaro: sta sotto l'inchiostro) e spessore.
     pub highlight_color: Rgb,
     pub highlight_width: f32,
-    /// Tocco lungo col pennino = penna ↔ evidenziatore.
+    /// Tocco lungo col pennino = penna ↔ evidenziatore. Spento di serie: chi
+    /// scrive guardando la carta, con una pausa a pennino appoggiato,
+    /// passerebbe all'evidenziatore senza accorgersene.
     pub longpress_toggle: bool,
     /// Porta del server web per la diretta.
     pub web_port: u16,
@@ -89,7 +91,7 @@ impl Default for Settings {
             zigzag: false,
             highlight_color: [255, 235, 90],
             highlight_width: 16.0,
-            longpress_toggle: true,
+            longpress_toggle: false,
             web_port: 8080,
             web_auto: false,
             ocr_engine: "ai".into(),
@@ -170,7 +172,9 @@ impl Settings {
             "zigzag_auto" => self.zigzag = b(v),
             "highlight_color" => self.highlight_color = hex_to_color(v).unwrap_or(self.highlight_color),
             "highlight_width" => self.highlight_width = v.parse().unwrap_or(self.highlight_width),
-            "longpress_toggle" => self.longpress_toggle = b(v),
+            // la chiave vecchia («longpress_toggle», acceso di serie) non vale più:
+            // il tocco lungo si accende di nuovo solo a mano
+            "longpress_tool" => self.longpress_toggle = b(v),
             "web_port" => self.web_port = v.parse().unwrap_or(self.web_port),
             "web_auto" => self.web_auto = b(v),
             // Vecchie chiavi dell'OCR: ora i modelli stanno in ai.toml.
@@ -211,8 +215,8 @@ impl Settings {
              rot = {}\nflip_x = {}\nflip_y = {}\n\
              pen_width = {}\npen_color = {}\n\
              # zig-zag automatico = cancella (anche senza Gomma); attenzione alle firme\nzigzag_auto = {}\n\
-             # evidenziatore (tocco lungo col pennino = penna/evidenziatore)\n\
-             highlight_color = {}\nhighlight_width = {}\nlongpress_toggle = {}\n\
+             # evidenziatore; tocco lungo (punta ferma 1,5 s) = penna/evidenziatore, spento di serie\n\
+             highlight_color = {}\nhighlight_width = {}\nlongpress_tool = {}\n\
              # diretta web\nweb_port = {}\nweb_auto = {}\n\
              # OCR: ai (agenti di ai.toml: Markdown + LaTeX) oppure vision (Apple, offline, solo testo)\n\
              ocr_engine = {}\nocr_langs = {}\n\

@@ -483,6 +483,8 @@ enum Action {
     OpenReadme,
     /// Toglie tutte le evidenziature della lavagna.
     ClearHighlights,
+    /// Le evidenziature diventano scrittura (inchiostro della penna).
+    HighlightsToInk,
     /// Toglie un tratto (Alt+clic su un'evidenziatura).
     RemoveStroke(usize),
     Rotate,
@@ -1726,7 +1728,7 @@ impl App {
                 let mut s = self.hub.lock();
                 s.toggle_tool();
                 self.status = match s.tool {
-                    crate::scene::Tool::Highlighter => "Evidenziatore attivo (H o tocco lungo per tornare alla penna).".into(),
+                    crate::scene::Tool::Highlighter => "Evidenziatore attivo (H per tornare alla penna).".into(),
                     crate::scene::Tool::Pen => "Penna attiva.".into(),
                 };
             }
@@ -1736,6 +1738,14 @@ impl App {
                     "Nessuna evidenziatura da togliere.".into()
                 } else {
                     format!("Tolte {n} evidenziature (Cmd+Z per annullare).")
+                };
+            }
+            Action::HighlightsToInk => {
+                let n = self.hub.edit(|s| s.highlights_to_ink());
+                self.status = if n == 0 {
+                    "Nessuna evidenziatura sul foglio.".into()
+                } else {
+                    format!("{n} evidenziature diventate scrittura (Cmd+Z per annullare).")
                 };
             }
             Action::RemoveStroke(i) => {

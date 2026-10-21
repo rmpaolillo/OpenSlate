@@ -320,7 +320,10 @@ fn prefs_page(ui: &mut egui::Ui, p: &mut Prefs, ai: &mut bool) {
                 ui.add(egui::Slider::new(&mut d.highlight_width, 4.0..=40.0).step_by(1.0));
             });
             row(ui, "Tocco lungo col pennino", |ui| {
-                ui.checkbox(&mut d.longpress_toggle, i18n::t("punta ferma ~1 s = penna ↔ evidenziatore"));
+                ui.vertical(|ui| {
+                    ui.checkbox(&mut d.longpress_toggle, i18n::t("punta ferma 1,5 s = penna ↔ evidenziatore"));
+                    hint(ui, "se scrivi guardando la carta lascialo spento: una pausa col pennino appoggiato cambierebbe strumento senza che te ne accorga");
+                });
             });
             row(ui, "Zig-zag", |ui| {
                 ui.vertical(|ui| {

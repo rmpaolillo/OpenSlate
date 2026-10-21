@@ -42,7 +42,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 ## Features
 
 - **Live board.** Connect over Bluetooth and see what you write on the pad as you write it,
-  full screen. You get pens, a highlighter (long-press the pen to switch), an eraser (a
+  full screen. You get pens, a highlighter (`H`; switching with a long press of the pen can be turned on in Options), an eraser (a
   scribble or eraser mode), colours, line widths, undo/redo, rotate/mirror and zoom with
   trackpad gestures.
 - **Paper styles.** Choose from lined, Italian primary-school rulings, squared (4/5/10 mm),

@@ -791,6 +791,7 @@ impl App {
             c(ic::ARROW_U_UP_RIGHT, "Ripeti", &cmd_key("Shift+Z"), Action::Redo),
             c(ic::BROOM, "Pulisci il foglio (nuova pagina)", "C", Action::Clear),
             c(ic::HIGHLIGHTER, "Togli tutte le evidenziature", "Shift+H", Action::ClearHighlights),
+            c(ic::PEN, "Evidenziature → scrittura", "", Action::HighlightsToInk),
             c(ic::PLUS, "Tratto più spesso", "+", Action::Width(0.4)),
             c(ic::MINUS, "Tratto più sottile", "-", Action::Width(-0.4)),
             c(ic::FLOPPY_DISK, "Salva la lavagna nell'archivio", &cmd_key("S"), Action::SaveBoard),

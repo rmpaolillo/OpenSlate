@@ -183,10 +183,11 @@ pub enum Tool {
     Highlighter,
 }
 
-/// Tocco lungo: punta ferma almeno così a lungo…
-const LONGPRESS: std::time::Duration = std::time::Duration::from_millis(800);
-/// …muovendosi al massimo di questa frazione del lato lungo della pagina (~2 mm).
-const LONGPRESS_MOVE: f32 = 0.007;
+/// Tocco lungo: punta ferma almeno così a lungo (più di una pausa per pensare
+/// col pennino appoggiato)…
+const LONGPRESS: std::time::Duration = std::time::Duration::from_millis(1500);
+/// …muovendosi al massimo di questa frazione del lato lungo della pagina (~1 mm).
+const LONGPRESS_MOVE: f32 = 0.004;
 
 /// Penna per i nuovi tratti.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -621,6 +622,26 @@ impl Scene {
         self.remove_where(|s| s.highlight)
     }
 
+    /// Le evidenziature diventano inchiostro (colore e spessore della penna):
+    /// per le pagine scritte con l'evidenziatore senza volerlo. Annullabile.
+    pub fn highlights_to_ink(&mut self) -> usize {
+        let n = self.drawing.strokes.iter().filter(|s| s.highlight && !s.points.is_empty()).count();
+        if n == 0 {
+            return 0;
+        }
+        self.active = false;
+        let old = self.drawing.strokes.clone();
+        let pen = self.pen;
+        for s in self.drawing.strokes.iter_mut().filter(|s| s.highlight) {
+            s.highlight = false;
+            s.color = pen.color;
+            s.width = pen.width;
+        }
+        let bg = self.bg.clone();
+        self.push_undo(Undo::Replace(old, bg));
+        n
+    }
+
     /// Toglie un singolo tratto (per indice). Annullabile.
     pub fn remove_stroke(&mut self, index: usize) -> bool {
         if index >= self.drawing.strokes.len() {
@@ -977,10 +998,23 @@ mod tests {
         use std::time::{Duration, Instant};
         let mut sc = Scene::new(&Settings::default());
         let t0 = Instant::now();
-        // tocco lungo: fermo per 1 s
+        // di serie è spento: il pennino appoggiato a lungo (si pensa) resta un puntino d'inchiostro
+        sc.pen_event_at(ev(5000.0, 5000.0, PenPhase::Down), t0);
+        sc.pen_event_at(ev(5000.0, 5000.0, PenPhase::Up), t0 + Duration::from_secs(3));
+        assert_eq!(sc.tool, Tool::Pen);
+        assert_eq!(sc.drawing.strokes.len(), 1);
+        sc.drawing.strokes.clear();
+        sc.longpress = true;
+        // acceso: una pausa di un secondo non basta…
+        sc.pen_event_at(ev(5000.0, 5000.0, PenPhase::Down), t0);
+        sc.pen_event_at(ev(5000.0, 5000.0, PenPhase::Up), t0 + Duration::from_millis(1000));
+        assert_eq!(sc.tool, Tool::Pen);
+        sc.drawing.strokes.clear();
+        sc.undo.clear();
+        // …il tocco lungo sì: fermo per 1,6 s
         sc.pen_event_at(ev(5000.0, 5000.0, PenPhase::Down), t0);
         sc.pen_event_at(ev(5010.0, 5005.0, PenPhase::Move), t0 + Duration::from_millis(500));
-        let ch = sc.pen_event_at(ev(5010.0, 5005.0, PenPhase::Up), t0 + Duration::from_millis(1000));
+        let ch = sc.pen_event_at(ev(5010.0, 5005.0, PenPhase::Up), t0 + Duration::from_millis(1600));
         assert!(matches!(ch, Change::Reset));
         assert_eq!(sc.tool, Tool::Highlighter);
         assert!(sc.drawing.strokes.is_empty());
@@ -1018,6 +1052,11 @@ mod tests {
         sc.pen_event(ev(4400.0, 0.0, PenPhase::Up));
         assert_eq!(sc.drawing.strokes.len(), 2);
         assert!(!sc.drawing.strokes[0].highlight); // l'inchiostro è rimasto
+        // in scrittura, e indietro con Annulla
+        assert_eq!(sc.highlights_to_ink(), 1);
+        assert!(sc.drawing.strokes.iter().all(|s| !s.highlight && s.color == sc.pen.color));
+        assert!(sc.undo());
+        assert!(sc.drawing.strokes[1].highlight);
         // tutte le evidenziature
         assert_eq!(sc.remove_highlights(), 1);
         assert!(sc.drawing.strokes.iter().all(|s| !s.highlight));
