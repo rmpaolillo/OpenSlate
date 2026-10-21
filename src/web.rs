@@ -430,6 +430,11 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
         "/appunti" | "/appunti.html" => {
             respond(&mut sock, "200 OK", "text/html; charset=utf-8", APPUNTI_HTML.as_bytes()).await
         }
+        // la scrittura degli appunti (stampata o a mano), da settings.conf
+        "/api/note-hand" => {
+            let h = crate::settings::Settings::load().note_hand;
+            respond(&mut sock, "200 OK", "application/json", serde_json::json!({ "hand": h }).to_string().as_bytes()).await
+        }
         "/api/appunti" => {
             let list = tokio::task::spawn_blocking(list_appunti).await.unwrap_or_default();
             respond(&mut sock, "200 OK", "application/json", list.to_string().as_bytes()).await

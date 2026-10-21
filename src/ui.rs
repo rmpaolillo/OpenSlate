@@ -503,6 +503,8 @@ enum Action {
     NoteTypora,
     /// Esporta l'appunto aperto: "md", "docx" o "pdf".
     NoteExport(&'static str),
+    /// Scrittura degli appunti: "", "corsivo", "stampatello".
+    NoteHand(&'static str),
     OpenNote(Option<String>),
     CloseNote,
     CloseSettings,
@@ -1088,12 +1090,13 @@ impl App {
             return;
         };
         let src = std::path::Path::new(export::EXPORT_DIR).join(&n);
+        let hand = crate::mdcraft::Hand::parse(&self.settings.note_hand);
         self.status = "Esporto l'appunto…".into();
         let tx = self.evt_tx.clone();
         std::thread::spawn(move || {
             // il salvataggio della pagina dell'appunto arriva in un attimo
             std::thread::sleep(std::time::Duration::from_millis(400));
-            let msg = match crate::mdcraft::export_note(&src, &dst) {
+            let msg = match crate::mdcraft::export_note(&src, &dst, hand) {
                 Ok(()) => format!("Salvato: {}", dst.display()),
                 Err(e) => format!("⚠ esportazione dell'appunto: {e:#}"),
             };
@@ -1832,6 +1835,11 @@ impl App {
             }
             Action::NotePrint => self.embeds.print(embed::Slot::Note),
             Action::NoteExport(ext) => self.export_note(ext),
+            Action::NoteHand(h) => {
+                self.settings.note_hand = h.to_string();
+                self.settings.save();
+                self.embeds.eval(embed::Slot::Note, &format!("window.wsNote && wsNote.setHand({h:?})"));
+            }
             Action::NoteTypora => {
                 if let Some(n) = &self.note {
                     self.embeds.eval(embed::Slot::Note, "window.wsNote && wsNote.flush()");

@@ -40,6 +40,16 @@ fn ext(path: &Path) -> String {
     path.extension().and_then(|e| e.to_str()).unwrap_or("").to_ascii_lowercase()
 }
 
+/// Larghezza e altezza in pixel (dritta secondo l'EXIF).
+pub fn dimensions(path: &Path) -> Option<(u32, u32)> {
+    decode(path).ok().map(|(img, _)| img.dimensions())
+}
+
+/// La qualità del JPEG (stimata), per riscriverlo senza perdere troppo.
+pub fn jpeg_quality(path: &Path) -> Option<u8> {
+    photocraft_codecs::jpeg_quality(&std::fs::read(path).ok()?).map(|q| q.clamp(85, 100))
+}
+
 /// L'immagine (dritta secondo l'EXIF).
 fn decode(path: &Path) -> Result<(Image, Vec<u8>)> {
     let bytes = std::fs::read(path).map_err(|e| anyhow!("{}: {e}", path.display()))?;

@@ -63,6 +63,8 @@ pub struct Settings {
     /// Vista compatta: senza la barra dei menu e gli strumenti (resta la
     /// barra del titolo col pulsante per farli tornare).
     pub compact_ui: bool,
+    /// Scrittura degli appunti: "" (stampata), "corsivo", "stampatello" (a mano).
+    pub note_hand: String,
     /// Avvisa quando su GitHub c'è una versione nuova.
     pub update_check: bool,
     /// Versione nuova che l'utente ha scelto di saltare (non se ne avvisa più).
@@ -106,6 +108,7 @@ impl Default for Settings {
             chat_width: 0.55,
             chat_zoom: 1.0,
             compact_ui: false,
+            note_hand: String::new(),
             update_check: true,
             update_skip: String::new(),
             // si chiede prima: la barra azzurra offre «Aggiorna»
@@ -188,6 +191,7 @@ impl Settings {
             "paper" => self.paper = v.into(),
             "paper_margin" => self.paper_margin = b(v),
             "compact_ui" => self.compact_ui = b(v),
+            "note_hand" => self.note_hand = crate::mdcraft::Hand::parse(v).key().into(),
             "chat_zoom" => self.chat_zoom = v.parse::<f32>().unwrap_or(self.chat_zoom).clamp(0.6, 2.5),
             "update_check" => self.update_check = b(v),
             "update_skip" => self.update_skip = v.trim().into(),
@@ -220,6 +224,7 @@ impl Settings {
              # aspetto: tema (sistema, chiaro, scuro) e righelli\nui_theme = {}\nrulers = {}\n\
              # chat AI: lato (sinistra, destra) e larghezza (frazione della finestra)\nchat_side = {}\nchat_width = {:.2}\nchat_zoom = {:.2}\n\
              # vista compatta: niente barra dei menu e strumenti\ncompact_ui = {}\n\
+             # scrittura degli appunti: vuoto (stampata), corsivo, stampatello (a mano)\nnote_hand = {}\n\
              # rigatura del foglio: bianco, righe, righe10, quadretti5, quadretti4, quadretti10; margini rossi (solo righe)\npaper = {}\npaper_margin = {}\n\
              # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
              # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n\
@@ -249,6 +254,7 @@ impl Settings {
             self.chat_width,
             self.chat_zoom,
             b(self.compact_ui),
+            self.note_hand,
             self.paper,
             b(self.paper_margin),
             self.save_dir,

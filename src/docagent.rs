@@ -72,7 +72,8 @@ impl DocRef {
             Kind::Word => "word__",
             Kind::Pdf => "pdf__",
             Kind::Svg => "svg__",
-            Kind::Text | Kind::Photo => "",
+            Kind::Photo => "photo__",
+            Kind::Text => "",
         }
     }
 }
@@ -217,6 +218,53 @@ enum Server {
     Word(wordcraft_mcp::Server),
     Svg(vectorcraft_mcp::Server),
     Pdf(pdfcraft_automation::mcp::McpServer, u64),
+    Photo(PhotoMcp),
+}
+
+/// Il server MCP di PhotoCraft gira con tokio (rmcp): un runtime suo e due
+/// tubi in memoria, una riga JSON per messaggio, come sullo stdio.
+struct PhotoMcp {
+    rt: tokio::runtime::Runtime,
+    w: tokio::io::DuplexStream,
+    r: tokio::io::Lines<tokio::io::BufReader<tokio::io::DuplexStream>>,
+}
+
+impl PhotoMcp {
+    fn start(root: &Path) -> Result<PhotoMcp> {
+        use tokio::io::AsyncBufReadExt;
+        let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(1).thread_name("photocraft-mcp").enable_all().build()?;
+        // legge e scrive solo nella cartella del documento
+        let ws = photocraft_automation::AuthorizedWorkspace::new(Some(root), Some(root)).map_err(|e| anyhow!("PhotoCraft: {e}"))?;
+        let server = photocraft_automation::PhotocraftMcp::headless_with_workspace(ws);
+        let (w, server_in) = tokio::io::duplex(1 << 22);
+        let (server_out, r) = tokio::io::duplex(1 << 24);
+        rt.spawn(async move {
+            if let Err(e) = server.serve_io(server_in, server_out).await {
+                tracing::warn!("PhotoCraft MCP: {e}");
+            }
+        });
+        Ok(PhotoMcp { rt, w, r: tokio::io::BufReader::new(r).lines() })
+    }
+
+    /// Manda un messaggio; per una richiesta aspetta la sua risposta (le
+    /// notifiche del server in mezzo si saltano).
+    fn handle(&mut self, msg: Value) -> Option<Value> {
+        use tokio::io::AsyncWriteExt;
+        let PhotoMcp { rt, w, r } = self;
+        let id = msg.get("id").cloned();
+        rt.block_on(async {
+            w.write_all(format!("{msg}\n").as_bytes()).await.ok()?;
+            w.flush().await.ok()?;
+            let id = id?;
+            loop {
+                let line = tokio::time::timeout(std::time::Duration::from_secs(170), r.next_line()).await.ok()?.ok()??;
+                let v: Value = serde_json::from_str(&line).ok()?;
+                if v.get("id") == Some(&id) {
+                    return Some(v);
+                }
+            }
+        })
+    }
 }
 
 struct Session {
@@ -306,7 +354,9 @@ fn allowed(kind: Kind, name: &str) -> bool {
                 | "page_move" | "page_duplicate" | "page_number" | "doc_watermark" | "doc_background" | "edit_undo" | "edit_redo"
                 | "command_list" | "command_run" | "command_batch"
         ),
-        Kind::Text | Kind::Photo => false,
+        // aprire, salvare ed esportare li fa l'app; niente finestre
+        Kind::Photo => matches!(name, "doc_inspect" | "doc_render_preview" | "render_preview" | "command_list" | "command_run" | "command_batch"),
+        Kind::Text => false,
     }
 }
 
@@ -318,6 +368,7 @@ impl Session {
             Server::Word(s) => s.handle(msg),
             Server::Svg(s) => s.handle(msg),
             Server::Pdf(s, _) => s.handle(&msg),
+            Server::Photo(s) => s.handle(msg),
         };
         let reply = reply.ok_or_else(|| anyhow!("{method}: nessuna risposta"))?;
         if let Some(e) = reply.get("error") {
@@ -337,6 +388,9 @@ impl Session {
             }
             Server::Pdf(s, _) => {
                 s.handle(&msg);
+            }
+            Server::Photo(s) => {
+                s.handle(msg);
             }
         }
     }
@@ -362,7 +416,8 @@ impl Session {
                 let a = pdfcraft_automation::Automation::new().with_root(&root)?;
                 Server::Pdf(pdfcraft_automation::mcp::McpServer::new(a), 0)
             }
-            Kind::Text | Kind::Photo => bail!("nessun server MCP per questo documento"),
+            Kind::Photo => Server::Photo(PhotoMcp::start(&root)?),
+            Kind::Text => bail!("nessun server MCP per questo documento"),
         };
         let mut s = Session { dir: doc.dir.clone(), server, tools: Vec::new(), mtime: mtime(&doc.file), next_id: 0 };
         s.rpc("initialize", json!({ "protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": { "name": "OpenSlate", "version": crate::update::current() } }))?;
@@ -373,6 +428,12 @@ impl Session {
             let id = serde_json::from_str::<Value>(&text).ok().and_then(|v| v["doc"].as_u64().or(v["id"].as_u64())).unwrap_or(1);
             if let Server::Pdf(_, d) = &mut s.server {
                 *d = id;
+            }
+        }
+        if doc.kind == Kind::Photo {
+            let r = s.rpc("tools/call", json!({ "name": "doc_open", "arguments": { "path": file.to_string_lossy() } }))?;
+            if r["isError"].as_bool() == Some(true) {
+                bail!("PhotoCraft non apre la foto: {}", result_text(&r));
             }
         }
         let list = s.rpc("tools/list", json!({}))?;
@@ -394,6 +455,24 @@ impl Session {
             Server::Pdf(_, id) => {
                 let id = *id;
                 self.rpc("tools/call", json!({ "name": "doc_save", "arguments": { "doc": id, "path": path } }))?;
+            }
+            Server::Photo(_) => {
+                // nello stesso formato, il JPEG con la sua qualità; prima in un
+                // file accanto, poi al posto dell'originale (mai mezzo scritto)
+                let ext = doc.file.extension().and_then(|e| e.to_str()).unwrap_or("png").to_ascii_lowercase();
+                let name = format!("salvataggio-ai.{ext}");
+                let tmp = doc.dir.join(&name);
+                // (la cartella del documento è la radice del server: il nome basta)
+                let mut args = json!({ "path": name });
+                if matches!(ext.as_str(), "jpg" | "jpeg") {
+                    args["quality"] = json!(crate::rasign::jpeg_quality(&doc.file).unwrap_or(92));
+                }
+                let r = self.rpc("tools/call", json!({ "name": "doc_save", "arguments": args }))?;
+                if r["isError"].as_bool() == Some(true) {
+                    let _ = std::fs::remove_file(&tmp);
+                    bail!("PhotoCraft non salva la foto: {}", result_text(&r));
+                }
+                std::fs::rename(&tmp, &doc.file)?;
             }
         }
         self.mtime = mtime(&doc.file);
@@ -466,7 +545,7 @@ pub fn definitions(doc: &DocRef) -> Vec<Value> {
                 json!({ "type": "object", "properties": { "text": { "type": "string" }, "after_text": { "type": "string" } }, "required": ["text"] }),
             ));
         }
-        Kind::Word | Kind::Pdf | Kind::Svg => match with_session(doc, |s, _| Ok(s.tools.clone())) {
+        Kind::Word | Kind::Pdf | Kind::Svg | Kind::Photo => match with_session(doc, |s, _| Ok(s.tools.clone())) {
             Ok(tools) => {
                 for t in tools {
                     let name = format!("{}{}", doc.prefix(), t["name"].as_str().unwrap_or(""));
@@ -484,7 +563,6 @@ pub fn definitions(doc: &DocRef) -> Vec<Value> {
             }
             Err(e) => tracing::warn!("strumenti del documento: {e:#}"),
         },
-        Kind::Photo => {}
     }
     defs
 }
@@ -496,7 +574,7 @@ pub fn system_note(doc: &DocRef, title: &str) -> String {
         Kind::Pdf => ("un PDF", "gli strumenti pdf__* (il server MCP di PdfCraft: pdf__doc_inspect, pdf__text_find, pdf__text_edit, pdf__page_render per guardare una pagina…)"),
         Kind::Svg => ("un disegno SVG", "gli strumenti svg__* (il server MCP di VectorCraft: svg__render_preview per guardarlo, svg__draw_shape, svg__add_text, svg__command_batch…)"),
         Kind::Text => ("un testo (Markdown, .txt o .html)", "text_read, text_replace e text_insert (nel Markdown le formule in LaTeX con $…$ e $$…$$)"),
-        Kind::Photo => ("una foto", "document_insert_image"),
+        Kind::Photo => ("una foto", "gli strumenti photo__* (il server MCP di PhotoCraft: photo__doc_inspect per vedere com'è fatta, photo__command_list con «filter» per cercare i comandi (ritaglia, ridimensiona, ruota, luminosità, contrasto, livelli, curve, saturazione, bianco e nero, nitidezza, sfocatura, testo…), photo__command_run e photo__command_batch per usarli, photo__doc_render_preview per guardare il risultato). Ritagliare, ruotare o ridimensionare cambia le misure della foto: se l'utente ci ha scritto o firmato sopra, avvisalo"),
     };
     format!(
         "\n\nAccanto alla chat è aperto «{title}», {what}: lo puoi leggere e modificare con {how}. \
@@ -603,15 +681,32 @@ fn mcp_call(doc: &DocRef, tool: &str, args: &Value) -> Result<Outcome> {
         bail!("il comando «{c}» non si usa dalla chat: aprire, salvare ed esportare li fa l'app da sola");
     }
     let before = std::fs::read(&doc.file)?;
+    let size_before = if doc.kind == Kind::Photo { crate::rasign::dimensions(&doc.file) } else { None };
     let n = snapshot(doc)?;
-    let (tool_s, args_s) = (tool.to_string(), args.clone());
+    let mut args = args.clone();
+    if doc.kind == Kind::Photo {
+        // i comandi lunghi (filtri) finiscono prima di salvare: niente lavori in sottofondo
+        if tool == "command_run" {
+            args["wait"] = json!(true);
+        }
+        if let Some(steps) = args.get_mut("steps").and_then(|v| v.as_array_mut()) {
+            for st in steps.iter_mut().filter(|s| s.is_object()) {
+                st["wait"] = json!(true);
+            }
+        }
+    }
+    let (tool_s, args_s) = (tool.to_string(), args);
     let res = with_session(doc, move |s, doc| {
         let tool = tool_s.as_str();
         let mut args = args_s;
         if let (Server::Pdf(_, id), Some(o)) = (&s.server, args.as_object_mut()) {
             o.entry("doc").or_insert(json!(*id));
         }
-        let ro = s.tools.iter().find(|t| t["name"] == tool).and_then(|t| t["annotations"]["readOnlyHint"].as_bool()).unwrap_or(false);
+        let ro = match &s.server {
+            // PhotoCraft: cambiano la foto solo i comandi
+            Server::Photo(_) => !matches!(tool, "command_run" | "command_batch"),
+            _ => s.tools.iter().find(|t| t["name"] == tool).and_then(|t| t["annotations"]["readOnlyHint"].as_bool()).unwrap_or(false),
+        };
         let r = s.rpc("tools/call", json!({ "name": tool, "arguments": args }))?;
         if !ro && r["isError"].as_bool() != Some(true) {
             s.save(doc)?;
@@ -633,6 +728,16 @@ fn mcp_call(doc: &DocRef, tool: &str, args: &Value) -> Result<Outcome> {
     let edit = if after != before {
         if let Some(w) = changed(doc) {
             text = format!("{text}\n\n{w}");
+        }
+        // la foto ha cambiato misure e c'era inchiostro sopra
+        if let (Some(a), Some(b)) = (size_before, crate::rasign::dimensions(&doc.file)) {
+            if a != b && ink_pages(&doc.dir).is_some_and(|(_, ink)| ink) {
+                text = format!(
+                    "{text}\n\nATTENZIONE: la foto è passata da {}×{} a {}×{} pixel e l'utente ci aveva scritto o firmato sopra: \
+                     dillo all'utente, che controlli dove è finito l'inchiostro; con «Annulla le modifiche» torna tutto com'era.",
+                    a.0, a.1, b.0, b.1
+                );
+            }
         }
         Some(n)
     } else {
@@ -831,6 +936,80 @@ mod tests {
 #[cfg(test)]
 mod e2e {
     use super::*;
+
+    /// La foto col server MCP di PhotoCraft: comandi, ridimensiona, schiarisci,
+    /// salva nello stesso formato, Annulla. Cambia la cartella corrente:
+    /// cargo test -- --ignored --test-threads=1 foto_con_photocraft --nocapture
+    #[test]
+    #[ignore]
+    fn foto_con_photocraft() {
+        use photocraft_codecs::{ChannelLayout, EncodeOptions, Format, Image};
+        let work = std::env::temp_dir().join(format!("openslate-photo-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&work);
+        std::fs::create_dir_all(&work).unwrap();
+        std::env::set_current_dir(&work).unwrap();
+        // una foto grigia 400×300 con un quadrato scuro
+        let (w, h) = (400u32, 300u32);
+        let mut px = vec![128u8; (w * h * 3) as usize];
+        for y in 100..200 {
+            for x in 150..250 {
+                let i = ((y * w + x) * 3) as usize;
+                px[i..i + 3].copy_from_slice(&[30, 30, 30]);
+            }
+        }
+        let img = Image::from_u8(w, h, ChannelLayout::Rgb, px).unwrap();
+        let src = work.join("foto.jpg");
+        std::fs::write(&src, photocraft_codecs::encode(&img, Format::Jpeg, &EncodeOptions::default()).unwrap()).unwrap();
+        let doc = {
+            let d = crate::document::Document::import(&src).unwrap();
+            DocRef::of(&d.dir, 0).unwrap()
+        };
+        assert_eq!(doc.kind, Kind::Photo);
+        let names: Vec<String> = definitions(&doc).iter().filter_map(|d| d["function"]["name"].as_str().map(String::from)).collect();
+        println!("strumenti: {names:?}");
+        assert!(names.iter().any(|n| n == "photo__command_run") && names.iter().any(|n| n == "photo__doc_render_preview"));
+        assert!(!names.iter().any(|n| n == "photo__doc_save" || n == "photo__doc_open"), "{names:?}");
+        let mut found = Vec::new();
+        for f in ["image.", "adjust", "crop", "rotate", "text"] {
+            let list = execute(&doc, "photo__command_list", &json!({ "filter": f })).unwrap();
+            let v: Value = serde_json::from_str(&list.text).unwrap_or_else(|_| panic!("{}", &list.text[..list.text.len().min(300)]));
+            for c in v.as_array().unwrap() {
+                found.push(format!("{}  {}  {}", c["id"].as_str().unwrap_or(""), c["label"].as_str().unwrap_or(""), c["params"].as_str().unwrap_or("")));
+            }
+        }
+        if let Ok(o) = std::env::var("PHOTO_IDS") {
+            std::fs::write(o, found.join("\n")).unwrap();
+        }
+        assert!(found.len() > 10);
+        // più chiara e grande la metà, in un colpo
+        let o = execute(
+            &doc,
+            "photo__command_batch",
+            &json!({ "steps": [
+                { "id": "image.adjustments.brightnessContrast", "params": { "brightness": 60 } },
+                { "id": "image.imageSize", "params": { "width": 200 } }
+            ] }),
+        )
+        .unwrap();
+        assert!(!o.text.starts_with("ERRORE"), "{}", o.text);
+        let n = o.edit.expect("la foto è cambiata");
+        assert_eq!(crate::rasign::dimensions(&doc.file), Some((200, 150)));
+        let back = photocraft_codecs::decode(&std::fs::read(&doc.file).unwrap()).unwrap();
+        assert!(std::fs::read(&doc.file).unwrap().starts_with(&[0xFF, 0xD8]), "resta un JPEG");
+        assert!(!doc.dir.join("salvataggio-ai.jpg").exists());
+        let corner = back.to_rgba8()[0];
+        assert!(corner > 150, "più chiara: {corner}");
+        // guardare non cambia niente
+        let look = execute(&doc, "photo__doc_render_preview", &json!({ "max_side": 256 })).unwrap();
+        assert_eq!(look.images.len(), 1);
+        assert!(look.edit.is_none());
+        // un comando di file non passa
+        let bad = execute(&doc, "photo__command_run", &json!({ "id": "file.saveAs", "params": { "path": "/tmp/x.png" } })).unwrap();
+        assert!(bad.text.starts_with("ERRORE"), "{}", bad.text);
+        // Annulla: com'era
+        undo(&doc.dir, n).unwrap();
+        assert_eq!(crate::rasign::dimensions(&doc.file), Some((400, 300)));
+    }
 
     fn chart() -> String {
         let spec = json!({

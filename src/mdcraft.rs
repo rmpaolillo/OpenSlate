@@ -28,6 +28,57 @@ const COLUMN_PT: f32 = 595.3 - MARGIN.2 - MARGIN.3;
 const TEXT_PT: f32 = 12.0;
 const MATH_PT: f32 = 14.5;
 
+/// La scrittura degli appunti: stampata (Source Serif e Inter) o a mano,
+/// con le lettere della lavagna (vedi `handwrite`, `packaging/hand_fonts.py`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Hand {
+    Stampato,
+    Corsivo,
+    Stampatello,
+}
+
+impl Hand {
+    /// Da `note_hand` in settings.conf.
+    pub fn parse(s: &str) -> Hand {
+        match s.trim().to_lowercase().as_str() {
+            "corsivo" => Hand::Corsivo,
+            "stampatello" => Hand::Stampatello,
+            _ => Hand::Stampato,
+        }
+    }
+
+    pub fn key(self) -> &'static str {
+        match self {
+            Hand::Stampato => "",
+            Hand::Corsivo => "corsivo",
+            Hand::Stampatello => "stampatello",
+        }
+    }
+
+    /// Carattere del testo e dei titoli.
+    fn fonts(self) -> (&'static str, &'static str) {
+        match self {
+            Hand::Stampato => ("Source Serif 4", "Inter"),
+            Hand::Corsivo => ("OpenSlate Corsivo", "OpenSlate Corsivo"),
+            Hand::Stampatello => ("OpenSlate Stampatello", "OpenSlate Stampatello"),
+        }
+    }
+
+    /// I file dei caratteri a mano (normale e grassetto), per Word.
+    pub fn files(self) -> Option<(&'static str, &'static [u8], &'static [u8])> {
+        match self {
+            Hand::Stampato => None,
+            Hand::Corsivo => Some(("OpenSlate Corsivo", CORSIVO, CORSIVO_BOLD)),
+            Hand::Stampatello => Some(("OpenSlate Stampatello", STAMPATELLO, STAMPATELLO_BOLD)),
+        }
+    }
+}
+
+const CORSIVO: &[u8] = include_bytes!("../assets/fonts/OpenSlateCorsivo-Regular.ttf");
+const CORSIVO_BOLD: &[u8] = include_bytes!("../assets/fonts/OpenSlateCorsivo-Bold.ttf");
+const STAMPATELLO: &[u8] = include_bytes!("../assets/fonts/OpenSlateStampatello-Regular.ttf");
+const STAMPATELLO_BOLD: &[u8] = include_bytes!("../assets/fonts/OpenSlateStampatello-Bold.ttf");
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Piece {
     Math { latex: String, display: bool },
@@ -108,7 +159,7 @@ fn local(base: &Path, src: &str) -> Option<PathBuf> {
 ///   percorsi relativi, così il file si apre uguale in Typora o altrove);
 /// - `.docx` e `.pdf`: impaginati da WordCraft con l'aspetto degli appunti,
 ///   formule comprese (come si vedono nell'app).
-pub fn export_note(src: &Path, dst: &Path) -> anyhow::Result<()> {
+pub fn export_note(src: &Path, dst: &Path, hand: Hand) -> anyhow::Result<()> {
     use anyhow::{anyhow, bail, Context};
     let ext = dst.extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
     match ext.as_str() {
@@ -140,13 +191,18 @@ pub fn export_note(src: &Path, dst: &Path) -> anyhow::Result<()> {
             }
         }
         "docx" => {
-            let mut s = crate::wordsign::open(src)?;
+            let mut s = crate::wordsign::open_with(src, hand)?;
             s.run("file.save", &json!({ "path": dst.to_string_lossy() })).map_err(|e| anyhow!("WordCraft, Word: {e}"))?;
             if !dst.exists() {
                 bail!("WordCraft non ha scritto {}", dst.display());
             }
+            // la scrittura a mano va dentro il file: Word la mostra anche dove
+            // il carattere non è installato
+            if let Some((name, regular, bold)) = hand.files() {
+                crate::docxfonts::embed(dst, name, regular, bold).context("caratteri a mano nel Word")?;
+            }
         }
-        "pdf" => crate::wordsign::to_pdf(src, dst)?,
+        "pdf" => crate::wordsign::to_pdf_with(src, dst, hand)?,
         _ => bail!("formato non previsto: .{ext}"),
     }
     Ok(())
@@ -417,6 +473,10 @@ fn fonts() {
             include_bytes!("../assets/fonts/SourceSerif4-Bold.ttf"),
             include_bytes!("../assets/fonts/Inter-Regular.ttf"),
             include_bytes!("../assets/fonts/Inter-SemiBold.ttf"),
+            CORSIVO,
+            CORSIVO_BOLD,
+            STAMPATELLO,
+            STAMPATELLO_BOLD,
         ] {
             db.add_font(data.to_vec());
         }
@@ -427,20 +487,27 @@ fn fonts() {
 /// Inter quasi neri, paragrafi ariosi, tabelle strette con i bordi grigi e
 /// l'intestazione in grassetto.
 pub fn style(s: &mut Session) {
+    style_with(s, Hand::Stampato)
+}
+
+/// Come `style`, con la scrittura scelta (a mano: testo e titoli).
+pub fn style_with(s: &mut Session, hand: Hand) {
     fonts();
+    let (text_font, head_font) = hand.fonts();
     let _ = s.run("layout.size", &json!({ "name": "A4" }));
     let (t, b, l, r) = MARGIN;
     let _ = s.run("layout.margins", &json!({ "top": t, "bottom": b, "left": l, "right": r }));
     if let Ok(mut v) = serde_json::to_value(&s.doc.styles) {
-        v["defaultChr"]["font"] = json!("Source Serif 4");
-        v["defaultChr"]["size"] = json!(TEXT_PT);
+        v["defaultChr"]["font"] = json!(text_font);
+        // il corsivo ha le minuscole piccole: un punto in più
+        v["defaultChr"]["size"] = json!(if hand == Hand::Corsivo { TEXT_PT + 1.5 } else { TEXT_PT });
         v["defaultPara"]["lineSpacing"] = json!({ "rule": "multiple", "value": 1.3 });
         v["defaultPara"]["spaceAfter"] = json!(10.0);
         let ink = json!({ "Rgb": [26, 26, 26] });
         if let Some(list) = v["styles"].as_array_mut() {
             for st in list {
                 let id = st["id"].as_str().unwrap_or("").to_string();
-                let heading = |size: f32, before: f32| json!({ "font": "Inter", "bold": true, "color": ink, "size": size, "italic": false, "_b": before });
+                let heading = |size: f32, before: f32| json!({ "font": head_font, "bold": true, "color": ink, "size": size, "italic": false, "_b": before });
                 let h = match id.as_str() {
                     "Title" | "Heading1" => Some(heading(19.5, 14.0)),
                     "Heading2" => Some(heading(15.75, 12.0)),
@@ -556,14 +623,44 @@ mod tests {
         std::fs::write(src.join("a-fig1.svg"), r#"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="red"/></svg>"#).unwrap();
         let note = src.join("a.md");
         std::fs::write(&note, "# Sistema\n\n$$\\begin{cases} x-1=0 \\\\ y+x=1 \\end{cases}$$\n\nLa soluzione è $x=1$.\n\n<img src=\"a-fig1.svg\" width=\"50%\">\n").unwrap();
-        export_note(&note, &out.join("a.md")).unwrap();
+        export_note(&note, &out.join("a.md"), Hand::Stampato).unwrap();
         assert!(out.join("a-fig1.svg").is_file(), "la figura va accanto al .md");
-        export_note(&note, &out.join("a.docx")).unwrap();
+        export_note(&note, &out.join("a.docx"), Hand::Stampato).unwrap();
         let docx = std::fs::read(out.join("a.docx")).unwrap();
         assert!(docx.starts_with(b"PK") && docx.len() > 2000);
-        export_note(&note, &out.join("a.pdf")).unwrap();
+        export_note(&note, &out.join("a.pdf"), Hand::Stampato).unwrap();
         assert!(std::fs::read(out.join("a.pdf")).unwrap().starts_with(b"%PDF"));
-        assert!(export_note(&note, &out.join("a.xyz")).is_err());
+        assert!(export_note(&note, &out.join("a.xyz"), Hand::Stampato).is_err());
+        let _ = std::fs::remove_dir_all(&t);
+    }
+
+    /// L'appunto a mano: in Word i caratteri vanno dentro il file (WordCraft
+    /// li ritrova riaprendolo), nel PDF ci sono. Le pagine in $HAND_OUT se c'è.
+    #[test]
+    fn appunto_a_mano() {
+        let t = std::env::temp_dir().join(format!("openslate-mano-{}", std::process::id()));
+        let (src, out) = (t.join("exports"), t.join("fuori"));
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::create_dir_all(&out).unwrap();
+        let note = src.join("m.md");
+        std::fs::write(&note, "# Lista della spesa\n\nPane, latte e **mele rosse**. Perché costa 12 €?\n\n## Conti\n\nIl totale è $12 + 7 = 19$.\n").unwrap();
+        for hand in [Hand::Corsivo, Hand::Stampatello] {
+            let docx = out.join(format!("m-{}.docx", hand.key()));
+            export_note(&note, &docx, hand).unwrap();
+            let s = crate::wordsign::open(&docx).unwrap();
+            let fonts = wordcraft_docx::embedded_fonts(&s.doc);
+            let (name, _, _) = hand.files().unwrap();
+            assert_eq!(fonts.iter().filter(|f| f.name == name).count(), 2, "normale e grassetto dentro il Word");
+            assert!(fonts.iter().any(|f| f.data.starts_with(&[0, 1, 0, 0])), "si leggono come TrueType");
+            let pdf = out.join(format!("m-{}.pdf", hand.key()));
+            export_note(&note, &pdf, hand).unwrap();
+            let bytes = std::fs::read(&pdf).unwrap();
+            let ps = format!("OpenSlate{}", if hand == Hand::Corsivo { "Corsivo" } else { "Stampatello" });
+            assert!(bytes.windows(ps.len()).any(|w| w == ps.as_bytes()), "il carattere a mano è nel PDF");
+            if let Ok(o) = std::env::var("HAND_OUT") {
+                crate::docimport::render_pages(&pdf, std::path::Path::new(&o).join(hand.key()).as_path(), 900).unwrap();
+            }
+        }
         let _ = std::fs::remove_dir_all(&t);
     }
 

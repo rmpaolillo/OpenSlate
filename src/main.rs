@@ -18,6 +18,7 @@ mod device;
 mod docimport;
 mod docrender;
 mod docagent;
+mod docxfonts;
 mod document;
 mod export;
 mod figures;

@@ -67,7 +67,10 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   included, into a Markdown note: headings, lists, checkboxes, tables, and formulas in LaTeX when
   there are any. Drawings, graphs and diagrams are redrawn from your actual pen strokes as crisp
   SVG figures next to the note. The note opens inside the app as an editable, Typora-like page,
-  and **Export** saves it as Markdown (figures alongside), Word or PDF.
+  and **Export** saves it as Markdown (figures alongside), Word or PDF. **Writing** shows the
+  notes printed or by hand, in cursive or block letters with the same letters the AI chat writes
+  on the board; the handwriting goes into the Word file (embedded, so it shows on any computer)
+  and the PDF too.
 - **AI assistant, for anything.** The chat sits next to the page and can see the board, the
   open document or the note. Use it to summarise, rewrite neatly, pull out to-dos, draft texts,
   check what you wrote for mistakes, answer questions, write into the note, search the web and
@@ -81,7 +84,8 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   [Lilaq](https://lilaq.org): functions, points, lines, bars, parametric curves. With a document
   attached to the chat, it can also read and **edit it**, and put the chart into it, through the
   MCP servers of the Craft suite running inside the app: WordCraft for Word, PdfCraft for PDF,
-  VectorCraft for SVG (plus text tools for Markdown). Every change shows at once in the document
+  VectorCraft for SVG, PhotoCraft for photos (crop, resize, rotate, brightness, levels, curves,
+  black and white, sharpen… the image keeps its format) plus text tools for Markdown. Every change shows at once in the document
   next to the chat and can be undone from the chat with one click; the original file on disk is
   never touched. In a transcription note the chart can replace the hand-drawn figure; on the board sheet it replaces the hand-drawn graph (found automatically: axes and labels) or goes under the writing. SVG written by the model in a reply is shown as a picture.
 - **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
@@ -312,6 +316,7 @@ src/web.rs, src/web/*                                     web live view, chat an
 src/wordsign.rs, src/vecsign.rs, src/rasign.rs            signing Word (WordCraft), SVG (VectorCraft), photos (PhotoCraft)
 src/update.rs, src/selfupdate.rs                          update check (GitHub releases) and in-app install
 src/mdcraft.rs, src/mathtex.rs                           Markdown documents: Notes look, formulas drawn by Typst (MiTeX)
+src/docxfonts.rs, packaging/hand_fonts.py                 handwriting fonts for the notes (made from src/handwrite.rs), embedded in Word
 src/charts.rs, src/typstworld.rs, src/typst-pkg/          chat charts (Typst + Lilaq), Typst packages bundled in the app
 src/docagent.rs, src/boardagent.rs, src/mcpclient.rs      chat edits documents (Craft MCP servers), notes and the board sheet; external MCP servers
 src/boardread.rs, src/boardmarks.rs, src/handwrite.rs     the chat reads the board (lines, words) and marks it; handwriting from Hershey fonts
@@ -376,8 +381,9 @@ OpenSlate would not exist without these projects and their authors:
     the ink, and draws and writes the board and library exports (PDF, SVG, PNG);
   - **[PhotoCraft](https://github.com/storytold/photocraft)**: reads and writes photos (PNG, JPEG,
     WebP, TIFF…) keeping colour profile and size, and paints the ink on them;
-  - **their MCP servers** (`wordcraft-mcp`, `pdfcraft-automation`, `vectorcraft-mcp`), run inside
-    the app so the AI chat can read and edit the Word, PDF or SVG document next to it;
+  - **their MCP servers** (`wordcraft-mcp`, `pdfcraft-automation`, `vectorcraft-mcp`,
+    `photocraft-automation`), run inside the app so the AI chat can read and edit the Word, PDF,
+    SVG document or photo next to it;
   - patched libraries from [craft-libs](https://github.com/storytold/craft-libs);
   - [craft-launcher](https://github.com/storytold/craft-launcher): the design of the in-app
     updates and of the macOS signing (ideas only, no code copied).
@@ -414,7 +420,8 @@ OpenSlate would not exist without these projects and their authors:
   National Bureau of Standards; `.jhf` format by James Hurt, Cognition Inc.; files from
   [hershey-fonts](https://github.com/kamalmostafa/hershey-fonts) by Kamal Mostafa): the
   single-line letters the chat writes with on the board (`src/handwrite/`, free licence with
-  acknowledgement).
+  acknowledgement), and turned into the **OpenSlate Corsivo** and **OpenSlate Stampatello** fonts
+  of the handwritten notes (`assets/fonts/OpenSlate*.ttf`).
 - **[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)**: inspiration for the
   chat (ideas only, no code copied).
 - Written with **[Claude](https://claude.ai)** by Anthropic as an AI pair programmer.

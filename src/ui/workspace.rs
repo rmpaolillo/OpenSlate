@@ -587,6 +587,26 @@ impl App {
                     actions.push(Action::NoteExport("pdf"));
                 }
             });
+            // la scrittura: stampata, o a mano con le lettere della lavagna (anche in Word e PDF)
+            let cur = crate::mdcraft::Hand::parse(&self.settings.note_hand);
+            let r = big_ex(
+                ui,
+                ic::PEN_NIB,
+                "Scrittura",
+                "Stampata, oppure a mano (corsivo o stampatello) come sulla lavagna: anche in Word e PDF",
+                true,
+                cur != crate::mdcraft::Hand::Stampato,
+                true,
+            );
+            egui::Popup::menu(&r).show(|ui| {
+                use crate::mdcraft::Hand;
+                let radio = |h: Hand| if h == cur { ic::RADIO_BUTTON } else { ic::CIRCLE };
+                for (h, label) in [(Hand::Stampato, "Stampata"), (Hand::Corsivo, "A mano: corsivo"), (Hand::Stampatello, "A mano: stampatello")] {
+                    if super::chrome::menu_item(ui, true, radio(h), label, "") {
+                        actions.push(Action::NoteHand(h.key()));
+                    }
+                }
+            });
             column(ui, |ui| {
                 if small(ui, ic::COPY, "Copia Markdown", "Per un'altra chat AI o per Typora").clicked() {
                     actions.push(n("copy"));

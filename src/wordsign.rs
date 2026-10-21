@@ -28,6 +28,11 @@ pub fn is_text(path: &Path) -> bool {
 /// Un Markdown porta con sé le formule LaTeX e le figure: diventano equazioni
 /// e immagini di WordCraft (vedi `mdcraft`).
 pub fn open(path: &Path) -> Result<Session> {
+    open_with(path, crate::mdcraft::Hand::Stampato)
+}
+
+/// Come `open`; un Markdown con la scrittura `hand` (gli appunti a mano).
+pub fn open_with(path: &Path, hand: crate::mdcraft::Hand) -> Result<Session> {
     let mut bytes = std::fs::read(path).map_err(|e| anyhow!("{}: {e}", path.display()))?;
     let markdown = crate::mdcraft::is_markdown(path);
     let mut pieces = Vec::new();
@@ -44,7 +49,7 @@ pub fn open(path: &Path) -> Result<Session> {
     )
     .map_err(|e| anyhow!("WordCraft non apre il documento: {e}"))?;
     if markdown {
-        crate::mdcraft::style(&mut s);
+        crate::mdcraft::style_with(&mut s, hand);
         crate::mdcraft::place(&mut s, &pieces);
     }
     Ok(s)
@@ -52,7 +57,12 @@ pub fn open(path: &Path) -> Result<Session> {
 
 /// Il documento come PDF, impaginato da WordCraft (per le pagine della lavagna).
 pub fn to_pdf(input: &Path, out: &Path) -> Result<()> {
-    let mut s = open(input)?;
+    to_pdf_with(input, out, crate::mdcraft::Hand::Stampato)
+}
+
+/// Come `to_pdf`, con la scrittura degli appunti per un Markdown.
+pub fn to_pdf_with(input: &Path, out: &Path, hand: crate::mdcraft::Hand) -> Result<()> {
+    let mut s = open_with(input, hand)?;
     s.run("file.exportPdf", &json!({ "path": out.to_string_lossy() })).map_err(|e| anyhow!("WordCraft, PDF: {e}"))?;
     if !out.exists() {
         bail!("WordCraft non ha scritto il PDF");

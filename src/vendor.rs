@@ -14,6 +14,10 @@ pub const FILES: &[(&str, &str, &[u8])] = &[
     ("inter/Inter-SemiBold.ttf", "font/ttf", include_bytes!("../assets/fonts/Inter-SemiBold.ttf")),
     // Source Serif 4 (SIL OFL 1.1, assets/fonts/OFL-SourceSerif4.txt): il testo degli appunti, come un documento
     ("serif/SourceSerif4-Regular.ttf", "font/ttf", include_bytes!("../assets/fonts/SourceSerif4-Regular.ttf")),
+    ("hand/OpenSlateCorsivo-Regular.ttf", "font/ttf", include_bytes!("../assets/fonts/OpenSlateCorsivo-Regular.ttf")),
+    ("hand/OpenSlateCorsivo-Bold.ttf", "font/ttf", include_bytes!("../assets/fonts/OpenSlateCorsivo-Bold.ttf")),
+    ("hand/OpenSlateStampatello-Regular.ttf", "font/ttf", include_bytes!("../assets/fonts/OpenSlateStampatello-Regular.ttf")),
+    ("hand/OpenSlateStampatello-Bold.ttf", "font/ttf", include_bytes!("../assets/fonts/OpenSlateStampatello-Bold.ttf")),
     ("serif/SourceSerif4-It.ttf", "font/ttf", include_bytes!("../assets/fonts/SourceSerif4-It.ttf")),
     ("serif/SourceSerif4-Bold.ttf", "font/ttf", include_bytes!("../assets/fonts/SourceSerif4-Bold.ttf")),
     ("fonts/KaTeX_AMS-Regular.woff2", "font/woff2", include_bytes!("web/vendor/fonts/KaTeX_AMS-Regular.woff2")),

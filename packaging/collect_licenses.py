@@ -107,6 +107,7 @@ def main():
         ("marked (src/web/vendor)", "src/web/vendor/LICENSE-marked.md"),
         ("DOMPurify (src/web/vendor)", "src/web/vendor/LICENSE-dompurify"),
         ("Hershey fonts (src/handwrite)", "src/handwrite/LICENSE-hershey.txt"),
+        ("OpenSlate Corsivo / Stampatello (assets/fonts)", "assets/fonts/LICENSE-OpenSlateHand.txt"),
     ]
     pkg_root = os.path.join(ROOT, "src", "typst-pkg")
     for dirpath, _dirs, files in os.walk(pkg_root):

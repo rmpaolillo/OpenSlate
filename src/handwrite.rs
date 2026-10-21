@@ -244,6 +244,29 @@ fn glyph(f: &Font, c: char) -> Option<Glyph> {
     Some(g)
 }
 
+/// Tutti i caratteri che so scrivere a mano, coi loro tratti (unità di
+/// Hershey: y verso il basso, la riga di base a 9, le maiuscole da -12):
+/// servono a fare i caratteri `.ttf` degli appunti
+/// (`packaging/hand_fonts.py`), così lettere e accenti sono gli stessi.
+pub fn all_glyphs(style: Style) -> Vec<(char, f32, f32, Vec<Vec<(f32, f32)>>)> {
+    let f = font(style);
+    let mut chars: Vec<char> = (32u8..127).map(char::from).collect();
+    chars.extend("àáâäãåèéêëìíîïòóôöõùúûüñçÿÀÁÂÄÃÅÈÉÊËÌÍÎÏÒÓÔÖÕÙÚÛÜÑÇ".chars());
+    chars.extend("×÷±≠≈≤≥→←↑↓⇒°·•€✓✗".chars());
+    chars.extend("⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎".chars());
+    let mut out: Vec<(char, f32, f32, Vec<Vec<(f32, f32)>>)> =
+        chars.into_iter().filter_map(|c| glyph(f, c).map(|g| (c, g.left, g.right, g.strokes))).collect();
+    // virgolette, trattini, ß…: come i caratteri semplici (una lettera sola)
+    for c in "’‘“”«»–—−ʼ\u{a0}".chars() {
+        if let Some(p) = plain(c).filter(|p| p.chars().count() == 1) {
+            if let Some(g) = glyph(f, p.chars().next().unwrap()) {
+                out.push((c, g.left, g.right, g.strokes));
+            }
+        }
+    }
+    out
+}
+
 /// Testo disposto sulla pagina.
 pub struct Laid {
     /// I tratti, in unità della pagina (u, v: 0..1 di larghezza e altezza).
@@ -355,6 +378,21 @@ pub fn layout(text: &str, style: Style, cap: f32, aspect: f32, origin: (f32, f32
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// I tratti di tutti i caratteri, per `packaging/hand_fonts.py`:
+    /// HAND_OUT=cartella cargo test -- --ignored glifi_per_i_caratteri
+    #[test]
+    #[ignore]
+    fn glifi_per_i_caratteri() {
+        let out = std::path::PathBuf::from(std::env::var("HAND_OUT").unwrap_or_else(|_| ".".into()));
+        for (style, name) in [(Style::Stampatello, "stampatello"), (Style::Corsivo, "corsivo")] {
+            let v: Vec<serde_json::Value> = all_glyphs(style)
+                .into_iter()
+                .map(|(c, l, r, s)| serde_json::json!({ "c": c.to_string(), "l": l, "r": r, "s": s }))
+                .collect();
+            std::fs::write(out.join(format!("glifi-{name}.json")), serde_json::to_string(&v).unwrap()).unwrap();
+        }
+    }
 
     #[test]
     fn scrive_a_mano() {

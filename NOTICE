@@ -50,7 +50,8 @@ Third-party material
   zero and tiptoe (Mc-Zen, MIT), elembic (PgBiel, MIT OR Apache-2.0), suiji (liuguangxi, MIT).
   Bundled unmodified in src/typst-pkg/ with their licence files; they draw the AI chat's charts.
 
-- The MCP servers of the Craft suite (wordcraft-mcp, pdfcraft-automation, vectorcraft-mcp;
+- The MCP servers of the Craft suite (wordcraft-mcp, pdfcraft-automation, vectorcraft-mcp,
+  photocraft-automation;
   ArtCraft Team, MIT OR Apache-2.0) run in-process, unmodified, so the AI chat can read and edit
   the document open next to it.
 
@@ -92,6 +93,9 @@ Third-party material
     James Hurt, Cognition, Inc., 900 Technology Park Drive, Billerica, MA 01821
     (mit-eddie!ci-dandelion!hurt).
   Full terms in src/handwrite/LICENSE-hershey.txt. Unmodified.
+  The fonts OpenSlate Corsivo and OpenSlate Stampatello (assets/fonts/OpenSlate*.ttf) are made
+  from these glyphs by packaging/hand_fonts.py (strokes widened into outlines, accents composed);
+  same licence and acknowledgements (assets/fonts/LICENSE-OpenSlateHand.txt).
 
 The full licence texts of all components are in THIRD-PARTY-LICENSES.txt in the release
 packages (packaging/collect_licenses.py).

@@ -161,6 +161,7 @@ pub fn label(name: &str, args: &Value) -> String {
             Some(("word", t)) => format!("WordCraft: {t}"),
             Some(("pdf", t)) => format!("PdfCraft: {t}"),
             Some(("svg", t)) => format!("VectorCraft: {t}"),
+            Some(("photo", t)) => format!("PhotoCraft: {t}"),
             Some((server, t)) => format!("{}: {t}", crate::mcpclient::server_of(other).unwrap_or_else(|| server.to_string())),
             None => format!("Strumento {other}"),
         },
