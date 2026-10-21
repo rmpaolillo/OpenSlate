@@ -90,18 +90,31 @@ pub fn find_drawing(boxes: &[Option<[f32; 4]>]) -> Option<([f32; 4], Vec<usize>)
         let area = |r: [f32; 4]| (r[2] - r[0]) * (r[3] - r[1]);
         area(a.0).total_cmp(&area(b.0))
     })?;
-    // le scritte corte dentro o appena fuori (etichette degli assi, dei punti)
+    // le scritte corte dentro o appena fuori (etichette degli assi, dei
+    // punti): a parole intere (tratti vicini fra loro), e solo le parole che
+    // stanno tutte nella zona; una parola che esce («Giusto?» accanto al
+    // disegno) resta com'è, tutta
     let pad = 0.06;
     let outer = [zone[0] - pad, zone[1] - pad, zone[2] + pad, zone[3] + pad];
-    for (i, b) in boxes.iter().enumerate() {
-        let Some(b) = b else { continue };
-        if members.contains(&i) || b[2] - b[0] > LONG || b[3] - b[1] > LONG {
-            continue;
+    let short: Vec<usize> =
+        (0..boxes.len()).filter(|&i| !members.contains(&i) && boxes[i].is_some_and(|b| b[2] - b[0] <= LONG && b[3] - b[1] <= LONG)).collect();
+    let close = |a: [f32; 4], b: [f32; 4]| a[0] - 0.012 <= b[2] && b[0] - 0.012 <= a[2] && a[1] - 0.008 <= b[3] && b[1] - 0.008 <= a[3];
+    let mut words: Vec<([f32; 4], Vec<usize>)> = Vec::new();
+    for &i in &short {
+        let b = boxes[i].unwrap();
+        let hits: Vec<usize> = (0..words.len()).filter(|&w| close(words[w].0, b)).collect();
+        let mut w = (b, vec![i]);
+        for &h in hits.iter().rev() {
+            let (wb, wi) = words.remove(h);
+            w.0 = union(w.0, wb);
+            w.1.extend(wi);
         }
-        let (cx, cy) = ((b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0);
-        if cx >= outer[0] && cx <= outer[2] && cy >= outer[1] && cy <= outer[3] {
-            members.push(i);
-            zone = union(zone, *b);
+        words.push(w);
+    }
+    for (wb, wi) in words {
+        if wb[0] >= outer[0] && wb[2] <= outer[2] && wb[1] >= outer[1] && wb[3] <= outer[3] {
+            members.extend(wi);
+            zone = union(zone, wb);
         }
     }
     Some((zone, members))
@@ -130,7 +143,8 @@ fn insert(args: &Value) -> Result<(String, u64)> {
     let hub = HUB.get().context("lavagna non disponibile")?;
     let id = args["grafico"].as_str().or(args["image"].as_str()).context("manca «grafico» (l'id di draw_chart)")?;
     let chart = crate::charts::find(id).with_context(|| format!("non trovo il grafico «{id}»: fallo prima con draw_chart"))?;
-    let png = Arc::new(std::fs::read(&chart.png)?);
+    // il bianco del grafico diventa trasparente: sotto si vedono righe e quadretti
+    let png = Arc::new(white_to_alpha(&std::fs::read(&chart.png)?)?);
     let replace = args["al_posto_del_disegno"].as_bool().unwrap_or(true);
     let given: Option<[f32; 4]> = args["riquadro"].as_array().and_then(|a| {
         let n: Vec<f32> = a.iter().filter_map(|v| v.as_f64().map(|x| x as f32)).collect();
@@ -205,6 +219,29 @@ fn insert(args: &Value) -> Result<(String, u64)> {
     ))
 }
 
+/// Il bianco diventa trasparente («colore → alfa»): sul foglio bianco
+/// l'immagine resta identica, sulla carta a righe o a quadretti le righe si
+/// vedono sotto, come se il grafico fosse stampato sul foglio.
+pub fn white_to_alpha(png: &[u8]) -> Result<Vec<u8>> {
+    let mut img = tiny_skia::Pixmap::decode_png(png).map_err(|e| anyhow::anyhow!("PNG: {e}"))?;
+    for px in img.pixels_mut() {
+        let c = px.demultiply();
+        let a0 = c.alpha() as f32 / 255.0;
+        let [r, g, b] = [c.red(), c.green(), c.blue()].map(|v| v as f32 / 255.0);
+        // quanto il colore si allontana dal bianco
+        let a = (1.0 - r).max(1.0 - g).max(1.0 - b);
+        let (nr, ng, nb, na) = if a <= 1e-4 {
+            (0.0, 0.0, 0.0, 0.0)
+        } else {
+            let f = |v: f32| (1.0 - (1.0 - v) / a).clamp(0.0, 1.0);
+            (f(r), f(g), f(b), a * a0)
+        };
+        let q = |v: f32| (v * 255.0).round() as u8;
+        *px = tiny_skia::ColorU8::from_rgba(q(nr), q(ng), q(nb), q(na)).premultiply();
+    }
+    img.encode_png().map_err(|e| anyhow::anyhow!("PNG: {e}"))
+}
+
 /// Due immagini sul foglio in una sola, grande quanto la pagina.
 fn merge(old: &PageBg, new_png: &[u8], rect: [f32; 4], aspect: f32) -> Result<PageBg> {
     use tiny_skia::{Pixmap, PixmapPaint, Transform};
@@ -256,6 +293,10 @@ mod tests {
             b(0.34, 0.28, 0.40, 0.31), // «P(-1,2)»
             b(0.42, 0.45, 0.45, 0.47), // «-1»
             b(0.10, 0.80, 0.16, 0.84), // «Giusto?»
+            // «Giu» fuori e «sto?» appena sotto l'asse: la parola resta intera
+            b(0.20, 0.63, 0.235, 0.66),
+            b(0.24, 0.63, 0.27, 0.66),
+            b(0.275, 0.63, 0.31, 0.66),
         ];
         let (zone, m) = find_drawing(&boxes).unwrap();
         let mut m = m;
@@ -263,6 +304,13 @@ mod tests {
         assert_eq!(m, vec![2, 3, 4, 5]);
         assert!(zone[0] <= 0.30 && zone[2] >= 0.70 && zone[1] <= 0.25 && zone[3] >= 0.60);
         assert!(find_drawing(&[b(0.1, 0.1, 0.12, 0.12)]).is_none());
+        // bianco → trasparente, il nero resta nero e pieno
+        let mut pm = tiny_skia::Pixmap::new(2, 1).unwrap();
+        pm.pixels_mut()[0] = tiny_skia::ColorU8::from_rgba(255, 255, 255, 255).premultiply();
+        pm.pixels_mut()[1] = tiny_skia::ColorU8::from_rgba(0, 0, 0, 255).premultiply();
+        let out = tiny_skia::Pixmap::decode_png(&white_to_alpha(&pm.encode_png().unwrap()).unwrap()).unwrap();
+        assert_eq!(out.pixels()[0].alpha(), 0);
+        assert_eq!(out.pixels()[1].demultiply(), tiny_skia::ColorU8::from_rgba(0, 0, 0, 255));
         let r = fit([0.2, 0.2, 0.8, 0.5], 2.0);
         assert!((r[2] - 0.6).abs() < 1e-6 && (r[3] - 0.3).abs() < 1e-6);
     }

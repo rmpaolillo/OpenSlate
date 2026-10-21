@@ -507,6 +507,9 @@ enum Action {
 /// Immagine sotto i tratti (pagina di un documento).
 pub(super) struct BgImage {
     pub tex: egui::TextureId,
+    /// Un grafico messo dall'AI (trasparente): la carta a righe o a
+    /// quadretti resta sotto. Una pagina di documento la copre.
+    pub paper: bool,
     /// Dove sta sulla pagina (0..1).
     pub rect: [f32; 4],
     /// Le evidenziature sono già fuse nell'immagine (in "moltiplica"), tranne
@@ -541,8 +544,9 @@ fn paint_page(
         painter.rect_filled(page.translate(egui::vec2(0.0, 2.0)).expand(grow), 2.0 + grow, t.page_shadow.gamma_multiply(alpha));
     }
     painter.rect_filled(page, 0.0, egui::Color32::WHITE);
-    // righe o quadretti (unità del pad: 1000 = 1 cm), solo senza documento sotto
-    if let Some((p, margin)) = paper.filter(|_| bg.is_none()) {
+    // righe o quadretti (unità del pad: 1000 = 1 cm), solo senza documento
+    // sotto (sotto un grafico dell'AI sì)
+    if let Some((p, margin)) = paper.filter(|_| bg.as_ref().is_none_or(|b| b.paper)) {
         paper::paint(painter, page, (g.w / 1000.0, g.h / 1000.0), p, margin);
     }
 

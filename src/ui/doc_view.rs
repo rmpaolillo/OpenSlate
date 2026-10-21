@@ -336,9 +336,11 @@ impl App {
         // la parte che si vede, nitida (WordCraft / PdfCraft): con questa le
         // evidenziature si disegnano sopra, trasparenti
         let detail = self.detail_tile(ctx, &bg);
-        if hl.is_empty() || detail.is_some() {
+        // un grafico dell'AI sulla lavagna: carta sotto, evidenziature sopra
+        let chart = bg.key.starts_with("chart:");
+        if hl.is_empty() || detail.is_some() || chart {
             let tex = self.bg_texture(ctx, &bg)?;
-            return Some(super::BgImage { tex, rect: bg.rect, baked: false, keep: None, detail });
+            return Some(super::BgImage { tex, paper: chart, rect: bg.rect, baked: false, keep: None, detail });
         }
         // Firma delle evidenziature: se cambiano, si rifà l'immagine.
         let mut h: u64 = 1469598103934665603;
@@ -360,7 +362,7 @@ impl App {
             }
         }
         if let Some(t) = self.docui.tex.get(&key) {
-            return Some(super::BgImage { tex: t.id(), rect: [0.0, 0.0, 1.0, 1.0], baked: true, keep, detail: None });
+            return Some(super::BgImage { tex: t.id(), paper: false, rect: [0.0, 0.0, 1.0, 1.0], baked: true, keep, detail: None });
         }
         // Non ancora pronta: la prepara in un thread; intanto evidenziature
         // trasparenti disegnate sopra la pagina.
@@ -380,7 +382,7 @@ impl App {
             });
         }
         let tex = self.bg_texture(ctx, &bg)?;
-        Some(super::BgImage { tex, rect: bg.rect, baked: false, keep: None, detail: None })
+        Some(super::BgImage { tex, paper: false, rect: bg.rect, baked: false, keep: None, detail: None })
     }
 
     /// La parte visibile della pagina disegnata alla risoluzione dello
