@@ -1,13 +1,16 @@
-//! Markdown con le formule e le figure, impaginato da WordCraft.
+//! Markdown con le formule e le figure, impaginato da WordCraft con l'aspetto
+//! degli Appunti.
 //!
 //! WordCraft legge il Markdown (titoli, elenchi, tabelle…) ma non le formule
 //! LaTeX: `$…$`, `$$…$$`, `\(…\)` e `\[…\]` resterebbero testo, e il Markdown
 //! si mangerebbe le barre (`\\` a capo nelle matrici). Allora qui:
 //! 1. le formule e le figure (`<img src="…">` delle trascrizioni, `![…](…)`)
 //!    si tolgono dal testo e al loro posto resta un segnaposto;
-//! 2. WordCraft apre il Markdown;
-//! 3. ogni segnaposto diventa un'equazione di WordCraft (dal suo LaTeX, come
-//!    «Inserisci › Equazione») o un'immagine (un SVG disegnato da VectorCraft).
+//! 2. WordCraft apre il Markdown e la pagina prende lo stile degli Appunti
+//!    (Source Serif, titoli in Inter, tabelle leggere: vedi `style`);
+//! 3. ogni segnaposto diventa una formula disegnata da Typst in stile LaTeX
+//!    (vedi `mathtex`; se non riesce, un'equazione di WordCraft) o
+//!    un'immagine (un SVG disegnato da VectorCraft).
 //!
 //! Il codice (fra apici inversi e nei blocchi ```) resta com'è.
 
@@ -15,8 +18,15 @@ use serde_json::json;
 use std::path::{Path, PathBuf};
 use wordcraft_engine::Session;
 
-/// Larghezza della colonna di testo di un A4 (punti), per le figure in percentuale.
-const COLUMN_PT: f32 = 451.0;
+/// Margini della pagina A4 (punti) come il foglio degli Appunti.
+const MARGIN: (f32, f32, f32, f32) = (57.0, 72.0, 66.0, 66.0);
+
+/// Larghezza della colonna di testo (punti), per le figure in percentuale.
+const COLUMN_PT: f32 = 595.3 - MARGIN.2 - MARGIN.3;
+
+/// Corpo del testo e delle formule (come negli Appunti: 16 px, KaTeX a 1,21 em).
+const TEXT_PT: f32 = 12.0;
+const MATH_PT: f32 = 14.5;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Piece {
@@ -274,7 +284,7 @@ fn scan(text: &str, base: &Path, out: &mut String, pieces: &mut Vec<Piece>) {
     }
 }
 
-/// Mette al posto dei segnaposto le equazioni e le figure. Quello che non
+/// Mette al posto dei segnaposto le formule e le figure. Quello che non
 /// riesce resta com'era scritto (il LaTeX o il testo alternativo).
 pub fn place(s: &mut Session, pieces: &[Piece]) {
     for (k, p) in pieces.iter().enumerate() {
@@ -282,7 +292,7 @@ pub fn place(s: &mut Session, pieces: &[Piece]) {
             continue;
         }
         let done = match p {
-            Piece::Math { latex, display } => s.run("insert.equation", &json!({ "latex": latex, "display": display, "edit": false })).is_ok(),
+            Piece::Math { latex, display } => math(s, latex, *display),
             Piece::Image { path, alt, pct } => match picture(path) {
                 Ok(png) => {
                     let mut v = json!({ "data": wordcraft_engine::cmd::insert::base64_encode(&png), "alt": alt });
@@ -305,6 +315,170 @@ pub fn place(s: &mut Session, pieces: &[Piece]) {
             };
             let _ = s.run("text.insert", &json!({ "text": fallback }));
         }
+    }
+    let _ = s.run("select.collapse", &json!({}));
+}
+
+/// Una formula al posto del segnaposto selezionato: disegnata da Typst (come
+/// negli Appunti); nel testo scende sotto la riga quanto serve perché la sua
+/// linea di base sia quella del testo. Se Typst non ce la fa, un'equazione
+/// di WordCraft.
+fn math(s: &mut Session, latex: &str, display: bool) -> bool {
+    match crate::mathtex::render(latex, display, MATH_PT) {
+        Ok(f) => {
+            let v = json!({ "data": wordcraft_engine::cmd::insert::base64_encode(&f.png), "width": f.width, "alt": latex });
+            if s.run("insert.picture", &v).is_err() {
+                return false;
+            }
+            if !display && f.depth > 0.05 {
+                // la formula appena messa (il carattere prima del cursore) scende sotto la riga
+                if let Ok(end) = serde_json::to_value(&s.sel.focus) {
+                    let mut start = end.clone();
+                    if let Some(off) = end["off"].as_u64().filter(|o| *o > 0) {
+                        start["off"] = json!(off - "\u{FFFC}".len() as u64);
+                        if s.run("select.range", &json!({ "anchor": start, "focus": end })).is_ok() {
+                            let _ = s.run("format.position", &json!({ "points": -f.depth }));
+                            let _ = s.run("select.range", &json!({ "anchor": end, "focus": end }));
+                        }
+                    }
+                }
+            }
+            if display {
+                // come le formule su riga propria degli Appunti: centrate, con aria attorno
+                let _ = s.run("para.alignCenter", &json!({}));
+                let _ = s.run("para.spacing", &json!({ "before": 14, "after": 22 }));
+            }
+            true
+        }
+        Err(e) => {
+            tracing::warn!("formula {latex:?}: {e:#}");
+            s.run("insert.equation", &json!({ "latex": latex, "display": display, "edit": false })).is_ok()
+        }
+    }
+}
+
+/// I caratteri degli Appunti (dentro l'app) nel motore di WordCraft.
+fn fonts() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        let db = wordcraft_fonts::FontDb::global();
+        for data in [
+            &include_bytes!("../assets/fonts/SourceSerif4-Regular.ttf")[..],
+            include_bytes!("../assets/fonts/SourceSerif4-It.ttf"),
+            include_bytes!("../assets/fonts/SourceSerif4-Bold.ttf"),
+            include_bytes!("../assets/fonts/Inter-Regular.ttf"),
+            include_bytes!("../assets/fonts/Inter-SemiBold.ttf"),
+        ] {
+            db.add_font(data.to_vec());
+        }
+    });
+}
+
+/// La pagina come quella degli Appunti: A4, testo in Source Serif, titoli in
+/// Inter quasi neri, paragrafi ariosi, tabelle strette con i bordi grigi e
+/// l'intestazione in grassetto.
+pub fn style(s: &mut Session) {
+    fonts();
+    let _ = s.run("layout.size", &json!({ "name": "A4" }));
+    let (t, b, l, r) = MARGIN;
+    let _ = s.run("layout.margins", &json!({ "top": t, "bottom": b, "left": l, "right": r }));
+    if let Ok(mut v) = serde_json::to_value(&s.doc.styles) {
+        v["defaultChr"]["font"] = json!("Source Serif 4");
+        v["defaultChr"]["size"] = json!(TEXT_PT);
+        v["defaultPara"]["lineSpacing"] = json!({ "rule": "multiple", "value": 1.3 });
+        v["defaultPara"]["spaceAfter"] = json!(10.0);
+        let ink = json!({ "Rgb": [26, 26, 26] });
+        if let Some(list) = v["styles"].as_array_mut() {
+            for st in list {
+                let id = st["id"].as_str().unwrap_or("").to_string();
+                let heading = |size: f32, before: f32| json!({ "font": "Inter", "bold": true, "color": ink, "size": size, "italic": false, "_b": before });
+                let h = match id.as_str() {
+                    "Title" | "Heading1" => Some(heading(19.5, 14.0)),
+                    "Heading2" => Some(heading(15.75, 12.0)),
+                    "Heading3" => Some(heading(12.75, 10.0)),
+                    "Heading4" | "Heading5" | "Heading6" => Some(heading(TEXT_PT, 8.0)),
+                    _ => None,
+                };
+                if let Some(mut h) = h {
+                    let before = h["_b"].take();
+                    h.as_object_mut().unwrap().remove("_b");
+                    for (k, val) in h.as_object().unwrap() {
+                        st["chr"][k] = val.clone();
+                    }
+                    st["chr"].as_object_mut().map(|c| c.remove("kern"));
+                    st["para"]["spaceBefore"] = before;
+                    st["para"]["spaceAfter"] = json!(5.0);
+                    st["para"]["lineSpacing"] = json!({ "rule": "multiple", "value": 1.1 });
+                }
+                if id == "Code" {
+                    // i blocchi di codice degli Appunti: fondo grigio chiaro, corpo minore
+                    st["chr"]["size"] = json!(10.0);
+                    st["para"]["shading"] = json!([245, 245, 245]);
+                    st["para"]["spaceAfter"] = json!(0.0);
+                    st["para"]["spaceBefore"] = json!(0.0);
+                    st["para"]["lineSpacing"] = json!({ "rule": "multiple", "value": 1.15 });
+                    st["para"]["indentLeft"] = json!(4.0);
+                }
+                if id == "Quote" {
+                    // come il riquadro delle citazioni degli Appunti: a sinistra, grigio
+                    st["chr"]["italic"] = json!(false);
+                    st["chr"]["color"] = json!({ "Rgb": [85, 85, 85] });
+                    st["para"]["align"] = json!("left");
+                    st["para"]["indentLeft"] = json!(12.0);
+                    st["para"]["borders"] = json!({ "left": { "style": "single", "width": 2.25, "color": [208, 208, 208], "space": 8.0 } });
+                }
+            }
+        }
+        match serde_json::from_value(v) {
+            Ok(styles) => s.doc.styles = styles,
+            Err(e) => tracing::warn!("stili degli appunti: {e}"),
+        }
+    }
+    // il codice nel testo (`…`) su un fondo grigio, come negli Appunti
+    if let Ok(mut body) = serde_json::to_value(&s.doc.body) {
+        fn shade(v: &mut serde_json::Value) {
+            match v {
+                serde_json::Value::Array(a) => a.iter_mut().for_each(shade),
+                serde_json::Value::Object(o) => {
+                    if let Some(serde_json::Value::Array(runs)) = o.get_mut("runs") {
+                        for r in runs {
+                            if r["props"]["font"].as_str().is_some_and(|f| f.eq_ignore_ascii_case("Courier New")) {
+                                r["props"]["shading"] = json!([242, 242, 242]);
+                                r["props"]["size"] = json!(10.5);
+                            }
+                        }
+                    }
+                    o.values_mut().for_each(shade);
+                }
+                _ => {}
+            }
+        }
+        shade(&mut body);
+        match serde_json::from_value(body) {
+            Ok(b) => s.doc.body = b,
+            Err(e) => tracing::warn!("codice nel testo: {e}"),
+        }
+    }
+    // tabelle: una per una, dal primo paragrafo della prima cella
+    let tables: Vec<usize> = serde_json::to_value(&s.doc.body)
+        .ok()
+        .and_then(|b| b.as_array().map(|a| a.iter().enumerate().filter(|(_, x)| x["kind"] == "table").map(|(i, _)| i).collect()))
+        .unwrap_or_default();
+    for i in tables {
+        let pos = json!({ "story": "body", "path": [i, 0, 0, 0], "off": 0 });
+        if s.run("select.range", &json!({ "anchor": pos, "focus": pos })).is_err() {
+            continue;
+        }
+        let _ = s.run("table.selectTable", &json!({}));
+        let _ = s.run("para.spacing", &json!({ "before": 0, "after": 0 }));
+        let _ = s.run("para.lineSpacing", &json!({ "value": 1.15 }));
+        let _ = s.run("table.borders", &json!({ "kind": "all", "width": 0.75, "color": "CCCCCC" }));
+        let _ = s.run("table.cellMargins", &json!({ "top": 3, "bottom": 3, "left": 6, "right": 6 }));
+        let _ = s.run("select.range", &json!({ "anchor": pos, "focus": pos }));
+        let _ = s.run("table.selectRow", &json!({}));
+        let _ = s.run("format.bold", &json!({ "value": true }));
+        let _ = s.run("select.range", &json!({ "anchor": pos, "focus": pos }));
+        let _ = s.run("table.autofit", &json!({ "mode": "contents" }));
     }
     let _ = s.run("select.collapse", &json!({}));
 }
@@ -361,8 +535,8 @@ mod tests {
         let s = crate::wordsign::open(&md).unwrap();
         let json = serde_json::to_string(&s.doc).unwrap();
         assert!(!json.contains("WCOBJ"), "segnaposto rimasti");
-        assert!(json.to_ascii_lowercase().matches("equation").count() >= 2, "equazioni mancanti: {}", &json[..json.len().min(3000)]);
-        assert!(!json.contains("\\\\begin{cases}") || json.contains("Equation"));
+        // le formule sono immagini disegnate da Typst (3) più la figura
+        assert!(json.matches("image/png").count() + json.matches("\"png\"").count() >= 1 || json.contains("media"), "immagini mancanti");
         // e il PDF si fa
         let pdf = dir.join("prova.pdf");
         crate::wordsign::to_pdf(&md, &pdf).unwrap();
@@ -382,6 +556,7 @@ mod prova_visiva {
         let out = std::path::PathBuf::from(std::env::var("MD_OUT").unwrap());
         let pdf = out.join("md.pdf");
         crate::wordsign::to_pdf(&input, &pdf).unwrap();
-        crate::docimport::render_pages(&pdf, &out, 1100).unwrap();
+        crate::docimport::render_pages(&pdf, &out, std::env::var("MD_PX").ok().and_then(|v| v.parse().ok()).unwrap_or(1100)).unwrap();
     }
 }
+

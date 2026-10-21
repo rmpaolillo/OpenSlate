@@ -68,6 +68,15 @@ photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "8727
 # © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
 vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "bc1ae0825264c5ca4b27bd718d6e04f2121b8bb3" }
 vectorcraft-render = { git = "https://github.com/storytold/vectorcraft", rev = "bc1ae0825264c5ca4b27bd718d6e04f2121b8bb3" }
+# Formule dei Markdown aperti come documento: il LaTeX diventa Typst (MiTeX) e
+# Typst lo disegna in stile LaTeX (Apache-2.0), con i suoi font New Computer Modern.
+typst = "0.15.1"
+typst-render = "0.15.1"
+typst-layout = "0.15.1"
+typst-assets = { version = "0.15.1", features = ["fonts"] }
+mitex = "0.2.4"
+# I font dei documenti Markdown (Source Serif, Inter) registrati nel motore di WordCraft
+wordcraft-fonts = { git = "https://github.com/storytold/wordcraft", rev = "117aea31a8e61bd3e306e9210800cdc42897e3c1" }
 # PDF: il disegno nitido delle pagine col motore di PdfCraft (MIT OR Apache-2.0,
 # © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
 pdfcraft-render = { git = "https://github.com/storytold/pdfcraft", rev = "ec0a965074f376a5bf610435948e4e5184bf3299" }
@@ -90,6 +99,9 @@ gtk = "0.18"
 # Le correzioni a librerie esterne che usano WordCraft e PdfCraft (le loro [patch]
 # valgono solo nei loro progetti: qui vanno ripetute).
 [patch.crates-io]
+# Typst compilato con hayro della suite Craft: vedi vendor/README.md
+typst-render = { path = "vendor/typst-render" }
+typst-svg = { path = "vendor/typst-svg" }
 # krilla e hayro-* da craft-libs (quelli di VectorCraft, che li vuole più nuovi);
 # hayro, lopdf e vello_common da PdfCraft
 krilla = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
@@ -117,3 +129,8 @@ assets = [
     ["assets/icon/openslate-512.png", "usr/share/icons/hicolor/512x512/apps/openslate.png", "644"],
     ["README.md", "usr/share/doc/openslate/README.md", "644"],
 ]
+
+# L'impaginazione di WordCraft con le immagini nel testo spostabili sopra/sotto la riga
+# (per le formule dei Markdown): vedi vendor/README.md
+[patch."https://github.com/storytold/wordcraft"]
+wordcraft-layout = { path = "vendor/wordcraft-layout" }

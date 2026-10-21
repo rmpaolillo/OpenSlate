@@ -18,6 +18,7 @@ mod export;
 mod figures;
 mod i18n;
 mod library;
+mod mathtex;
 mod mdcraft;
 mod live;
 mod ocr;

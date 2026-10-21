@@ -153,8 +153,10 @@ their interfaces and without external programs:
 | Photos (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
 | Board and library exports (PDF, SVG, PNG) | VectorCraft draws and writes them; PNG files are written by PhotoCraft |
 
-Formulas in a Markdown file (`$…$`, `$$…$$`, `\\(…\\)`, `\\[…\\]`) become WordCraft equations and
-the figures next to it (`<img src="…">`, `![…](…)`, SVG drawn by VectorCraft) become pictures.
+A Markdown file opened as a document looks like the Notes page: Source Serif text, Inter
+headings, light tables. Its formulas (`$…$`, `$$…$$`, `\\(…\\)`, `\\[…\\]`) are drawn in LaTeX style by
+[Typst](https://typst.app) (the LaTeX is converted by [MiTeX](https://github.com/mitex-rs/mitex)),
+and the figures next to it (`<img src="…">`, `![…](…)`, SVG drawn by VectorCraft) become pictures.
 A signed Markdown, .txt or .html file is saved as PDF (those formats cannot hold the ink).
 
 ## Updates
@@ -250,7 +252,8 @@ src/ai.rs, chats.rs, tools.rs, ocr.rs                     AI providers, chat, tr
 src/web.rs, src/web/*                                     web live view, chat and notes pages
 src/wordsign.rs, src/vecsign.rs, src/rasign.rs            signing Word (WordCraft), SVG (VectorCraft), photos (PhotoCraft)
 src/update.rs, src/selfupdate.rs                          update check (GitHub releases) and in-app install
-src/mdcraft.rs                                            Markdown formulas and figures for WordCraft
+src/mdcraft.rs, src/mathtex.rs, src/mitex/               Markdown documents: Notes look, formulas drawn by Typst (MiTeX)
+vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

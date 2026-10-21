@@ -44,6 +44,7 @@ pub fn open(path: &Path) -> Result<Session> {
     )
     .map_err(|e| anyhow!("WordCraft non apre il documento: {e}"))?;
     if markdown {
+        crate::mdcraft::style(&mut s);
         crate::mdcraft::place(&mut s, &pieces);
     }
     Ok(s)

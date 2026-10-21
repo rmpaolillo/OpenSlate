@@ -232,7 +232,7 @@ Craft di ArtCraft, senza le loro interfacce e senza programmi esterni:
 | Foto (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
 | Export di lavagna e archivio (PDF, SVG, PNG) | li disegna e scrive VectorCraft; i PNG li scrive PhotoCraft |
 
-Le formule di un Markdown (`$…$`, `$$…$$`, `\\(…\\)`, `\\[…\\]`) diventano equazioni di WordCraft e le figure accanto (`<img src="…">`, `![…](…)`, gli SVG disegnati da VectorCraft) immagini.
+Un Markdown aperto come documento ha l'aspetto degli Appunti: testo in Source Serif, titoli in Inter, tabelle leggere. Le formule (`$…$`, `$$…$$`, `\\(…\\)`, `\\[…\\]`) le disegna [Typst](https://typst.app) in stile LaTeX (il LaTeX lo converte [MiTeX](https://github.com/mitex-rs/mitex)) e le figure accanto (`<img src="…">`, `![…](…)`, gli SVG disegnati da VectorCraft) diventano immagini.
 Un Markdown, .txt o .html firmato si salva in PDF (quei formati non possono tenere l'inchiostro).
 
 Diagnosi: tutti i comandi scambiati col pad finiscono in `captures/gui.log` (o `cli.log`).
@@ -266,7 +266,9 @@ src/ui/library_view.rs  interfaccia: archivio con anteprime
 src/export.rs     PDF / SVG / PNG
 src/update.rs     controllo degli aggiornamenti (ultima release su GitHub)
 src/selfupdate.rs aggiornamento dentro l'app: scarica, controlla le impronte, installa, riavvia
-src/mdcraft.rs    Markdown per WordCraft: formule LaTeX → equazioni, figure → immagini
+src/mdcraft.rs    Markdown per WordCraft con l'aspetto degli Appunti; figure → immagini
+src/mathtex.rs    formule LaTeX disegnate da Typst (via MiTeX; definizioni in src/mitex/)
+vendor/           copie di librerie di Typst e WordCraft con piccole modifiche (vendor/README.md)
 src/rasign.rs     foto (PNG, JPEG…): pagine e firma con le librerie di PhotoCraft
 src/vecsign.rs    SVG: pagine e firma col motore di VectorCraft
 src/i18n.rs       lingue: il testo italiano è la chiave, tabelle in src/i18n/<codice>.json
