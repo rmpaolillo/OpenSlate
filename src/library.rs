@@ -300,6 +300,23 @@ impl Library {
         Ok(id)
     }
 
+    /// Riscrive una pagina che c'è già (tratti e grafico; titolo e data
+    /// restano): la pagina dell'archivio aperta sulla lavagna, salvata di nuovo.
+    pub fn update(&mut self, id: &str, d: &Drawing, chart: Option<&PageBg>) -> std::io::Result<()> {
+        let Some(i) = self.index_of(id) else {
+            return Err(std::io::Error::new(std::io::ErrorKind::NotFound, format!("pagina {id} non trovata")));
+        };
+        let meta = self.entries[i].meta.clone();
+        if chart.is_none() {
+            let _ = std::fs::remove_file(chart_file(&self.dir, id));
+        }
+        self.write(id, d, &meta, chart)?;
+        let e = &mut self.entries[i];
+        e.drawing = d.clone();
+        e.chart = chart.map(|c| PageBg { key: format!("chart:lib-{id}-{}", chrono::Local::now().timestamp_millis()), ..c.clone() });
+        Ok(())
+    }
+
     /// C'è già una pagina del pad con questa data e questo numero di tratti?
     /// (Senza cancellare dal pad si riscarica sempre la stessa pagina.)
     pub fn has_pad_page(&self, created: NaiveDateTime, n_strokes: usize) -> bool {
@@ -546,6 +563,16 @@ mod tests {
         assert!(!chart_file(&dir, &id).exists());
         lib3.restore(std::slice::from_ref(&id)).unwrap();
         assert!(Library::open_in(&dir).get(&id).unwrap().chart.is_some());
+        // riscritta senza grafico e con un tratto in più: titolo e data restano
+        let mut d = drawing();
+        d.strokes.push(d.strokes[0].clone());
+        lib3.update(&id, &d, None).unwrap();
+        let lib4 = Library::open_in(&dir);
+        let e = lib4.get(&id).unwrap();
+        assert_eq!((e.drawing.strokes.len(), e.meta.display_title().as_str(), e.chart.is_none()), (2, "Sistema", true));
+        assert!(!chart_file(&dir, &id).exists());
+        assert_eq!(lib4.entries.len(), 2);
+        assert!(lib3.update("nessuna", &d, None).is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }
 

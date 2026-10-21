@@ -88,6 +88,8 @@ pub enum UiEvent {
     UpdateDone(Result<crate::selfupdate::Ready, String>),
     /// La chat AI ha modificato il documento in questa cartella.
     DocChanged(std::path::PathBuf),
+    /// La chat AI chiede qualcosa all'archivio (vedi `libagent`).
+    ChatLib(crate::libagent::Req, crate::libagent::Reply),
 }
 
 pub async fn ble_actor(

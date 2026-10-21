@@ -1229,8 +1229,15 @@ impl ToolCtx {
             t.note.push_str(&crate::boardagent::system_note());
             // leggere, annotare, controllare: qualche giro in più
             t.rounds = t.rounds.max(10);
-            crate::boardagent::new_turn();
         }
+        // l'archivio delle pagine (nell'app)
+        if crate::libagent::available() {
+            t.defs.extend(crate::libagent::definitions());
+            t.note.push_str(&crate::libagent::system_note());
+            t.rounds = t.rounds.max(10);
+        }
+        // una domanda nuova: le conferme chieste prima ora valgono
+        crate::boardagent::new_turn();
         let (defs, note) = crate::mcpclient::definitions(&cfg.mcp);
         if !defs.is_empty() {
             t.defs.extend(defs);
@@ -1283,6 +1290,9 @@ impl ToolCtx {
                 },
                 Err(e) => plain((format!("ERRORE: {e:#}"), format!("errore: {e:#}"))),
             };
+        }
+        if let Some(o) = crate::libagent::execute(name, args) {
+            return ToolRun { text: o.text, short: o.short, images: o.images, media: Vec::new(), edit: None };
         }
         if let Some(o) = crate::boardagent::execute(name, args) {
             return ToolRun { text: o.text, short: o.short, images: o.images, media: Vec::new(), edit: o.edit.map(|n| ("lavagna".to_string(), n)) };

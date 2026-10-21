@@ -9,6 +9,7 @@
 //!   decodificatore live ──punti──▶ Hub (lavagna condivisa) ◀── UI, server web
 
 mod backstage;
+mod chat_lib;
 mod chrome;
 mod doc_view;
 mod embed;
@@ -123,6 +124,14 @@ pub fn run_app(
         crate::docagent::on_change(move |dir| {
             let _ = tx.send(UiEvent::DocChanged(dir));
         });
+        // e chiede all'archivio (cerca, apri, salva, cestino…)
+        let tx = evt_tx.clone();
+        crate::libagent::set_sink(move |req, reply| {
+            if let Err(e) = tx.send(UiEvent::ChatLib(req, reply)) {
+                let UiEvent::ChatLib(_, reply) = e.0 else { return };
+                let _ = reply.send(Err("l'app si sta chiudendo".into()));
+            }
+        });
     }
     let mut app = App {
         rt: rt.handle().clone(),
@@ -193,6 +202,7 @@ pub fn run_app(
         quit: Default::default(),
         lib,
         lui: library_view::LibUi::new(thumb_size),
+        chat_lib: Vec::new(),
         board_zoom: ZoomView::default(),
         docui: doc_view::DocUi::new(),
     };
@@ -225,6 +235,8 @@ pub fn run_app(
             cc.egui_ctx.set_fonts(theme::fonts());
             // Cmd +/- servono allo zoom della pagina, non dell'interfaccia.
             cc.egui_ctx.options_mut(|o| o.zoom_with_keyboard = false);
+            // la chat sveglia l'interfaccia quando chiede all'archivio
+            crate::libagent::set_waker(cc.egui_ctx.clone());
             #[allow(unused_mut)]
             let mut app = app;
             // macOS: menu dell'app con «Modifica» (Copia/Incolla nelle pagine incorporate)
@@ -414,6 +426,8 @@ struct App {
     quit: quit::Quit,
     lib: Library,
     lui: library_view::LibUi,
+    /// Richieste della chat all'archivio, da fare in questo fotogramma.
+    chat_lib: Vec<(crate::libagent::Req, crate::libagent::Reply)>,
     /// Zoom della lavagna.
     board_zoom: ZoomView,
     /// Documenti importati e firma.
@@ -823,6 +837,7 @@ impl App {
                     self.status = "Foglio modificato dalla chat AI (si può annullare dalla chat).".into();
                 }
                 UiEvent::DocChanged(dir) => self.doc_changed_by_ai(dir),
+                UiEvent::ChatLib(req, reply) => self.chat_lib.push((req, reply)),
                 UiEvent::UpdateDone(r) => {
                     self.update_phase = None;
                     match r {
@@ -2197,6 +2212,7 @@ impl eframe::App for App {
             self.chat_note_sent = None;
         }
         self.drain_events();
+        self.chat_lib_requests(ctx);
         self.doc_tick(ctx);
         self.sync_chat_note();
         if let Some(n) = self.hub.lock().last_erased.take() {

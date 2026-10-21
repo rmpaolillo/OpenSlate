@@ -22,6 +22,7 @@ mod document;
 mod export;
 mod figures;
 mod i18n;
+mod libagent;
 mod library;
 mod mcpclient;
 mod mathtex;

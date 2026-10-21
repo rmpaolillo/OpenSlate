@@ -71,6 +71,35 @@ pub fn new_turn() {
     TURN.fetch_add(1, Ordering::SeqCst);
 }
 
+/// Il sì dell'utente per una cosa grossa (cancellare quasi tutto il foglio,
+/// mettere pagine nel cestino). `sig` dice di che cosa si tratta.
+pub enum Gate {
+    /// Confermato: si fa.
+    Go,
+    /// Da chiedere all'utente: il codice per richiamare dopo il suo sì.
+    Ask(String),
+    /// Il codice è giusto ma è ancora lo stesso giro: l'utente non ha risposto.
+    Wait,
+}
+
+pub fn gate(sig: u64, given: Option<&str>) -> Gate {
+    let turn = TURN.load(Ordering::SeqCst);
+    let given = given.map(|c| c.trim().to_uppercase());
+    let mut p = PENDING.lock().unwrap();
+    match (&given, p.as_ref()) {
+        (Some(c), Some(pd)) if *c == pd.code && pd.sig == sig && pd.turn < turn => {
+            *p = None;
+            Gate::Go
+        }
+        (Some(c), Some(pd)) if *c == pd.code && pd.turn >= turn => Gate::Wait,
+        _ => {
+            let code = confirm_code(sig);
+            *p = Some(Pending { turn, sig, code: code.clone() });
+            Gate::Ask(code)
+        }
+    }
+}
+
 const MARKS: &str = "evidenzia, sottolinea, barra, cerchia, riquadro, freccia, linea, spunta, croce, testo";
 
 pub fn definitions() -> Vec<Value> {
@@ -483,7 +512,7 @@ fn modify(args: &Value) -> Result<(String, Option<u64>)> {
     if list.is_empty() || list.len() > 40 {
         bail!("da 1 a 40 azioni");
     }
-    let code_given = args["conferma"].as_str().map(|c| c.trim().to_uppercase());
+    let code_given = args["conferma"].as_str().map(String::from);
     let res = hub.edit(|s| -> Result<std::result::Result<(Edit, String), String>> {
         if s.bg.as_ref().is_some_and(|b| !b.is_chart()) {
             bail!("al centro c'è la pagina di un documento, non la lavagna");
@@ -596,29 +625,23 @@ fn modify(args: &Value) -> Result<(String, Option<u64>)> {
         let n_ink = s.drawing.strokes.iter().filter(|x| !x.points.is_empty()).count();
         let sig = strokes_sig(&s.drawing.strokes);
         if deleted.len() >= 20 && deleted.len() * 3 >= n_ink {
-            let turn = TURN.load(Ordering::SeqCst);
-            let mut p = PENDING.lock().unwrap();
-            let ok = match (&code_given, p.as_ref()) {
-                (Some(c), Some(pd)) if *c == pd.code && pd.sig == sig && pd.turn < turn => true,
-                (Some(c), Some(pd)) if *c == pd.code && pd.turn >= turn => {
+            match gate(sig, code_given.as_deref()) {
+                Gate::Go => {}
+                Gate::Wait => {
                     *LAST.lock().unwrap() = Some(reading);
                     return Ok(Err("NON FATTO: la conferma la dà l'utente. Chiedigli se va bene e aspetta la sua risposta prima di richiamare.".into()));
                 }
-                _ => false,
-            };
-            if !ok {
-                let code = confirm_code(sig);
-                *p = Some(Pending { turn, sig, code: code.clone() });
-                *LAST.lock().unwrap() = Some(reading);
-                return Ok(Err(format!(
-                    "NON FATTO: cancellerebbe {} tratti su {} ({}). Chiedi all'utente se va bene (potrà comunque annullare); se risponde di sì, \
-                     richiama lavagna_modifica con le stesse azioni e \"conferma\": \"{code}\".",
-                    deleted.len(),
-                    n_ink,
-                    report.join("; ")
-                )));
+                Gate::Ask(code) => {
+                    *LAST.lock().unwrap() = Some(reading);
+                    return Ok(Err(format!(
+                        "NON FATTO: cancellerebbe {} tratti su {} ({}). Chiedi all'utente se va bene (potrà comunque annullare); se risponde di sì, \
+                         richiama lavagna_modifica con le stesse azioni e \"conferma\": \"{code}\".",
+                        deleted.len(),
+                        n_ink,
+                        report.join("; ")
+                    )));
+                }
             }
-            *p = None;
         }
         // dopo uno spostamento: tocca altro scritto?
         let m = 0.1 * reading.char_h;

@@ -93,6 +93,12 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   blue", "move the last line down", "remove my highlights"); on its own it only adds. Clearing
   most of the sheet needs your yes in the chat. Everything it does is ordinary ink (saved,
   exported and erased like yours) and one click in the chat takes it all away again.
+- **The chat knows your library.** "Find the page where I wrote about the October budget",
+  "open yesterday's notes on the board", "save the board as 'Meeting' and start a new page",
+  "export this week's pages as one PDF": it searches titles, dates and the text of the
+  transcriptions, looks at a page, opens it on the board, saves the board (updating the page it
+  came from), renames, exports to your usual export folder (never overwriting) and moves pages to
+  the trash and back. Moving to the trash always waits for your yes in the chat.
 - **Your own MCP servers.** Add any MCP server (stdio) in `ai.toml`, as in Claude Desktop or DSH:
   its tools become available to the chat.
 - **Live on the web.** A share link lets a TV, phone or PC on your home network watch the board
@@ -309,6 +315,7 @@ src/mdcraft.rs, src/mathtex.rs                           Markdown documents: Not
 src/charts.rs, src/typstworld.rs, src/typst-pkg/          chat charts (Typst + Lilaq), Typst packages bundled in the app
 src/docagent.rs, src/boardagent.rs, src/mcpclient.rs      chat edits documents (Craft MCP servers), notes and the board sheet; external MCP servers
 src/boardread.rs, src/boardmarks.rs, src/handwrite.rs     the chat reads the board (lines, words) and marks it; handwriting from Hershey fonts
+src/libagent.rs, src/ui/chat_lib.rs                       the chat on the page library (search, open, save, rename, export, trash)
 vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)

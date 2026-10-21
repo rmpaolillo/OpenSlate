@@ -61,7 +61,7 @@ impl App {
     /// I tratti della lavagna (anche se in questo momento al centro c'è un
     /// documento: allora la lavagna è da parte).
     /// I tratti della lavagna e il grafico dell'AI che c'è sopra.
-    fn board_drawing(&self) -> (Drawing, Option<PageBg>) {
+    pub(super) fn board_drawing(&self) -> (Drawing, Option<PageBg>) {
         let s = self.hub.lock();
         // mentre si registra una firma la lavagna è da parte
         if self.docui.doc.is_none() {
