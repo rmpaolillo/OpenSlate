@@ -275,7 +275,7 @@ if (params.get("theme")) document.documentElement.dataset.theme = params.get("th
 if (params.get("pane") === "1") document.body.classList.add("pane");
 if (embed) document.body.classList.add("embed");
 const log = $("log"), q = $("q");
-let chats = [], cur = null, busy = null, queue = [], noteName = params.get("note") || "";
+let chats = [], cur = null, busy = null, queue = [], noteName = params.get("note") || "", noteBoard = false;
 let cfg = { providers: [], chat: { compact_at: 80, keep_recent: 4 }, default_context: 32768, web_enabled: true };
 let saveTimer = null, ctxSeen = -1;
 const meter = { max: 32768, last: null };
@@ -398,8 +398,8 @@ async function newChat(project) {
   attachOpen();
   q.focus();
 }
-// Una chat nuova (anche dopo aver eliminato tutte le altre) si prende subito
-// il foglio o il documento aperto accanto: la sua scheda c'è da subito.
+// Una chat nuova parte pulita (schede accese, niente della chat di prima) e
+// si prende subito il foglio o il documento aperto ADESSO accanto.
 function attachOpen() { if (embed && cur && !cur.page) toApp({ cmd: "attach_board" }); }
 // Dirama (come il «branch» di DSH): una chat nuova con la conversazione fino a qui.
 async function forkAt(i) {
@@ -665,7 +665,7 @@ function emptyEl() {
   d.innerHTML = "<span class='logo'>" + ic("sparkle") + "</span><h2>Di cosa parliamo?</h2><div class='sub'></div><div class='sugg'></div>";
   d.querySelector(".sub").textContent = cur.page ? "La pagina «" + cur.page.title + "» è allegata: l'agente la vede."
     : embed ? "L'agente vede il foglio aperto (lavagna o documento) quando gli scrivi."
-    : noteName ? "L'agente può leggere e scrivere nell'appunto «" + noteName + "»." : "Scrivi «/» per i comandi, oppure allega il foglio con /pagina.";
+    : noteShown() ? "L'agente può leggere e scrivere nell'appunto «" + noteName + "»." : "Scrivi «/» per i comandi, oppure allega il foglio con /pagina.";
   // domande pronte, per qualsiasi uso: foglio o documento allegato, appunto aperto, oppure niente
   const s = [];
   const att = cur.page;
@@ -678,7 +678,7 @@ function emptyEl() {
     s.push({ t: "Allega il foglio (o il documento)", fn: () => { if (!toApp({ cmd: "attach_board" })) attachIncoming(false); } });
     s.push({ t: "Aiutami a scrivere un testo", q: "Aiutami a scrivere un testo. Prima chiedimi in breve a chi è rivolto, lo scopo e il tono." });
   }
-  if (noteName) {
+  if (noteShown()) {
     s.push({ t: "Riordina l'appunto", q: "Riordina l'appunto: titoli, paragrafi ed elenchi puliti, senza cambiare il contenuto né correggere gli errori." });
     s.push({ t: "Aggiungi un riassunto all'appunto", q: "Scrivi in fondo all'appunto un breve riassunto (titolo «Riassunto») del suo contenuto." });
   }
@@ -765,7 +765,7 @@ function msgEl(m, i) {
   const copy = btn("copy", "Copia", "Copia il Markdown", () => copyText(m.content).then(() => { copy.querySelector("span").textContent = "Copiato"; setTimeout(() => (copy.querySelector("span").textContent = "Copia"), 1200); }));
   if (m.role === "assistant") {
     btn("redo", "Rigenera", "Rifà questa risposta", () => regenerate(i));
-    if (noteName) btn("note", "Nell'appunto", "Aggiunge questa risposta in fondo all'appunto aperto", () => appendToNote(m.content));
+    if (noteShown()) btn("note", "Nell'appunto", "Aggiunge questa risposta in fondo all'appunto aperto", () => appendToNote(m.content));
     btn("branch", "Dirama", "Continua in una chat nuova da qui (questa resta com'è)", () => forkAt(i));
     const p = pillsEl(m); if (p) acts.appendChild(p);
     if (m.edits && m.edits.length) d.insertBefore(editsEl(m), acts);
@@ -826,7 +826,7 @@ function editFrom(i) {
   saveSoon(); drawLog(); drawMeter(); q.focus();
 }
 async function appendToNote(md) {
-  if (!noteName) return;
+  if (!noteShown()) return;
   try {
     const r = await fetch("api/appunti/" + encodeURIComponent(noteName), { cache: "no-store" });
     const old = r.ok ? await r.text() : "";
@@ -840,6 +840,7 @@ async function appendToNote(md) {
 // ogni messaggio si chiede all'app la pagina attuale e la si allega, a meno
 // che l'allegato non sia stato escluso a mano (clic sul chip).
 let attachWaiter = null;
+// A ogni domanda si riprende il foglio aperto adesso (se la scheda non è spenta).
 function refreshPage() {
   if (!embed || (cur.page && cur.attach === false)) return Promise.resolve();
   return new Promise((res) => {
@@ -888,9 +889,9 @@ async function send(text, images) {
     const r = await fetch("api/chat", {
       method: "POST", signal: busy.signal,
       body: JSON.stringify({ messages: cur.messages.map(({ role, content, images }) => (images && images.length ? { role, content, images } : { role, content })), attach: !!att, web: !!cur.web,
-                             chat_id: cur.id, provider: cur.provider || "", note: cur.noteOn !== false ? noteName : "",
+                             chat_id: cur.id, provider: cur.provider || "", note: noteShown() && cur.noteOn !== false ? noteName : "",
                              // schede spente a mano: l'AI lo sa e sa dirlo
-                             note_off: cur.noteOn === false ? noteName : "", page_off: !!(cur.page && !att) }),
+                             note_off: noteShown() && cur.noteOn === false ? noteName : "", page_off: !!(cur.page && !att) }),
     });
     if (!r.ok) throw new Error("HTTP " + r.status + ": " + await r.text());
     const rd = r.body.getReader(), dec = new TextDecoder();
@@ -1121,7 +1122,7 @@ function fmtK(n) {
 function parts() {
   const msgs = cur ? cur.messages : [];
   const p = {
-    sys: 450 + (cur && cur.web ? 650 : 0) + (noteName && cur && cur.noteOn !== false ? 450 : 0),
+    sys: 450 + (cur && cur.web ? 650 : 0) + (noteShown() && cur && cur.noteOn !== false ? 450 : 0),
     page: cur && cur.attach && cur.page ? (cur.page.image ? 1200 : 0) + tok(cur.page.markdown) + 30 : 0,
     sum: msgs.filter((m) => m.role === "summary").reduce((a, m) => a + tok(m.content) + 20, 0),
     conv: msgs.filter((m) => m.role !== "summary").reduce((a, m) => a + tok(m.content) + 4, 0),
@@ -1203,6 +1204,9 @@ async function compact(auto) {
 }
 
 // ---------------- pagina allegata, appunto, ricerca web ----------------
+// La scheda dell'appunto: quello aperto al centro sempre; quello della
+// pagina in lavagna solo se la chat ha la pagina.
+function noteShown() { return !!noteName && (!noteBoard || !!(cur && cur.page)); }
 function drawChips() {
   const c = $("chips");
   c.innerHTML = "";
@@ -1214,11 +1218,12 @@ function drawChips() {
     s.title = title; s.onclick = fn; c.appendChild(s); return s;
   };
   if (cur.page) {
-    const s = chip("file", (cur.page.title || "Pagina") + (cur.page.markdown ? (cur.page.doc ? " + testo" : " + trascrizione") : ""), cur.attach,
+    // «Foglio: …» / «Documento: …»: si capisce subito cos'è (non sembra una scheda vecchia)
+    const s = chip(cur.page.doc ? "file" : "pen", T(cur.page.doc ? "Documento: {}" : "Foglio: {}", cur.page.title || T("Pagina")), cur.attach,
       cur.attach ? "Allegata alle domande: clic per non mandarla. Doppio clic: vedi la pagina" : "Non allegata: clic per mandarla", () => { cur.attach = !cur.attach; saveSoon(false); drawChips(); drawMeter(); }, cur.attach ? "" : "off");
     s.ondblclick = () => { if (cur.page.image) { $("zoom").querySelector("img").src = "api/chats/" + cur.id + "/page.png?t=" + (cur.page.rev || 0); $("zoom").style.display = "flex"; } };
   }
-  if (noteName) chip("note", noteName, cur.noteOn !== false, cur.noteOn !== false ? "L'AI può leggere e scrivere in questo appunto: clic per impedirlo" : "L'AI non tocca l'appunto: clic per permetterlo",
+  if (noteShown()) chip("note", T(noteBoard ? "Trascrizione: {}" : "Appunto: {}", noteName.replace(/\.md$/i, "")), cur.noteOn !== false, cur.noteOn !== false ? "L'AI può leggere e scrivere in questo appunto: clic per impedirlo" : "L'AI non tocca l'appunto: clic per permetterlo",
     () => { cur.noteOn = cur.noteOn === false; saveSoon(false); drawChips(); drawMeter(); }, cur.noteOn === false ? "off" : "");
   if (cfg.web_enabled) chip("globe", "Ricerca web", cur.web, cur.web ? "L'AI può cercare in rete e leggere pagine: clic per spegnere" : "Ricerca web spenta: clic per accendere",
     () => { cur.web = !cur.web; ls.set("ws-web", cur.web); saveSoon(false); drawChips(); drawMeter(); }, cur.web ? "" : "off");
@@ -1276,7 +1281,8 @@ async function exportMd() {
 // ---------------- dall'app (WebView incorporata) ----------------
 window.wsChat = {
   // un appunto diverso arriva con la sua scheda accesa (non quella spenta di prima)
-  setNote: (name) => { const n = name || ""; if (cur && n && n !== noteName && cur.noteOn === false) { cur.noteOn = true; saveSoon(false); } noteName = n; if (cur) { drawChips(); drawMeter(); if (!cur.messages.length) drawLog(); } },
+  // `board` = è l'appunto della pagina in lavagna: vale solo nelle chat che hanno quella pagina
+  setNote: (name, board) => { const n = name || ""; if (cur && n && n !== noteName && cur.noteOn === false) { cur.noteOn = true; saveSoon(false); } noteName = n; noteBoard = !!board; if (cur) { drawChips(); drawMeter(); if (!cur.messages.length) drawLog(); } },
   attachNow: async () => {
     document.body.classList.remove("drophint");
     await attachIncoming(false);

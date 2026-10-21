@@ -148,9 +148,10 @@ impl App {
                 // impostazioni aperte dentro il riquadro della chat (versione
                 // vecchia della pagina): nel riquadro torna la chat
                 if slot == Slot::Chat {
-                    let note = self.chat_note_wanted();
+                    // l'appunto lo manda sync_chat_note quando la pagina è pronta
+                    let note = String::new();
                     self.chat_note_key = None;
-                    self.chat_note_sent = Some(note.clone());
+                    self.chat_note_sent = None;
                     if let Some(url) = self.page_url(&format!("chat?pane=1&note={}", super::url_escape(&note))) {
                         self.embeds.load(Slot::Chat, &url);
                     }
@@ -230,9 +231,9 @@ impl App {
         }
         let t = Tokens::get(root.ctx());
         if !self.embeds.has(Slot::Chat) {
-            let note = self.chat_note_wanted();
+            let note = String::new();
             self.chat_note_key = None;
-            self.chat_note_sent = Some(note.clone());
+            self.chat_note_sent = None;
             let cmd = self.chat_cmd_pending.take().map(|c| format!("&cmd={c}")).unwrap_or_default();
             if let Some(url) = self.page_url(&format!("chat?pane=1&note={}{cmd}", super::url_escape(&note))) {
                 let origin = self.origin();

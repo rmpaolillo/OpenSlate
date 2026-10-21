@@ -1120,10 +1120,10 @@ impl App {
     /// L'appunto della chat segue quello che si guarda: l'appunto aperto al
     /// centro; con la lavagna, l'appunto della pagina che c'è sopra (se ne ha
     /// uno), mai quello di un'altra pagina rimasto aperto in una scheda.
-    pub(crate) fn chat_note_wanted(&self) -> String {
+    pub(crate) fn chat_note_wanted(&self) -> (String, bool) {
         match self.center {
-            workspace::Center::Note => self.note.clone().unwrap_or_default(),
-            _ => self.board_note().unwrap_or_default(),
+            workspace::Center::Note => (self.note.clone().unwrap_or_default(), false),
+            _ => (self.board_note().unwrap_or_default(), true),
         }
     }
 
@@ -1135,10 +1135,11 @@ impl App {
             return;
         }
         self.chat_note_key = Some(key);
-        let n = self.chat_note_wanted();
-        if self.chat_note_sent.as_deref() != Some(n.as_str()) {
-            self.embeds.eval(embed::Slot::Chat, &format!("window.wsChat && wsChat.setNote({})", serde_json::Value::String(n.clone())));
-            self.chat_note_sent = Some(n);
+        let (n, board) = self.chat_note_wanted();
+        let sent = format!("{board}:{n}");
+        if self.chat_note_sent.as_deref() != Some(sent.as_str()) {
+            self.embeds.eval(embed::Slot::Chat, &format!("window.wsChat && wsChat.setNote({}, {board})", serde_json::Value::String(n)));
+            self.chat_note_sent = Some(sent);
         }
     }
 
