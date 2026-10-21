@@ -443,6 +443,8 @@ enum Action {
     /// Scheda trascinata sulla chat AI: il foglio o il documento nel contesto.
     DropOnChat(doc_view::ChatDrag),
     ToggleRibbon,
+    /// Vista compatta: via barra dei menu e strumenti (e ritorno).
+    ToggleCompact,
     ToggleLongpress,
     ShowHelp(options::HelpPage),
     OpenWebBrowser,
@@ -1532,6 +1534,10 @@ impl App {
                 self.toggle_chat(true);
             }
             Action::ToggleRibbon => self.show_ribbon = !self.show_ribbon,
+            Action::ToggleCompact => {
+                self.settings.compact_ui = !self.settings.compact_ui;
+                self.settings.save();
+            }
             Action::ToggleLongpress => {
                 let on = {
                     let mut s = self.hub.lock();
@@ -2108,11 +2114,14 @@ impl eframe::App for App {
         if let Some(page) = self.backstage {
             self.backstage_ui(root, page, &mut actions);
         } else {
-            if chrome {
+            // vista compatta: niente barra dei menu né strumenti (l'archivio
+            // tiene i suoi comandi: senza non si torna alla griglia)
+            let compact = self.settings.compact_ui;
+            if chrome && !compact {
                 bar += self.tab_strip(root, &mut actions);
-                if self.show_ribbon || self.mode == Mode::Library {
-                    bar += self.ribbon_panel(root, &mut actions);
-                }
+            }
+            if chrome && ((self.show_ribbon && !compact) || self.mode == Mode::Library) {
+                bar += self.ribbon_panel(root, &mut actions);
             }
             self.bar_height = bar;
             if !self.fullscreen {

@@ -57,6 +57,9 @@ impl App {
             let cs = egui::Modifiers::COMMAND | egui::Modifiers::SHIFT;
             if i.consume_key(c, egui::Key::Comma) {
                 actions.push(Action::OpenPrefs);
+            } else if i.consume_key(cs, egui::Key::F) {
+                // prima di Cmd+F: Cmd+Shift+F = vista compatta
+                actions.push(Action::ToggleCompact);
             } else if i.consume_key(c, egui::Key::F) || i.consume_key(c, egui::Key::K) {
                 actions.push(Action::Palette);
             } else if i.consume_key(c, egui::Key::O) {
@@ -186,6 +189,7 @@ impl App {
                         ("Pulisci il foglio", "C".into()),
                         ("Ruota / Specchia", "R / X / Y".into()),
                         ("Schermo intero / esci", "F / Esc".into()),
+                        ("Solo il foglio (via menu e strumenti)", cmd("Shift+F")),
                         ("Pagine del documento", "PagSu / PagGiù".into()),
                         ("Evidenziatore col mouse: linea dritta", "Shift + trascina".into()),
                         ("Togli un'evidenziatura", "Alt + clic".into()),

@@ -261,6 +261,9 @@ impl App {
                 if small(ui, check_icon(self.show_ribbon), "Barra multifunzione", "Doppio clic su una scheda per nasconderla").clicked() {
                     actions.push(Action::ToggleRibbon);
                 }
+                if small(ui, check_icon(self.settings.compact_ui), "Solo il foglio", "Via la barra dei menu e gli strumenti; tornano col pulsante in alto o Cmd+Shift+F").clicked() {
+                    actions.push(Action::ToggleCompact);
+                }
             });
         });
         group(ui, "Zoom", |ui| {

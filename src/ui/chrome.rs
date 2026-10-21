@@ -243,6 +243,23 @@ impl App {
                     if icon_button(ui, ic::CLIPBOARD_TEXT, &format!("{} ({})", i18n::t("Incolla un'immagine (si apre come documento)"), cmd_key("V")), vec2(26.0, control_h), true).clicked() {
                         actions.push(Action::Paste);
                     }
+                    // vista compatta: «schermo intero» solo per menu e strumenti
+                    ui.add_space(4.0);
+                    let (sep, _) = ui.allocate_exact_size(vec2(1.0, control_h * 0.55), Sense::hover());
+                    ui.painter().rect_filled(sep, 0.0, t.border);
+                    ui.add_space(4.0);
+                    let (glyph, tip) = if self.settings.compact_ui {
+                        (ic::ARROWS_OUT_SIMPLE, "Mostra la barra dei menu e gli strumenti")
+                    } else {
+                        (ic::ARROWS_IN_SIMPLE, "Nascondi la barra dei menu e gli strumenti (resta il foglio)")
+                    };
+                    let r = icon_button(ui, glyph, &format!("{} ({})", i18n::t(tip), cmd_key("Shift+F")), vec2(26.0, control_h), true);
+                    if self.settings.compact_ui {
+                        ui.painter().rect_stroke(r.rect.shrink(1.0), 4.0, egui::Stroke::new(1.0, t.accent), egui::StrokeKind::Inside);
+                    }
+                    if r.clicked() {
+                        actions.push(Action::ToggleCompact);
+                    }
                     qat_end = ui.min_rect().max.x;
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         self.led_pill(ui, actions, control_h);
@@ -793,6 +810,7 @@ impl App {
             c(ic::ARROWS_LEFT_RIGHT, "Specchia orizzontale", "X", Action::FlipX),
             c(ic::ARROWS_DOWN_UP, "Specchia verticale", "Y", Action::FlipY),
             c(ic::CORNERS_OUT, "Schermo intero", "F", Action::Fullscreen),
+            c(ic::ARROWS_IN_SIMPLE, "Nascondi o mostra menu e strumenti", &cmd_key("Shift+F"), Action::ToggleCompact),
             c(ic::RULER, "Righelli (mostra/nascondi)", "", Action::ToggleRulers),
             c(ic::CHALKBOARD_SIMPLE, "Vai alla lavagna", "", Action::SetMode(Mode::Board)),
             c(ic::SQUARES_FOUR, "Vai all'archivio", "", Action::SetMode(Mode::Library)),
