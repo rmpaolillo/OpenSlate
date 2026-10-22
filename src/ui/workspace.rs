@@ -575,7 +575,7 @@ impl App {
             if big_ex(ui, ic::LIST_BULLETS, "Elenco", "Tutti gli appunti (trascrizioni e chat salvate)", true, self.note_nav, false).clicked() {
                 actions.push(n("nav"));
             }
-            let r = big_ex(ui, ic::EXPORT, "Esporta", "Salva l'appunto dove vuoi: Markdown (con le figure), Word o PDF", self.note.is_some(), false, true);
+            let r = big_ex(ui, ic::EXPORT, "Esporta", "Salva l'appunto dove vuoi: Markdown (con le figure), Word, PDF, LaTeX o Typst", self.note.is_some(), false, true);
             egui::Popup::menu(&r).show(|ui| {
                 if super::chrome::menu_item(ui, true, ic::MARKDOWN_LOGO, "Markdown (.md)", "") {
                     actions.push(Action::NoteExport("md"));
@@ -585,6 +585,12 @@ impl App {
                 }
                 if super::chrome::menu_item(ui, true, ic::FILE_PDF, "PDF", "") {
                     actions.push(Action::NoteExport("pdf"));
+                }
+                if super::chrome::menu_item(ui, true, ic::FUNCTION, "LaTeX (.tex)", "") {
+                    actions.push(Action::NoteExport("tex"));
+                }
+                if super::chrome::menu_item(ui, true, ic::FUNCTION, "Typst (.typ)", "") {
+                    actions.push(Action::NoteExport("typ"));
                 }
             });
             // la scrittura: stampata, o a mano con le lettere della lavagna (anche in Word e PDF)

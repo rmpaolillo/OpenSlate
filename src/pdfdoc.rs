@@ -77,7 +77,7 @@ fn rect(doc: &Document, o: &Object) -> Option<[f32; 4]> {
 
 /// Valore di una chiave della pagina, cercando anche nei genitori (MediaBox,
 /// CropBox, Rotate e Resources si ereditano).
-fn inherited(doc: &Document, page: ObjectId, key: &[u8]) -> Option<Object> {
+pub(crate) fn inherited(doc: &Document, page: ObjectId, key: &[u8]) -> Option<Object> {
     let mut id = page;
     for _ in 0..64 {
         let d = doc.get_dictionary(id).ok()?;
@@ -89,7 +89,7 @@ fn inherited(doc: &Document, page: ObjectId, key: &[u8]) -> Option<Object> {
     None
 }
 
-fn page_of(doc: &Document, id: ObjectId) -> PdfPage {
+pub(crate) fn page_of(doc: &Document, id: ObjectId) -> PdfPage {
     let media = inherited(doc, id, b"MediaBox")
         .and_then(|o| rect(doc, &o))
         .unwrap_or([0.0, 0.0, 595.276, 841.89]);

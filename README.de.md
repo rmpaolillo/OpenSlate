@@ -134,6 +134,7 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   unterbrochen wird.
 - **Nur das Blatt.** Der Knopf neben Kopieren/Einfügen in der Titelleiste (oder `Cmd+Shift+F`, Darstellung → Nur das
   Blatt) blendet Menüleiste und Menüband aus; ein weiterer Klick holt sie zurück.
+- **Weitere Formate.** Eine transkribierte Seite wird zum **durchsuchbaren PDF**: Der Text liegt unsichtbar über der Handschrift, sodass Spotlight und jeder PDF-Reader ihn finden und du ihn kopieren kannst. Unter **Weitere Formate**: JPEG und WebP (leicht, zum Verschicken), **Word** mit der Handschrift als echte, bearbeitbare Word-Tinte (und der Transkription auf der nächsten Seite), **Xournal++** (`.xopp`), ein **animiertes GIF oder SVG**, das die Seite Strich für Strich neu schreibt, und **LaTeX** oder **Typst** aus der Transkription (auch Notizen lassen sich dorthin exportieren). Der KI-Chat kann in alle diese Formate exportieren.
 - **Speichern und exportieren.** Exportiere als Vektor-PDF und SVG in echter A4-Größe oder als PNG. Jedes Speichern oder
   Exportieren öffnet den Systemdialog „Speichern unter“, sodass du immer siehst, wohin die Datei geht. Er startet im
   zuletzt gewählten Ordner (beim ersten Mal in `exports/`). Du kannst die Seite auch als Bild kopieren
@@ -214,7 +215,8 @@ deren Oberflächen und ohne externe Programme:
 | PDF | [PdfCraft](https://github.com/storytold/pdfcraft): Seiten, Miniaturansichten und Text; seine PDF-Bibliothek speichert die unterschriebene Kopie |
 | SVG | [VectorCraft](https://github.com/storytold/vectorcraft) |
 | Fotos (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
-| Exporte von Tafel und Archiv (PDF, SVG, PNG) | VectorCraft zeichnet und schreibt sie; PNG-Dateien schreibt PhotoCraft |
+| Exporte von Tafel und Archiv (PDF, SVG, PNG, JPEG, WebP) | VectorCraft zeichnet und schreibt sie; PNG-, JPEG- und WebP-Dateien schreibt PhotoCraft |
+| Animiertes GIF und SVG, Xournal++, LaTeX, Typst, der versteckte Text durchsuchbarer PDFs | schreibt OpenSlate selbst (`src/formats.rs`, `src/mdconv.rs`) |
 
 Eine als Dokument geöffnete Markdown-Datei sieht aus wie die Notizenseite: Fließtext in Source Serif, Überschriften in
 Inter, dezente Tabellen. Ihre Formeln (`$…$`, `$$…$$`, `\(…\)`, `\[…\]`) werden im LaTeX-Stil von
@@ -344,6 +346,7 @@ src/libagent.rs, src/ui/chat_lib.rs                       the chat on the page l
 vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
+src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

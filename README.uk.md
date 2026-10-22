@@ -134,6 +134,7 @@ Issues і pull requests вітаються: див. [CONTRIBUTING.md](CONTRIBUTI
   перервалося.
 - **Лише аркуш.** Кнопка поруч із «Копіювати»/«Вставити» в рядку заголовка (або `Cmd+Shift+F`, «Перегляд» → «Лише
   аркуш») ховає рядок меню та стрічку; клацніть ще раз, щоб повернути їх.
+- **Інші формати.** Розпізнана сторінка стає **PDF із пошуком**: текст лежить невидимо поверх рукописного, тож Spotlight і будь-яка програма для PDF знаходять його, а ви можете його скопіювати. В «Інші формати»: JPEG і WebP (легкі, для надсилання), **Word** із письмом як справжнім чорнилом Word, яке можна редагувати (і розпізнаним текстом на наступній сторінці), **Xournal++** (`.xopp`), **анімований GIF або SVG**, що переписує сторінку штрих за штрихом, а також **LaTeX** або **Typst** із розпізнаного тексту (нотатки теж експортуються в них). Чат ШІ може експортувати в усі ці формати.
 - **Збереження й експорт.** Експорт у векторні PDF і SVG у справжньому розмірі A4 або в PNG. Кожне збереження чи
   експорт відкриває системне вікно «Зберегти як», тож ви завжди бачите, куди потрапить файл. Воно відкривається в
   останній вибраній вами папці (уперше — в `exports/`). Також можна скопіювати сторінку як зображення
@@ -214,7 +215,8 @@ Windows 10/11. На Windows протестовано не все. Повідом
 | PDF | [PdfCraft](https://github.com/storytold/pdfcraft): сторінки, мініатюри й текст; його PDF-бібліотека зберігає підписану копію |
 | SVG | [VectorCraft](https://github.com/storytold/vectorcraft) |
 | Фото (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
-| Експорт дошки й архіву (PDF, SVG, PNG) | VectorCraft малює й записує їх; файли PNG записує PhotoCraft |
+| Експорт дошки й архіву (PDF, SVG, PNG, JPEG, WebP) | VectorCraft малює й записує їх; файли PNG, JPEG і WebP записує PhotoCraft |
+| Анімовані GIF і SVG, Xournal++, LaTeX, Typst, прихований текст PDF із пошуком | записує сам OpenSlate (`src/formats.rs`, `src/mdconv.rs`) |
 
 Файл Markdown, відкритий як документ, має такий самий вигляд, як сторінка «Нотатки»: текст Source Serif, заголовки
 Inter, легкі таблиці. Його формули (`$…$`, `$$…$$`, `\(…\)`, `\[…\]`) малюються в стилі LaTeX за допомогою
@@ -344,6 +346,7 @@ src/libagent.rs, src/ui/chat_lib.rs                       the chat on the page l
 vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
+src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

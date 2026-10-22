@@ -434,12 +434,8 @@ struct App {
     docui: doc_view::DocUi,
 }
 
-#[derive(Clone, Copy)]
-enum Fmt {
-    Svg,
-    Pdf,
-    Png,
-}
+/// I formati d'uscita delle pagine (vedi `formats`).
+use crate::formats::Kind as Fmt;
 
 /// Azioni raccolte durante il disegno dell'interfaccia, eseguite dopo.
 enum Action {
@@ -935,6 +931,13 @@ impl App {
         ("lavagna".into(), self.hub.lock().page())
     }
 
+    /// La lavagna da esportare, con la sua trascrizione se c'è.
+    fn board_item(&self) -> crate::formats::Item {
+        let (title, page) = self.board_page();
+        let note = self.board_note().map(|n| std::path::Path::new(export::EXPORT_DIR).join(n));
+        crate::formats::Item { title, page, note }
+    }
+
     /// Riconosce la scrittura di una o più pagine (in sequenza).
     fn ocr_pages(&mut self, pages: Vec<(String, Page)>) {
         self.ocr_pages_for(pages, None);
@@ -1084,6 +1087,8 @@ impl App {
         let (kind, title) = match ext {
             "docx" => ("Word", "Esporta l'appunto in Word"),
             "pdf" => ("PDF", "Esporta l'appunto in PDF"),
+            "tex" => ("LaTeX", "Esporta l'appunto in LaTeX"),
+            "typ" => ("Typst", "Esporta l'appunto in Typst"),
             _ => ("Markdown", "Esporta l'appunto in Markdown"),
         };
         let stem = n.strip_suffix(".md").unwrap_or(&n).to_string();
@@ -1429,20 +1434,29 @@ impl App {
         };
     }
 
-    /// Esporta: PDF = un file con tutte le pagine; PNG/SVG = un file per pagina.
+    /// Esporta: PDF = un file con tutte le pagine (con il testo delle pagine
+    /// trascritte, così si cerca); gli altri formati = un file per pagina.
     /// Prima si chiede dove, con la finestra del sistema (ultima cartella scelta
     /// o `exports/`): un file = «Salva con nome», più file = scelta della cartella.
-    fn export_pages(&mut self, pages: Vec<(String, Page)>, fmt: Fmt) {
-        let pages: Vec<(String, Page)> = pages.into_iter().filter(|(_, p)| !p.is_empty()).collect();
-        if pages.is_empty() {
+    fn export_pages(&mut self, items: Vec<crate::formats::Item>, fmt: Fmt) {
+        let mut items: Vec<crate::formats::Item> = items.into_iter().filter(|i| !i.page.is_empty()).collect();
+        if items.is_empty() {
             self.status = "Niente da esportare: pagina vuota.".into();
             return;
         }
-        let (ext, kind) = match fmt {
-            Fmt::Pdf => ("pdf", "PDF"),
-            Fmt::Png => ("png", "Immagine PNG"),
-            Fmt::Svg => ("svg", "Immagine SVG"),
-        };
+        if fmt.needs_note() {
+            let n = items.len();
+            items.retain(|i| i.note.is_some());
+            if items.is_empty() {
+                self.status = if n == 1 {
+                    "Questa pagina non è trascritta: prima AI → Trascrivi, poi l'esporti in LaTeX o Typst.".into()
+                } else {
+                    "Nessuna di queste pagine è trascritta: prima AI → Trascrivi.".into()
+                };
+                return;
+            }
+        }
+        let (ext, kind) = (fmt.ext(), fmt.kind_name());
         // nome proposto: il titolo della pagina, per la lavagna con data e ora
         let stem = |title: &str| {
             if title == "lavagna" {
@@ -1457,24 +1471,25 @@ impl App {
             One(std::path::PathBuf),
             Many(std::path::PathBuf),
         }
-        let job = if matches!(fmt, Fmt::Pdf) || pages.len() == 1 {
-            let name = if pages.len() == 1 { stem(&pages[0].0) } else { format!("pagine-{}", pages.len()) };
-            let what = if pages.len() == 1 { "la pagina".to_string() } else { format!("{} pagine", pages.len()) };
-            let title = format!("Esporta {what} in {}", ext.to_uppercase());
+        let job = if fmt.one_file() || items.len() == 1 {
+            let name = if items.len() == 1 { stem(&items[0].title) } else { format!("pagine-{}", items.len()) };
+            let what = if items.len() == 1 { "la pagina".to_string() } else { format!("{} pagine", items.len()) };
+            let title = format!("Esporta {what} in {}", crate::i18n::tr(kind));
             let Some(path) = savedlg::save_file(&mut self.settings, &title, &name, kind, ext) else {
                 self.status = "Esportazione annullata.".into();
                 return;
             };
             Job::One(path)
         } else {
-            let title = format!("Scegli la cartella per {} immagini {}", pages.len(), ext.to_uppercase());
+            let title = format!("Scegli la cartella per {} file {}", items.len(), crate::i18n::tr(kind));
             let Some(dir) = savedlg::pick_folder(&mut self.settings, &title) else {
                 self.status = "Esportazione annullata.".into();
                 return;
             };
             Job::Many(dir)
         };
-        let names: Vec<String> = pages.iter().map(|(t, _)| stem(t)).collect();
+        let names: Vec<String> = items.iter().map(|i| stem(&i.title)).collect();
+        let opts = crate::formats::Opts { hand: crate::mdcraft::Hand::parse(&self.settings.note_hand), paper: self.settings.paper.clone() };
         self.status = "Esporto…".into();
         let tx = self.evt_tx.clone();
         std::thread::spawn(move || {
@@ -1482,30 +1497,22 @@ impl App {
             let mut error = None;
             match job {
                 Job::One(path) => {
-                    let r = match fmt {
-                        Fmt::Pdf => {
-                            let refs: Vec<&Page> = pages.iter().map(|(_, p)| p).collect();
-                            export::save_pdf(&refs, &path).map_err(|e| e.to_string())
-                        }
-                        Fmt::Png => export::save_png(&pages[0].1, &path).map_err(|e| e.to_string()),
-                        Fmt::Svg => export::save_svg(&pages[0].1, &path).map_err(|e| e.to_string()),
+                    let r = if fmt.one_file() {
+                        crate::formats::write_pdf(&items, &path).map(|_| vec![path.clone()])
+                    } else {
+                        crate::formats::write_one(fmt, &items[0], &path, &opts)
                     };
                     match r {
-                        Ok(()) => written.push(path),
-                        Err(e) => error = Some(e),
+                        Ok(w) => written.extend(w),
+                        Err(e) => error = Some(format!("{e:#}")),
                     }
                 }
                 Job::Many(dir) => {
-                    for ((_, page), stem) in pages.iter().zip(&names) {
+                    for (item, stem) in items.iter().zip(&names) {
                         let path = savedlg::free_path(&dir, stem, ext);
-                        let r = if matches!(fmt, Fmt::Png) {
-                            export::save_png(page, &path).map_err(|e| e.to_string())
-                        } else {
-                            export::save_svg(page, &path).map_err(|e| e.to_string())
-                        };
-                        match r {
-                            Ok(()) => written.push(path),
-                            Err(e) => error = Some(e),
+                        match crate::formats::write_one(fmt, item, &path, &opts) {
+                            Ok(w) => written.extend(w),
+                            Err(e) => error = Some(format!("{e:#}")),
                         }
                     }
                 }
@@ -1791,8 +1798,8 @@ impl App {
                 self.apply_doc(doc_view::DocAction::SaveSigned);
             }
             Action::Export(f) => {
-                let p = self.board_page();
-                self.export_pages(vec![p], f);
+                let item = self.board_item();
+                self.export_pages(vec![item], f);
             }
             Action::Ocr => {
                 let (_, p) = self.board_page();

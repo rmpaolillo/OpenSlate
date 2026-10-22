@@ -69,6 +69,21 @@ fn cmd_key(k: &str) -> String {
 }
 
 /// Una voce di menu a comparsa (icona, testo, scorciatoia).
+/// «Altri formati»: un menu (o un sottomenu) con i formati in più delle
+/// pagine (JPEG, WebP, Word, Xournal++, GIF e SVG animati, LaTeX, Typst).
+pub(super) fn more_formats_menu(ui: &mut egui::Ui, mut pick: impl FnMut(Fmt)) {
+    let label = i18n::tf(format!("{} Altri formati", ic::DOTS_THREE_CIRCLE));
+    ui.menu_button(label, |ui| {
+        for k in Fmt::MORE {
+            if menu_item(ui, true, k.icon(), k.label(), "") {
+                pick(k);
+            }
+        }
+    })
+    .response
+    .on_hover_text(i18n::t("Immagini leggere, Word con l'inchiostro, Xournal++, la scrittura animata, LaTeX e Typst dalla trascrizione"));
+}
+
 pub(super) fn menu_item(ui: &mut egui::Ui, enabled: bool, glyph: &str, text: &str, keys: &str) -> bool {
     let b = egui::Button::new(i18n::tf(format!("{glyph}  {}", crate::i18n::tr(text)))).shortcut_text(keys);
     let clicked = ui.add_enabled(enabled, b).clicked();
@@ -452,6 +467,7 @@ impl App {
             if menu_item(ui, true, ic::FILE_SVG, "Esporta in SVG (vettoriale)", "") {
                 actions.push(Action::Export(Fmt::Svg));
             }
+            more_formats_menu(ui, |k| actions.push(Action::Export(k)));
             if menu_item(ui, true, ic::FOLDER_OPEN, "Apri la cartella dei file salvati", "") {
                 actions.push(Action::OpenExports);
             }
@@ -832,6 +848,10 @@ impl App {
             c(ic::ARROW_CIRCLE_UP, "Cerca aggiornamenti", "", Action::CheckUpdates),
             c(ic::SIGN_OUT, "Esci", &cmd_key("Q"), Action::Quit),
         ];
+        // gli altri formati della pagina
+        for k in Fmt::MORE {
+            v.push(Cmd { glyph: k.icon(), label: i18n::tf(format!("Esporta la pagina: {}", i18n::tr(k.label()))), keys: String::new(), enabled: true, act: Action::Export(k) });
+        }
         // un comando per ogni foglio («Foglio: righe di 1ª elementare», …)
         for p in super::paper::Paper::ALL {
             let glyph = if p.ruled() || p == super::paper::Paper::Bianco { ic::NOTEBOOK } else { ic::GRID_FOUR };

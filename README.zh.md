@@ -115,6 +115,7 @@ Inkspace——这块手写板所依赖的应用，于是这台硬件眼看就要
   如果下载中断，已从手写板上删除的页面会从其原始安全副本中恢复。
 - 仅页面。标题栏中「复制/粘贴」旁边的按钮（或 `Cmd+Shift+F`，「视图 → 仅页面」）
   可隐藏菜单栏和功能区；再点一次即可恢复。
+- 更多格式。已转写的页面会成为可搜索的 PDF：文字以不可见的方式叠在手写内容上，因此 Spotlight 和任何 PDF 阅读器都能找到，也可以复制。在「更多格式」中：JPEG 和 WebP（轻量，便于发送）、Word（手写内容是可编辑的真正 Word 墨迹，下一页附上转写）、Xournal++（`.xopp`）、逐笔重现书写过程的 GIF 或 SVG 动画，以及由转写生成的 LaTeX 或 Typst（笔记也可以导出为这两种格式）。AI 聊天也能导出为以上所有格式。
 - 保存和导出。可导出为实际 A4 尺寸的矢量 PDF 和 SVG，或导出为 PNG。每次保存或导出都会打开系统的
   「另存为」对话框，因此你总能看到文件存放的位置。对话框从你上次选择的文件夹开始（第一次是 `exports/`）。
   你也可以把页面作为图片复制（`Cmd+C`），粘贴到任何地方。
@@ -190,7 +191,8 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 | PDF | [PdfCraft](https://github.com/storytold/pdfcraft)：页面、缩略图和文字；其 PDF 库负责保存签名后的副本 |
 | SVG | [VectorCraft](https://github.com/storytold/vectorcraft) |
 | 照片（PNG、JPEG、WebP、TIFF、BMP、GIF） | [PhotoCraft](https://github.com/storytold/photocraft) |
-| 画板和档案库导出（PDF、SVG、PNG） | 由 VectorCraft 绘制和写入；PNG 文件由 PhotoCraft 写入 |
+| 画板和档案库导出（PDF、SVG、PNG、JPEG、WebP） | 由 VectorCraft 绘制和写入；PNG、JPEG 和 WebP 文件由 PhotoCraft 写入 |
+| GIF 和 SVG 动画、Xournal++、LaTeX、Typst、可搜索 PDF 的隐藏文字 | 由 OpenSlate 自己写入（`src/formats.rs`、`src/mdconv.rs`） |
 
 作为文档打开的 Markdown 文件，外观与「笔记」页面一致：正文使用 Source Serif，标题使用 Inter，表格线条清淡。
 其中的公式（`$…$`、`$$…$$`、`\(…\)`、`\[…\]`）由 [Typst](https://typst.app) 以 LaTeX 风格绘制
@@ -316,6 +318,7 @@ src/libagent.rs, src/ui/chat_lib.rs                       the chat on the page l
 vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
+src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

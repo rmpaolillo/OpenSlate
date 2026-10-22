@@ -134,6 +134,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   is interrupted.
 - **Page only.** The button next to Copy/Paste in the title bar (or `Cmd+Shift+F`, View → Page
   only) hides the menu bar and the ribbon; click again to bring them back.
+- **More formats.** A page that has been transcribed becomes a **searchable PDF**: the text sits invisibly over the handwriting, so Spotlight and any PDF reader find it and you can copy it. Under **More formats**: JPEG and WebP (light, to send), **Word** with the handwriting as real Word ink you can edit (and the transcription on the next page), **Xournal++** (`.xopp`), an **animated GIF or SVG** that rewrites the page stroke by stroke, and **LaTeX** or **Typst** from the transcription (notes export to them too). The AI chat can export to all of them.
 - **Save and export.** Export to vector PDF and SVG at true A4 size, or to PNG. Every save or
   export opens the system "Save as" dialog, so you always see where the file goes. It starts in the
   last folder you chose (the first time, in `exports/`). You can also copy the page as an image
@@ -214,7 +215,8 @@ their interfaces and without external programs:
 | PDF | [PdfCraft](https://github.com/storytold/pdfcraft): pages, thumbnails and text; its PDF library saves the signed copy |
 | SVG | [VectorCraft](https://github.com/storytold/vectorcraft) |
 | Photos (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
-| Board and library exports (PDF, SVG, PNG) | VectorCraft draws and writes them; PNG files are written by PhotoCraft |
+| Board and library exports (PDF, SVG, PNG, JPEG, WebP) | VectorCraft draws and writes them; PNG, JPEG and WebP files are written by PhotoCraft |
+| Animated GIF and SVG, Xournal++, LaTeX, Typst, the hidden text of searchable PDFs | written by OpenSlate itself (`src/formats.rs`, `src/mdconv.rs`) |
 
 A Markdown file opened as a document looks like the Notes page: Source Serif text, Inter
 headings, light tables. Its formulas (`$…$`, `$$…$$`, `\(…\)`, `\[…\]`) are drawn in LaTeX style by
@@ -344,6 +346,7 @@ src/libagent.rs, src/ui/chat_lib.rs                       the chat on the page l
 vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
+src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

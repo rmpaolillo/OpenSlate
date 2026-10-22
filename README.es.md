@@ -134,6 +134,7 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   se interrumpe.
 - **Solo la hoja.** El botón junto a Copiar/Pegar en la barra de título (o `Cmd+Shift+F`, Ver → Solo
   la hoja) oculta la barra de menús y la cinta; vuelve a hacer clic para que reaparezcan.
+- **Más formatos.** Una página transcrita se convierte en un **PDF con búsqueda**: el texto queda invisible sobre la escritura a mano, así Spotlight y cualquier lector de PDF lo encuentran y puedes copiarlo. En **Más formatos**: JPEG y WebP (ligeros, para enviar), **Word** con la escritura como tinta real de Word que puedes editar (y la transcripción en la página siguiente), **Xournal++** (`.xopp`), un **GIF o SVG animado** que vuelve a escribir la página trazo a trazo, y **LaTeX** o **Typst** a partir de la transcripción (las notas también se exportan a ellos). El chat de IA puede exportar a todos ellos.
 - **Guardar y exportar.** Exporta a PDF y SVG vectoriales a tamaño A4 real, o a PNG. Cada vez que guardas o
   exportas se abre el cuadro de diálogo «Guardar como» del sistema, así que siempre ves adónde va el archivo. Empieza en la
   última carpeta que elegiste (la primera vez, en `exports/`). También puedes copiar la página como imagen
@@ -214,7 +215,8 @@ sus interfaces y sin programas externos:
 | PDF | [PdfCraft](https://github.com/storytold/pdfcraft): páginas, miniaturas y texto; su biblioteca PDF guarda la copia firmada |
 | SVG | [VectorCraft](https://github.com/storytold/vectorcraft) |
 | Fotos (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
-| Exportaciones de la pizarra y del archivo (PDF, SVG, PNG) | VectorCraft las dibuja y las escribe; los archivos PNG los escribe PhotoCraft |
+| Exportaciones de la pizarra y del archivo (PDF, SVG, PNG, JPEG, WebP) | VectorCraft las dibuja y las escribe; los archivos PNG, JPEG y WebP los escribe PhotoCraft |
+| GIF y SVG animados, Xournal++, LaTeX, Typst, el texto oculto de los PDF con búsqueda | los escribe el propio OpenSlate (`src/formats.rs`, `src/mdconv.rs`) |
 
 Un archivo Markdown abierto como documento tiene el mismo aspecto que la página de Notas: texto en Source Serif, títulos en
 Inter, tablas ligeras. Sus fórmulas (`$…$`, `$$…$$`, `\(…\)`, `\[…\]`) las dibuja en estilo LaTeX
@@ -344,6 +346,7 @@ src/libagent.rs, src/ui/chat_lib.rs                       the chat on the page l
 vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
+src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

@@ -135,6 +135,7 @@
   이미 패드에서 삭제된 페이지도 원본 안전 사본에서 복구됩니다.
 - **종이만.** 제목 표시줄의 복사/붙여넣기 옆 버튼(또는 `Cmd+Shift+F`, 보기 → 종이만)을 누르면
   메뉴 막대와 리본이 숨겨집니다. 다시 클릭하면 돌아옵니다.
+- **다른 형식.** 텍스트로 변환된 페이지는 **검색 가능한 PDF**가 됩니다. 텍스트가 손글씨 위에 보이지 않게 얹혀 있어 Spotlight와 모든 PDF 뷰어에서 찾을 수 있고 복사도 할 수 있습니다. **다른 형식**에는 JPEG와 WebP(가벼움, 보내기용), 손글씨를 편집 가능한 진짜 Word 잉크로 담은 **Word**(다음 페이지에 변환된 텍스트), **Xournal++**(`.xopp`), 페이지를 한 획씩 다시 쓰는 **움직이는 GIF 또는 SVG**, 변환된 텍스트로 만든 **LaTeX** 또는 **Typst**(노트도 이 형식으로 내보낼 수 있음)가 있습니다. AI 채팅도 이 모든 형식으로 내보낼 수 있습니다.
 - **저장 및 내보내기.** 실제 A4 크기의 벡터 PDF와 SVG, 또는 PNG로 내보냅니다. 저장하거나 내보낼
   때마다 시스템의 "다른 이름으로 저장" 대화상자가 열리므로 파일이 어디에 저장되는지 항상 확인할 수
   있습니다. 대화상자는 마지막으로 선택한 폴더에서 시작합니다(처음에는 `exports/`). 페이지를
@@ -217,7 +218,8 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 | PDF | [PdfCraft](https://github.com/storytold/pdfcraft): 페이지, 미리보기 이미지, 텍스트. 서명된 사본은 PdfCraft의 PDF 라이브러리로 저장 |
 | SVG | [VectorCraft](https://github.com/storytold/vectorcraft) |
 | 사진 (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
-| 보드 및 보관함 내보내기 (PDF, SVG, PNG) | VectorCraft가 그리고 기록하며, PNG 파일은 PhotoCraft가 기록 |
+| 보드 및 보관함 내보내기 (PDF, SVG, PNG, JPEG, WebP) | VectorCraft가 그리고 기록하며, PNG, JPEG, WebP 파일은 PhotoCraft가 기록 |
+| 움직이는 GIF와 SVG, Xournal++, LaTeX, Typst, 검색 가능한 PDF의 숨은 텍스트 | OpenSlate가 직접 기록 (`src/formats.rs`, `src/mdconv.rs`) |
 
 문서로 연 Markdown 파일은 노트 페이지처럼 보입니다: Source Serif 본문, Inter 제목, 가벼운 표.
 수식(`$…$`, `$$…$$`, `\(…\)`, `\[…\]`)은 [Typst](https://typst.app)가 LaTeX 스타일로 그리며
@@ -345,6 +347,7 @@ src/libagent.rs, src/ui/chat_lib.rs                       the chat on the page l
 vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
+src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

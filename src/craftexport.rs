@@ -104,6 +104,14 @@ pub fn pdf(pages: &[&Page]) -> Result<Vec<u8>> {
 /// La pagina in PNG, `long_side` pixel sul lato lungo: la disegna VectorCraft,
 /// la scrive PhotoCraft (con i DPI, così stampata è grande quanto il foglio).
 pub fn png(page: &Page, long_side: u32) -> Result<Vec<u8>> {
+    raster(page, long_side, photocraft_codecs::Format::Png)
+}
+
+/// La pagina come immagine nel formato `fmt` (PNG, JPEG, WebP…), `long_side`
+/// pixel sul lato lungo: la disegna VectorCraft, la scrive PhotoCraft. JPEG di
+/// qualità alta senza sottocampionare i colori (la scrittura resta netta),
+/// WebP senza perdite (una pagina scritta pesa poco).
+pub fn raster(page: &Page, long_side: u32, fmt: photocraft_codecs::Format) -> Result<Vec<u8>> {
     let (s, boards) = document(&[page])?;
     let d = s.doc().map_err(|e| anyhow!("VectorCraft: {e}"))?;
     let rect = d.doc.artboards.first().map(|a| a.rect).ok_or_else(|| anyhow!("VectorCraft: nessuna tavola"))?;
@@ -115,7 +123,8 @@ pub fn png(page: &Page, long_side: u32) -> Result<Vec<u8>> {
         .convert(photocraft_codecs::ChannelLayout::Rgb, photocraft_codecs::SampleType::U8);
     let dpi = (72.0 * scale) as f32;
     let img = img.with_meta(photocraft_codecs::Metadata { dpi: Some((dpi, dpi)), ..Default::default() });
-    photocraft_codecs::encode(&img, photocraft_codecs::Format::Png, &photocraft_codecs::EncodeOptions::default()).map_err(|e| anyhow!("PhotoCraft: {e}"))
+    let opts = photocraft_codecs::EncodeOptions { jpeg_quality: 90, jpeg_chroma_subsampling: false, webp_lossless: true, ..Default::default() };
+    photocraft_codecs::encode(&img, fmt, &opts).map_err(|e| anyhow!("PhotoCraft: {e}"))
 }
 
 #[cfg(test)]

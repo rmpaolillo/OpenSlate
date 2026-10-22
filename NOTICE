@@ -97,6 +97,8 @@ Third-party material
   The fonts OpenSlate Corsivo and OpenSlate Stampatello (assets/fonts/OpenSlate*.ttf) are made
   from these glyphs by packaging/hand_fonts.py (strokes widened into outlines, accents composed);
   same licence and acknowledgements (assets/fonts/LICENSE-OpenSlateHand.txt).
+- assets/fonts/GlyphLess.ttf: an empty font (two glyphs with no outlines) made for OpenSlate with
+  fontTools, for the invisible text layer of searchable PDFs (src/formats.rs). Public domain.
 
 The full licence texts of all components are in THIRD-PARTY-LICENSES.txt in the release
 packages (packaging/collect_licenses.py).

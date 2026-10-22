@@ -102,7 +102,7 @@ pub fn save_with_ink(src: &Path, dst: &Path, strokes: &[InkStroke]) -> Result<()
 /// agganciati all'ultimo paragrafo con del testo che comincia sopra di loro
 /// (per esempio la riga dell'IBAN o «Firma:»): la firma segue il testo che
 /// firma. Gli evidenziatori restano sul testo che segnano.
-fn add_ink(s: &mut Session, strokes: &[InkStroke]) -> Result<()> {
+pub(crate) fn add_ink(s: &mut Session, strokes: &[InkStroke]) -> Result<()> {
     let layout = s.layout();
     // i tratti in punti della pagina
     let pts: Vec<Option<Vec<[f32; 2]>>> = strokes

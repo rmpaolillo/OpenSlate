@@ -80,6 +80,12 @@ photocraft-automation = { git = "https://github.com/storytold/photocraft", rev =
 # Gli appunti scritti a mano esportati in Word: i caratteri dentro il file
 # (lo stesso zip che usa WordCraft)
 zip = { version = "3", default-features = false, features = ["deflate"] }
+# altri formati delle pagine (src/formats.rs): GIF animata, Xournal++ (gzip),
+# file temporanei per il Word (già fra le dipendenze delle librerie Craft)
+gif = "0.14"
+color_quant = "1.1"
+flate2 = "1"
+tempfile = "3"
 # Espressioni delle funzioni nei grafici dell'AI (x^2 + sin(x)…)
 exmex = "0.20"
 # Formule dei Markdown aperti come documento: il LaTeX diventa Typst (MiTeX) e

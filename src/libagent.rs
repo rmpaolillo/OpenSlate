@@ -149,11 +149,13 @@ pub fn definitions() -> Vec<Value> {
         ),
         f(
             "archivio_esporta",
-            "Esporta pagine dell'archivio: pdf (tutte in un file), png o svg (un file per pagina), nella cartella dove l'utente \
-             esporta di solito. Non sovrascrive niente. Dice dove sono i file.",
+            "Esporta pagine dell'archivio nella cartella dove l'utente esporta di solito: pdf (tutte in un file; le pagine trascritte \
+             con il testo, così il PDF si cerca), png o svg, jpeg o webp (immagini leggere da mandare), word (la pagina come inchiostro \
+             modificabile e la trascrizione), xournal (Xournal++), gif o svg_animato (la scrittura che si rifà tratto dopo tratto), \
+             latex o typst (la trascrizione: solo pagine trascritte). Un file per pagina, tranne il pdf. Non sovrascrive niente. Dice dove sono i file.",
             json!({
                 "ids": { "type": "array", "items": { "type": "string" } },
-                "formato": { "type": "string", "enum": ["pdf", "png", "svg"] },
+                "formato": { "type": "string", "enum": ["pdf", "png", "svg", "jpeg", "webp", "word", "xournal", "gif", "svg_animato", "latex", "typst"] },
                 "nome": { "type": "string", "description": "Nome del file (senza estensione), facoltativo" }
             }),
             &["ids", "formato"],
@@ -408,49 +410,64 @@ fn file_stem(t: &str) -> String {
 }
 
 fn export(args: &Value) -> Result<String> {
+    use crate::formats::{Item, Kind, Opts};
     let ids = ids_of(args)?;
-    let fmt = args["formato"].as_str().unwrap_or("pdf").trim().to_lowercase();
-    if !matches!(fmt.as_str(), "pdf" | "png" | "svg") {
-        bail!("formato «{fmt}»: pdf, png o svg");
-    }
-    let Data::Pages { mut pages, dir } = ask(Req::Pages(ids.clone()))? else { bail!("risposta inattesa") };
+    let name_fmt = args["formato"].as_str().unwrap_or("pdf").trim().to_lowercase();
+    let Some(fmt) = Kind::from_name(&name_fmt) else {
+        bail!("formato «{name_fmt}»: pdf, png, svg, jpeg, webp, word, xournal, gif, svg_animato, latex o typst");
+    };
+    let Data::Pages { pages, dir } = ask(Req::Pages(ids.clone()))? else { bail!("risposta inattesa") };
     if pages.is_empty() {
         bail!("nessuna di queste pagine è nell'archivio");
     }
     let missing: Vec<&String> = ids.iter().filter(|i| !pages.iter().any(|p| &p.1 == *i)).collect();
-    pages.retain(|p| !p.2.is_empty());
-    if pages.is_empty() {
+    let notes = transcriptions();
+    let mut items: Vec<Item> = pages
+        .into_iter()
+        .filter(|p| !p.2.is_empty())
+        .map(|(title, id, page)| {
+            let note = notes.get(&id).filter(|n| note_text(n).is_some()).map(|n| std::path::Path::new(crate::export::EXPORT_DIR).join(n));
+            Item { title, page, note }
+        })
+        .collect();
+    if items.is_empty() {
         bail!("le pagine sono vuote: niente da esportare");
+    }
+    let mut untranscribed = Vec::new();
+    if fmt.needs_note() {
+        untranscribed = items.iter().filter(|i| i.note.is_none()).map(|i| i.title.clone()).collect();
+        items.retain(|i| i.note.is_some());
+        if items.is_empty() {
+            bail!("nessuna di queste pagine è trascritta: LaTeX e Typst esportano la trascrizione (prima «Trascrivi»)");
+        }
     }
     std::fs::create_dir_all(&dir)?;
     let name = args["nome"].as_str().map(file_stem);
     let mut written: Vec<PathBuf> = Vec::new();
-    if fmt == "pdf" {
-        let stem = name.unwrap_or_else(|| if pages.len() == 1 { file_stem(&pages[0].0) } else { format!("pagine-{}", pages.len()) });
-        let path = free_path(&dir, &stem, "pdf");
-        let refs: Vec<&Page> = pages.iter().map(|p| &p.2).collect();
-        crate::export::save_pdf(&refs, &path)?;
+    if fmt.one_file() {
+        let stem = name.unwrap_or_else(|| if items.len() == 1 { file_stem(&items[0].title) } else { format!("pagine-{}", items.len()) });
+        let path = free_path(&dir, &stem, fmt.ext());
+        crate::formats::write_pdf(&items, &path)?;
         written.push(path);
     } else {
-        for (k, (title, _, page)) in pages.iter().enumerate() {
+        let opts = Opts::default();
+        for (k, item) in items.iter().enumerate() {
             let stem = match &name {
-                Some(n) if pages.len() > 1 => format!("{n}-{}", k + 1),
+                Some(n) if items.len() > 1 => format!("{n}-{}", k + 1),
                 Some(n) => n.clone(),
-                None => file_stem(title),
+                None => file_stem(&item.title),
             };
-            let path = free_path(&dir, &stem, &fmt);
-            if fmt == "png" {
-                crate::export::save_png(page, &path)?;
-            } else {
-                crate::export::save_svg(page, &path)?;
-            }
-            written.push(path);
+            let path = free_path(&dir, &stem, fmt.ext());
+            written.extend(crate::formats::write_one(fmt, item, &path, &opts)?);
         }
     }
     let list: Vec<String> = written.iter().map(|p| p.display().to_string()).collect();
     let mut t = format!("Fatto: {} file in {}:\n{}", written.len(), dir.display(), list.join("\n"));
     if !missing.is_empty() {
         t.push_str(&format!("\nNon trovate: {}", missing.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")));
+    }
+    if !untranscribed.is_empty() {
+        t.push_str(&format!("\nNon trascritte (saltate): {}", untranscribed.join(", ")));
     }
     Ok(t)
 }

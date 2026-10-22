@@ -240,3 +240,37 @@ fn pagine_dimostrative() {
         std::env::set_current_dir(here).unwrap();
     }
 }
+
+/// Tutti i formati d'uscita per la pagina di laboratorio (con la sua
+/// trascrizione), per guardarli: DEMO_OUT=<cartella> cargo test -- --ignored formati_dimostrativi
+#[test]
+#[ignore]
+fn formati_dimostrativi() {
+    use crate::formats::{write_one, write_pdf, Item, Kind, Opts};
+    let Some(out) = std::env::var_os("DEMO_OUT").map(std::path::PathBuf::from) else {
+        return;
+    };
+    let dir = out.join("formati");
+    std::fs::create_dir_all(&dir).unwrap();
+    let g = geom();
+    let d = Drawing { strokes: lab(&g), width: 29700.0, height: 21000.0 };
+    let view = crate::scene::Scene::new(&crate::settings::Settings::default()).view;
+    let page = crate::scene::Page::from_drawing(&d, view);
+    let note = dir.join("physics-lab.md");
+    std::fs::write(
+        &note,
+        "# Physics lab: the pendulum\n\n**Goal:** measure $g$ with a simple pendulum.\n\nPeriod: $T = 2\\pi\\sqrt{L/g}$\n\n\
+         | $L$ (m) | $T$ (s) |\n|---|---|\n| 0.50 | 1.42 |\n| 1.00 | 2.01 |\n| 1.50 | 2.46 |\n\n\
+         So $g = \\dfrac{4\\pi^2 L}{T^2} \\approx 9.8\\ \\mathrm{m/s^2}$\n\n**To do:** repeat with 20 swings, not 10, and check the angle.\n",
+    )
+    .unwrap();
+    let item = Item { title: "Physics lab".into(), page, note: Some(note) };
+    let opts = Opts { hand: crate::mdcraft::Hand::Corsivo, paper: "righe".into() };
+    write_pdf(std::slice::from_ref(&item), &dir.join("physics-lab.pdf")).unwrap();
+    for k in [Kind::Png, Kind::Svg].into_iter().chain(Kind::MORE) {
+        let name = if k == Kind::SvgAnim { "physics-lab-animato.svg".to_string() } else { format!("physics-lab.{}", k.ext()) };
+        let t = std::time::Instant::now();
+        let w = write_one(k, &item, &dir.join(name), &opts).unwrap();
+        println!("{k:?}: {:?} in {:?}", w.iter().map(|p| std::fs::metadata(p).map(|m| m.len()).unwrap_or(0)).collect::<Vec<_>>(), t.elapsed());
+    }
+}
