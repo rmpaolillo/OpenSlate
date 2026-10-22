@@ -256,9 +256,9 @@ fn merge_ours(fonts: &mut FontDefinitions) {
     let add = |fonts: &mut FontDefinitions, name: &str, bytes: &'static [u8]| {
         fonts.font_data.insert(name.into(), Arc::new(FontData::from_static(bytes)));
     };
-    add(fonts, F_INTER, include_bytes!("../../assets/fonts/Inter-Regular.ttf"));
-    add(fonts, F_MEDIUM, include_bytes!("../../assets/fonts/Inter-Medium.ttf"));
-    add(fonts, F_SEMIBOLD, include_bytes!("../../assets/fonts/Inter-SemiBold.ttf"));
+    add(fonts, F_INTER, crate::fonts::INTER_REGULAR);
+    add(fonts, F_MEDIUM, crate::fonts::INTER_MEDIUM);
+    add(fonts, F_SEMIBOLD, crate::fonts::INTER_SEMIBOLD);
     add(fonts, F_ICONS, egui_phosphor::Variant::Regular.font_bytes());
     // i nomi delle lingue nel menu (中文 日本語 한국어) anche senza i caratteri
     // CJK del sistema: un ritaglio minuscolo di Noto Sans CJK (SIL OFL 1.1)

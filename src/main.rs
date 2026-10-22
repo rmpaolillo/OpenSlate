@@ -47,6 +47,9 @@ mod ui;
 mod update;
 mod rasign;
 mod vecsign;
+#[cfg(test)]
+mod demo;
+mod fonts;
 mod vendor;
 mod viewer;
 mod wordsign;

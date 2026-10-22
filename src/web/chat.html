@@ -728,11 +728,11 @@ function stepsEl(m, live) {
   if (m.think) {
     const thinking = live && !m.content && !(m.tools || []).length;
     const secs = m.thinkMs ? " · " + fmt1(m.thinkMs / 1000) + " s" : "";
-    const r = row("think", "brain", thinking ? "Ragiono…" : "Ragionamento" + secs, "", m.think, thinking);
+    const r = row("think", "brain", thinking ? T("Ragiono…") : T("Ragionamento") + secs, "", m.think, thinking);
     if (thinking) r.querySelector(".preview").textContent = m.think.trim().split("\n").pop().slice(-90);
     box.appendChild(r);
   }
-  for (const n of m.notes || []) box.appendChild(row("skip", "redo", "Saltato: " + n, "", "", false));
+  for (const n of m.notes || []) box.appendChild(row("skip", "redo", T("Saltato: {}", n), "", "", false));
   for (const t of m.tools || []) box.appendChild(row("tool", toolIcon(t.key || t.label), t.label, t.result ? (t.result.length > 40 ? t.result.slice(0, 40) + "…" : t.result) : "", t.result && t.result.length > 40 ? t.result : "", !t.result));
   return box.children.length ? box : null;
 }
@@ -861,7 +861,10 @@ function refreshPage() {
     const done = () => { if (attachWaiter === done) attachWaiter = null; res(); };
     attachWaiter = done;
     if (!toApp({ cmd: "attach_board" })) return done();
-    setTimeout(done, 2500); // l'app non ha risposto: si manda lo stesso
+    // l'app risponde sempre (wsChat.attachNow), di solito subito; su un computer
+    // lento o occupato ci può mettere qualche secondo: meglio aspettare che
+    // mandare la domanda senza il foglio (il modello non vedrebbe la pagina)
+    setTimeout(done, 10000);
   });
 }
 async function send(text, images) {

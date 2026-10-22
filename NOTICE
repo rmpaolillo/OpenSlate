@@ -74,7 +74,7 @@ Third-party material
   SIL Open Font License 1.1 (assets/fonts/OFL-Inter.txt). Subset with fontTools to drop the
   Private Use Area glyphs (U+E000-F8FF), which would hide the Phosphor icons.
 
-- Source Serif 4 (assets/fonts/SourceSerif4-*.ttf), Copyright 2014-2023 Adobe, with Reserved Font
+- Source Serif 4 (the copy bundled with WordCraft, wordcraft-fonts), Copyright 2014-2023 Adobe, with Reserved Font
   Name 'Source', SIL Open Font License 1.1 (assets/fonts/OFL-SourceSerif4.txt). Unmodified.
 
 - Noto Sans CJK (assets/fonts/NotoSansCJK-langnames.otf), Copyright 2014-2021 Adobe

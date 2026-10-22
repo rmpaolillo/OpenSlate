@@ -31,7 +31,7 @@ Per-file attributions are in [NOTICE](NOTICE). The release packages also contain
 | Asset | Authors | Licence | Where |
 |---|---|---|---|
 | [Inter](https://github.com/rsms/inter) | Rasmus Andersson and The Inter Project Authors | SIL OFL 1.1 | `assets/fonts/Inter-*.ttf` (subset: Private Use Area removed) |
-| [Source Serif 4](https://github.com/adobe-fonts/source-serif) | Frank Grießhammer, Adobe | SIL OFL 1.1 | `assets/fonts/SourceSerif4-*.ttf` |
+| [Source Serif 4](https://github.com/adobe-fonts/source-serif) | Frank Grießhammer, Adobe | SIL OFL 1.1 | the copy bundled with WordCraft (`wordcraft-fonts`) |
 | [Noto Sans CJK](https://github.com/notofonts/noto-cjk) | Google, Adobe | SIL OFL 1.1 | `assets/fonts/NotoSansCJK-langnames.otf` (subset: only the glyphs of «中文日本語한국어» for the language menu) |
 | [New Computer Modern](https://ctan.org/pkg/newcomputermodern) | Antonis Tsolomitis | GUST Font License (NewCM10-Regular: see the notice) | `assets/fonts/typst/` (NewCMMath Regular and Bold, NewCM10 Regular, Bold, Italic, Bold Italic; copied unmodified from the `typst-assets` crate, notice in `assets/fonts/typst/NOTICE-typst-assets.txt`): the formula fonts (the LaTeX look) |
 | OpenSlate Corsivo, OpenSlate Stampatello | made by OpenSlate from the Hershey fonts (Dr. A. V. Hershey, U.S. NBS; `.jhf` format by James Hurt) | Hershey fonts licence (`assets/fonts/LICENSE-OpenSlateHand.txt`) | `assets/fonts/OpenSlate*.ttf` (handwritten notes; made by `packaging/hand_fonts.py`) |

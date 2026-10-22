@@ -196,6 +196,21 @@ fn symbol(c: char) -> Option<Glyph> {
         ]),
         '✓' => g(-8.0, 8.0, vec![vec![(-6.0, -1.0), (-2.0, 5.0), (7.0, -10.0)]]),
         '✗' => g(-7.0, 7.0, vec![vec![(-5.0, -8.0), (5.0, 5.0)], vec![(5.0, -8.0), (-5.0, 5.0)]]),
+        // matematica: π, Δ, radice (col tetto lungo) e infinito
+        'π' => g(-8.0, 9.0, vec![
+            vec![(-6.5, -3.0), (-5.0, -4.6), (-2.0, -5.0), (3.0, -5.0), (7.0, -5.5)],
+            vec![(-2.5, -5.0), (-3.0, 1.0), (-4.0, 6.0), (-5.0, 9.0)],
+            vec![(3.0, -5.0), (2.8, 3.0), (3.4, 7.5), (4.5, 9.0), (6.0, 8.0)],
+        ]),
+        'Δ' => g(-9.0, 9.0, vec![vec![(0.0, -12.0), (-7.5, 9.0), (7.5, 9.0), (0.0, -12.0)]]),
+        '√' => g(-9.0, 12.0, vec![vec![(-8.0, 0.0), (-6.0, -1.5), (-2.5, 9.0), (3.0, -14.0), (12.0, -14.0)]]),
+        '∞' => g(-10.0, 10.0, vec![(0..=40)
+            .map(|k| k as f32 / 40.0 * std::f32::consts::TAU)
+            .map(|t| {
+                let d = 1.0 + t.sin() * t.sin();
+                (8.0 * t.cos() / d, -2.0 + 8.0 * t.sin() * t.cos() / d)
+            })
+            .collect()]),
         _ => None,
     }
 }
@@ -252,7 +267,7 @@ pub fn all_glyphs(style: Style) -> Vec<(char, f32, f32, Vec<Vec<(f32, f32)>>)> {
     let f = font(style);
     let mut chars: Vec<char> = (32u8..127).map(char::from).collect();
     chars.extend("àáâäãåèéêëìíîïòóôöõùúûüñçÿÀÁÂÄÃÅÈÉÊËÌÍÎÏÒÓÔÖÕÙÚÛÜÑÇ".chars());
-    chars.extend("×÷±≠≈≤≥→←↑↓⇒°·•€✓✗".chars());
+    chars.extend("×÷±≠≈≤≥→←↑↓⇒°·•€✓✗π√∞Δ".chars());
     chars.extend("⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎".chars());
     let mut out: Vec<(char, f32, f32, Vec<Vec<(f32, f32)>>)> =
         chars.into_iter().filter_map(|c| glyph(f, c).map(|g| (c, g.left, g.right, g.strokes))).collect();

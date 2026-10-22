@@ -6,7 +6,7 @@
 
 <p align="center">
   A free, open-source companion app for the <b>Wacom Bamboo Slate</b> (SmartPad family).<br>
-  Live board · offline sync · sign Word and PDF documents with the pen · handwriting to text · AI assistant with charts
+  Live board · offline sync · sign Word and PDF documents with the pen · handwriting to text · an AI assistant that corrects your exercises right on the page
 </p>
 
 <p align="center">
@@ -15,10 +15,10 @@
   <a href="LICENSE"><img alt="License: GPL-3.0-or-later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue"></a>
 </p>
 
-*English · [Italiano](README.it.md)*
+*English · [Italiano](README.it.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Українська](README.uk.md) · [中文](README.zh.md) · [日本語](README.ja.md) · [한국어](README.ko.md)*
 
 <p align="center">
-  <img src="assets/screenshots/chat.png" alt="OpenSlate: a handwritten page on the board, with the AI assistant summarising it" width="900">
+  <img src="assets/screenshots/chat.png" alt="OpenSlate: the AI assistant checks a handwritten maths exercise on the board and corrects it in red ink" width="900">
 </p>
 
 ---
@@ -38,6 +38,20 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 > OpenSlate is an independent project. It is **not affiliated with, endorsed by or supported by
 > Wacom**. "Wacom", "Bamboo" and "Inkspace" are trademarks of their respective owners.
+
+## At a glance
+
+- **Write on paper, see it on the screen.** The Bamboo Slate streams every stroke over Bluetooth;
+  pages written away from the computer are downloaded later into a library.
+- **An AI tutor that writes on your page.** Ask it to check an exercise: it ticks what is right,
+  circles the mistake and writes the correction next to it in handwriting, then explains it in
+  the chat, with formulas. It can also draw the graph of a function onto the page.
+- **Sign Word and PDF documents with the pen**, saved in the same format.
+- **Handwriting → editable notes**, with tables and formulas, exported to Markdown, Word or PDF,
+  printed or in a handwriting font.
+- **Your choice of AI**: local models (LM Studio, Ollama) or cloud providers; API keys never stored
+  in plain text.
+- **Free and open source**, in nine languages, for macOS (main platform), Linux and Windows.
 
 ## Features
 
@@ -131,14 +145,18 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Screenshots
 
-The screenshots show the Italian interface. The handwriting and documents are sample content.
+The screenshots show the English interface (eight more languages are built in). The handwriting,
+the documents and the AI replies are sample content prepared for these pictures; the marks on the
+page and the graph were drawn by the app's own board tools.
 
 | | |
 |---|---|
-| **Sign a Word or PDF document** with the pen and save it in the same format | **Library** of the pages downloaded from the pad, grouped by day |
-| <img src="assets/screenshots/sign.png" alt="Signing a Word document" width="440"> | <img src="assets/screenshots/library.png" alt="Library of pages" width="440"> |
-| **Handwriting → text**: a page transcribed into an editable note | **Dark theme** and paper styles (here 5 mm squares) |
-| <img src="assets/screenshots/transcribe.png" alt="Handwriting transcribed into a note" width="440"> | <img src="assets/screenshots/dark.png" alt="Dark theme with squared paper" width="440"> |
+| **A graph on the page**: the chat draws the function and puts it under the exercise | **Sign a Word or PDF document** with the pen and save it in the same format |
+| <img src="assets/screenshots/graph.png" alt="The AI chat draws the graph of the function and places it on the handwritten page" width="440"> | <img src="assets/screenshots/sign.png" alt="A Word document signed with the pen" width="440"> |
+| **Handwriting → text**: a page transcribed into an editable note, formulas included | **Notes by hand**: the same note in the cursive handwriting font |
+| <img src="assets/screenshots/transcribe.png" alt="A handwritten page transcribed into a note with a table and formulas" width="440"> | <img src="assets/screenshots/notes.png" alt="The note shown in the OpenSlate cursive handwriting font" width="440"> |
+| **Library** of the pages downloaded from the pad, grouped by day | **Dark theme** and paper styles (here 5 mm squares) |
+| <img src="assets/screenshots/library.png" alt="Library of handwritten pages" width="440"> | <img src="assets/screenshots/dark.png" alt="Dark theme with squared paper and the AI chat open" width="440"> |
 
 ## Install
 
@@ -326,6 +344,8 @@ src/libagent.rs, src/ui/chat_lib.rs                       the chat on the page l
 vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
+src/fonts.rs                                              the fonts embedded in the app (one copy each)
+src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases
 ```
 
@@ -336,9 +356,10 @@ A file-by-file description is in the [Italian README](README.it.md#struttura).
 - `ci.yml` builds and tests on Linux and macOS for every push and pull request.
 - `release.yml` runs when the maintainer starts it (Actions → Release → Run workflow, on `main`).
   It builds macOS (Apple Silicon, Intel and universal), Linux and Windows and publishes a GitHub Release with
-  automatically generated notes. The release binary is stripped and optimised as one program
-  (`lto = "fat"`, `codegen-units = 1`); rarely used libraries pulled in by others are optimised
-  for size (see `[profile.release]` in `Cargo.toml`).
+  automatically generated notes, and keeps only the two newest releases. The release binary is
+  stripped and optimised across crates (`lto = "thin"`, `codegen-units = 1`); rarely used
+  libraries pulled in by others are optimised for size, and each font is embedded once (see
+  `[profile.release]` in `Cargo.toml` and `src/fonts.rs`).
 - Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR` comes from `Cargo.toml`,
   `PATCH` is counted automatically from the existing tags (`v0.3.0`, then `v0.3.1`, …).
 - To start a new series (new features: `0.3.0`; first stable: `1.0.0`), change `version` in

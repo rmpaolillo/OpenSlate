@@ -462,17 +462,13 @@ fn math(s: &mut Session, latex: &str, display: bool) -> bool {
     }
 }
 
-/// I caratteri degli Appunti (dentro l'app) nel motore di WordCraft.
+/// I caratteri degli Appunti (dentro l'app) nel motore di WordCraft: quelli
+/// scritti a mano. Source Serif 4 e Inter ci sono già (`wordcraft_fonts::bundled`).
 fn fonts() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
         let db = wordcraft_fonts::FontDb::global();
         for data in [
-            &include_bytes!("../assets/fonts/SourceSerif4-Regular.ttf")[..],
-            include_bytes!("../assets/fonts/SourceSerif4-It.ttf"),
-            include_bytes!("../assets/fonts/SourceSerif4-Bold.ttf"),
-            include_bytes!("../assets/fonts/Inter-Regular.ttf"),
-            include_bytes!("../assets/fonts/Inter-SemiBold.ttf"),
             CORSIVO,
             CORSIVO_BOLD,
             STAMPATELLO,

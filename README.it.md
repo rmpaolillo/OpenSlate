@@ -1,17 +1,38 @@
 # OpenSlate
 
-*[English](README.md) · Italiano*
+*[English](README.md) · Italiano · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Українська](README.uk.md) · [中文](README.zh.md) · [日本語](README.ja.md) · [한국어](README.ko.md)*
 
 App **libera, in Rust e modificabile** per il **Wacom Bamboo Slate** (famiglia SmartPad).
 Non è un prodotto Wacom e non è collegata a Wacom.
 
-![OpenSlate: una pagina scritta a mano sulla lavagna e l'assistente AI che la riassume](assets/screenshots/chat.png)
+![OpenSlate: l'assistente AI controlla un esercizio di matematica scritto a mano sulla lavagna e lo corregge in rosso](assets/screenshots/chat.png)
 
-| Firma di un documento Word | Archivio delle pagine |
+## In breve
+
+- **Scrivi sulla carta, lo vedi sullo schermo.** Lo Slate manda ogni tratto in Bluetooth; le
+  pagine scritte lontano dal computer si scaricano dopo nell'archivio.
+- **Un'AI che corregge sul foglio.** Le chiedi di controllare un esercizio: spunta quello che è
+  giusto, cerchia l'errore e scrive accanto la correzione a mano, poi la spiega nella chat, con le
+  formule. Sa anche disegnare sul foglio il grafico di una funzione.
+- **Firmi documenti Word e PDF con la penna**, salvati nello stesso formato.
+- **Dalla scrittura a mano agli appunti**, con tabelle e formule, esportati in Markdown, Word o
+  PDF, in stampato o con un carattere a mano.
+- **L'AI che vuoi tu**: modelli locali (LM Studio, Ollama) o in cloud; le chiavi API mai in chiaro.
+- **Libera e open source**, in nove lingue, per macOS (piattaforma principale), Linux e Windows.
+
+Le immagini mostrano l'interfaccia in inglese. La scrittura, i documenti e le risposte dell'AI
+sono esempi preparati per queste immagini; i segni sul foglio e il grafico li hanno fatti gli
+strumenti della lavagna dell'app.
+
+| | |
 |---|---|
-| ![Firma](assets/screenshots/sign.png) | ![Archivio](assets/screenshots/library.png) |
-| **Scrittura → testo** | **Tema scuro e quadretti** |
-| ![Trascrizione](assets/screenshots/transcribe.png) | ![Tema scuro](assets/screenshots/dark.png) |
+| **Un grafico sul foglio**: la chat disegna la funzione e la mette sotto l'esercizio | **Firma di un documento Word o PDF** con la penna, salvato nello stesso formato |
+| ![Grafico sul foglio](assets/screenshots/graph.png) | ![Firma](assets/screenshots/sign.png) |
+| **Scrittura → testo**: la pagina diventa un appunto modificabile, formule comprese | **Appunti a mano**: lo stesso appunto con il carattere corsivo |
+| ![Trascrizione](assets/screenshots/transcribe.png) | ![Appunti in corsivo](assets/screenshots/notes.png) |
+| **Archivio** delle pagine scaricate dal pad, per giorno | **Tema scuro** e rigature (qui quadretti da 5 mm) |
+| ![Archivio](assets/screenshots/library.png) | ![Tema scuro](assets/screenshots/dark.png) |
+
 Il protocollo Bluetooth è una traduzione fedele di [Tuhi](https://github.com/tuhiproject/tuhi) (GPL).
 
 ## Cosa fa
@@ -320,6 +341,8 @@ src/signature.rs  firma registrata
 src/ui/doc_view.rs  interfaccia: documenti e firma
 src/settings.rs   settings.conf e hook
 src/platform.rs   differenze fra sistemi: cartella dei dati, apertura dei file, paracadute dei lavori in sottofondo
+src/fonts.rs      i caratteri dentro il programma, una copia sola ciascuno (Source Serif 4 è quello di WordCraft)
+src/demo.rs       le pagine di esempio delle immagini del README (solo nelle prove)
 packaging/collect_licenses.py  testi completi delle licenze per i pacchetti (THIRD-PARTY-LICENSES.txt)
 ```
 

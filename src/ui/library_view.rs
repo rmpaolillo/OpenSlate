@@ -494,7 +494,7 @@ impl App {
             if ui.add_enabled(pos > 0, egui::Button::new(i18n::tf(format!("{} Precedente", ic::CARET_LEFT)))).clicked() {
                 actions.push(lib(LibAction::Step(-1)));
             }
-            ui.label(i18n::tf(format!("{} di {}", pos + 1, ids.len())));
+            ui.label(i18n::tf(format!("Pagina {} di {}", pos + 1, ids.len())));
             if ui.add_enabled(pos + 1 < ids.len(), egui::Button::new(i18n::tf(format!("Successiva {}", ic::CARET_RIGHT)))).clicked() {
                 actions.push(lib(LibAction::Step(1)));
             }
@@ -648,13 +648,12 @@ impl App {
                 (false, Some(t)) => format!("{}  •  {origin}", t.format("%d/%m/%Y %H:%M")),
                 _ => origin.to_string(),
             };
-            p.text(
-                egui::pos2(rect.left(), thumb.bottom() + 24.0),
-                egui::Align2::LEFT_TOP,
-                i18n::tr(&sub).into_owned(),
-                egui::FontId::proportional(11.5),
-                ui.visuals().weak_text_color(),
-            );
+            // anche la data resta nella sua scheda (anteprime piccole: con …)
+            let weak = ui.visuals().weak_text_color();
+            let mut job = egui::text::LayoutJob::single_section(i18n::tr(&sub).into_owned(), egui::TextFormat::simple(egui::FontId::proportional(11.5), weak));
+            job.wrap = egui::text::TextWrapping { max_width: card_w, max_rows: 1, break_anywhere: true, overflow_character: Some('…') };
+            let galley = ui.fonts_mut(|f| f.layout_job(job));
+            p.galley(egui::pos2(rect.left(), thumb.bottom() + 24.0), galley, weak);
         }
 
         if resp.double_clicked() {
