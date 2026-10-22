@@ -50,7 +50,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Handwriting → editable notes**, with tables and formulas, exported to Markdown, Word or PDF,
   printed or in a handwriting font.
 - **Export to what you need**: a searchable PDF, Word with the handwriting as editable ink, light
-  JPEG/WebP, Xournal++, an animated GIF or SVG of the page being written, and LaTeX or Typst from
+  JPEG/WebP, Xournal++, an animated GIF, SVG or MP4 video of the page being written, and LaTeX or Typst from
   the transcription.
 - **Your choice of AI**: local models (LM Studio, Ollama) or cloud providers; API keys never stored
   in plain text.
@@ -137,7 +137,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   is interrupted.
 - **Page only.** The button next to Copy/Paste in the title bar (or `Cmd+Shift+F`, View → Page
   only) hides the menu bar and the ribbon; click again to bring them back.
-- **More formats.** A page that has been transcribed becomes a **searchable PDF**: the text sits invisibly over the handwriting, so Spotlight and any PDF reader find it and you can copy it. Under **More formats**: JPEG and WebP (light, to send), **Word** with the handwriting as real Word ink you can edit (and the transcription on the next page), **Xournal++** (`.xopp`), an **animated GIF or SVG** that rewrites the page stroke by stroke, and **LaTeX** or **Typst** from the transcription (notes export to them too). The AI chat can export to all of them.
+- **More formats.** A page that has been transcribed becomes a **searchable PDF**: the text sits invisibly over the handwriting, so Spotlight and any PDF reader find it and you can copy it. Under **More formats**: JPEG and WebP (light, to send), **Word** with the handwriting as real Word ink you can edit (and the transcription on the next page), **Xournal++** (`.xopp`), an **animated GIF or SVG** or an **MP4 video** that rewrites the page stroke by stroke (the video uses the system's encoder: AVFoundation on macOS, Media Foundation on Windows; on Linux ffmpeg, or Cisco's OpenH264 downloaded on first use if you agree), and **LaTeX** or **Typst** from the transcription (notes export to them too). The AI chat can export to all of them.
 - **Save and export.** Export to vector PDF and SVG at true A4 size, or to PNG. Every save or
   export opens the system "Save as" dialog, so you always see where the file goes. It starts in the
   last folder you chose (the first time, in `exports/`). You can also copy the page as an image
@@ -155,7 +155,7 @@ page and the graph were drawn by the app's own board tools.
 
 | | |
 |---|---|
-| **The page rewrites itself**: the animated GIF export, stroke by stroke | **More formats**: JPEG, WebP, Word with ink, Xournal++, animated GIF/SVG, LaTeX, Typst |
+| **The page rewrites itself**: the animated GIF export, stroke by stroke | **More formats**: JPEG, WebP, Word with ink, Xournal++, animated GIF/SVG, MP4 video, LaTeX, Typst |
 | <img src="assets/screenshots/writing.gif" alt="Animated GIF: the handwritten page being written stroke by stroke" width="440"> | <img src="assets/screenshots/formats.png" alt="The More formats menu" width="440"> |
 | **A graph on the page**: the chat draws the function and puts it under the exercise | **Sign a Word or PDF document** with the pen and save it in the same format |
 | <img src="assets/screenshots/graph.png" alt="The AI chat draws the graph of the function and places it on the handwritten page" width="440"> | <img src="assets/screenshots/sign.png" alt="A Word document signed with the pen" width="440"> |
@@ -203,11 +203,14 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 ```
 
 At run time it needs BlueZ, GTK 3 and WebKitGTK 4.1. Your user must be allowed to use Bluetooth.
+For the MP4 video export it uses `ffmpeg` if installed (`sudo apt install ffmpeg`); otherwise, the
+first time, it asks before downloading Cisco's free OpenH264 encoder (about 1 MB) from Cisco's site.
 
 ### Windows (experimental)
 
 Unzip and run `openslate.exe`. It needs the Microsoft Edge WebView2 runtime, which ships with
-Windows 10/11. Not everything is tested on Windows. Bug reports are very welcome.
+Windows 10/11. On the "N" editions of Windows the MP4 video export also needs Microsoft's
+Media Feature Pack. Not everything is tested on Windows. Bug reports are very welcome.
 
 ## Files and formats
 
@@ -222,6 +225,7 @@ their interfaces and without external programs:
 | Photos (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
 | Board and library exports (PDF, SVG, PNG, JPEG, WebP) | VectorCraft draws and writes them; PNG, JPEG and WebP files are written by PhotoCraft |
 | Animated GIF and SVG, Xournal++, LaTeX, Typst, the hidden text of searchable PDFs | written by OpenSlate itself (`src/formats.rs`, `src/mdconv.rs`) |
+| MP4 video | the system's encoder: AVFoundation (macOS), Media Foundation (Windows); on Linux ffmpeg, or Cisco's OpenH264 downloaded on first use (*OpenH264 Video Codec provided by Cisco Systems, Inc.*) |
 
 A Markdown file opened as a document looks like the Notes page: Source Serif text, Inter
 headings, light tables. Its formulas (`$…$`, `$$…$$`, `\(…\)`, `\[…\]`) are drawn in LaTeX style by
@@ -264,7 +268,8 @@ When installed, OpenSlate keeps your library, documents, chats and settings in:
 You can override this with the `OPENSLATE_DATA` environment variable. When started with
 `cargo run` from the source folder, it works in that folder instead. There you also find
 `crash.log` (if the app ever crashed), `web.key` (the key of the web live link) and `updates/`
-(the previous version of the app, kept after an update).
+(the previous version of the app, kept after an update). On Linux, `codecs/` holds Cisco's
+OpenH264 encoder, if you allowed the download.
 
 ## AI providers and API keys
 
@@ -329,7 +334,7 @@ sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
 ```
 
 On macOS you need the Xcode command-line tools (`xcode-select --install`). The small Swift
-helper for the optional Apple Vision OCR is compiled on first use, or bundled inside the release `.app`.
+helpers (the optional Apple Vision OCR and the MP4 video) are compiled on first use, or bundled inside the release `.app`.
 
 ## Project layout
 
@@ -352,6 +357,7 @@ vendor/                                                   copies of Typst and Wo
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
+src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

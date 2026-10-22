@@ -49,7 +49,7 @@ Issues і pull requests вітаються: див. [CONTRIBUTING.md](CONTRIBUTI
 - **Підписуйте документи Word і PDF пером** і зберігайте їх у тому самому форматі.
 - **Рукопис → редаговані нотатки** з таблицями й формулами, експорт у Markdown, Word або PDF,
   друкованим текстом або рукописним шрифтом.
-- **Експорт у те, що потрібно**: PDF із пошуком, Word із письмом як чорнилом, яке можна редагувати, легкі JPEG/WebP, Xournal++, анімований GIF або SVG сторінки, що пишеться, а також LaTeX чи Typst із розпізнаного тексту.
+- **Експорт у те, що потрібно**: PDF із пошуком, Word із письмом як чорнилом, яке можна редагувати, легкі JPEG/WebP, Xournal++, анімований GIF, SVG або відео MP4 сторінки, що пишеться, а також LaTeX чи Typst із розпізнаного тексту.
 - **ШІ на ваш вибір**: локальні моделі (LM Studio, Ollama) або хмарні провайдери; API-ключі ніколи не зберігаються
   відкритим текстом.
 - **Безкоштовний і з відкритим кодом**, дев'ятьма мовами, для macOS (основна платформа), Linux і Windows.
@@ -135,7 +135,7 @@ Issues і pull requests вітаються: див. [CONTRIBUTING.md](CONTRIBUTI
   перервалося.
 - **Лише аркуш.** Кнопка поруч із «Копіювати»/«Вставити» в рядку заголовка (або `Cmd+Shift+F`, «Перегляд» → «Лише
   аркуш») ховає рядок меню та стрічку; клацніть ще раз, щоб повернути їх.
-- **Інші формати.** Розпізнана сторінка стає **PDF із пошуком**: текст лежить невидимо поверх рукописного, тож Spotlight і будь-яка програма для PDF знаходять його, а ви можете його скопіювати. В «Інші формати»: JPEG і WebP (легкі, для надсилання), **Word** із письмом як справжнім чорнилом Word, яке можна редагувати (і розпізнаним текстом на наступній сторінці), **Xournal++** (`.xopp`), **анімований GIF або SVG**, що переписує сторінку штрих за штрихом, а також **LaTeX** або **Typst** із розпізнаного тексту (нотатки теж експортуються в них). Чат ШІ може експортувати в усі ці формати.
+- **Інші формати.** Розпізнана сторінка стає **PDF із пошуком**: текст лежить невидимо поверх рукописного, тож Spotlight і будь-яка програма для PDF знаходять його, а ви можете його скопіювати. В «Інші формати»: JPEG і WebP (легкі, для надсилання), **Word** із письмом як справжнім чорнилом Word, яке можна редагувати (і розпізнаним текстом на наступній сторінці), **Xournal++** (`.xopp`), **анімований GIF або SVG** чи **відео MP4**, що переписує сторінку штрих за штрихом (відео використовує системний кодувальник: AVFoundation на macOS, Media Foundation у Windows; у Linux ffmpeg або OpenH264 від Cisco, завантажений під час першого використання, якщо ви погодитеся), а також **LaTeX** або **Typst** із розпізнаного тексту (нотатки теж експортуються в них). Чат ШІ може експортувати в усі ці формати.
 - **Збереження й експорт.** Експорт у векторні PDF і SVG у справжньому розмірі A4 або в PNG. Кожне збереження чи
   експорт відкриває системне вікно «Зберегти як», тож ви завжди бачите, куди потрапить файл. Воно відкривається в
   останній вибраній вами папці (уперше — в `exports/`). Також можна скопіювати сторінку як зображення
@@ -153,7 +153,7 @@ Issues і pull requests вітаються: див. [CONTRIBUTING.md](CONTRIBUTI
 
 | | |
 |---|---|
-| **Сторінка пишеться сама**: експорт в анімований GIF, штрих за штрихом | **Інші формати**: JPEG, WebP, Word із чорнилом, Xournal++, анімовані GIF/SVG, LaTeX, Typst |
+| **Сторінка пишеться сама**: експорт в анімований GIF, штрих за штрихом | **Інші формати**: JPEG, WebP, Word із чорнилом, Xournal++, анімовані GIF/SVG, відео MP4, LaTeX, Typst |
 | <img src="assets/screenshots/writing.gif" alt="Анімований GIF: сторінка пишеться штрих за штрихом" width="440"> | <img src="assets/screenshots/formats.png" alt="Меню «Інші формати»" width="440"> |
 | **Графік на сторінці**: чат малює функцію й розміщує її під вправою | **Підпишіть документ Word або PDF** пером і збережіть його в тому самому форматі |
 | <img src="assets/screenshots/graph.png" alt="ШІ-чат малює графік функції й розміщує його на рукописній сторінці" width="440"> | <img src="assets/screenshots/sign.png" alt="Документ Word, підписаний пером" width="440"> |
@@ -201,11 +201,14 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 ```
 
 Для роботи потрібні BlueZ, GTK 3 і WebKitGTK 4.1. Вашому користувачеві має бути дозволено використовувати Bluetooth.
+Для експорту відео MP4 використовується `ffmpeg`, якщо він встановлений (`sudo apt install ffmpeg`); інакше
+першого разу застосунок запитає, перш ніж завантажити з сайту Cisco безкоштовний кодувальник OpenH264 (близько 1 МБ).
 
 ### Windows (експериментально)
 
 Розпакуйте архів і запустіть `openslate.exe`. Потрібне середовище виконання Microsoft Edge WebView2, яке постачається з
-Windows 10/11. На Windows протестовано не все. Повідомлення про помилки дуже вітаються.
+Windows 10/11. У виданнях Windows «N» для відео MP4 потрібен ще Media Feature Pack від Microsoft.
+На Windows протестовано не все. Повідомлення про помилки дуже вітаються.
 
 ## Файли й формати
 
@@ -220,6 +223,7 @@ Windows 10/11. На Windows протестовано не все. Повідом
 | Фото (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
 | Експорт дошки й архіву (PDF, SVG, PNG, JPEG, WebP) | VectorCraft малює й записує їх; файли PNG, JPEG і WebP записує PhotoCraft |
 | Анімовані GIF і SVG, Xournal++, LaTeX, Typst, прихований текст PDF із пошуком | записує сам OpenSlate (`src/formats.rs`, `src/mdconv.rs`) |
+| Відео MP4 | системний кодувальник: AVFoundation (macOS), Media Foundation (Windows); у Linux ffmpeg або OpenH264 від Cisco, завантажений під час першого використання (*OpenH264 Video Codec provided by Cisco Systems, Inc.*) |
 
 Файл Markdown, відкритий як документ, має такий самий вигляд, як сторінка «Нотатки»: текст Source Serif, заголовки
 Inter, легкі таблиці. Його формули (`$…$`, `$$…$$`, `\(…\)`, `\[…\]`) малюються в стилі LaTeX за допомогою
@@ -262,7 +266,8 @@ OpenSlate.
 Це можна змінити змінною середовища `OPENSLATE_DATA`. Якщо запустити його через
 `cargo run` з папки з вихідним кодом, він натомість працює в цій папці. Там же є
 `crash.log` (якщо застосунок колись аварійно завершувався), `web.key` (ключ вебпосилання наживо) і `updates/`
-(попередня версія застосунку, збережена після оновлення).
+(попередня версія застосунку, збережена після оновлення). На Linux у `codecs/` лежить кодувальник
+OpenH264 від Cisco, якщо ви дозволили завантаження.
 
 ## ШІ-провайдери та API-ключі
 
@@ -326,8 +331,8 @@ sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
                  libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev
 ```
 
-На macOS потрібні інструменти командного рядка Xcode (`xcode-select --install`). Невеликий допоміжний модуль на Swift
-для необов'язкового OCR через Apple Vision компілюється під час першого використання або входить до складу `.app` випуску.
+На macOS потрібні інструменти командного рядка Xcode (`xcode-select --install`). Невеликі допоміжні модулі на Swift
+(необов'язковий OCR через Apple Vision і відео MP4) компілюються під час першого використання або входять до складу `.app` випуску.
 
 ## Структура проєкту
 
@@ -350,6 +355,7 @@ vendor/                                                   copies of Typst and Wo
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
+src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

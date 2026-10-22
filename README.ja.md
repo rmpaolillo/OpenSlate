@@ -48,7 +48,7 @@ Issue やプルリクエストを歓迎します。[CONTRIBUTING.md](CONTRIBUTIN
 - **ペンで Word と PDF の文書に署名**し、同じ形式で保存できます。
 - **手書き → 編集可能なノート**。表や数式にも対応し、Markdown、Word、PDF にエクスポートできます。
   活字でも手書きフォントでも出力できます。
-- **必要な形式で書き出し**：検索できる PDF、手書きを編集できるインクにした Word、軽い JPEG/WebP、Xournal++、ページが書かれていく様子のアニメーション GIF / SVG、文字起こしから作る LaTeX または Typst。
+- **必要な形式で書き出し**：検索できる PDF、手書きを編集できるインクにした Word、軽い JPEG/WebP、Xournal++、ページが書かれていく様子のアニメーション GIF / SVG や MP4 動画、文字起こしから作る LaTeX または Typst。
 - **AI は自由に選べます**: ローカルモデル（LM Studio、Ollama）またはクラウドプロバイダー。API キーが平文で保存されることはありません。
 - **無料でオープンソース**、9 か国語対応、macOS（メインプラットフォーム）、Linux、Windows で動作します。
 
@@ -121,7 +121,7 @@ Issue やプルリクエストを歓迎します。[CONTRIBUTING.md](CONTRIBUTIN
   上書きされることはありません。ダウンロードが中断された場合でも、すでにパッドから削除されたページは生データの安全コピーから復元されます。
 - **用紙のみ。** タイトルバーのコピー/貼り付けの横にあるボタン（または `Cmd+Shift+F`、表示 → 用紙のみ）で、
   メニューバーとリボンを隠せます。もう一度クリックすると元に戻ります。
-- **その他の形式。** 文字起こし済みのページは**検索できる PDF** になります。テキストが手書きの上に見えない形で重ねられるので、Spotlight や PDF リーダーで見つけられ、コピーもできます。「その他の形式」には、JPEG と WebP（軽量・送信向け）、手書きを編集できる本物の Word インクにした **Word**（次のページに文字起こし）、**Xournal++**（`.xopp`）、ページを一画ずつ書き直す**アニメーション GIF / SVG**、文字起こしから作る **LaTeX** または **Typst**（ノートもこれらに書き出せます）があります。AI チャットからもすべての形式に書き出せます。
+- **その他の形式。** 文字起こし済みのページは**検索できる PDF** になります。テキストが手書きの上に見えない形で重ねられるので、Spotlight や PDF リーダーで見つけられ、コピーもできます。「その他の形式」には、JPEG と WebP（軽量・送信向け）、手書きを編集できる本物の Word インクにした **Word**（次のページに文字起こし）、**Xournal++**（`.xopp`）、ページを一画ずつ書き直す**アニメーション GIF / SVG** や **MP4 動画**（動画はシステムのエンコーダーを使用：macOS は AVFoundation、Windows は Media Foundation、Linux は ffmpeg か、同意すれば初回に Cisco からダウンロードする OpenH264）、文字起こしから作る **LaTeX** または **Typst**（ノートもこれらに書き出せます）があります。AI チャットからもすべての形式に書き出せます。
 - **保存とエクスポート。** 実寸の A4 サイズでベクター PDF と SVG に、または PNG にエクスポートできます。保存やエクスポートのたびに
   システムの「名前を付けて保存」ダイアログが開くので、ファイルの保存先を常に確認できます。ダイアログは最後に選んだフォルダーで開きます
   （初回は `exports/`）。ページを画像としてコピー（`Cmd+C`）して、どこにでも貼り付けることもできます。
@@ -136,7 +136,7 @@ Issue やプルリクエストを歓迎します。[CONTRIBUTING.md](CONTRIBUTIN
 
 | | |
 |---|---|
-| **ページがひとりでに書き直される**：アニメーション GIF の書き出し、一画ずつ | **その他の形式**：JPEG、WebP、インク付き Word、Xournal++、アニメーション GIF / SVG、LaTeX、Typst |
+| **ページがひとりでに書き直される**：アニメーション GIF の書き出し、一画ずつ | **その他の形式**：JPEG、WebP、インク付き Word、Xournal++、アニメーション GIF / SVG、MP4 動画、LaTeX、Typst |
 | <img src="assets/screenshots/writing.gif" alt="アニメーション GIF：ページが一画ずつ書かれていく" width="440"> | <img src="assets/screenshots/formats.png" alt="「その他の形式」メニュー" width="440"> |
 | **ページ上のグラフ**: チャットが関数を描き、演習の下に配置します | ペンで **Word や PDF の文書に署名**し、同じ形式で保存します |
 | <img src="assets/screenshots/graph.png" alt="AI チャットが関数のグラフを描き、手書きのページに配置している様子" width="440"> | <img src="assets/screenshots/sign.png" alt="ペンで署名した Word 文書" width="440"> |
@@ -183,11 +183,14 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 ```
 
 実行時には BlueZ、GTK 3、WebKitGTK 4.1 が必要です。ユーザーが Bluetooth を使用できる権限を持っている必要があります。
+MP4 動画の書き出しには、インストールされていれば `ffmpeg`（`sudo apt install ffmpeg`）を使います。ない場合は初回に、
+Cisco の無料エンコーダー OpenH264（約 1 MB）を Cisco のサイトからダウンロードしてよいか確認します。
 
 ### Windows（試験的）
 
 展開して `openslate.exe` を実行します。Microsoft Edge WebView2 ランタイムが必要ですが、これは
-Windows 10/11 に標準で含まれています。Windows ではすべてがテストされているわけではありません。バグ報告を大いに歓迎します。
+Windows 10/11 に標準で含まれています。Windows の「N」エディションでは、MP4 動画の書き出しに Microsoft の
+Media Feature Pack も必要です。Windows ではすべてがテストされているわけではありません。バグ報告を大いに歓迎します。
 
 ## ファイルと形式
 
@@ -202,6 +205,7 @@ Windows 10/11 に標準で含まれています。Windows ではすべてがテ�
 | 写真（PNG、JPEG、WebP、TIFF、BMP、GIF） | [PhotoCraft](https://github.com/storytold/photocraft) |
 | ボードとアーカイブのエクスポート（PDF、SVG、PNG、JPEG、WebP） | VectorCraft が描画して書き出し、PNG・JPEG・WebP ファイルは PhotoCraft が書き出し |
 | アニメーション GIF / SVG、Xournal++、LaTeX、Typst、検索できる PDF の隠しテキスト | OpenSlate 自身が書き出し（`src/formats.rs`、`src/mdconv.rs`） |
+| MP4 動画 | システムのエンコーダー：AVFoundation（macOS）、Media Foundation（Windows）、Linux は ffmpeg か初回にダウンロードする Cisco の OpenH264（*OpenH264 Video Codec provided by Cisco Systems, Inc.*） |
 
 文書として開いた Markdown ファイルは、ノートのページと同じ見た目になります: 本文は Source Serif、見出しは Inter、
 表は軽やかなデザインです。数式（`$…$`、`$$…$$`、`\(…\)`、`\[…\]`）は [Typst](https://typst.app) によって LaTeX 風に描かれ
@@ -240,7 +244,8 @@ macOS ではアップデートが `OpenSlate.app` を置き換えます（アプ
 
 環境変数 `OPENSLATE_DATA` でこれを変更できます。ソースフォルダーから `cargo run` で起動した場合は、
 代わりにそのフォルダーで動作します。そこには `crash.log`（アプリがクラッシュしたことがある場合）、`web.key`（Web ライブリンクのキー）、
-`updates/`（アップデート後に保持される、以前のバージョンのアプリ）もあります。
+`updates/`（アップデート後に保持される、以前のバージョンのアプリ）もあります。Linux では、ダウンロードを
+許可した場合、`codecs/` に Cisco の OpenH264 エンコーダーが置かれます。
 
 ## AI プロバイダーと API キー
 
@@ -303,8 +308,8 @@ sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
                  libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev
 ```
 
-macOS では Xcode コマンドラインツール（`xcode-select --install`）が必要です。オプションの Apple Vision OCR 用の
-小さな Swift ヘルパーは、初回使用時にコンパイルされるか、リリース版の `.app` に同梱されています。
+macOS では Xcode コマンドラインツール（`xcode-select --install`）が必要です。オプションの Apple Vision OCR と
+MP4 動画用の小さな Swift ヘルパーは、初回使用時にコンパイルされるか、リリース版の `.app` に同梱されています。
 
 ## プロジェクト構成
 
@@ -327,6 +332,7 @@ vendor/                                                   copies of Typst and Wo
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
+src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

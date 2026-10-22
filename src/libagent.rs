@@ -151,11 +151,11 @@ pub fn definitions() -> Vec<Value> {
             "archivio_esporta",
             "Esporta pagine dell'archivio nella cartella dove l'utente esporta di solito: pdf (tutte in un file; le pagine trascritte \
              con il testo, così il PDF si cerca), png o svg, jpeg o webp (immagini leggere da mandare), word (la pagina come inchiostro \
-             modificabile e la trascrizione), xournal (Xournal++), gif o svg_animato (la scrittura che si rifà tratto dopo tratto), \
+             modificabile e la trascrizione), xournal (Xournal++), gif, svg_animato o mp4 (video) (la scrittura che si rifà tratto dopo tratto), \
              latex o typst (la trascrizione: solo pagine trascritte). Un file per pagina, tranne il pdf. Non sovrascrive niente. Dice dove sono i file.",
             json!({
                 "ids": { "type": "array", "items": { "type": "string" } },
-                "formato": { "type": "string", "enum": ["pdf", "png", "svg", "jpeg", "webp", "word", "xournal", "gif", "svg_animato", "latex", "typst"] },
+                "formato": { "type": "string", "enum": ["pdf", "png", "svg", "jpeg", "webp", "word", "xournal", "gif", "svg_animato", "mp4", "latex", "typst"] },
                 "nome": { "type": "string", "description": "Nome del file (senza estensione), facoltativo" }
             }),
             &["ids", "formato"],
@@ -414,7 +414,7 @@ fn export(args: &Value) -> Result<String> {
     let ids = ids_of(args)?;
     let name_fmt = args["formato"].as_str().unwrap_or("pdf").trim().to_lowercase();
     let Some(fmt) = Kind::from_name(&name_fmt) else {
-        bail!("formato «{name_fmt}»: pdf, png, svg, jpeg, webp, word, xournal, gif, svg_animato, latex o typst");
+        bail!("formato «{name_fmt}»: pdf, png, svg, jpeg, webp, word, xournal, gif, svg_animato, mp4, latex o typst");
     };
     let Data::Pages { pages, dir } = ask(Req::Pages(ids.clone()))? else { bail!("risposta inattesa") };
     if pages.is_empty() {

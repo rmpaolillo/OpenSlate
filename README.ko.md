@@ -50,7 +50,7 @@
 - **펜으로 Word 및 PDF 문서에 서명**하고 같은 형식으로 저장합니다.
 - **손글씨 → 편집 가능한 노트**: 표와 수식까지 포함해 Markdown, Word 또는 PDF로 내보내며,
   인쇄체나 손글씨 글꼴로 표시할 수 있습니다.
-- **필요한 형식으로 내보내기**: 검색 가능한 PDF, 손글씨를 편집 가능한 잉크로 담은 Word, 가벼운 JPEG/WebP, Xournal++, 페이지가 써지는 모습의 움직이는 GIF/SVG, 변환된 텍스트로 만든 LaTeX 또는 Typst.
+- **필요한 형식으로 내보내기**: 검색 가능한 PDF, 손글씨를 편집 가능한 잉크로 담은 Word, 가벼운 JPEG/WebP, Xournal++, 페이지가 써지는 모습의 움직이는 GIF/SVG나 MP4 동영상, 변환된 텍스트로 만든 LaTeX 또는 Typst.
 - **원하는 AI 선택**: 로컬 모델(LM Studio, Ollama) 또는 클라우드 제공업체. API 키는 절대
   평문으로 저장되지 않습니다.
 - **무료 오픈 소스**이며 9개 언어를 지원하고, macOS(주 플랫폼), Linux, Windows에서 사용할 수 있습니다.
@@ -136,7 +136,7 @@
   이미 패드에서 삭제된 페이지도 원본 안전 사본에서 복구됩니다.
 - **종이만.** 제목 표시줄의 복사/붙여넣기 옆 버튼(또는 `Cmd+Shift+F`, 보기 → 종이만)을 누르면
   메뉴 막대와 리본이 숨겨집니다. 다시 클릭하면 돌아옵니다.
-- **다른 형식.** 텍스트로 변환된 페이지는 **검색 가능한 PDF**가 됩니다. 텍스트가 손글씨 위에 보이지 않게 얹혀 있어 Spotlight와 모든 PDF 뷰어에서 찾을 수 있고 복사도 할 수 있습니다. **다른 형식**에는 JPEG와 WebP(가벼움, 보내기용), 손글씨를 편집 가능한 진짜 Word 잉크로 담은 **Word**(다음 페이지에 변환된 텍스트), **Xournal++**(`.xopp`), 페이지를 한 획씩 다시 쓰는 **움직이는 GIF 또는 SVG**, 변환된 텍스트로 만든 **LaTeX** 또는 **Typst**(노트도 이 형식으로 내보낼 수 있음)가 있습니다. AI 채팅도 이 모든 형식으로 내보낼 수 있습니다.
+- **다른 형식.** 텍스트로 변환된 페이지는 **검색 가능한 PDF**가 됩니다. 텍스트가 손글씨 위에 보이지 않게 얹혀 있어 Spotlight와 모든 PDF 뷰어에서 찾을 수 있고 복사도 할 수 있습니다. **다른 형식**에는 JPEG와 WebP(가벼움, 보내기용), 손글씨를 편집 가능한 진짜 Word 잉크로 담은 **Word**(다음 페이지에 변환된 텍스트), **Xournal++**(`.xopp`), 페이지를 한 획씩 다시 쓰는 **움직이는 GIF 또는 SVG**나 **MP4 동영상**(동영상은 시스템 인코더 사용: macOS는 AVFoundation, Windows는 Media Foundation, Linux는 ffmpeg 또는 동의하면 처음 사용할 때 Cisco에서 내려받는 OpenH264), 변환된 텍스트로 만든 **LaTeX** 또는 **Typst**(노트도 이 형식으로 내보낼 수 있음)가 있습니다. AI 채팅도 이 모든 형식으로 내보낼 수 있습니다.
 - **저장 및 내보내기.** 실제 A4 크기의 벡터 PDF와 SVG, 또는 PNG로 내보냅니다. 저장하거나 내보낼
   때마다 시스템의 "다른 이름으로 저장" 대화상자가 열리므로 파일이 어디에 저장되는지 항상 확인할 수
   있습니다. 대화상자는 마지막으로 선택한 폴더에서 시작합니다(처음에는 `exports/`). 페이지를
@@ -154,7 +154,7 @@
 
 | | |
 |---|---|
-| **페이지가 스스로 다시 써짐**: 움직이는 GIF로 내보내기, 한 획씩 | **다른 형식**: JPEG, WebP, 잉크가 들어간 Word, Xournal++, 움직이는 GIF/SVG, LaTeX, Typst |
+| **페이지가 스스로 다시 써짐**: 움직이는 GIF로 내보내기, 한 획씩 | **다른 형식**: JPEG, WebP, 잉크가 들어간 Word, Xournal++, 움직이는 GIF/SVG, MP4 동영상, LaTeX, Typst |
 | <img src="assets/screenshots/writing.gif" alt="움직이는 GIF: 페이지가 한 획씩 써짐" width="440"> | <img src="assets/screenshots/formats.png" alt="다른 형식 메뉴" width="440"> |
 | **페이지 위의 그래프**: 채팅이 함수를 그려 연습 문제 아래에 넣습니다 | 펜으로 **Word 또는 PDF 문서에 서명**하고 같은 형식으로 저장합니다 |
 | <img src="assets/screenshots/graph.png" alt="AI 채팅이 함수의 그래프를 그려 손글씨 페이지에 넣습니다" width="440"> | <img src="assets/screenshots/sign.png" alt="펜으로 서명한 Word 문서" width="440"> |
@@ -203,11 +203,14 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 
 실행하려면 BlueZ, GTK 3, WebKitGTK 4.1이 필요합니다. 사용자 계정에 Bluetooth 사용 권한이 있어야
 합니다.
+MP4 동영상 내보내기에는 설치되어 있으면 `ffmpeg`(`sudo apt install ffmpeg`)를 사용합니다. 없으면 처음에
+Cisco 사이트에서 Cisco의 무료 OpenH264 인코더(약 1MB)를 내려받아도 되는지 먼저 묻습니다.
 
 ### Windows (실험적)
 
 압축을 풀고 `openslate.exe`를 실행하세요. Windows 10/11에 기본 포함된 Microsoft Edge WebView2
-런타임이 필요합니다. Windows에서는 모든 기능이 테스트되지는 않았습니다. 버그 보고는 언제나
+런타임이 필요합니다. Windows "N" 에디션에서는 MP4 동영상 내보내기에 Microsoft의 Media Feature Pack도
+필요합니다. Windows에서는 모든 기능이 테스트되지는 않았습니다. 버그 보고는 언제나
 환영합니다.
 
 ## 파일과 형식
@@ -223,6 +226,7 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 | 사진 (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
 | 보드 및 보관함 내보내기 (PDF, SVG, PNG, JPEG, WebP) | VectorCraft가 그리고 기록하며, PNG, JPEG, WebP 파일은 PhotoCraft가 기록 |
 | 움직이는 GIF와 SVG, Xournal++, LaTeX, Typst, 검색 가능한 PDF의 숨은 텍스트 | OpenSlate가 직접 기록 (`src/formats.rs`, `src/mdconv.rs`) |
+| MP4 동영상 | 시스템 인코더: AVFoundation(macOS), Media Foundation(Windows), Linux는 ffmpeg 또는 처음 사용할 때 내려받는 Cisco OpenH264 (*OpenH264 Video Codec provided by Cisco Systems, Inc.*) |
 
 문서로 연 Markdown 파일은 노트 페이지처럼 보입니다: Source Serif 본문, Inter 제목, 가벼운 표.
 수식(`$…$`, `$$…$$`, `\(…\)`, `\[…\]`)은 [Typst](https://typst.app)가 LaTeX 스타일로 그리며
@@ -264,6 +268,7 @@ Gatekeeper가 다시 묻지 않습니다), `.deb`의 경우 `pkexec`를 통해 �
 `OPENSLATE_DATA` 환경 변수로 이 위치를 바꿀 수 있습니다. 소스 폴더에서 `cargo run`으로 시작하면
 대신 그 폴더에서 작업합니다. 그곳에는 `crash.log`(앱이 비정상 종료된 적이 있는 경우),
 `web.key`(웹 실시간 링크의 키), `updates/`(업데이트 후 보관되는 이전 버전의 앱)도 있습니다.
+Linux에서는 다운로드를 허용한 경우 `codecs/`에 Cisco의 OpenH264 인코더가 있습니다.
 
 ## AI 제공업체와 API 키
 
@@ -328,7 +333,7 @@ sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
 ```
 
 macOS에서는 Xcode 명령줄 도구가 필요합니다(`xcode-select --install`). 선택 사항인 Apple Vision
-OCR용 작은 Swift 도우미는 처음 사용할 때 컴파일되거나, 릴리스 `.app` 안에 포함되어 있습니다.
+OCR과 MP4 동영상용 작은 Swift 도우미는 처음 사용할 때 컴파일되거나, 릴리스 `.app` 안에 포함되어 있습니다.
 
 ## 프로젝트 구조
 
@@ -351,6 +356,7 @@ vendor/                                                   copies of Typst and Wo
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
+src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

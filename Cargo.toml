@@ -108,6 +108,9 @@ tao = "0.37"
 [dev-dependencies]
 # le prove ritrovano i caratteri messi dentro un Word (src/docxfonts.rs)
 wordcraft-docx = { git = "https://github.com/storytold/wordcraft", rev = "e05b7fe86f3b85454000dffc321de638d7009817" }
+# solo nelle prove: OpenH264 compilato dai sorgenti, per provare il video MP4
+# (src/video.rs) senza la libreria di Cisco. Nel programma non entra.
+openh264 = { version = "0.9.9", features = ["source", "libloading"] }
 
 [profile.release]
 opt-level = 3
@@ -208,6 +211,14 @@ muda = { version = "0.17", default-features = false }
 # Linux (X11): le WebView dentro la finestra usano GTK, che va fatto girare
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "0.18"
+# il video MP4 (src/video.rs): la libreria OpenH264 di Cisco, scaricata dal sito
+# di Cisco al primo uso e caricata da lì (niente codificatore dentro il programma)
+openh264 = { version = "0.9.9", default-features = false, features = ["libloading"] }
+bzip2 = "0.6"
+
+# Windows: il video MP4 con Media Foundation (il codificatore H.264 di Windows)
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Media_MediaFoundation", "Win32_System_Com"] }
 
 # Le correzioni a librerie esterne che usano WordCraft e PdfCraft (le loro [patch]
 # valgono solo nei loro progetti: qui vanno ripetute).
@@ -235,6 +246,7 @@ extended-description = "Free companion app for the Wacom Bamboo Slate: live boar
 section = "graphics"
 priority = "optional"
 depends = "$auto, bluez"
+suggests = "ffmpeg"
 assets = [
     ["target/release/openslate", "usr/bin/", "755"],
     ["packaging/linux/openslate.desktop", "usr/share/applications/", "644"],

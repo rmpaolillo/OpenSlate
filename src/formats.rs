@@ -8,8 +8,8 @@
 //! - **Word**: la pagina come inchiostro vero di Word (si modifica in Word) e,
 //!   se c'è, la trascrizione nella pagina dopo (WordCraft);
 //! - **Xournal++** (`.xopp`): i tratti, che lì restano modificabili;
-//! - **GIF** e **SVG animato**: la pagina che si riscrive da sola, un tratto
-//!   dopo l'altro, nell'ordine in cui è stata scritta;
+//! - **GIF**, **SVG animato** e **video MP4** (`video`): la pagina che si
+//!   riscrive da sola, un tratto dopo l'altro, nell'ordine in cui è stata scritta;
 //! - **LaTeX** e **Typst**: la trascrizione (vedi `mdconv`).
 
 use crate::scene::{Page, PageStroke};
@@ -28,13 +28,14 @@ pub enum Kind {
     Xournal,
     Gif,
     SvgAnim,
+    Video,
     Latex,
     Typst,
 }
 
 impl Kind {
     /// I formati del menu «Altri formati».
-    pub const MORE: [Kind; 8] = [Kind::Jpeg, Kind::Webp, Kind::Word, Kind::Xournal, Kind::Gif, Kind::SvgAnim, Kind::Latex, Kind::Typst];
+    pub const MORE: [Kind; 9] = [Kind::Jpeg, Kind::Webp, Kind::Word, Kind::Xournal, Kind::Gif, Kind::SvgAnim, Kind::Video, Kind::Latex, Kind::Typst];
 
     pub fn ext(self) -> &'static str {
         match self {
@@ -46,6 +47,7 @@ impl Kind {
             Kind::Word => "docx",
             Kind::Xournal => "xopp",
             Kind::Gif => "gif",
+            Kind::Video => "mp4",
             Kind::Latex => "tex",
             Kind::Typst => "typ",
         }
@@ -63,6 +65,7 @@ impl Kind {
             Kind::Xournal => "Xournal++",
             Kind::Gif => "GIF animata",
             Kind::SvgAnim => "SVG animato",
+            Kind::Video => "Video MP4",
             Kind::Latex => "LaTeX",
             Kind::Typst => "Typst",
         }
@@ -80,6 +83,7 @@ impl Kind {
             Kind::Xournal => "Xournal++ (.xopp)",
             Kind::Gif => "GIF animata: la scrittura che si rifà",
             Kind::SvgAnim => "SVG animato: la scrittura che si rifà",
+            Kind::Video => "Video MP4: la scrittura che si rifà",
             Kind::Latex => "LaTeX dalla trascrizione (.tex)",
             Kind::Typst => "Typst dalla trascrizione (.typ)",
         }
@@ -95,6 +99,7 @@ impl Kind {
             Kind::Word => ic::MICROSOFT_WORD_LOGO,
             Kind::Xournal => ic::NOTEBOOK,
             Kind::Gif | Kind::SvgAnim => ic::FILM_STRIP,
+            Kind::Video => ic::VIDEO,
             Kind::Latex | Kind::Typst => ic::FUNCTION,
         }
     }
@@ -112,6 +117,7 @@ impl Kind {
             "xournal" | "xournal++" | "xournalpp" | "xopp" => Kind::Xournal,
             "gif" | "gif_animata" => Kind::Gif,
             "svg_animato" | "svg_animata" | "svg_animated" | "animated_svg" => Kind::SvgAnim,
+            "mp4" | "video" | "mov" => Kind::Video,
             "latex" | "tex" => Kind::Latex,
             "typst" | "typ" => Kind::Typst,
             _ => return None,
@@ -166,6 +172,7 @@ pub fn write_one(kind: Kind, item: &Item, path: &Path, opts: &Opts) -> Result<Ve
         Kind::Xournal => std::fs::write(path, xournal(page, &opts.paper)?)?,
         Kind::Gif => std::fs::write(path, gif(page)?)?,
         Kind::SvgAnim => std::fs::write(path, svg_anim(page))?,
+        Kind::Video => crate::video::write_mp4(page, path)?,
         Kind::Latex | Kind::Typst => {
             let Some(note) = item.note.as_deref().filter(|n| n.exists()) else {
                 bail!("«{}» non è trascritta: prima AI → Trascrivi, poi esporta in {}", item.title, kind.kind_name());
@@ -519,7 +526,7 @@ fn stroke_len(s: &PageStroke, a: f32) -> f32 {
 /// I tratti nell'ordine in cui si rifanno: prima l'inchiostro (nell'ordine
 /// scritto), poi gli evidenziatori; e quando comincia e finisce ciascuno, in
 /// frazioni del disegno intero (i salti fra un tratto e l'altro contano un po').
-fn timeline(page: &Page) -> Vec<(&PageStroke, f32, f32)> {
+pub(crate) fn timeline(page: &Page) -> Vec<(&PageStroke, f32, f32)> {
     let a = page.w / page.h;
     let order: Vec<&PageStroke> = page.strokes.iter().filter(|s| !s.highlight).chain(page.strokes.iter().filter(|s| s.highlight)).filter(|s| !s.pts.is_empty()).collect();
     const GAP: f32 = 0.004;
@@ -540,7 +547,7 @@ fn timeline(page: &Page) -> Vec<(&PageStroke, f32, f32)> {
 }
 
 /// La pagina al momento `t` (0..1) del disegno.
-fn page_at(page: &Page, tl: &[(&PageStroke, f32, f32)], t: f32) -> Page {
+pub(crate) fn page_at(page: &Page, tl: &[(&PageStroke, f32, f32)], t: f32) -> Page {
     let a = page.w / page.h;
     let strokes = tl
         .iter()

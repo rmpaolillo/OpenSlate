@@ -46,7 +46,7 @@ Inkspace——这块手写板所依赖的应用，于是这台硬件眼看就要
 - 用笔签署 Word 和 PDF 文档，并以原格式保存。
 - 手写 → 可编辑的笔记，支持表格和公式，可导出为 Markdown、Word 或 PDF，
   以印刷字体或手写字体呈现。
-- 导出为你需要的格式：可搜索的 PDF、手写为可编辑墨迹的 Word、轻量的 JPEG/WebP、Xournal++、重现书写过程的 GIF 或 SVG 动画，以及由转写生成的 LaTeX 或 Typst。
+- 导出为你需要的格式：可搜索的 PDF、手写为可编辑墨迹的 Word、轻量的 JPEG/WebP、Xournal++、重现书写过程的 GIF、SVG 动画或 MP4 视频，以及由转写生成的 LaTeX 或 Typst。
 - 自由选择 AI：本地模型（LM Studio、Ollama）或云端服务商；API 密钥从不以明文保存。
 - 免费开源，支持九种语言，适用于 macOS（主要平台）、Linux 和 Windows。
 
@@ -116,7 +116,7 @@ Inkspace——这块手写板所依赖的应用，于是这台硬件眼看就要
   如果下载中断，已从手写板上删除的页面会从其原始安全副本中恢复。
 - 仅页面。标题栏中「复制/粘贴」旁边的按钮（或 `Cmd+Shift+F`，「视图 → 仅页面」）
   可隐藏菜单栏和功能区；再点一次即可恢复。
-- 更多格式。已转写的页面会成为可搜索的 PDF：文字以不可见的方式叠在手写内容上，因此 Spotlight 和任何 PDF 阅读器都能找到，也可以复制。在「更多格式」中：JPEG 和 WebP（轻量，便于发送）、Word（手写内容是可编辑的真正 Word 墨迹，下一页附上转写）、Xournal++（`.xopp`）、逐笔重现书写过程的 GIF 或 SVG 动画，以及由转写生成的 LaTeX 或 Typst（笔记也可以导出为这两种格式）。AI 聊天也能导出为以上所有格式。
+- 更多格式。已转写的页面会成为可搜索的 PDF：文字以不可见的方式叠在手写内容上，因此 Spotlight 和任何 PDF 阅读器都能找到，也可以复制。在「更多格式」中：JPEG 和 WebP（轻量，便于发送）、Word（手写内容是可编辑的真正 Word 墨迹，下一页附上转写）、Xournal++（`.xopp`）、逐笔重现书写过程的 GIF 或 SVG 动画或 MP4 视频（视频使用系统自带的编码器：macOS 上为 AVFoundation，Windows 上为 Media Foundation；Linux 上为 ffmpeg，或在你同意后首次使用时下载的 Cisco OpenH264），以及由转写生成的 LaTeX 或 Typst（笔记也可以导出为这两种格式）。AI 聊天也能导出为以上所有格式。
 - 保存和导出。可导出为实际 A4 尺寸的矢量 PDF 和 SVG，或导出为 PNG。每次保存或导出都会打开系统的
   「另存为」对话框，因此你总能看到文件存放的位置。对话框从你上次选择的文件夹开始（第一次是 `exports/`）。
   你也可以把页面作为图片复制（`Cmd+C`），粘贴到任何地方。
@@ -131,7 +131,7 @@ Inkspace——这块手写板所依赖的应用，于是这台硬件眼看就要
 
 | | |
 |---|---|
-| 页面自己重写：导出的 GIF 动画，一笔一笔重现 | 更多格式：JPEG、WebP、带笔迹的 Word、Xournal++、GIF/SVG 动画、LaTeX、Typst |
+| 页面自己重写：导出的 GIF 动画，一笔一笔重现 | 更多格式：JPEG、WebP、带笔迹的 Word、Xournal++、GIF/SVG 动画、MP4 视频、LaTeX、Typst |
 | <img src="assets/screenshots/writing.gif" alt="GIF 动画：页面一笔一笔写出来" width="440"> | <img src="assets/screenshots/formats.png" alt="更多格式菜单" width="440"> |
 | 页面上的图表：聊天绘制函数图像，并将其放在练习下方 | 用笔签署 Word 或 PDF 文档，并以原格式保存 |
 | <img src="assets/screenshots/graph.png" alt="AI 聊天绘制函数图像并将其放在手写页面上" width="440"> | <img src="assets/screenshots/sign.png" alt="一份用笔签署的 Word 文档" width="440"> |
@@ -178,10 +178,13 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 ```
 
 运行时需要 BlueZ、GTK 3 和 WebKitGTK 4.1。你的用户必须拥有使用蓝牙的权限。
+导出 MP4 视频时，如果已安装 `ffmpeg`（`sudo apt install ffmpeg`）就使用它；否则第一次会先征得你的同意，
+再从 Cisco 网站下载 Cisco 免费的 OpenH264 编码器（约 1 MB）。
 
 ### Windows（实验性）
 
 解压后运行 `openslate.exe`。需要 Microsoft Edge WebView2 运行时，Windows 10/11 已自带。
+在 Windows 的 N 版本上，导出 MP4 视频还需要 Microsoft 的 Media Feature Pack。
 并非所有功能都在 Windows 上测试过。非常欢迎提交错误报告。
 
 ## 文件与格式
@@ -196,6 +199,7 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 | 照片（PNG、JPEG、WebP、TIFF、BMP、GIF） | [PhotoCraft](https://github.com/storytold/photocraft) |
 | 画板和档案库导出（PDF、SVG、PNG、JPEG、WebP） | 由 VectorCraft 绘制和写入；PNG、JPEG 和 WebP 文件由 PhotoCraft 写入 |
 | GIF 和 SVG 动画、Xournal++、LaTeX、Typst、可搜索 PDF 的隐藏文字 | 由 OpenSlate 自己写入（`src/formats.rs`、`src/mdconv.rs`） |
+| MP4 视频 | 系统自带的编码器：AVFoundation（macOS）、Media Foundation（Windows）；Linux 上为 ffmpeg，或首次使用时下载的 Cisco OpenH264（OpenH264 Video Codec provided by Cisco Systems, Inc.） |
 
 作为文档打开的 Markdown 文件，外观与「笔记」页面一致：正文使用 Source Serif，标题使用 Inter，表格线条清淡。
 其中的公式（`$…$`、`$$…$$`、`\(…\)`、`\[…\]`）由 [Typst](https://typst.app) 以 LaTeX 风格绘制
@@ -235,7 +239,8 @@ OpenSlate 会像 Craft 系列应用一样，在你确认后自行更新。当 Gi
 
 你可以通过环境变量 `OPENSLATE_DATA` 更改此位置。如果在源码文件夹中用 `cargo run` 启动，
 它会改为在该文件夹中工作。在数据文件夹中还能找到 `crash.log`（如果应用曾经崩溃）、`web.key`
-（网页实时链接的密钥）和 `updates/`（更新后保留的上一版本应用）。
+（网页实时链接的密钥）和 `updates/`（更新后保留的上一版本应用）。在 Linux 上，如果你允许下载，
+`codecs/` 中存放 Cisco 的 OpenH264 编码器。
 
 ## AI 服务商与 API 密钥
 
@@ -298,7 +303,7 @@ sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
                  libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev
 ```
 
-在 macOS 上需要 Xcode 命令行工具（`xcode-select --install`）。用于可选的 Apple Vision OCR 的小型 Swift
+在 macOS 上需要 Xcode 命令行工具（`xcode-select --install`）。用于可选的 Apple Vision OCR 和 MP4 视频的小型 Swift
 辅助程序会在首次使用时编译，或已打包在发布版的 `.app` 中。
 
 ## 项目结构
@@ -322,6 +327,7 @@ vendor/                                                   copies of Typst and Wo
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
+src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

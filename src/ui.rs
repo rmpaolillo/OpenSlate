@@ -1456,6 +1456,24 @@ impl App {
                 return;
             }
         }
+        // il video su Linux senza ffmpeg: il codificatore di Cisco, solo se l'utente vuole
+        let get_codec = fmt == Fmt::Video && crate::video::needs_codec_download();
+        if get_codec {
+            let msg = crate::i18n::tf(format!(
+                "Per il video su Linux serve il codificatore H.264 OpenH264 di Cisco (gratuito, circa 1 MB): si scarica una volta sola dal sito di Cisco, che paga i diritti dell'H.264. In alternativa installa ffmpeg.\n\n{}\n\nScaricarlo adesso?",
+                crate::video::CISCO_NOTICE
+            ));
+            let yes = rfd::MessageDialog::new()
+                .set_level(rfd::MessageLevel::Info)
+                .set_title(crate::i18n::t("Video MP4"))
+                .set_description(msg)
+                .set_buttons(rfd::MessageButtons::YesNo)
+                .show();
+            if yes != rfd::MessageDialogResult::Yes {
+                self.status = "Video non fatto: serve il codificatore di Cisco (o ffmpeg).".into();
+                return;
+            }
+        }
         let (ext, kind) = (fmt.ext(), fmt.kind_name());
         // nome proposto: il titolo della pagina, per la lavagna con data e ora
         let stem = |title: &str| {
@@ -1495,6 +1513,12 @@ impl App {
         std::thread::spawn(move || {
             let mut written = Vec::new();
             let mut error = None;
+            if get_codec {
+                if let Err(e) = crate::video::download_codec() {
+                    let _ = tx.send(UiEvent::Exported { written, error: Some(format!("{e:#}")), doc: false });
+                    return;
+                }
+            }
             match job {
                 Job::One(path) => {
                     let r = if fmt.one_file() {

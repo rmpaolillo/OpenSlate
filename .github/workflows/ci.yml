@@ -39,8 +39,32 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Swift helpers (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          # gli aiutanti in Swift (OCR di Vision, video con AVFoundation) si compilano
+          for f in src/swift/*.swift; do
+            d="$RUNNER_TEMP/swift-$(basename "$f" .swift)"; mkdir -p "$d"
+            cp "$f" "$d/main.swift"
+            swiftc -O -o "$d/helper" "$d/main.swift"
+          done
+
       - name: Build
         run: cargo build --locked
 
       - name: Test
         run: cargo test --locked
+
+  check-windows:
+    # Windows: si controlla che compili (il video con Media Foundation è solo lì)
+    name: Check (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check
+        run: cargo check --locked

@@ -49,7 +49,7 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
 - **Word- und PDF-Dokumente mit dem Stift unterschreiben**, gespeichert im selben Format.
 - **Handschrift → bearbeitbare Notizen**, mit Tabellen und Formeln, exportiert als Markdown, Word oder PDF,
   gedruckt oder in einer Handschrift-Schriftart.
-- **Export in das, was du brauchst**: durchsuchbares PDF, Word mit der Handschrift als bearbeitbare Tinte, leichte JPEG/WebP, Xournal++, ein animiertes GIF oder SVG der Seite, die sich schreibt, und LaTeX oder Typst aus der Transkription.
+- **Export in das, was du brauchst**: durchsuchbares PDF, Word mit der Handschrift als bearbeitbare Tinte, leichte JPEG/WebP, Xournal++, ein animiertes GIF, SVG oder MP4-Video der Seite, die sich schreibt, und LaTeX oder Typst aus der Transkription.
 - **Die KI deiner Wahl**: lokale Modelle (LM Studio, Ollama) oder Cloud-Anbieter; API-Schlüssel werden nie
   im Klartext gespeichert.
 - **Frei und Open Source**, in neun Sprachen, für macOS (Hauptplattform), Linux und Windows.
@@ -135,7 +135,7 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   unterbrochen wird.
 - **Nur das Blatt.** Der Knopf neben Kopieren/Einfügen in der Titelleiste (oder `Cmd+Shift+F`, Darstellung → Nur das
   Blatt) blendet Menüleiste und Menüband aus; ein weiterer Klick holt sie zurück.
-- **Weitere Formate.** Eine transkribierte Seite wird zum **durchsuchbaren PDF**: Der Text liegt unsichtbar über der Handschrift, sodass Spotlight und jeder PDF-Reader ihn finden und du ihn kopieren kannst. Unter **Weitere Formate**: JPEG und WebP (leicht, zum Verschicken), **Word** mit der Handschrift als echte, bearbeitbare Word-Tinte (und der Transkription auf der nächsten Seite), **Xournal++** (`.xopp`), ein **animiertes GIF oder SVG**, das die Seite Strich für Strich neu schreibt, und **LaTeX** oder **Typst** aus der Transkription (auch Notizen lassen sich dorthin exportieren). Der KI-Chat kann in alle diese Formate exportieren.
+- **Weitere Formate.** Eine transkribierte Seite wird zum **durchsuchbaren PDF**: Der Text liegt unsichtbar über der Handschrift, sodass Spotlight und jeder PDF-Reader ihn finden und du ihn kopieren kannst. Unter **Weitere Formate**: JPEG und WebP (leicht, zum Verschicken), **Word** mit der Handschrift als echte, bearbeitbare Word-Tinte (und der Transkription auf der nächsten Seite), **Xournal++** (`.xopp`), ein **animiertes GIF oder SVG** oder ein **MP4-Video**, das die Seite Strich für Strich neu schreibt (das Video nutzt den Encoder des Systems: AVFoundation unter macOS, Media Foundation unter Windows; unter Linux ffmpeg oder Ciscos OpenH264, beim ersten Mal heruntergeladen, wenn du zustimmst), und **LaTeX** oder **Typst** aus der Transkription (auch Notizen lassen sich dorthin exportieren). Der KI-Chat kann in alle diese Formate exportieren.
 - **Speichern und exportieren.** Exportiere als Vektor-PDF und SVG in echter A4-Größe oder als PNG. Jedes Speichern oder
   Exportieren öffnet den Systemdialog „Speichern unter“, sodass du immer siehst, wohin die Datei geht. Er startet im
   zuletzt gewählten Ordner (beim ersten Mal in `exports/`). Du kannst die Seite auch als Bild kopieren
@@ -153,7 +153,7 @@ Seite und der Graph wurden mit den Tafelwerkzeugen der App selbst gezeichnet.
 
 | | |
 |---|---|
-| **Die Seite schreibt sich neu**: der Export als animiertes GIF, Strich für Strich | **Weitere Formate**: JPEG, WebP, Word mit Tinte, Xournal++, animiertes GIF/SVG, LaTeX, Typst |
+| **Die Seite schreibt sich neu**: der Export als animiertes GIF, Strich für Strich | **Weitere Formate**: JPEG, WebP, Word mit Tinte, Xournal++, animiertes GIF/SVG, MP4-Video, LaTeX, Typst |
 | <img src="assets/screenshots/writing.gif" alt="Animiertes GIF: die Seite wird Strich für Strich geschrieben" width="440"> | <img src="assets/screenshots/formats.png" alt="Das Menü Weitere Formate" width="440"> |
 | **Ein Graph auf dem Blatt**: Der Chat zeichnet die Funktion und setzt sie unter die Übung | **Ein Word- oder PDF-Dokument** mit dem Stift **unterschreiben** und im selben Format speichern |
 | <img src="assets/screenshots/graph.png" alt="Der KI-Chat zeichnet den Graphen der Funktion und platziert ihn auf der handgeschriebenen Seite" width="440"> | <img src="assets/screenshots/sign.png" alt="Ein mit dem Stift unterschriebenes Word-Dokument" width="440"> |
@@ -201,11 +201,14 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 ```
 
 Zur Laufzeit braucht es BlueZ, GTK 3 und WebKitGTK 4.1. Dein Benutzer muss Bluetooth verwenden dürfen.
+Für den MP4-Video-Export nutzt es `ffmpeg`, falls installiert (`sudo apt install ffmpeg`); sonst fragt es
+beim ersten Mal, bevor es den kostenlosen OpenH264-Encoder von Cisco (etwa 1 MB) von Ciscos Website lädt.
 
 ### Windows (experimentell)
 
 Entpacken und `openslate.exe` starten. Benötigt wird die Microsoft Edge WebView2 Runtime, die bei
-Windows 10/11 mitgeliefert wird. Unter Windows ist nicht alles getestet. Fehlerberichte sind sehr willkommen.
+Windows 10/11 mitgeliefert wird. Auf den „N“-Editionen von Windows braucht der MP4-Video-Export zusätzlich
+das Media Feature Pack von Microsoft. Unter Windows ist nicht alles getestet. Fehlerberichte sind sehr willkommen.
 
 ## Dateien und Formate
 
@@ -220,6 +223,7 @@ deren Oberflächen und ohne externe Programme:
 | Fotos (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
 | Exporte von Tafel und Archiv (PDF, SVG, PNG, JPEG, WebP) | VectorCraft zeichnet und schreibt sie; PNG-, JPEG- und WebP-Dateien schreibt PhotoCraft |
 | Animiertes GIF und SVG, Xournal++, LaTeX, Typst, der versteckte Text durchsuchbarer PDFs | schreibt OpenSlate selbst (`src/formats.rs`, `src/mdconv.rs`) |
+| MP4-Video | der Encoder des Systems: AVFoundation (macOS), Media Foundation (Windows); unter Linux ffmpeg oder Ciscos OpenH264, beim ersten Mal heruntergeladen (*OpenH264 Video Codec provided by Cisco Systems, Inc.*) |
 
 Eine als Dokument geöffnete Markdown-Datei sieht aus wie die Notizenseite: Fließtext in Source Serif, Überschriften in
 Inter, dezente Tabellen. Ihre Formeln (`$…$`, `$$…$$`, `\(…\)`, `\[…\]`) werden im LaTeX-Stil von
@@ -262,7 +266,8 @@ Im installierten Zustand bewahrt OpenSlate dein Archiv, deine Dokumente, Chats u
 Du kannst das mit der Umgebungsvariable `OPENSLATE_DATA` überschreiben. Wird die App mit
 `cargo run` aus dem Quellordner gestartet, arbeitet sie stattdessen in diesem Ordner. Dort findest du auch
 `crash.log` (falls die App je abgestürzt ist), `web.key` (den Schlüssel des Web-Live-Links) und `updates/`
-(die vorherige Version der App, aufbewahrt nach einem Update).
+(die vorherige Version der App, aufbewahrt nach einem Update). Unter Linux liegt in `codecs/` der
+OpenH264-Encoder von Cisco, falls du den Download erlaubt hast.
 
 ## KI-Anbieter und API-Schlüssel
 
@@ -326,8 +331,8 @@ sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
                  libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev
 ```
 
-Unter macOS brauchst du die Xcode-Befehlszeilenwerkzeuge (`xcode-select --install`). Das kleine Swift-Hilfsprogramm
-für die optionale Apple-Vision-OCR wird bei der ersten Nutzung kompiliert oder ist im Release-`.app` enthalten.
+Unter macOS brauchst du die Xcode-Befehlszeilenwerkzeuge (`xcode-select --install`). Die kleinen Swift-Hilfsprogramme
+(für die optionale Apple-Vision-OCR und das MP4-Video) werden bei der ersten Nutzung kompiliert oder sind im Release-`.app` enthalten.
 
 ## Projektstruktur
 
@@ -350,6 +355,7 @@ vendor/                                                   copies of Typst and Wo
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
+src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

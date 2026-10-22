@@ -49,7 +49,7 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
 - **Signez des documents Word et PDF au stylet**, enregistrés dans le même format.
 - **Écriture manuscrite → notes modifiables**, avec tableaux et formules, exportées en Markdown, Word ou PDF,
   imprimées ou dans une police manuscrite.
-- **Exportez dans le format qu'il vous faut** : PDF consultable, Word avec l'écriture en encre modifiable, JPEG/WebP légers, Xournal++, un GIF ou SVG animé de la page en train de s'écrire, et LaTeX ou Typst à partir de la transcription.
+- **Exportez dans le format qu'il vous faut** : PDF consultable, Word avec l'écriture en encre modifiable, JPEG/WebP légers, Xournal++, un GIF, un SVG ou une vidéo MP4 de la page en train de s'écrire, et LaTeX ou Typst à partir de la transcription.
 - **L'IA de votre choix** : modèles locaux (LM Studio, Ollama) ou fournisseurs cloud ; les clés d'API ne sont jamais stockées
   en clair.
 - **Libre et open source**, en neuf langues, pour macOS (plateforme principale), Linux et Windows.
@@ -135,7 +135,7 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   est interrompu.
 - **Page seule.** Le bouton à côté de Copier/Coller dans la barre de titre (ou `Cmd+Shift+F`, Affichage → Page
   seule) masque la barre des menus et le ruban ; cliquez à nouveau pour les faire revenir.
-- **Autres formats.** Une page transcrite devient un **PDF consultable** : le texte est posé, invisible, sur l'écriture manuscrite, si bien que Spotlight et n'importe quel lecteur PDF le trouvent et que vous pouvez le copier. Dans **Autres formats** : JPEG et WebP (légers, à envoyer), **Word** avec l'écriture comme véritable encre Word modifiable (et la transcription sur la page suivante), **Xournal++** (`.xopp`), un **GIF ou SVG animé** qui réécrit la page trait par trait, et **LaTeX** ou **Typst** à partir de la transcription (les notes s'y exportent aussi). Le chat IA peut exporter dans tous ces formats.
+- **Autres formats.** Une page transcrite devient un **PDF consultable** : le texte est posé, invisible, sur l'écriture manuscrite, si bien que Spotlight et n'importe quel lecteur PDF le trouvent et que vous pouvez le copier. Dans **Autres formats** : JPEG et WebP (légers, à envoyer), **Word** avec l'écriture comme véritable encre Word modifiable (et la transcription sur la page suivante), **Xournal++** (`.xopp`), un **GIF ou SVG animé** ou une **vidéo MP4** qui réécrit la page trait par trait (la vidéo utilise l'encodeur du système : AVFoundation sur macOS, Media Foundation sur Windows ; sous Linux ffmpeg, ou OpenH264 de Cisco téléchargé à la première utilisation si vous l'acceptez), et **LaTeX** ou **Typst** à partir de la transcription (les notes s'y exportent aussi). Le chat IA peut exporter dans tous ces formats.
 - **Enregistrer et exporter.** Exportez en PDF et SVG vectoriels au format A4 réel, ou en PNG. Chaque enregistrement ou
   export ouvre la boîte de dialogue système « Enregistrer sous » : vous voyez toujours où va le fichier. Elle s'ouvre dans le
   dernier dossier choisi (la première fois, dans `exports/`). Vous pouvez aussi copier la page comme image
@@ -153,7 +153,7 @@ page et le graphique ont été dessinés par les outils de tableau de l'applicat
 
 | | |
 |---|---|
-| **La page se réécrit toute seule** : l'export en GIF animé, trait par trait | **Autres formats** : JPEG, WebP, Word avec l'encre, Xournal++, GIF/SVG animés, LaTeX, Typst |
+| **La page se réécrit toute seule** : l'export en GIF animé, trait par trait | **Autres formats** : JPEG, WebP, Word avec l'encre, Xournal++, GIF/SVG animés, vidéo MP4, LaTeX, Typst |
 | <img src="assets/screenshots/writing.gif" alt="GIF animé : la page écrite trait par trait" width="440"> | <img src="assets/screenshots/formats.png" alt="Le menu Autres formats" width="440"> |
 | **Un graphique sur la page** : le chat trace la fonction et la place sous l'exercice | **Signez un document Word ou PDF** au stylet et enregistrez-le dans le même format |
 | <img src="assets/screenshots/graph.png" alt="Le chat IA trace le graphe de la fonction et le place sur la page manuscrite" width="440"> | <img src="assets/screenshots/sign.png" alt="Un document Word signé au stylet" width="440"> |
@@ -201,11 +201,14 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 ```
 
 À l'exécution, il faut BlueZ, GTK 3 et WebKitGTK 4.1. Votre utilisateur doit être autorisé à utiliser le Bluetooth.
+Pour l'export vidéo MP4, il utilise `ffmpeg` s'il est installé (`sudo apt install ffmpeg`) ; sinon, la première fois,
+il demande avant de télécharger sur le site de Cisco son encodeur gratuit OpenH264 (environ 1 Mo).
 
 ### Windows (expérimental)
 
 Décompressez l'archive et lancez `openslate.exe`. Il faut le runtime Microsoft Edge WebView2, fourni avec
-Windows 10/11. Tout n'est pas testé sous Windows. Les rapports de bugs sont les très bienvenus.
+Windows 10/11. Sur les éditions « N » de Windows, la vidéo MP4 demande aussi le Media Feature Pack
+de Microsoft. Tout n'est pas testé sous Windows. Les rapports de bugs sont les très bienvenus.
 
 ## Fichiers et formats
 
@@ -220,6 +223,7 @@ leurs interfaces et sans programmes externes :
 | Photos (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
 | Exports du tableau et des archives (PDF, SVG, PNG, JPEG, WebP) | VectorCraft les dessine et les écrit ; les fichiers PNG, JPEG et WebP sont écrits par PhotoCraft |
 | GIF et SVG animés, Xournal++, LaTeX, Typst, le texte caché des PDF consultables | écrits par OpenSlate lui-même (`src/formats.rs`, `src/mdconv.rs`) |
+| Vidéo MP4 | l'encodeur du système : AVFoundation (macOS), Media Foundation (Windows) ; sous Linux ffmpeg, ou OpenH264 de Cisco téléchargé à la première utilisation (*OpenH264 Video Codec provided by Cisco Systems, Inc.*) |
 
 Un fichier Markdown ouvert comme document ressemble à la page Notes : texte en Source Serif, titres en Inter,
 tableaux légers. Ses formules (`$…$`, `$$…$$`, `\(…\)`, `\[…\]`) sont dessinées dans le style LaTeX par
@@ -262,7 +266,8 @@ Une fois installé, OpenSlate conserve vos archives, documents, chats et réglag
 Vous pouvez changer cet emplacement avec la variable d'environnement `OPENSLATE_DATA`. Lancé avec
 `cargo run` depuis le dossier des sources, il travaille plutôt dans ce dossier. Vous y trouverez aussi
 `crash.log` (si l'application a déjà planté), `web.key` (la clé du lien web en direct) et `updates/`
-(la version précédente de l'application, conservée après une mise à jour).
+(la version précédente de l'application, conservée après une mise à jour). Sous Linux, `codecs/` contient
+l'encodeur OpenH264 de Cisco, si vous avez accepté le téléchargement.
 
 ## Fournisseurs d'IA et clés d'API
 
@@ -326,8 +331,8 @@ sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
                  libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev
 ```
 
-Sur macOS, il vous faut les outils en ligne de commande de Xcode (`xcode-select --install`). Le petit utilitaire
-Swift pour l'OCR facultatif Apple Vision est compilé à la première utilisation, ou intégré dans le `.app` de la version publiée.
+Sur macOS, il vous faut les outils en ligne de commande de Xcode (`xcode-select --install`). Les petits utilitaires
+Swift (l'OCR facultatif Apple Vision et la vidéo MP4) sont compilés à la première utilisation, ou intégrés dans le `.app` de la version publiée.
 
 ## Structure du projet
 
@@ -350,6 +355,7 @@ vendor/                                                   copies of Typst and Wo
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
+src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

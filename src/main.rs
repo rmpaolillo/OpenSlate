@@ -52,6 +52,7 @@ mod demo;
 mod fonts;
 mod formats;
 mod mdconv;
+mod video;
 mod vendor;
 mod viewer;
 mod wordsign;

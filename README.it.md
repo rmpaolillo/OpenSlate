@@ -18,7 +18,7 @@ Non è un prodotto Wacom e non è collegata a Wacom.
 - **Dalla scrittura a mano agli appunti**, con tabelle e formule, esportati in Markdown, Word o
   PDF, in stampato o con un carattere a mano.
 - **Esporti in quello che ti serve**: PDF ricercabile, Word con la scrittura come inchiostro
-  modificabile, JPEG/WebP leggeri, Xournal++, GIF o SVG animato della pagina che si scrive, LaTeX
+  modificabile, JPEG/WebP leggeri, Xournal++, GIF, SVG o video MP4 della pagina che si scrive, LaTeX
   o Typst dalla trascrizione.
 - **L'AI che vuoi tu**: modelli locali (LM Studio, Ollama) o in cloud; le chiavi API mai in chiaro.
 - **Libera e open source**, in nove lingue, per macOS (piattaforma principale), Linux e Windows.
@@ -29,7 +29,7 @@ strumenti della lavagna dell'app.
 
 | | |
 |---|---|
-| **La pagina che si riscrive**: l'export in GIF animata, tratto dopo tratto | **Altri formati**: JPEG, WebP, Word con l'inchiostro, Xournal++, GIF/SVG animati, LaTeX, Typst |
+| **La pagina che si riscrive**: l'export in GIF animata, tratto dopo tratto | **Altri formati**: JPEG, WebP, Word con l'inchiostro, Xournal++, GIF/SVG animati, video MP4, LaTeX, Typst |
 | ![La pagina che si riscrive](assets/screenshots/writing.gif) | ![Altri formati](assets/screenshots/formats.png) |
 | **Un grafico sul foglio**: la chat disegna la funzione e la mette sotto l'esercizio | **Firma di un documento Word o PDF** con la penna, salvato nello stesso formato |
 | ![Grafico sul foglio](assets/screenshots/graph.png) | ![Firma](assets/screenshots/sign.png) |
@@ -97,7 +97,7 @@ Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le
 | Foglio in una chat AI | **Copia** (Home → Copia e incolla) oppure `Cmd+C`, poi `Cmd+V` nella chat. Ritaglia attorno alla scrittura (`copy_crop = 0` per il foglio intero) |
 | Immagini nella chat AI | Incollale nel riquadro di scrittura (`Cmd+V`), trascinale lì o scegline con la graffetta (fino a 8 per messaggio): le vede l'agente che legge le immagini; a uno solo testo le legge prima un agente con visione. Il testo della chat si ingrandisce col pizzico sul trackpad o con `Cmd +` / `Cmd −` / `Cmd 0`, e resta |
 | Aggiornamenti | Come le app Craft, OpenSlate **si aggiorna da solo, dopo che lo confermi**: quando su GitHub esce una versione nuova una barra azzurra sotto la barra multifunzione lo dice e offre **Aggiorna**; allora la scarica (sul Mac la versione per il suo processore, Apple Silicon o Intel: metà del peso di quella universale), la controlla con le impronte della release (`SHA256SUMS.txt`) e la firma dello sviluppatore, la installa al posto di quella in uso e offre **Riavvia ora** (oppure la nuova versione parte al prossimo avvio). Opzioni → Avanzate la fa installare senza chiedere, o spegne il controllo stesso; File → Aiuto e informazioni → Cerca aggiornamenti controlla subito. Impostazioni, agenti AI, archivio, documenti ed export stanno nella cartella dei dati (macOS: `~/Library/Application Support/OpenSlate`), fuori dall'app, e le chiavi nel Portachiavi: l'aggiornamento non li tocca. Su macOS l'app scaricata da OpenSlate stesso non chiede di nuovo il permesso a Gatekeeper; col `.deb` chiede la password (`pkexec`); su Windows si installa quando chiudi l'app |
-| Salvare ed esportare | PDF e SVG vettoriali in misura A4 reale, PNG. Ogni volta si apre la finestra «Salva con nome» del sistema, così si vede dove va il file: parte dall'ultima cartella scelta (la prima volta da `exports/`); più immagini insieme = si sceglie la cartella. La cartella proposta si cambia anche in File → Opzioni → Archivio ed export. Una pagina trascritta diventa un **PDF ricercabile**: il testo sta, invisibile, sopra la scrittura (lo trovano Spotlight e i lettori PDF, e si copia). **Altri formati**: JPEG e WebP (leggeri, da mandare), **Word** con la scrittura come inchiostro vero di Word, modificabile (e la trascrizione nella pagina dopo), **Xournal++** (`.xopp`), **GIF o SVG animato** che riscrive la pagina tratto per tratto, **LaTeX** o **Typst** dalla trascrizione (anche dagli appunti: Esporta). Anche la chat AI esporta in tutti questi formati |
+| Salvare ed esportare | PDF e SVG vettoriali in misura A4 reale, PNG. Ogni volta si apre la finestra «Salva con nome» del sistema, così si vede dove va il file: parte dall'ultima cartella scelta (la prima volta da `exports/`); più immagini insieme = si sceglie la cartella. La cartella proposta si cambia anche in File → Opzioni → Archivio ed export. Una pagina trascritta diventa un **PDF ricercabile**: il testo sta, invisibile, sopra la scrittura (lo trovano Spotlight e i lettori PDF, e si copia). **Altri formati**: JPEG e WebP (leggeri, da mandare), **Word** con la scrittura come inchiostro vero di Word, modificabile (e la trascrizione nella pagina dopo), **Xournal++** (`.xopp`), **GIF o SVG animato** o **video MP4** che riscrive la pagina tratto per tratto (il video con il codificatore del sistema: AVFoundation su macOS, Media Foundation su Windows; su Linux ffmpeg, oppure OpenH264 di Cisco scaricato al primo uso se lo vuoi), **LaTeX** o **Typst** dalla trascrizione (anche dagli appunti: Esporta). Anche la chat AI esporta in tutti questi formati |
 | Archivio (come la libreria di Inkspace) | Scheda «Archivio»: anteprime delle pagine raggruppate per giorno. Clic = seleziona (Cmd/Shift per più pagine), doppio clic = apri a tutta finestra (frecce per sfogliare), tasto destro = menu. Rinomina, porta sulla lavagna, copia immagine, esporta (più pagine = un unico PDF), testo (OCR), elimina (va in `library/cestino`, con «Ripristina») |
 | Uscire senza perdere niente | Se sulla lavagna c'è qualcosa che non è nell'archivio, chiudendo (pulsante rosso, Cmd+Q, File → Esci) OpenSlate chiede **Salva ed esci / Esci senza salvare / Non uscire**. Se si chiude senza poter chiedere (Esci dal Dock, spegnimento, riavvio per l'aggiornamento) la lavagna va nell'archivio da sola. Se l'interfaccia va in crash la lavagna si salva lo stesso (il motivo in `crash.log` nella cartella dei dati). Gli appunti si salvano con un controllo di versione: una modifica dell'AI o di un'altra app non viene mai sovrascritta senza chiedere. Le pagine già tolte dal pad si recuperano dalle copie grezze se lo scaricamento si interrompe. Un grafico che l'AI ha messo sul foglio si salva con la pagina (`library/<id>.grafico.png`) e torna quando la rimetti sulla lavagna; si vede in anteprima, negli export e nella trascrizione. Documenti e appunti si salvano da soli |
 | Pagine fatte senza Mac | «Scarica dal pad»: le pagine finiscono nell'archivio, con una copia grezza in `exports/pad-raw/`. Solo dopo il salvataggio le toglie dal pad. L'archivio mostra anche quante pagine restano sul pad |
@@ -132,6 +132,11 @@ sicurezza → **Apri comunque**; gli aggiornamenti successivi, scaricati dall'ap
 
 Per compilare serve **Rust 1.95 o più recente** (i motori di WordCraft e PdfCraft lo chiedono): `rustup update`.
 La prima compilazione è più lunga del solito; dalla seconda torna veloce.
+
+Il video MP4 usa il codificatore del sistema: AVFoundation su macOS, Media Foundation su Windows
+(nelle edizioni «N» serve il Media Feature Pack di Microsoft). Su Linux usa `ffmpeg` se c'è
+(`sudo apt install ffmpeg`); altrimenti la prima volta chiede prima di scaricare dal sito di Cisco il
+loro codificatore gratuito OpenH264 (circa 1 MB).
 
 ```bash
 cargo run --release                 # interfaccia grafica
@@ -237,8 +242,8 @@ save_dir =               # cartella proposta da «Salva con nome» (l'ultima sce
 Le vecchie chiavi `ocr_backend`, `ocr_url`, `ocr_model`, `ocr_key` non servono più (i modelli
 stanno in `ai.toml`) e vengono ignorate.
 
-L'OCR con Apple Vision compila un piccolo programma Swift al primo uso. Servono gli strumenti
-di Apple (`xcode-select --install`).
+L'OCR con Apple Vision e il video MP4 compilano un piccolo programma Swift al primo uso (nelle
+release è già dentro l'app). Servono gli strumenti di Apple (`xcode-select --install`).
 
 ## Riga di comando
 
@@ -264,6 +269,7 @@ Craft di ArtCraft, senza le loro interfacce e senza programmi esterni:
 | Foto (PNG, JPEG, WebP, TIFF, BMP, GIF) | [PhotoCraft](https://github.com/storytold/photocraft) |
 | Export di lavagna e archivio (PDF, SVG, PNG, JPEG, WebP) | li disegna e scrive VectorCraft; PNG, JPEG e WebP li scrive PhotoCraft |
 | GIF e SVG animati, Xournal++, LaTeX, Typst, il testo nascosto dei PDF ricercabili | li scrive OpenSlate stesso (`src/formats.rs`, `src/mdconv.rs`) |
+| Video MP4 | il codificatore del sistema: AVFoundation (macOS), Media Foundation (Windows); su Linux ffmpeg, oppure OpenH264 di Cisco scaricato al primo uso (*OpenH264 Video Codec provided by Cisco Systems, Inc.*) |
 
 Un Markdown aperto come documento ha l'aspetto degli Appunti: testo in Source Serif, titoli in Inter, tabelle leggere. Le formule (`$…$`, `$$…$$`, `\(…\)`, `\[…\]`) le disegna [Typst](https://typst.app) in stile LaTeX (il LaTeX lo converte [MiTeX](https://github.com/mitex-rs/mitex)) e le figure accanto (`<img src="…">`, `![…](…)`, gli SVG disegnati da VectorCraft) diventano immagini.
 Un Markdown, .txt o .html firmato si salva in PDF (quei formati non possono tenere l'inchiostro).
@@ -276,7 +282,8 @@ Avviata con `cargo run` dalla cartella del progetto, l'app lavora lì. Installat
 dei dati dell'utente: macOS `~/Library/Application Support/OpenSlate`, Linux
 `~/.local/share/openslate`, Windows `%APPDATA%\OpenSlate` (si cambia con `OPENSLATE_DATA`).
 Lì ci sono anche `crash.log` (se l'app è andata in crash), `web.key` (la chiave del link della
-diretta web) e `updates/` (la versione precedente dell'app, tenuta dopo un aggiornamento).
+diretta web), `updates/` (la versione precedente dell'app, tenuta dopo un aggiornamento) e, su
+Linux, `codecs/` (il codificatore OpenH264 di Cisco, se ne hai permesso lo scaricamento).
 
 ## Struttura
 
@@ -305,6 +312,7 @@ src/export.rs     PDF / SVG / PNG
 src/craftexport.rs export con VectorCraft (SVG, PDF) e PhotoCraft (PNG, JPEG, WebP)
 src/formats.rs    i formati d'uscita delle pagine: PDF ricercabile (testo invisibile), Word con l'inchiostro, Xournal++, GIF e SVG animati
 src/mdconv.rs     gli appunti in LaTeX e Typst (e in testo semplice per i PDF ricercabili)
+src/video.rs      il video MP4 della pagina che si riscrive: AVFoundation (macOS, con src/swift/video_mp4.swift), Media Foundation (Windows), ffmpeg o OpenH264 di Cisco (Linux)
 src/figures.rs    figure della trascrizione ridisegnate dai tratti veri della penna
 src/update.rs     controllo degli aggiornamenti (ultima release su GitHub)
 src/selfupdate.rs aggiornamento dentro l'app: scarica, controlla le impronte, installa, riavvia

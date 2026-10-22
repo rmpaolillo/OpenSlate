@@ -99,6 +99,12 @@ Third-party material
   same licence and acknowledgements (assets/fonts/LICENSE-OpenSlateHand.txt).
 - assets/fonts/GlyphLess.ttf: an empty font (two glyphs with no outlines) made for OpenSlate with
   fontTools, for the invisible text layer of searchable PDFs (src/formats.rs). Public domain.
+- MP4 video export (src/video.rs): on Linux, when ffmpeg is not installed, OpenSlate downloads
+  Cisco's prebuilt OpenH264 library from ciscobinary.openh264.org on first use, with the user's
+  consent, and checks its SHA-256 (via the openh264 crate, BSD-2-Clause). It is not distributed
+  with OpenSlate. OpenH264 Video Codec provided by Cisco Systems, Inc.
+  (licence: https://www.openh264.org/BINARY_LICENSE.txt). macOS and Windows use their own system
+  encoders (AVFoundation, Media Foundation).
 
 The full licence texts of all components are in THIRD-PARTY-LICENSES.txt in the release
 packages (packaging/collect_licenses.py).
