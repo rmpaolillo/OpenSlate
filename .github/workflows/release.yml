@@ -5,6 +5,7 @@ name: Release
 #   Cargo.toml 0.2.x, no v0.2.* tag yet  -> v0.2.0
 #   last tag v0.2.4                       -> v0.2.5
 # To start a new series (0.3.0, 1.0.0…) change the version in Cargo.toml.
+# After publishing, only the two newest releases are kept (older releases and their tags are removed).
 # CI (ci.yml) still builds and tests every push and pull request.
 
 on:
@@ -395,3 +396,20 @@ jobs:
           append_body: true
           files: later/*
           fail_on_unmatched_files: true
+
+      # Only the two newest releases stay on GitHub: the older ones go, tag included.
+      # The tags of the two that stay keep the version count going (v0.2.10 -> v0.2.11).
+      - name: Keep only the last two releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          KEEP: 2
+        run: |
+          gh release list --limit 1000 --exclude-drafts --json tagName,createdAt \
+            --jq "sort_by(.createdAt) | reverse | .[${KEEP}:] | .[].tagName" > old.txt
+          echo "Releases to remove:"; cat old.txt
+          while read -r tag; do
+            [ -n "$tag" ] || continue
+            [ "$tag" = "v${VERSION}" ] && continue   # never the one just published
+            gh release delete "$tag" --cleanup-tag --yes || echo "::warning::could not remove $tag"
+          done < old.txt
