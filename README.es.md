@@ -49,6 +49,7 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
 - **Firma documentos Word y PDF con el bolígrafo**, guardados en el mismo formato.
 - **Escritura a mano → notas editables**, con tablas y fórmulas, exportadas a Markdown, Word o PDF,
   en letra de imprenta o en una fuente manuscrita.
+- **Exporta a lo que necesites**: PDF con búsqueda, Word con la escritura como tinta editable, JPEG/WebP ligeros, Xournal++, un GIF o SVG animado de la página escribiéndose, y LaTeX o Typst desde la transcripción.
 - **La IA que tú elijas**: modelos locales (LM Studio, Ollama) o proveedores en la nube; las claves de API nunca se guardan
   en texto plano.
 - **Libre y de código abierto**, en nueve idiomas, para macOS (plataforma principal), Linux y Windows.
@@ -152,6 +153,8 @@ hoja y la gráfica las dibujaron las propias herramientas de pizarra de la aplic
 
 | | |
 |---|---|
+| **La página se reescribe sola**: la exportación a GIF animado, trazo a trazo | **Más formatos**: JPEG, WebP, Word con tinta, Xournal++, GIF/SVG animados, LaTeX, Typst |
+| <img src="assets/screenshots/writing.gif" alt="GIF animado: la página escrita trazo a trazo" width="440"> | <img src="assets/screenshots/formats.png" alt="El menú Más formatos" width="440"> |
 | **Una gráfica en la hoja**: el chat dibuja la función y la coloca debajo del ejercicio | **Firma un documento Word o PDF** con el bolígrafo y guárdalo en el mismo formato |
 | <img src="assets/screenshots/graph.png" alt="El chat de IA dibuja la gráfica de la función y la coloca en la hoja escrita a mano" width="440"> | <img src="assets/screenshots/sign.png" alt="Un documento Word firmado con el bolígrafo" width="440"> |
 | **Escritura a mano → texto**: una página transcrita a una nota editable, fórmulas incluidas | **Notas a mano**: la misma nota en la fuente manuscrita cursiva |

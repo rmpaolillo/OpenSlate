@@ -48,6 +48,7 @@ Issue やプルリクエストを歓迎します。[CONTRIBUTING.md](CONTRIBUTIN
 - **ペンで Word と PDF の文書に署名**し、同じ形式で保存できます。
 - **手書き → 編集可能なノート**。表や数式にも対応し、Markdown、Word、PDF にエクスポートできます。
   活字でも手書きフォントでも出力できます。
+- **必要な形式で書き出し**：検索できる PDF、手書きを編集できるインクにした Word、軽い JPEG/WebP、Xournal++、ページが書かれていく様子のアニメーション GIF / SVG、文字起こしから作る LaTeX または Typst。
 - **AI は自由に選べます**: ローカルモデル（LM Studio、Ollama）またはクラウドプロバイダー。API キーが平文で保存されることはありません。
 - **無料でオープンソース**、9 か国語対応、macOS（メインプラットフォーム）、Linux、Windows で動作します。
 
@@ -135,6 +136,8 @@ Issue やプルリクエストを歓迎します。[CONTRIBUTING.md](CONTRIBUTIN
 
 | | |
 |---|---|
+| **ページがひとりでに書き直される**：アニメーション GIF の書き出し、一画ずつ | **その他の形式**：JPEG、WebP、インク付き Word、Xournal++、アニメーション GIF / SVG、LaTeX、Typst |
+| <img src="assets/screenshots/writing.gif" alt="アニメーション GIF：ページが一画ずつ書かれていく" width="440"> | <img src="assets/screenshots/formats.png" alt="「その他の形式」メニュー" width="440"> |
 | **ページ上のグラフ**: チャットが関数を描き、演習の下に配置します | ペンで **Word や PDF の文書に署名**し、同じ形式で保存します |
 | <img src="assets/screenshots/graph.png" alt="AI チャットが関数のグラフを描き、手書きのページに配置している様子" width="440"> | <img src="assets/screenshots/sign.png" alt="ペンで署名した Word 文書" width="440"> |
 | **手書き → テキスト**: 数式も含めて、編集可能なノートに文字起こししたページ | **手書きのノート**: 同じノートを筆記体の手書きフォントで表示 |

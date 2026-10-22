@@ -17,6 +17,9 @@ Non è un prodotto Wacom e non è collegata a Wacom.
 - **Firmi documenti Word e PDF con la penna**, salvati nello stesso formato.
 - **Dalla scrittura a mano agli appunti**, con tabelle e formule, esportati in Markdown, Word o
   PDF, in stampato o con un carattere a mano.
+- **Esporti in quello che ti serve**: PDF ricercabile, Word con la scrittura come inchiostro
+  modificabile, JPEG/WebP leggeri, Xournal++, GIF o SVG animato della pagina che si scrive, LaTeX
+  o Typst dalla trascrizione.
 - **L'AI che vuoi tu**: modelli locali (LM Studio, Ollama) o in cloud; le chiavi API mai in chiaro.
 - **Libera e open source**, in nove lingue, per macOS (piattaforma principale), Linux e Windows.
 
@@ -26,6 +29,8 @@ strumenti della lavagna dell'app.
 
 | | |
 |---|---|
+| **La pagina che si riscrive**: l'export in GIF animata, tratto dopo tratto | **Altri formati**: JPEG, WebP, Word con l'inchiostro, Xournal++, GIF/SVG animati, LaTeX, Typst |
+| ![La pagina che si riscrive](assets/screenshots/writing.gif) | ![Altri formati](assets/screenshots/formats.png) |
 | **Un grafico sul foglio**: la chat disegna la funzione e la mette sotto l'esercizio | **Firma di un documento Word o PDF** con la penna, salvato nello stesso formato |
 | ![Grafico sul foglio](assets/screenshots/graph.png) | ![Firma](assets/screenshots/sign.png) |
 | **Scrittura → testo**: la pagina diventa un appunto modificabile, formule comprese | **Appunti a mano**: lo stesso appunto con il carattere corsivo |

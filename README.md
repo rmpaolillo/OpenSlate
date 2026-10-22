@@ -49,6 +49,9 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Sign Word and PDF documents with the pen**, saved in the same format.
 - **Handwriting → editable notes**, with tables and formulas, exported to Markdown, Word or PDF,
   printed or in a handwriting font.
+- **Export to what you need**: a searchable PDF, Word with the handwriting as editable ink, light
+  JPEG/WebP, Xournal++, an animated GIF or SVG of the page being written, and LaTeX or Typst from
+  the transcription.
 - **Your choice of AI**: local models (LM Studio, Ollama) or cloud providers; API keys never stored
   in plain text.
 - **Free and open source**, in nine languages, for macOS (main platform), Linux and Windows.
@@ -152,6 +155,8 @@ page and the graph were drawn by the app's own board tools.
 
 | | |
 |---|---|
+| **The page rewrites itself**: the animated GIF export, stroke by stroke | **More formats**: JPEG, WebP, Word with ink, Xournal++, animated GIF/SVG, LaTeX, Typst |
+| <img src="assets/screenshots/writing.gif" alt="Animated GIF: the handwritten page being written stroke by stroke" width="440"> | <img src="assets/screenshots/formats.png" alt="The More formats menu" width="440"> |
 | **A graph on the page**: the chat draws the function and puts it under the exercise | **Sign a Word or PDF document** with the pen and save it in the same format |
 | <img src="assets/screenshots/graph.png" alt="The AI chat draws the graph of the function and places it on the handwritten page" width="440"> | <img src="assets/screenshots/sign.png" alt="A Word document signed with the pen" width="440"> |
 | **Handwriting → text**: a page transcribed into an editable note, formulas included | **Notes by hand**: the same note in the cursive handwriting font |

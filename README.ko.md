@@ -50,6 +50,7 @@
 - **펜으로 Word 및 PDF 문서에 서명**하고 같은 형식으로 저장합니다.
 - **손글씨 → 편집 가능한 노트**: 표와 수식까지 포함해 Markdown, Word 또는 PDF로 내보내며,
   인쇄체나 손글씨 글꼴로 표시할 수 있습니다.
+- **필요한 형식으로 내보내기**: 검색 가능한 PDF, 손글씨를 편집 가능한 잉크로 담은 Word, 가벼운 JPEG/WebP, Xournal++, 페이지가 써지는 모습의 움직이는 GIF/SVG, 변환된 텍스트로 만든 LaTeX 또는 Typst.
 - **원하는 AI 선택**: 로컬 모델(LM Studio, Ollama) 또는 클라우드 제공업체. API 키는 절대
   평문으로 저장되지 않습니다.
 - **무료 오픈 소스**이며 9개 언어를 지원하고, macOS(주 플랫폼), Linux, Windows에서 사용할 수 있습니다.
@@ -153,6 +154,8 @@
 
 | | |
 |---|---|
+| **페이지가 스스로 다시 써짐**: 움직이는 GIF로 내보내기, 한 획씩 | **다른 형식**: JPEG, WebP, 잉크가 들어간 Word, Xournal++, 움직이는 GIF/SVG, LaTeX, Typst |
+| <img src="assets/screenshots/writing.gif" alt="움직이는 GIF: 페이지가 한 획씩 써짐" width="440"> | <img src="assets/screenshots/formats.png" alt="다른 형식 메뉴" width="440"> |
 | **페이지 위의 그래프**: 채팅이 함수를 그려 연습 문제 아래에 넣습니다 | 펜으로 **Word 또는 PDF 문서에 서명**하고 같은 형식으로 저장합니다 |
 | <img src="assets/screenshots/graph.png" alt="AI 채팅이 함수의 그래프를 그려 손글씨 페이지에 넣습니다" width="440"> | <img src="assets/screenshots/sign.png" alt="펜으로 서명한 Word 문서" width="440"> |
 | **손글씨 → 텍스트**: 수식까지 포함해 편집 가능한 노트로 옮겨 적은 페이지 | **손글씨 노트**: 같은 노트를 필기체 손글씨 글꼴로 표시 |

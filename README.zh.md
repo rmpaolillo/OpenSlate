@@ -46,6 +46,7 @@ Inkspace——这块手写板所依赖的应用，于是这台硬件眼看就要
 - 用笔签署 Word 和 PDF 文档，并以原格式保存。
 - 手写 → 可编辑的笔记，支持表格和公式，可导出为 Markdown、Word 或 PDF，
   以印刷字体或手写字体呈现。
+- 导出为你需要的格式：可搜索的 PDF、手写为可编辑墨迹的 Word、轻量的 JPEG/WebP、Xournal++、重现书写过程的 GIF 或 SVG 动画，以及由转写生成的 LaTeX 或 Typst。
 - 自由选择 AI：本地模型（LM Studio、Ollama）或云端服务商；API 密钥从不以明文保存。
 - 免费开源，支持九种语言，适用于 macOS（主要平台）、Linux 和 Windows。
 
@@ -130,6 +131,8 @@ Inkspace——这块手写板所依赖的应用，于是这台硬件眼看就要
 
 | | |
 |---|---|
+| 页面自己重写：导出的 GIF 动画，一笔一笔重现 | 更多格式：JPEG、WebP、带笔迹的 Word、Xournal++、GIF/SVG 动画、LaTeX、Typst |
+| <img src="assets/screenshots/writing.gif" alt="GIF 动画：页面一笔一笔写出来" width="440"> | <img src="assets/screenshots/formats.png" alt="更多格式菜单" width="440"> |
 | 页面上的图表：聊天绘制函数图像，并将其放在练习下方 | 用笔签署 Word 或 PDF 文档，并以原格式保存 |
 | <img src="assets/screenshots/graph.png" alt="AI 聊天绘制函数图像并将其放在手写页面上" width="440"> | <img src="assets/screenshots/sign.png" alt="一份用笔签署的 Word 文档" width="440"> |
 | 手写 → 文字：一页手写内容被转写为可编辑的笔记，公式也包括在内 | 手写体笔记：同一份笔记以连笔手写字体显示 |

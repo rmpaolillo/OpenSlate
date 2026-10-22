@@ -49,6 +49,7 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
 - **Signez des documents Word et PDF au stylet**, enregistrés dans le même format.
 - **Écriture manuscrite → notes modifiables**, avec tableaux et formules, exportées en Markdown, Word ou PDF,
   imprimées ou dans une police manuscrite.
+- **Exportez dans le format qu'il vous faut** : PDF consultable, Word avec l'écriture en encre modifiable, JPEG/WebP légers, Xournal++, un GIF ou SVG animé de la page en train de s'écrire, et LaTeX ou Typst à partir de la transcription.
 - **L'IA de votre choix** : modèles locaux (LM Studio, Ollama) ou fournisseurs cloud ; les clés d'API ne sont jamais stockées
   en clair.
 - **Libre et open source**, en neuf langues, pour macOS (plateforme principale), Linux et Windows.
@@ -152,6 +153,8 @@ page et le graphique ont été dessinés par les outils de tableau de l'applicat
 
 | | |
 |---|---|
+| **La page se réécrit toute seule** : l'export en GIF animé, trait par trait | **Autres formats** : JPEG, WebP, Word avec l'encre, Xournal++, GIF/SVG animés, LaTeX, Typst |
+| <img src="assets/screenshots/writing.gif" alt="GIF animé : la page écrite trait par trait" width="440"> | <img src="assets/screenshots/formats.png" alt="Le menu Autres formats" width="440"> |
 | **Un graphique sur la page** : le chat trace la fonction et la place sous l'exercice | **Signez un document Word ou PDF** au stylet et enregistrez-le dans le même format |
 | <img src="assets/screenshots/graph.png" alt="Le chat IA trace le graphe de la fonction et le place sur la page manuscrite" width="440"> | <img src="assets/screenshots/sign.png" alt="Un document Word signé au stylet" width="440"> |
 | **Écriture manuscrite → texte** : une page transcrite en note modifiable, formules comprises | **Notes à la main** : la même note dans la police manuscrite cursive |

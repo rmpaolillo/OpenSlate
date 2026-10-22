@@ -49,6 +49,7 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
 - **Word- und PDF-Dokumente mit dem Stift unterschreiben**, gespeichert im selben Format.
 - **Handschrift → bearbeitbare Notizen**, mit Tabellen und Formeln, exportiert als Markdown, Word oder PDF,
   gedruckt oder in einer Handschrift-Schriftart.
+- **Export in das, was du brauchst**: durchsuchbares PDF, Word mit der Handschrift als bearbeitbare Tinte, leichte JPEG/WebP, Xournal++, ein animiertes GIF oder SVG der Seite, die sich schreibt, und LaTeX oder Typst aus der Transkription.
 - **Die KI deiner Wahl**: lokale Modelle (LM Studio, Ollama) oder Cloud-Anbieter; API-Schlüssel werden nie
   im Klartext gespeichert.
 - **Frei und Open Source**, in neun Sprachen, für macOS (Hauptplattform), Linux und Windows.
@@ -152,6 +153,8 @@ Seite und der Graph wurden mit den Tafelwerkzeugen der App selbst gezeichnet.
 
 | | |
 |---|---|
+| **Die Seite schreibt sich neu**: der Export als animiertes GIF, Strich für Strich | **Weitere Formate**: JPEG, WebP, Word mit Tinte, Xournal++, animiertes GIF/SVG, LaTeX, Typst |
+| <img src="assets/screenshots/writing.gif" alt="Animiertes GIF: die Seite wird Strich für Strich geschrieben" width="440"> | <img src="assets/screenshots/formats.png" alt="Das Menü Weitere Formate" width="440"> |
 | **Ein Graph auf dem Blatt**: Der Chat zeichnet die Funktion und setzt sie unter die Übung | **Ein Word- oder PDF-Dokument** mit dem Stift **unterschreiben** und im selben Format speichern |
 | <img src="assets/screenshots/graph.png" alt="Der KI-Chat zeichnet den Graphen der Funktion und platziert ihn auf der handgeschriebenen Seite" width="440"> | <img src="assets/screenshots/sign.png" alt="Ein mit dem Stift unterschriebenes Word-Dokument" width="440"> |
 | **Handschrift → Text**: eine Seite, transkribiert in eine bearbeitbare Notiz, Formeln inklusive | **Notizen von Hand**: dieselbe Notiz in der Schreibschrift-Schriftart |
