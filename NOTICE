@@ -40,11 +40,12 @@ Third-party material
   fixed revision.
 
 - Typst (https://github.com/typst/typst), Copyright (c) 2023 The Typst Project Developers,
-  Apache License 2.0: the typst, typst-layout, typst-render and typst-assets crates draw the
-  LaTeX formulas of Markdown documents (src/mathtex.rs). typst-render and typst-svg 0.15.1 are
-  copied in vendor/ with one change each (see vendor/README.md). typst-assets embeds the New
-  Computer Modern fonts (GUST Font License), Libertinus Serif (SIL OFL 1.1) and DejaVu Sans Mono;
-  their licences are in that crate's NOTICE file.
+  Apache License 2.0: the typst, typst-layout and typst-render crates draw the LaTeX formulas
+  of Markdown documents (src/mathtex.rs) and the AI chat's charts. typst-render and typst-svg
+  0.15.1 are copied in vendor/ with one change each (see vendor/README.md). The New Computer
+  Modern fonts the formulas use (GUST Font License) are copied unmodified from the typst-assets
+  crate into assets/fonts/typst/, with that crate's NOTICE (NOTICE-typst-assets.txt) and
+  LICENSE.
 
 - Lilaq (https://github.com/lilaq-project/lilaq, Mc-Zen, MIT) and the Typst packages it uses:
   zero and tiptoe (Mc-Zen, MIT), elembic (PgBiel, MIT OR Apache-2.0), suiji (liuguangxi, MIT).

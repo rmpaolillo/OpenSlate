@@ -117,7 +117,17 @@ pub fn from_json(j: &Value, installed: &str, os: &str, deb: bool) -> Option<Rele
             _ => false,
         }
     };
-    let found = assets.iter().find(|(n, _)| want(n));
+    // Mac: prima il file per questo processore (più piccolo), poi l'universale
+    let mac_arch = if cfg!(target_arch = "aarch64") { "-macos-arm64.dmg" } else { "-macos-intel.dmg" };
+    let found = if os == "macos" {
+        assets
+            .iter()
+            .find(|(n, _)| n.ends_with(mac_arch))
+            .or_else(|| assets.iter().find(|(n, _)| n.ends_with("-macos-universal.dmg")))
+            .or_else(|| assets.iter().find(|(n, _)| want(n)))
+    } else {
+        assets.iter().find(|(n, _)| want(n))
+    };
     let download = found.map(|(_, u)| u.to_string()).unwrap_or_else(|| page.clone());
     let asset = found.map(|(n, _)| n.to_string());
     let sums = assets.iter().find(|(n, _)| *n == "SHA256SUMS.txt").map(|(_, u)| u.to_string());
@@ -170,5 +180,15 @@ mod tests {
         assert!(from_json(&beta, "0.2.5", "macos", false).is_none());
         // senza il file per il sistema: la pagina della release
         assert_eq!(from_json(&j, "0.2.5", "freebsd", false).unwrap().download, r.page);
+        // Mac: il file per questo processore, anche se l'universale viene prima
+        let mut three = j.clone();
+        three["assets"].as_array_mut().unwrap().extend([
+            json!({"name": "OpenSlate-0.2.7-macos-arm64.dmg", "browser_download_url": "https://x/OpenSlate-0.2.7-macos-arm64.dmg"}),
+            json!({"name": "OpenSlate-0.2.7-macos-intel.dmg", "browser_download_url": "https://x/OpenSlate-0.2.7-macos-intel.dmg"}),
+        ]);
+        let mine = if cfg!(target_arch = "aarch64") { "macos-arm64.dmg" } else { "macos-intel.dmg" };
+        let m = from_json(&three, "0.2.5", "macos", false).unwrap();
+        assert!(m.asset.as_deref().is_some_and(|a| a.ends_with(mine)), "{:?}", m.asset);
+        assert!(m.download.ends_with(mine));
     }
 }

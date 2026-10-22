@@ -109,6 +109,7 @@ def main():
         ("DOMPurify (src/web/vendor)", "src/web/vendor/LICENSE-dompurify"),
         ("Hershey fonts (src/handwrite)", "src/handwrite/LICENSE-hershey.txt"),
         ("OpenSlate Corsivo / Stampatello (assets/fonts)", "assets/fonts/LICENSE-OpenSlateHand.txt"),
+        ("New Computer Modern, formula fonts (assets/fonts/typst)", "assets/fonts/typst/NOTICE-typst-assets.txt"),
     ]
     pkg_root = os.path.join(ROOT, "src", "typst-pkg")
     for dirpath, _dirs, files in os.walk(pkg_root):

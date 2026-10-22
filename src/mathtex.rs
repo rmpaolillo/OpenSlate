@@ -54,7 +54,7 @@ fn render_uncached(latex: &str, display: bool, size: f32) -> Result<Formula> {
     let src = format!(
         "#import \"/mitex/mod.typ\": mitex-scope\n\
          #set page(width: auto, height: auto, margin: (x: 0.6pt, y: 2pt), fill: none)\n\
-         #set text(size: {size}pt, top-edge: \"bounds\", bottom-edge: \"bounds\")\n\
+         #set text(size: {size}pt, font: \"New Computer Modern\", top-edge: \"bounds\", bottom-edge: \"bounds\")\n\
          #set math.cases(gap: 0.45em)\n\
          #show math.mat: it => math.display(it)\n\
          #let f = math.equation(block: {display}, eval(\"$\" + {code:?} + \"$\", scope: mitex-scope))\n\

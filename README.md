@@ -148,7 +148,9 @@ version number (`v0.2.0`, `v0.2.1`, …).
 
 | Platform | File | Status |
 |---|---|---|
-| macOS 11+ (Apple Silicon and Intel) | `OpenSlate-<version>-macos-universal.dmg` | main platform, used daily |
+| macOS 11+, Apple Silicon (M1, M2…) | `OpenSlate-<version>-macos-arm64.dmg` | main platform, used daily |
+| macOS 11+, Intel | `OpenSlate-<version>-macos-intel.dmg` | builds and runs; less tested |
+| macOS 11+, both (twice the size) | `OpenSlate-<version>-macos-universal.dmg` | for the in-app update from 0.2.x |
 | Linux x86_64 (Debian/Ubuntu) | `openslate_<version>_amd64.deb` | builds and runs; less tested |
 | Linux x86_64 (other distros) | `openslate-<version>-linux-x86_64.tar.gz` | builds and runs; less tested |
 | Windows x86_64 | `openslate-<version>-windows-x86_64.zip` | **experimental** |
@@ -333,8 +335,10 @@ A file-by-file description is in the [Italian README](README.it.md#struttura).
 
 - `ci.yml` builds and tests on Linux and macOS for every push and pull request.
 - `release.yml` runs when the maintainer starts it (Actions → Release → Run workflow, on `main`).
-  It builds macOS (universal), Linux and Windows and publishes a GitHub Release with
-  automatically generated notes.
+  It builds macOS (Apple Silicon, Intel and universal), Linux and Windows and publishes a GitHub Release with
+  automatically generated notes. The release binary is stripped and optimised as one program
+  (`lto = "fat"`, `codegen-units = 1`); rarely used libraries pulled in by others are optimised
+  for size (see `[profile.release]` in `Cargo.toml`).
 - Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR` comes from `Cargo.toml`,
   `PATCH` is counted automatically from the existing tags (`v0.2.0`, then `v0.2.1`, …).
 - To start a new series (new features: `0.3.0`; first stable: `1.0.0`), change `version` in

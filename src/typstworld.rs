@@ -19,6 +19,19 @@ use typst::{Library, LibraryExt, World};
 #[path = "typstfiles.rs"]
 mod files;
 
+/// I font di Typst che servono, New Computer Modern (testo e matematica,
+/// i disegni di LaTeX): solo questi, non tutti quelli di `typst-assets`
+/// (Libertinus, DejaVu Sans Mono, NewCMMath-Book: −4,5 MB nel programma).
+/// Licenze in assets/fonts/typst/NOTICE-typst-assets.txt.
+const FONTS: [&[u8]; 6] = [
+    include_bytes!("../assets/fonts/typst/NewCMMath-Regular.otf"),
+    include_bytes!("../assets/fonts/typst/NewCMMath-Bold.otf"),
+    include_bytes!("../assets/fonts/typst/NewCM10-Regular.otf"),
+    include_bytes!("../assets/fonts/typst/NewCM10-Bold.otf"),
+    include_bytes!("../assets/fonts/typst/NewCM10-Italic.otf"),
+    include_bytes!("../assets/fonts/typst/NewCM10-BoldItalic.otf"),
+];
+
 struct Shared {
     library: LazyHash<Library>,
     book: LazyHash<FontBook>,
@@ -28,7 +41,7 @@ struct Shared {
 fn shared() -> &'static Shared {
     static S: OnceLock<Shared> = OnceLock::new();
     S.get_or_init(|| {
-        let fonts: Vec<Font> = typst_assets::fonts().flat_map(|d| Font::iter(Bytes::new(d))).collect();
+        let fonts: Vec<Font> = FONTS.iter().flat_map(|d| Font::iter(Bytes::new(*d))).collect();
         Shared { library: LazyHash::new(Library::default()), book: LazyHash::new(FontBook::from_fonts(&fonts)), fonts }
     })
 }

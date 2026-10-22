@@ -6084,7 +6084,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "typst",
- "typst-assets",
  "typst-layout",
  "typst-render",
  "typst-svg",
