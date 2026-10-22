@@ -44,7 +44,7 @@ pub fn current() -> &'static str {
 
 /// L'app arriva da una release (DMG, .deb, zip…), non compilata dai sorgenti:
 /// solo allora ha senso confrontarla con le release. Dai sorgenti la versione
-/// di Cargo.toml (0.2.0) è sempre «vecchia» rispetto ai tag: ci si aggiorna con
+/// di Cargo.toml (es. 0.3.0) è sempre «vecchia» rispetto ai tag: ci si aggiorna con
 /// `git pull`. Si prova lo stesso con OPENSLATE_UPDATE_TEST=1.
 pub fn from_release() -> bool {
     option_env!("OPENSLATE_RELEASE").is_some() || std::env::var_os("OPENSLATE_UPDATE_TEST").is_some()

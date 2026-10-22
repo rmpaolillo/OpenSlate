@@ -144,7 +144,7 @@ The screenshots show the Italian interface. The handwriting and documents are sa
 
 Ready-to-install builds are published on the
 [**Releases**](https://github.com/rmpaolillo/OpenSlate/releases) page, each with an increasing
-version number (`v0.2.0`, `v0.2.1`, …).
+version number (`v0.3.0`, `v0.3.1`, …).
 
 | Platform | File | Status |
 |---|---|---|
@@ -340,7 +340,7 @@ A file-by-file description is in the [Italian README](README.it.md#struttura).
   (`lto = "fat"`, `codegen-units = 1`); rarely used libraries pulled in by others are optimised
   for size (see `[profile.release]` in `Cargo.toml`).
 - Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR` comes from `Cargo.toml`,
-  `PATCH` is counted automatically from the existing tags (`v0.2.0`, then `v0.2.1`, …).
+  `PATCH` is counted automatically from the existing tags (`v0.3.0`, then `v0.3.1`, …).
 - To start a new series (new features: `0.3.0`; first stable: `1.0.0`), change `version` in
   `Cargo.toml`; the next release starts again from patch `0`.
 - A release runs the tests first and builds with the locked dependencies (`Cargo.lock`). Each

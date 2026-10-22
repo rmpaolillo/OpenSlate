@@ -2,8 +2,8 @@ name: Release
 
 # A release is published only when you decide: Actions → Release → "Run workflow" (branch main).
 # Version = MAJOR.MINOR taken from Cargo.toml + PATCH counted from the existing tags:
-#   Cargo.toml 0.2.x, no v0.2.* tag yet  -> v0.2.0
-#   last tag v0.2.4                       -> v0.2.5
+#   Cargo.toml 0.3.x, no v0.3.* tag yet  -> v0.3.0
+#   last tag v0.3.4                       -> v0.3.5
 # To start a new series (0.3.0, 1.0.0…) change the version in Cargo.toml.
 # After publishing, only the two newest releases are kept (older releases and their tags are removed).
 # CI (ci.yml) still builds and tests every push and pull request.
@@ -398,7 +398,7 @@ jobs:
           fail_on_unmatched_files: true
 
       # Only the two newest releases stay on GitHub: the older ones go, tag included.
-      # The tags of the two that stay keep the version count going (v0.2.10 -> v0.2.11).
+      # The tags of the two that stay keep the version count going (e.g. v0.3.0 -> v0.3.1).
       - name: Keep only the last two releases
         env:
           GH_TOKEN: ${{ github.token }}
