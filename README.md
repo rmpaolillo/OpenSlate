@@ -105,6 +105,12 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   black and white, sharpen… the image keeps its format) plus text tools for Markdown. Every change shows at once in the document
   next to the chat and can be undone from the chat with one click; the original file on disk is
   never touched. In a transcription note the chart can replace the hand-drawn figure; on the board sheet it replaces the hand-drawn graph (found automatically: axes and labels) or goes under the writing. SVG written by the model in a reply is shown as a picture.
+- **Fill in PDF forms.** With a PDF form attached, ask the chat to "fill in this form with my
+  details": it reads the fields and fills them in with PdfCraft. A printed or scanned form with no
+  fields gets them first (PdfCraft finds the blanks and names them from their labels), or the chat
+  writes text, check marks and the date where they belong. It only uses what you tell it and asks
+  for what is missing. It never signs: the signature is yours, with the pen, and the filled-in
+  values stay in the signed copy.
 - **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
   "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
   by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,

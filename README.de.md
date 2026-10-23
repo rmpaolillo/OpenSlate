@@ -103,6 +103,12 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   Schwarzweiß, schärfen … das Bild behält sein Format) sowie Textwerkzeuge für Markdown. Jede Änderung erscheint sofort im Dokument
   neben dem Chat und lässt sich im Chat mit einem Klick rückgängig machen; die Originaldatei auf der Festplatte wird
   nie angerührt. In einer Transkriptionsnotiz kann das Diagramm die handgezeichnete Abbildung ersetzen; auf dem Tafelblatt ersetzt es den handgezeichneten Graphen (automatisch erkannt: Achsen und Beschriftungen) oder kommt unter das Geschriebene. SVG, das das Modell in einer Antwort schreibt, wird als Bild angezeigt.
+- **PDF-Formulare ausfüllen.** Ist ein PDF-Formular an den Chat angehängt, bitte ihn: „füll das
+  Formular mit meinen Daten aus“. Er liest die Felder und füllt sie mit PdfCraft aus. Ein gedrucktes
+  oder gescanntes Formular ohne Felder bekommt sie zuerst (PdfCraft findet die Lücken und benennt
+  sie nach ihren Beschriftungen), oder der Chat schreibt Text, Häkchen und das Datum an die richtige
+  Stelle. Er verwendet nur, was du ihm sagst, und fragt nach, was fehlt. Unterschreiben tut er nie:
+  die Unterschrift setzt du mit dem Stift, und die ausgefüllten Werte bleiben in der unterschriebenen Kopie.
 - **Der Chat schreibt auf die Tafel.** Bitte ihn: „prüf meine Rechnungen und markier die Fehler“,
   „unterstreich die Fristen“ oder „schreib das Ergebnis neben Zeile 2“: Er liest das Tafelblatt Zeile
   für Zeile und Wort für Wort, dann markiert, unterstreicht, umkreist, streicht durch, zeichnet Kästen,

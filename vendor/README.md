@@ -14,7 +14,7 @@ Motivo: OpenSlate usa hayro 0.7 nella versione della suite Craft
 più; Typst la compila così. OpenSlate usa Typst solo per disegnare le formule dei Markdown
 (`src/mathtex.rs`), non le immagini PDF.
 
-## wordcraft-layout (WordCraft e05b7fe, 0.9.0, MIT OR Apache-2.0)
+## wordcraft-layout (WordCraft 9130181, 0.10.0, MIT OR Apache-2.0)
 
 `crates/layout` di https://github.com/storytold/wordcraft, con le dipendenze del workspace
 scritte per esteso in `Cargo.toml` e due modifiche (`src/para.rs`, `src/display.rs`): un'immagine

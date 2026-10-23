@@ -103,6 +103,12 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   noir et blanc, netteté… l'image garde son format), plus des outils texte pour Markdown. Chaque modification apparaît aussitôt dans le document
   à côté du chat et peut être annulée depuis le chat d'un seul clic ; le fichier original sur le disque n'est
   jamais modifié. Dans une note de transcription, le graphique peut remplacer la figure dessinée à la main ; sur la page du tableau, il remplace le graphique dessiné à la main (trouvé automatiquement : axes et légendes) ou se place sous l'écriture. Le SVG écrit par le modèle dans une réponse s'affiche comme une image.
+- **Remplir des formulaires PDF.** Avec un formulaire PDF joint, demandez au chat « remplis ce
+  formulaire avec mes données » : il lit les champs et les remplit avec PdfCraft. Un formulaire
+  imprimé ou scanné sans champs les reçoit d'abord (PdfCraft trouve les espaces à remplir et les
+  nomme d'après leurs libellés), ou le chat écrit du texte, des coches et la date aux bons endroits.
+  Il n'utilise que ce que vous lui dites et demande ce qui manque. Il ne signe jamais : la signature,
+  c'est vous, avec le stylet, et les valeurs remplies restent dans la copie signée.
 - **Le chat écrit sur le tableau.** Demandez-lui « vérifiez mes additions et marquez les erreurs »,
   « soulignez les échéances » ou « écrivez le résultat à côté de la ligne 2 » : il lit la page du tableau ligne
   par ligne et mot par mot, puis surligne, souligne, entoure, barre, dessine des cadres,

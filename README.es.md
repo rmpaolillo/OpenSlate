@@ -103,6 +103,12 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   blanco y negro, enfocar… la imagen conserva su formato), además de herramientas de texto para Markdown. Cada cambio aparece al instante en el documento
   junto al chat y se puede deshacer desde el chat con un clic; el archivo original en el disco
   nunca se toca. En una nota de transcripción la gráfica puede sustituir a la figura dibujada a mano; en la hoja de la pizarra sustituye a la gráfica dibujada a mano (que se localiza automáticamente: ejes y etiquetas) o se coloca debajo de lo escrito. El SVG que el modelo escribe en una respuesta se muestra como imagen.
+- **Rellenar formularios PDF.** Con un formulario PDF adjunto, pídele al chat «rellena este
+  formulario con mis datos»: lee los campos y los rellena con PdfCraft. Un formulario impreso o
+  escaneado sin campos los recibe primero (PdfCraft encuentra los espacios en blanco y los nombra
+  según sus etiquetas), o el chat escribe texto, marcas y la fecha donde corresponde. Solo usa lo
+  que le dices y pregunta lo que falta. Nunca firma: la firma la pones tú con el lápiz, y los
+  valores rellenados quedan en la copia firmada.
 - **El chat escribe en la pizarra.** Pídele «revisa mis sumas y marca los errores»,
   «subraya los plazos» o «escribe el resultado junto a la línea 2»: lee la hoja de la pizarra línea
   a línea y palabra a palabra, y después resalta, subraya, rodea con un círculo, tacha, dibuja recuadros,

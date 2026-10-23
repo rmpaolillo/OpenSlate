@@ -340,11 +340,11 @@ fn drop_session(dir: &Path) {
 /// file fuori dal documento o lavori di massa).
 fn allowed(kind: Kind, name: &str) -> bool {
     match kind {
-        Kind::Word => matches!(name, "list_commands" | "execute" | "batch" | "type_text" | "select_text" | "inspect_document" | "render_page" | "undo" | "redo"),
+        Kind::Word => matches!(name, "list_commands" | "execute" | "batch" | "type_text" | "select_text" | "inspect_document" | "render_page"),
         Kind::Svg => matches!(
             name,
             "list_commands" | "command_list" | "command_batch" | "render_preview" | "draw_path" | "draw_shape" | "set_paint" | "add_text" | "transform"
-                | "create_graph" | "line" | "polygon" | "star" | "apply_effect" | "pathfinder" | "text_wrap" | "undo" | "redo"
+                | "create_graph" | "apply_effect" | "pathfinder" | "text_wrap" | "undo" | "redo"
         ),
         Kind::Pdf => matches!(
             name,
@@ -353,6 +353,8 @@ fn allowed(kind: Kind, name: &str) -> bool {
                 | "comment_delete" | "comment_reply" | "link_list" | "link_add" | "page_insert_blank" | "page_delete" | "page_rotate"
                 | "page_move" | "page_duplicate" | "page_number" | "doc_watermark" | "doc_background" | "edit_undo" | "edit_redo"
                 | "command_list" | "command_run" | "command_batch"
+                // i moduli: leggere e compilare i campi, crearli nei moduli stampati, scrivere dove non ce ne sono
+                | "form_fields" | "form_fill" | "form_reset" | "form_detect_fields" | "fill_sign_add"
         ),
         // aprire, salvare ed esportare li fa l'app; niente finestre
         Kind::Photo => matches!(name, "doc_inspect" | "doc_render_preview" | "render_preview" | "command_list" | "command_run" | "command_batch"),
@@ -407,7 +409,7 @@ impl Session {
                 Server::Word(wordcraft_mcp::Server::new(Box::new(h)))
             }
             Kind::Svg => {
-                let roots = vectorcraft_engine::file_access::AutomationRoots::new(Some(&root), Some(&root)).map_err(|e| anyhow!(e))?;
+                let roots = vectorcraft_engine::file_access::AutomationRoots::new(&[&root], &[&root]).map_err(|e| anyhow!(e))?;
                 let mut h = vectorcraft_mcp::Headless::new().with_automation_roots(roots);
                 h.open(&json!({ "path": file.to_string_lossy() })).map_err(|e| anyhow!("VectorCraft: {e}"))?;
                 Server::Svg(vectorcraft_mcp::Server::new(Box::new(h)))
@@ -557,6 +559,10 @@ pub fn definitions(doc: &DocRef) -> Vec<Value> {
                             req.retain(|r| r != "doc");
                         }
                         desc.push_str(" (`doc` can be omitted: it is the open document.)");
+                        if t["name"] == "fill_sign_add" {
+                            without_signature(&mut params);
+                            desc.push_str(" In OpenSlate the user signs with the pen: signature and initials are not available here, and neither are image files (`path`).");
+                        }
                     }
                     defs.push(function(&name, &desc, params));
                 }
@@ -571,7 +577,12 @@ pub fn definitions(doc: &DocRef) -> Vec<Value> {
 pub fn system_note(doc: &DocRef, title: &str) -> String {
     let (what, how) = match doc.kind {
         Kind::Word => ("un documento Word", "gli strumenti word__* (il server MCP di WordCraft: word__inspect_document per vedere com'è fatto, word__execute / word__batch per i comandi di WordCraft, word__list_commands per cercarli, word__render_page per guardare una pagina)"),
-        Kind::Pdf => ("un PDF", "gli strumenti pdf__* (il server MCP di PdfCraft: pdf__doc_inspect, pdf__text_find, pdf__text_edit, pdf__page_render per guardare una pagina…)"),
+        Kind::Pdf => ("un PDF", "gli strumenti pdf__* (il server MCP di PdfCraft: pdf__doc_inspect, pdf__text_find, pdf__text_edit, pdf__page_render per guardare una pagina…). \
+            Per compilare un modulo: pdf__form_fields per vedere i campi, pdf__form_fill per riempirli tutti in una volta, pdf__form_reset per svuotarli. \
+            Se il modulo non ha campi (stampato o scansionato): pdf__form_detect_fields li trova e li crea, oppure pdf__fill_sign_add scrive testo, crocette e la data \
+            dove servono (guarda prima la pagina con pdf__page_render; la data nel formato dell'utente con `format`, per esempio dd/mm/yyyy in italiano, e `language`). \
+            Usa solo i dati che l'utente ti ha dato in questa conversazione o che sono nei documenti: quelli che mancano chiedili, non inventarli. \
+            La firma non la metti tu: alla fine di' all'utente dove firmare con la penna"),
         Kind::Svg => ("un disegno SVG", "gli strumenti svg__* (il server MCP di VectorCraft: svg__render_preview per guardarlo, svg__draw_shape, svg__add_text, svg__command_batch…)"),
         Kind::Text => ("un testo (Markdown, .txt o .html)", "text_read, text_replace e text_insert (nel Markdown le formule in LaTeX con $…$ e $$…$$)"),
         Kind::Photo => ("una foto", "gli strumenti photo__* (il server MCP di PhotoCraft: photo__doc_inspect per vedere com'è fatta, photo__command_list con «filter» per cercare i comandi (ritaglia, ridimensiona, ruota, luminosità, contrasto, livelli, curve, saturazione, bianco e nero, nitidezza, sfocatura, testo…), photo__command_run e photo__command_batch per usarli, photo__doc_render_preview per guardare il risultato). Ritagliare, ruotare o ridimensionare cambia le misure della foto: se l'utente ci ha scritto o firmato sopra, avvisalo"),
@@ -645,20 +656,59 @@ fn edit_file(doc: &DocRef, bytes: &[u8]) -> Result<u64> {
     Ok(n)
 }
 
+/// Un comando delle app Craft che esce dal documento: apre, salva o esporta file,
+/// stampa, tocca le preferenze dell'app o ne cambia i preset, i plugin, gli
+/// script e le macro, la stampa unione, il sito web.
+/// Le app aggiungono comandi a ogni versione: si guarda ogni parola del nome
+/// (anche dentro il camelCase: `layer.quickExportAsPng`, `tools.recordMacro`),
+/// non un elenco di comandi. (Copia e incolla restano: dentro OpenSlate gli
+/// appunti delle app Craft sono loro, non quelli del sistema.)
+fn command_outside_document(id: &str) -> bool {
+    const PREFIXES: [&str; 4] = ["file.", "app.", "help.", "document.open"];
+    const WORDS: [&str; 23] = [
+        "export", "import", "print", "plugin", "plugins", "script", "scripts", "macro", "macros", "preferences", "settings", "recent",
+        "clipboard", "template", "templates", "mailings", "install", "website", "save", "browser", "url", "email", "share",
+    ];
+    // un preset si può usare, non creare, cambiare o cancellare (sono dell'app)
+    const PRESET_CHANGES: [&str; 10] = ["new", "delete", "rename", "edit", "move", "reset", "update", "migrate", "manager", "define"];
+    // una selezione salvata resta nel documento
+    const INSIDE: [&str; 2] = ["select.save", "select.saveselection"];
+    let lower = id.trim().to_ascii_lowercase();
+    if INSIDE.contains(&lower.as_str()) {
+        return false;
+    }
+    if PREFIXES.iter().any(|p| lower.starts_with(p)) {
+        return true;
+    }
+    let mut words: Vec<String> = Vec::new();
+    let mut cur = String::new();
+    for ch in id.trim().chars() {
+        if (!ch.is_ascii_alphanumeric() || (ch.is_ascii_uppercase() && !cur.is_empty())) && !cur.is_empty() {
+            words.push(std::mem::take(&mut cur));
+        }
+        if ch.is_ascii_alphanumeric() {
+            cur.push(ch.to_ascii_lowercase());
+        }
+    }
+    if !cur.is_empty() {
+        words.push(cur);
+    }
+    let has = |list: &[&str]| words.iter().any(|w| list.contains(&w.as_str()));
+    has(&WORDS) || (has(&["preset", "presets"]) && has(&PRESET_CHANGES))
+}
+
 /// I comandi «generici» (execute, batch, command_run…) non possono aprire,
-/// salvare o esportare file: lo fa l'app (il file giusto, nel posto giusto,
-/// con la copia per «Annulla»).
+/// salvare o esportare file né uscire dal documento: aprire, salvare ed
+/// esportare lo fa l'app (il file giusto, nel posto giusto, con la copia per
+/// «Annulla»); il resto non serve alla chat.
 fn forbidden_command(args: &Value) -> Option<String> {
     fn walk(v: &Value, out: &mut Option<String>) {
         match v {
             Value::Object(o) => {
                 for (k, x) in o {
                     if matches!(k.as_str(), "command" | "cmd" | "id") {
-                        if let Some(c) = x.as_str() {
-                            let c = c.trim().to_ascii_lowercase();
-                            if c.starts_with("file.") || c.starts_with("app.") || c.starts_with("document.save") || c.starts_with("document.export") || c.starts_with("document.open") {
-                                *out = Some(c);
-                            }
+                        if let Some(c) = x.as_str().filter(|c| command_outside_document(c)) {
+                            *out = Some(c.trim().to_string());
                         }
                     }
                     walk(x, out);
@@ -673,12 +723,41 @@ fn forbidden_command(args: &Value) -> Option<String> {
     out
 }
 
+/// Fill & Sign di PdfCraft sa anche firmare (una firma «scritta» in corsivo o
+/// un'immagine): dalla chat no, la firma la mette l'utente con la penna.
+fn signature_refused(args: &Value) -> Option<&'static str> {
+    if matches!(args["type"].as_str(), Some("signature" | "initials")) {
+        return Some("la firma e le iniziali le mette l'utente con la penna sullo Slate (o col mouse), non la chat: compila il resto e lascia a lui la firma");
+    }
+    if args.get("path").is_some() || args.get("scan").is_some() {
+        return Some("dalla chat Fill & Sign non usa file di immagini: solo testo, crocette, segni e data");
+    }
+    None
+}
+
+/// Toglie dallo schema di fill_sign_add la firma, le iniziali e le immagini.
+fn without_signature(params: &mut Value) {
+    if let Some(e) = params["properties"]["type"]["enum"].as_array_mut() {
+        e.retain(|v| !matches!(v.as_str(), Some("signature" | "initials")));
+    }
+    if let Some(p) = params["properties"].as_object_mut() {
+        for k in ["path", "scan", "sensitivity"] {
+            p.remove(k);
+        }
+    }
+}
+
 fn mcp_call(doc: &DocRef, tool: &str, args: &Value) -> Result<Outcome> {
     if !allowed(doc.kind, tool) {
         bail!("strumento non disponibile: {tool}");
     }
+    if doc.kind == Kind::Pdf && tool == "fill_sign_add" {
+        if let Some(why) = signature_refused(args) {
+            bail!("{why}");
+        }
+    }
     if let Some(c) = forbidden_command(args) {
-        bail!("il comando «{c}» non si usa dalla chat: aprire, salvare ed esportare li fa l'app da sola");
+        bail!("il comando «{c}» non si usa dalla chat: la chat lavora solo dentro il documento (aprire, salvare ed esportare li fa l'app da sola; niente stampa, plugin, script, macro, preferenze o preset dell'app)");
     }
     let before = std::fs::read(&doc.file)?;
     let size_before = if doc.kind == Kind::Photo { crate::rasign::dimensions(&doc.file) } else { None };
@@ -921,6 +1000,33 @@ mod tests {
         assert!(forbidden_command(&json!({ "command": "file.save", "params": { "path": "/tmp/x.docx" } })).is_some());
         assert!(forbidden_command(&json!({ "commands": [{ "command": "format.bold" }, { "command": "File.Open" }] })).is_some());
         assert!(forbidden_command(&json!({ "command": "insert.text", "params": { "text": "salva il file.docx" } })).is_none());
+        // dentro un lotto annidato (VectorCraft: action.batch)
+        assert!(forbidden_command(&json!({ "steps": [{ "id": "action.batch", "params": { "steps": [{ "id": "plugin.run" }] } }] })).is_some());
+    }
+
+    /// I comandi che escono dal documento, presi dai cataloghi di WordCraft 0.10,
+    /// VectorCraft 0.15, PdfCraft 0.12 e PhotoCraft 0.13, e quelli che servono alla chat.
+    #[test]
+    fn comandi_fuori_dal_documento() {
+        for c in [
+            "file.save", "File.Open", "app.quit", "document.open", "document.save", "document.exportPdf", "help.website", "help.check_updates",
+            "export.docx", "export.pptx", "print.dialog", "form.export_data", "comment.import", "plugin.install", "plugin.run", "script.check",
+            "tools.macros", "tools.recordMacro", "tools.attachTemplate", "mailings.start", "edit.preferences.general", "edit.colorSettings",
+            "layer.quickExportAsPng", "layer.exportAs", "layer.smartObjects.saveContents", "pdf.preset.save", "brush.presets.importAbr",
+            "edit.defineBrushPreset", "edit.presets.presetManager", "gradient.presets.new", "document.recent.add", "type.saveDefaultTypeStyles",
+            "clipboard.exportPng", "webExport.settings", "library.export", "css.export", "swatches.export", "print.presets.save",
+        ] {
+            assert!(command_outside_document(c), "{c}");
+        }
+        for c in [
+            "text.insert", "text.newParagraph", "format.bold", "para.alignCenter", "table.borders", "insert.equation", "insert.picture",
+            "references.updateToc", "edit.findReplace", "edit.undo", "edit.copy", "edit.paste", "edit.pasteFormat", "list.multilevelPreset",
+            "select.none", "select.save", "select.saveSelection", "path.create", "object.setBounds", "effect.lightingPreset",
+            "gradient.presets.apply", "style.presets.apply", "image.imageSize", "image.adjustments.brightnessContrast", "text.copyright",
+            "page.rotate", "edit.watermark.update", "layer.layerStyle.pasteLayerStyle",
+        ] {
+            assert!(!command_outside_document(c), "{c}");
+        }
     }
 
     #[test]
@@ -1021,6 +1127,87 @@ mod e2e {
             ]
         });
         crate::charts::draw(&spec).unwrap().id
+    }
+
+    /// Un modulo stampato (senza campi): la chat trova i campi, li compila,
+    /// scrive data e crocetta con Fill & Sign; la firma no.
+    /// cargo test -- --ignored --test-threads=1 modulo_pdf (immagine in $E2E_OUT)
+    #[test]
+    #[ignore]
+    fn modulo_pdf() {
+        let work = std::env::temp_dir().join(format!("openslate-modulo-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&work);
+        std::fs::create_dir_all(&work).unwrap();
+        std::env::set_current_dir(&work).unwrap();
+        let md = work.join("modulo.md");
+        std::fs::write(&md, "# Modulo di iscrizione\n\nNome: ______________________________\n\nCognome: ______________________________\n\nCittà: ______________________________\n\nData: ______________\n").unwrap();
+        let pdf = work.join("modulo.pdf");
+        crate::wordsign::to_pdf(&md, &pdf).unwrap();
+        let p = import(&pdf);
+        assert_eq!(p.kind, Kind::Pdf);
+
+        // gli strumenti ci sono, Fill & Sign senza firma
+        let defs = definitions(&p);
+        let names: Vec<&str> = defs.iter().filter_map(|d| d["function"]["name"].as_str()).collect();
+        for n in ["pdf__form_fields", "pdf__form_fill", "pdf__form_reset", "pdf__form_detect_fields", "pdf__fill_sign_add"] {
+            assert!(names.contains(&n), "{n}: {names:?}");
+        }
+        let fs = defs.iter().find(|d| d["function"]["name"] == "pdf__fill_sign_add").unwrap();
+        let types = fs["function"]["parameters"]["properties"]["type"]["enum"].to_string();
+        assert!(!types.contains("signature") && !types.contains("initials") && types.contains("date"), "{types}");
+        assert!(fs["function"]["parameters"]["properties"].get("path").is_none());
+        assert!(system_note(&p, "modulo").contains("pdf__form_fill"));
+
+        // i campi del modulo stampato
+        let f = execute(&p, "pdf__form_fields", &json!({})).unwrap();
+        assert!(!f.text.starts_with("ERRORE") && f.edit.is_none(), "{}", f.text);
+        let d = execute(&p, "pdf__form_detect_fields", &json!({})).unwrap();
+        assert!(!d.text.starts_with("ERRORE") && d.edit.is_some(), "{}", d.text);
+        let f = execute(&p, "pdf__form_fields", &json!({})).unwrap();
+        let v: Value = serde_json::from_str(&f.text).unwrap_or(json!({}));
+        let fields: Vec<Value> = v.as_array().cloned().or_else(|| v["fields"].as_array().cloned()).unwrap_or_default();
+        let field_names: Vec<String> = fields.iter().filter_map(|x| x["name"].as_str().map(String::from)).collect();
+        eprintln!("campi trovati: {field_names:?}");
+        assert!(field_names.len() >= 3, "{}", f.text);
+        // i campi prendono il nome dall'etichetta stampata accanto
+        let pick = |w: &str| field_names.iter().find(|n| n.trim().eq_ignore_ascii_case(w)).cloned().unwrap_or_else(|| panic!("{w}: {field_names:?}"));
+        let o = execute(&p, "pdf__form_fill", &json!({ "values": { pick("Nome"): "Michele", pick("Cognome"): "Paolillo", pick("Città"): "Barletta" } })).unwrap();
+        assert!(!o.text.starts_with("ERRORE") && o.edit.is_some(), "{}", o.text);
+        let f = execute(&p, "pdf__form_fields", &json!({})).unwrap();
+        assert!(f.text.contains("Michele") && f.text.contains("Paolillo") && f.text.contains("Barletta"), "{}", f.text);
+
+        // Fill & Sign: testo, data e crocetta sì
+        let o = execute(&p, "pdf__fill_sign_add", &json!({ "page": 1, "type": "date", "at": [400, 90], "format": "dd/mm/yyyy" })).unwrap();
+        assert!(!o.text.starts_with("ERRORE") && o.edit.is_some(), "{}", o.text);
+        let o = execute(&p, "pdf__fill_sign_add", &json!({ "page": 1, "type": "check", "at": [60, 90] })).unwrap();
+        assert!(!o.text.starts_with("ERRORE"), "{}", o.text);
+        // la firma no, nemmeno passando dalle immagini
+        let before = std::fs::read(&p.file).unwrap();
+        for a in [
+            json!({ "page": 1, "type": "signature", "text": "Michele Paolillo", "at": [300, 600] }),
+            json!({ "page": 1, "type": "initials", "text": "MP", "at": [300, 600] }),
+            json!({ "page": 1, "type": "text", "path": "firma.png", "at": [300, 600] }),
+        ] {
+            let o = execute(&p, "pdf__fill_sign_add", &a).unwrap();
+            assert!(o.text.starts_with("ERRORE") && o.edit.is_none(), "{}", o.text);
+        }
+        assert_eq!(before, std::fs::read(&p.file).unwrap());
+
+        // poi l'utente firma con la penna: i valori, la data e la crocetta restano
+        drop_session(&p.dir);
+        let firmato = work.join("modulo-firmato.pdf");
+        let firma = crate::pdfdoc::OverlayStroke { color: [20, 40, 160], width_frac: 0.003, pts: vec![(0.55, 0.5), (0.65, 0.45), (0.75, 0.52)], highlight: false };
+        crate::pdfdoc::write_overlay(&p.file, &firmato, &[vec![firma]]).unwrap();
+        let s = import(&firmato);
+        let f = execute(&s, "pdf__form_fields", &json!({})).unwrap();
+        assert!(f.text.contains("Michele") && f.text.contains("Barletta"), "{}", f.text);
+        let c = execute(&s, "pdf__comment_list", &json!({})).unwrap();
+        assert!(!c.text.starts_with("ERRORE") && c.text.contains("2026"), "{}", c.text);
+
+        if let Ok(o) = std::env::var("E2E_OUT") {
+            let pngs = crate::docimport::render_pages(&firmato, &Path::new(&o).join("modulo"), 1200).unwrap();
+            std::fs::copy(&pngs[0], format!("{o}/modulo.png")).unwrap();
+        }
     }
 
     fn import(src: &Path) -> DocRef {
