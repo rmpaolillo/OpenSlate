@@ -158,37 +158,29 @@ fn local(base: &Path, src: &str) -> Option<PathBuf> {
 /// - `.md`: il testo e, accanto, le figure e i grafici che cita (stessi
 ///   percorsi relativi, così il file si apre uguale in Typora o altrove);
 /// - `.docx` e `.pdf`: impaginati da WordCraft con l'aspetto degli appunti,
-///   formule comprese (come si vedono nell'app).
+///   formule comprese (come si vedono nell'app);
+/// - `.tex` e `.typ`: un documento LaTeX o Typst (vedi `mdconv`), figure accanto.
 pub fn export_note(src: &Path, dst: &Path, hand: Hand) -> anyhow::Result<()> {
     use anyhow::{anyhow, bail, Context};
     let ext = dst.extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
     match ext.as_str() {
         "md" | "markdown" => {
             let md = std::fs::read_to_string(src).with_context(|| format!("{}", src.display()))?;
-            let base = src.parent().unwrap_or(Path::new("."));
-            let out = dst.parent().unwrap_or(Path::new("."));
             std::fs::write(dst, &md).with_context(|| format!("{}", dst.display()))?;
-            let same = std::fs::canonicalize(base).ok() == std::fs::canonicalize(out).ok();
-            if !same {
-                for rel in images(&md, base) {
-                    let to = out.join(&rel);
-                    let from = base.join(&rel);
-                    // una figura con lo stesso nome che c'è già là: se è di questo
-                    // appunto (il nome comincia come il suo) si aggiorna, se è
-                    // un altro file non si sovrascrive (lo si dice)
-                    if to.exists() && std::fs::read(&to).ok() != std::fs::read(&from).ok() {
-                        let stem = src.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
-                        let ours = Path::new(&rel).file_name().is_some_and(|n| n.to_string_lossy().starts_with(&stem));
-                        if !ours {
-                            bail!("nella cartella c'è già «{rel}», diverso da quello dell'appunto: non lo sovrascrivo (scegli un'altra cartella)");
-                        }
-                    }
-                    if let Some(d) = to.parent() {
-                        std::fs::create_dir_all(d)?;
-                    }
-                    std::fs::copy(&from, &to).with_context(|| format!("figura {rel}"))?;
-                }
-            }
+            copy_figures(src, dst, &images(&md, src.parent().unwrap_or(Path::new("."))))?;
+        }
+        // LaTeX e Typst: il documento, con le figure accanto (stessi percorsi)
+        "tex" | "typ" => {
+            let md = std::fs::read_to_string(src).with_context(|| format!("{}", src.display()))?;
+            let title = md
+                .lines()
+                .find_map(|l| l.trim().strip_prefix("# ").map(|t| t.trim().to_string()))
+                .unwrap_or_else(|| src.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default());
+            let out = if ext == "tex" { crate::mdconv::to_latex(&md, &title) } else { crate::mdconv::to_typst(&md, &title) };
+            std::fs::write(dst, out).with_context(|| format!("{}", dst.display()))?;
+            let base = src.parent().unwrap_or(Path::new("."));
+            let figs: Vec<String> = crate::mdconv::figures(&md).into_iter().filter(|f| base.join(f).exists()).collect();
+            copy_figures(src, dst, &figs)?;
         }
         "docx" => {
             let mut s = crate::wordsign::open_with(src, hand)?;
@@ -204,6 +196,49 @@ pub fn export_note(src: &Path, dst: &Path, hand: Hand) -> anyhow::Result<()> {
         }
         "pdf" => crate::wordsign::to_pdf_with(src, dst, hand)?,
         _ => bail!("formato non previsto: .{ext}"),
+    }
+    Ok(())
+}
+
+/// Come `export_note`, e dice quali file ha scritto (l'esportato e le figure
+/// copiate accanto).
+pub fn export_note_written(src: &Path, dst: &Path, hand: Hand) -> anyhow::Result<Vec<std::path::PathBuf>> {
+    export_note(src, dst, hand)?;
+    let mut out = vec![dst.to_path_buf()];
+    let ext = dst.extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
+    if matches!(ext.as_str(), "md" | "markdown" | "tex" | "typ") {
+        let md = std::fs::read_to_string(src).unwrap_or_default();
+        let out_dir = dst.parent().unwrap_or(Path::new("."));
+        out.extend(crate::mdconv::figures(&md).into_iter().map(|f| out_dir.join(f)).filter(|p| p.exists()));
+    }
+    Ok(out)
+}
+
+/// Copia accanto a `dst` le figure dell'appunto `src` (percorsi relativi).
+/// Una figura con lo stesso nome che c'è già là: se è di questo appunto (il
+/// nome comincia come il suo) si aggiorna, se è un altro file non si
+/// sovrascrive (lo si dice).
+fn copy_figures(src: &Path, dst: &Path, figs: &[String]) -> anyhow::Result<()> {
+    use anyhow::{bail, Context};
+    let base = src.parent().unwrap_or(Path::new("."));
+    let out = dst.parent().unwrap_or(Path::new("."));
+    if std::fs::canonicalize(base).ok() == std::fs::canonicalize(out).ok() {
+        return Ok(());
+    }
+    for rel in figs {
+        let to = out.join(rel);
+        let from = base.join(rel);
+        if to.exists() && std::fs::read(&to).ok() != std::fs::read(&from).ok() {
+            let stem = src.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+            let ours = Path::new(rel).file_name().is_some_and(|n| n.to_string_lossy().starts_with(&stem));
+            if !ours {
+                bail!("nella cartella c'è già «{rel}», diverso da quello dell'appunto: non lo sovrascrivo (scegli un'altra cartella)");
+            }
+        }
+        if let Some(d) = to.parent() {
+            std::fs::create_dir_all(d)?;
+        }
+        std::fs::copy(&from, &to).with_context(|| format!("figura {rel}"))?;
     }
     Ok(())
 }

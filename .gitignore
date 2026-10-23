@@ -27,6 +27,7 @@ captures/
 
 # editors / OS
 .DS_Store
+.fuse_hidden*
 .idea/
 .vscode/
 *.swp
