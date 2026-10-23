@@ -119,25 +119,6 @@ impl App {
             .collect()
     }
 
-    /// Le pagine da esportare, con la loro trascrizione (se il foglio è
-    /// ancora quello trascritto).
-    fn lib_items(&self, ids: &[String]) -> Vec<crate::formats::Item> {
-        let view = self.view();
-        let mut v: Vec<&library::Entry> = ids.iter().filter_map(|id| self.lib.get(id)).collect();
-        v.sort_by(|a, b| a.meta.created.cmp(&b.meta.created));
-        v.into_iter()
-            .map(|e| {
-                let mut page = Page::from_drawing(&e.drawing, view);
-                page.bg = e.chart.clone();
-                let sig = crate::stroke::strokes_sig(&e.drawing.strokes);
-                let note = super::ocr_note_for(&format!("lib:{}", e.id), sig)
-                    .map(|n| std::path::Path::new(crate::export::EXPORT_DIR).join(n))
-                    .filter(|p| p.exists());
-                crate::formats::Item { title: e.meta.display_title(), page, note }
-            })
-            .collect()
-    }
-
     fn selection(&self) -> Vec<String> {
         self.lui.selected.iter().cloned().collect()
     }
@@ -227,8 +208,8 @@ impl App {
                 }
             }
             LibAction::Export(ids, fmt) => {
-                let items = self.lib_items(&ids);
-                self.export_pages(items, fmt);
+                let pages = self.lib_pages(&ids);
+                self.export_pages(pages, fmt);
             }
             LibAction::Copy(id) => {
                 if let Some((_, p)) = self.lib_pages(&[id]).pop() {
@@ -489,7 +470,6 @@ impl App {
             if ui.button(i18n::tf(format!("{} SVG", ic::FILE_SVG))).clicked() {
                 actions.push(lib(LibAction::Export(sel.clone(), Fmt::Svg)));
             }
-            super::chrome::more_formats_menu(ui, |k| actions.push(lib(LibAction::Export(sel.clone(), k))));
             if ui.add_enabled(!ocr_busy, egui::Button::new(i18n::tf(format!("{} Trascrivi", ic::MATH_OPERATIONS)))).clicked() {
                 actions.push(lib(LibAction::Ocr(sel.clone())));
             }
@@ -549,7 +529,6 @@ impl App {
             if ui.button(i18n::tf(format!("{} SVG", ic::FILE_SVG))).clicked() {
                 actions.push(lib(LibAction::Export(one.clone(), Fmt::Svg)));
             }
-            super::chrome::more_formats_menu(ui, |k| actions.push(lib(LibAction::Export(one.clone(), k))));
             if ui.add_enabled(!self.ocr_busy, egui::Button::new(i18n::tf(format!("{} Trascrivi", ic::MATH_OPERATIONS)))).clicked() {
                 actions.push(lib(LibAction::Ocr(one.clone())));
             }
@@ -725,7 +704,6 @@ impl App {
                 actions.push(lib(LibAction::Export(targets.clone(), Fmt::Svg)));
                 ui.close();
             }
-            super::chrome::more_formats_menu(ui, |k| actions.push(lib(LibAction::Export(targets.clone(), k))));
             if ui.button(i18n::tf(format!("{} Trascrivi", ic::MATH_OPERATIONS))).clicked() {
                 actions.push(lib(LibAction::Ocr(targets.clone())));
                 ui.close();

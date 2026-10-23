@@ -50,10 +50,6 @@ mod vecsign;
 #[cfg(test)]
 mod demo;
 mod fonts;
-mod formats;
-mod mdconv;
-mod video;
-mod voice;
 mod vendor;
 mod viewer;
 mod wordsign;
