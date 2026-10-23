@@ -53,6 +53,10 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
 - **La IA que tú elijas**: modelos locales (LM Studio, Ollama) o proveedores en la nube; las claves de API nunca se guardan
   en texto plano.
 - **Habla con el chat.** Dicta con el micrófono: Whisper transcribe en tu ordenador, sin conexión.
+- **El tutor te responde en voz alta** con las voces del sistema y, si quieres, te revisa mientras
+  escribes: en cuanto haces una pausa marca los errores en la hoja.
+- **Letra bonita**, si la quieres: renglones rectos, trazos suaves y palabras regulares en pantalla
+  y en las exportaciones; tus trazos reales no cambian.
 - **Libre y de código abierto**, en nueve idiomas, para macOS (plataforma principal), Linux y Windows.
 
 ## Funciones
@@ -117,6 +121,24 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   primera, si aceptas; en `ai.toml` (`[voice]`) se puede elegir uno más ligero o un servicio en línea
   (OpenAI, Groq, Mistral…). Esc cancela. La primera vez macOS pide permiso para usar el micrófono.
   Escribe en el idioma que hablas, sea cual sea el idioma de la aplicación (`language` en `[voice]` fija uno).
+- **El tutor que habla.** Bajo cada respuesta, **Escuchar** la lee en voz alta (Esc la detiene); si
+  dictaste la pregunta, la respuesta vuelve en voz sola. Usa las voces del sistema, sin conexión:
+  `say` en macOS (las voces «Premium» o «Mejorada» son las más naturales: Ajustes del Sistema →
+  Accesibilidad → Contenido leído), las voces de Windows, `espeak-ng` en Linux; o un servicio en
+  línea que hable `/audio/speech` (OpenAI…), en `ai.toml` (`[speech]`). Lee en el idioma de la
+  respuesta.
+- **Revisión al escribir.** Pestaña IA → «Revisión al escribir»: cuando dejas de escribir unos
+  segundos (de 3 a 10, en el menú del botón) la IA mira solo las líneas nuevas. Si todo está bien no
+  dice nada (en el chat, una línea pequeña «todo correcto»); si encuentra un error lo rodea o lo
+  subraya en rojo en la hoja, escribe la corrección si hace falta y lo explica en una línea, también
+  en voz alta si la voz está activa. Sus marcas son tinta que se deshace desde el chat; tus líneas
+  no se revisan dos veces.
+- **Letra bonita.** Inicio → «Letra bonita» (Apagada, Ligera, Media, Fuerte): endereza los
+  renglones, suaviza los trazos, pone las palabras sobre la línea e iguala altura, inclinación y
+  espacios, en tiempo real mientras escribes (la palabra nueva se asienta al levantar el lápiz).
+  Solo cambia cómo se ve y se exporta la página (pizarra, archivo, PDF/PNG/SVG…): los trazos que
+  escribiste quedan como estaban, la IA lee esos, y al apagarla vuelven. Nunca en documentos ni
+  firmas; los números y las fórmulas no se tocan.
 - **El chat escribe en la pizarra.** Pídele «revisa mis sumas y marca los errores»,
   «subraya los plazos» o «escribe el resultado junto a la línea 2»: lee la hoja de la pizarra línea
   a línea y palabra a palabra, y después resalta, subraya, rodea con un círculo, tacha, dibuja recuadros,
@@ -217,6 +239,7 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 En tiempo de ejecución necesita BlueZ, GTK 3 y WebKitGTK 4.1. Tu usuario debe tener permiso para usar Bluetooth.
 Para exportar el vídeo MP4 usa `ffmpeg` si está instalado (`sudo apt install ffmpeg`); si no, la primera vez
 pregunta antes de descargar del sitio de Cisco su codificador gratuito OpenH264 (aprox. 1 MB).
+Para leer las respuestas en voz alta usa `espeak-ng` (`sudo apt install espeak-ng`) o speech-dispatcher; macOS y Windows usan sus propias voces.
 
 ### Windows (experimental)
 
@@ -299,6 +322,8 @@ déjalo vacío para usar el primer agente de la lista que pueda ver imágenes. S
 
 **Voz** (`[voice]` en `ai.toml`): `engine = "whisper"` (por defecto, en el ordenador) o el nombre de un agente con `/audio/transcriptions` (OpenAI, Groq, Mistral…; con `enabled = false` para que el chat no lo use); `model` (`large-v3-turbo`, `small`, `base` o el modelo de transcripción del servicio); `language` (vacío = el idioma que hablas); `auto_send = true` envía el mensaje en cuanto dejas de hablar.
 
+**Respuestas en voz alta** (`[speech]` en `ai.toml`): `engine = "system"` (por defecto: las voces del sistema) o el nombre de un agente que hable `/audio/speech` (OpenAI…); `model` para ese agente (p. ej. `gpt-4o-mini-tts`); `voice` (vacía = la mejor para el idioma, o un nombre como `"Alice"`); `language` (vacía = la de la respuesta); `rate` (de 0.5 a 2); `auto = "voice"` lee sola si dictaste la pregunta, `"always"` o `"never"` (queda el botón Escuchar).
+
 **Las claves de API nunca se guardan en texto plano.** `ai.toml` solo indica *dónde* encontrar cada clave:
 
 ```toml
@@ -376,6 +401,9 @@ src/platform.rs                                           OS differences (data f
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/speech.rs                                             respuestas en voz alta: voces del sistema (say, SAPI, espeak-ng) o un servicio en línea
+src/beautify.rs, src/ui/nice.rs                           letra bonita: renglones rectos y palabras regulares en pantalla y al exportar, originales intactos
+src/ui/live_check.rs                                      revisión al escribir: tras una pausa el chat mira las líneas nuevas
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

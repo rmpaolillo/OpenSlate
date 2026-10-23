@@ -54,6 +54,8 @@
 - **원하는 AI 선택**: 로컬 모델(LM Studio, Ollama) 또는 클라우드 제공업체. API 키는 절대
   평문으로 저장되지 않습니다.
 - **채팅에 말하기.** 마이크로 받아쓰기: Whisper가 컴퓨터에서 오프라인으로 받아씁니다.
+- **튜터가 소리로 답합니다.** 시스템 음성으로 답변을 읽어 주고, 원하면 쓰는 동안 검사도 합니다: 멈추자마자 종이에 오류를 표시합니다.
+- **예쁜 글씨**(원할 때만): 화면과 내보내기에서 줄은 곧게, 획은 매끄럽게, 단어는 고르게; 실제 획은 바뀌지 않습니다.
 - **무료 오픈 소스**이며 9개 언어를 지원하고, macOS(주 플랫폼), Linux, Windows에서 사용할 수 있습니다.
 
 ## 기능
@@ -118,6 +120,16 @@
   모델이나 온라인 서비스(OpenAI, Groq, Mistral…)는 `ai.toml`(`[voice]`)에서 고를 수 있습니다. Esc를
   누르면 취소됩니다. 처음에는 macOS가 마이크 사용 권한을 요청합니다.
   앱 언어와 상관없이 말한 언어로 받아씁니다(`[voice]`의 `language`로 고정할 수도 있습니다).
+- **말하는 튜터.** 각 답변 아래의 **듣기**가 소리 내어 읽어 줍니다(Esc로 멈춤). 질문을 받아쓰기로 했다면 답변도 자동으로 음성으로 돌아옵니다. 인터넷 없이 시스템
+  음성을 씁니다: macOS의 `say`(«프리미엄» 또는 «고급» 음성이 가장 자연스럽습니다: 시스템 설정 → 손쉬운 사용 → 읽기 및 말하기), Windows 음성,
+  Linux의 `espeak-ng`; 또는 `ai.toml`(`[speech]`)에서 `/audio/speech`를 지원하는 온라인 서비스(OpenAI…)를 쓸 수 있습니다.
+  답변의 언어로 읽습니다.
+- **쓰는 동안 검사.** AI 탭 → «쓰는 동안 검사»: 몇 초(버튼 메뉴에서 3~10초) 쓰기를 멈추면 AI가 새 줄만 살펴봅니다. 모두 맞으면 조용히 있고(채팅에 작은
+  «모두 맞음» 한 줄), 오류가 있으면 종이에 빨간색으로 동그라미를 치거나 밑줄을 긋고, 필요하면 수정을 쓴 뒤 한 줄로 설명합니다. 음성이 켜져 있으면 소리로도 알려 줍니다.
+  표시는 채팅에서 취소할 수 있는 잉크이며, 같은 줄을 두 번 검사하지 않습니다.
+- **예쁜 글씨.** 홈 → «예쁜 글씨»(끔, 약하게, 보통, 강하게): 쓰는 동안 실시간으로 줄을 곧게 펴고, 획을 매끄럽게 하고, 단어를 줄 위에 맞추고,
+  높이·기울기·간격을 고르게 합니다(펜을 들면 새 단어가 자리를 잡습니다). 바뀌는 것은 페이지가 보이고 내보내지는 모습뿐입니다(칠판, 보관함, PDF/PNG/SVG…): 쓴
+  획은 그대로 남고 AI도 그 획을 읽으며, 끄면 원래대로 돌아옵니다. 문서와 서명에는 절대 적용하지 않고, 숫자와 수식은 그대로 둡니다.
 - **채팅이 보드에 씁니다.** "덧셈을 확인하고 틀린 곳을 표시해 줘", "마감일에 밑줄을 그어 줘",
   "2번째 줄 옆에 결과를 써 줘"라고 요청하면 보드 시트를 한 줄 한 줄, 한 단어 한 단어 읽은 다음
   강조 표시, 밑줄, 동그라미, 취소선, 상자, 화살표, 체크 표시와 X 표시를 하고, 손글씨로 씁니다
@@ -218,6 +230,7 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 합니다.
 MP4 동영상 내보내기에는 설치되어 있으면 `ffmpeg`(`sudo apt install ffmpeg`)를 사용합니다. 없으면 처음에
 Cisco 사이트에서 Cisco의 무료 OpenH264 인코더(약 1MB)를 내려받아도 되는지 먼저 묻습니다.
+답변을 소리 내어 읽으려면 `espeak-ng`(`sudo apt install espeak-ng`) 또는 speech-dispatcher를 씁니다. macOS와 Windows는 자체 음성을 씁니다.
 
 ### Windows (실험적)
 
@@ -299,6 +312,8 @@ AI 기능은 선택 사항입니다. 제공업체는 **파일 → 옵션 → AI*
 
 **음성 입력**(`ai.toml`의 `[voice]`): `engine = "whisper"`(기본값, 컴퓨터에서) 또는 `/audio/transcriptions`를 지원하는 에이전트 이름(OpenAI, Groq, Mistral…; 채팅이 쓰지 않도록 `enabled = false`로); `model`(`large-v3-turbo`, `small`, `base` 또는 서비스의 받아쓰기 모델); `language`(비우면 말한 언어); `auto_send = true`이면 말을 멈추자마자 메시지를 보냅니다.
 
+**답변 읽어 주기**(`ai.toml`의 `[speech]`): `engine = "system"`(기본값: 시스템 음성) 또는 `/audio/speech`를 지원하는 에이전트 이름(OpenAI…); `model`은 그 에이전트의 모델(예: `gpt-4o-mini-tts`); `voice`(비우면 해당 언어에 가장 좋은 음성, 또는 `"Alice"` 같은 이름); `language`(비우면 답변의 언어); `rate`(0.5~2); `auto = "voice"`는 질문을 받아쓰기로 했을 때 자동으로 읽고, `"always"` 또는 `"never"`(듣기 버튼은 남음).
+
 **API 키는 절대 평문으로 저장되지 않습니다.** `ai.toml`에는 각 키를 *어디에서* 찾을지만 적습니다.
 
 ```toml
@@ -376,6 +391,9 @@ src/platform.rs                                           OS differences (data f
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/speech.rs                                             답변 읽어 주기: 시스템 음성(say, SAPI, espeak-ng) 또는 온라인 서비스
+src/beautify.rs, src/ui/nice.rs                           예쁜 글씨: 화면과 내보내기에서 곧은 줄과 고른 단어, 원본 획 유지
+src/ui/live_check.rs                                      쓰는 동안 검사: 잠시 멈추면 채팅이 새 줄을 살펴봄
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

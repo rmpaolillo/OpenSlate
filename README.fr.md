@@ -53,6 +53,10 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
 - **L'IA de votre choix** : modèles locaux (LM Studio, Ollama) ou fournisseurs cloud ; les clés d'API ne sont jamais stockées
   en clair.
 - **Parlez au chat.** Dictez au microphone : Whisper transcrit sur votre ordinateur, hors ligne.
+- **Le tuteur vous répond à voix haute** avec les voix du système et, si vous voulez, vous contrôle
+  pendant que vous écrivez : à la première pause, il marque les erreurs sur la feuille.
+- **Belle écriture**, si vous la voulez : lignes droites, traits lisses et mots réguliers à l'écran
+  et dans les exports ; vos vrais traits ne changent pas.
 - **Libre et open source**, en neuf langues, pour macOS (plateforme principale), Linux et Windows.
 
 ## Fonctionnalités
@@ -118,6 +122,26 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   (OpenAI, Groq, Mistral…) se choisit dans `ai.toml` (`[voice]`). Échap annule. La première fois,
   macOS demande l'autorisation d'utiliser le microphone.
   Il écrit dans la langue que vous parlez, quelle que soit la langue de l'application (`language` dans `[voice]` en fixe une).
+- **Le tuteur qui parle.** Sous chaque réponse, **Écouter** la lit à voix haute (Échap l'arrête) ;
+  si vous avez dicté la question, la réponse revient à voix haute d'elle-même. Il utilise les voix
+  du système, hors ligne : `say` sur macOS (les voix « Premium » ou « Améliorée » sont les plus
+  naturelles : Réglages Système → Accessibilité → Contenu énoncé), les voix de Windows, `espeak-ng`
+  sous Linux ; ou un service en ligne qui parle `/audio/speech` (OpenAI…), dans `ai.toml`
+  (`[speech]`). Il lit dans la langue de la réponse.
+- **Contrôle pendant l'écriture.** Onglet IA → « Contrôle pendant l'écriture » : quand vous arrêtez
+  d'écrire quelques secondes (de 3 à 10, dans le menu du bouton), l'IA regarde seulement les
+  nouvelles lignes. Si tout est juste, elle se tait (dans le chat, une petite ligne « tout est
+  juste ») ; si elle trouve une erreur, elle l'entoure ou la souligne en rouge sur la feuille, écrit
+  la correction si besoin et l'explique en une ligne, à voix haute aussi si la voix est active. Ses
+  marques sont de l'encre qu'on annule depuis le chat ; vos lignes ne sont jamais contrôlées deux
+  fois.
+- **Belle écriture.** Accueil → « Belle écriture » (Désactivée, Légère, Moyenne, Forte) : redresse
+  les lignes, lisse les traits, pose les mots sur la ligne et égalise hauteur, inclinaison et
+  espaces, en temps réel pendant que vous écrivez (le nouveau mot se place quand vous levez le
+  stylet). Elle ne change que l'affichage et l'export de la page (tableau, archive, PDF/PNG/SVG…) :
+  les traits que vous avez écrits restent tels quels, l'IA lit ceux-là, et en la désactivant ils
+  reviennent. Jamais sur les documents ni les signatures ; les nombres et les formules ne sont pas
+  touchés.
 - **Le chat écrit sur le tableau.** Demandez-lui « vérifiez mes additions et marquez les erreurs »,
   « soulignez les échéances » ou « écrivez le résultat à côté de la ligne 2 » : il lit la page du tableau ligne
   par ligne et mot par mot, puis surligne, souligne, entoure, barre, dessine des cadres,
@@ -218,6 +242,7 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 À l'exécution, il faut BlueZ, GTK 3 et WebKitGTK 4.1. Votre utilisateur doit être autorisé à utiliser le Bluetooth.
 Pour l'export vidéo MP4, il utilise `ffmpeg` s'il est installé (`sudo apt install ffmpeg`) ; sinon, la première fois,
 il demande avant de télécharger sur le site de Cisco son encodeur gratuit OpenH264 (environ 1 Mo).
+Pour lire les réponses à voix haute, il utilise `espeak-ng` (`sudo apt install espeak-ng`) ou speech-dispatcher ; macOS et Windows utilisent leurs propres voix.
 
 ### Windows (expérimental)
 
@@ -300,6 +325,8 @@ est recommandé ; `fallback = false` signifie « toujours et uniquement celui-
 
 **Voix** (`[voice]` dans `ai.toml`) : `engine = "whisper"` (par défaut, sur l'ordinateur) ou le nom d'un agent qui parle `/audio/transcriptions` (OpenAI, Groq, Mistral… ; avec `enabled = false` pour que le chat ne l'utilise pas) ; `model` (`large-v3-turbo`, `small`, `base` ou le modèle de transcription du service) ; `language` (vide = la langue que vous parlez) ; `auto_send = true` envoie le message dès que vous cessez de parler.
 
+**Réponses à voix haute** (`[speech]` dans `ai.toml`) : `engine = "system"` (par défaut : les voix du système) ou le nom d'un agent qui parle `/audio/speech` (OpenAI…) ; `model` pour cet agent (p. ex. `gpt-4o-mini-tts`) ; `voice` (vide = la meilleure pour la langue, ou un nom comme `"Alice"`) ; `language` (vide = celle de la réponse) ; `rate` (de 0.5 à 2) ; `auto = "voice"` lit d'elle-même si vous avez dicté la question, `"always"` ou `"never"` (le bouton Écouter reste).
+
 **Les clés d'API ne sont jamais stockées en clair.** `ai.toml` indique seulement *où* trouver chaque clé :
 
 ```toml
@@ -377,6 +404,9 @@ src/platform.rs                                           OS differences (data f
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/speech.rs                                             réponses à voix haute : voix du système (say, SAPI, espeak-ng) ou un service en ligne
+src/beautify.rs, src/ui/nice.rs                           belle écriture : lignes droites et mots réguliers à l'écran et à l'export, originaux conservés
+src/ui/live_check.rs                                      contrôle pendant l'écriture : après une pause, le chat regarde les nouvelles lignes
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

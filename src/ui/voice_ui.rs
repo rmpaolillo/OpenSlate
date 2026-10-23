@@ -2,6 +2,9 @@
 //! l'app registra, trascrive in un thread e rimanda il testo alla pagina
 //! (`wsChat.voice({...})`). La prima volta, se serve Whisper sul computer,
 //! chiede il permesso di scaricarne il modello.
+//!
+//! Qui passa anche la voce che risponde (`{cmd: "speak"}`): il tutor legge
+//! una risposta con `crate::speech`, in un thread; una sola voce alla volta.
 
 use super::embed::Slot;
 use super::App;
@@ -15,6 +18,8 @@ enum Ev {
     Text(anyhow::Result<String>),
     Progress(u64, u64),
     Downloaded(anyhow::Result<()>),
+    /// La voce ha finito (o si è fermata): l'id della risposta.
+    Spoken(String, anyhow::Result<()>),
 }
 
 pub(super) struct VoiceUi {
@@ -24,12 +29,14 @@ pub(super) struct VoiceUi {
     tx: Sender<Ev>,
     rx: Receiver<Ev>,
     level_sent: Instant,
+    /// La risposta che si sta leggendo.
+    speaking: Option<String>,
 }
 
 impl VoiceUi {
     pub fn new() -> Self {
         let (tx, rx) = channel();
-        Self { rec: None, busy: false, download: None, tx, rx, level_sent: Instant::now() }
+        Self { rec: None, busy: false, download: None, tx, rx, level_sent: Instant::now(), speaking: None }
     }
 
     fn active(&self) -> bool {
@@ -66,10 +73,38 @@ impl App {
         }
     }
 
+    /// Leggere una risposta (`auto`: alla fine di una risposta; legge solo
+    /// se `[speech] auto` lo vuole), o fermare la voce (`text` vuoto).
+    pub(super) fn on_speak(&mut self, id: &str, text: &str, auto: bool, dictated: bool) {
+        if text.trim().is_empty() {
+            crate::speech::stop();
+            return;
+        }
+        if auto && !crate::ai::AiConfig::load().map(|c| c.speech.reads_by_itself(dictated)).unwrap_or(false) {
+            return;
+        }
+        if self.voice.rec.is_some() {
+            return; // si sta dettando: niente voce sopra il microfono
+        }
+        crate::speech::stop();
+        if let Some(old) = self.voice.speaking.take() {
+            self.voice_js(serde_json::json!({ "speak": old, "speaking": false }));
+        }
+        self.voice.speaking = Some(id.to_string());
+        self.voice_js(serde_json::json!({ "speak": id, "speaking": true }));
+        let (tx, id, text) = (self.voice.tx.clone(), id.to_string(), text.to_string());
+        let _ = std::thread::Builder::new().name("voce-risponde".into()).spawn(move || {
+            let r = crate::speech::speak(&text);
+            let _ = tx.send(Ev::Spoken(id, r));
+        });
+    }
+
     fn voice_start(&mut self) {
         if self.voice.active() {
             return;
         }
+        // si detta: la voce che legge tace
+        crate::speech::stop();
         if let Some(m) = voice::model_missing() {
             self.voice_offer_download(m);
             return;
@@ -136,6 +171,18 @@ impl App {
                 Ev::Progress(done, total) => {
                     if self.voice.download.is_some() {
                         self.voice_js(serde_json::json!({ "done": done, "total": total }));
+                    }
+                }
+                Ev::Spoken(id, r) => {
+                    if self.voice.speaking.as_deref() == Some(id.as_str()) {
+                        self.voice.speaking = None;
+                    }
+                    match r {
+                        Ok(()) => self.voice_js(serde_json::json!({ "speak": id, "speaking": false })),
+                        Err(e) => {
+                            tracing::warn!("voce che risponde: {e:#}");
+                            self.voice_js(serde_json::json!({ "speak": id, "speaking": false, "error": format!("{e:#}") }));
+                        }
                     }
                 }
                 Ev::Downloaded(r) => {

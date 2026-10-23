@@ -53,6 +53,26 @@ static UNDO: Mutex<Vec<Edit>> = Mutex::new(Vec::new());
 /// L'ultima lettura del foglio: i nomi (`r2p3`) che il modello ha visto.
 static LAST: Mutex<Option<crate::boardread::Reading>> = Mutex::new(None);
 
+/// Le firme dei tratti messi dall'AI sul foglio: il controllo mentre scrivi
+/// non li prende per scrittura nuova da controllare.
+static AI_STROKES: Mutex<Vec<u64>> = Mutex::new(Vec::new());
+
+/// Un tratto messo dall'AI (e non dal pennino)?
+pub fn is_ai_stroke(s: &Stroke) -> bool {
+    let sig = strokes_sig(std::slice::from_ref(s));
+    AI_STROKES.lock().unwrap().contains(&sig)
+}
+
+fn mark_ai(strokes: &[Stroke]) {
+    let mut v = AI_STROKES.lock().unwrap();
+    v.extend(strokes.iter().map(|s| strokes_sig(std::slice::from_ref(s))));
+    // basta ricordare gli ultimi
+    let n = v.len();
+    if n > 4000 {
+        v.drain(..n - 4000);
+    }
+}
+
 /// Ogni domanda nella chat è un «giro»: una conferma chiesta in un giro vale
 /// solo nei giri dopo, cioè dopo la risposta dell'utente.
 static TURN: AtomicU64 = AtomicU64::new(0);
@@ -412,6 +432,7 @@ fn annotate(args: &Value) -> Result<(String, u64)> {
         *LAST.lock().unwrap() = Some(reading);
         let before = s.drawing.strokes.clone();
         let before_bg = s.bg.clone();
+        mark_ai(&add);
         s.add_strokes(add);
         let now = &s.drawing.strokes;
         Ok(Edit { n: 0, before, before_bg, kept: now.len(), kept_sig: strokes_sig(now), bg_key: s.bg.as_ref().map(|b| b.key.clone()) })

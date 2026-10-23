@@ -51,6 +51,8 @@ Issue やプルリクエストを歓迎します。[CONTRIBUTING.md](CONTRIBUTIN
 - **必要な形式で書き出し**：検索できる PDF、手書きを編集できるインクにした Word、軽い JPEG/WebP、Xournal++、ページが書かれていく様子のアニメーション GIF / SVG や MP4 動画、文字起こしから作る LaTeX または Typst。
 - **AI は自由に選べます**: ローカルモデル（LM Studio、Ollama）またはクラウドプロバイダー。API キーが平文で保存されることはありません。
 - **チャットに話しかける。** マイクで音声入力：Whisper がコンピュータ上でオフラインで文字起こしします。
+- **チューターが声で答える。** システムの音声で回答を読み上げ、必要なら書いている最中にもチェック：手を止めるとすぐ用紙に間違いを示します。
+- **きれいな文字**（お好みで）：画面と書き出しで行をまっすぐ、線をなめらかに、単語をそろえます。実際の線は変わりません。
 - **無料でオープンソース**、9 か国語対応、macOS（メインプラットフォーム）、Linux、Windows で動作します。
 
 ## 機能
@@ -108,6 +110,9 @@ Issue やプルリクエストを歓迎します。[CONTRIBUTING.md](CONTRIBUTIN
   一度ダウンロードされます。`ai.toml`（`[voice]`）で、より軽いモデルやオンラインサービス（OpenAI、
   Groq、Mistral…）も選べます。Esc でキャンセル。初回は macOS がマイクの使用許可を求めます。
   アプリの言語に関係なく、話した言語で書き起こします（`[voice]` の `language` で固定もできます）。
+- **話すチューター。** 各回答の下の **聞く** で読み上げます（Esc で停止）。質問を音声入力した場合は、回答も自動的に音声で返ります。オフラインでシステムの音声を使います：macOS では `say`（「プレミアム」や「拡張」の声が最も自然です：システム設定 → アクセシビリティ → 読み上げコンテンツ）、Windows の音声、Linux では `espeak-ng`。または `/audio/speech` に対応したオンラインサービス（OpenAI…）を `ai.toml`（`[speech]`）で設定できます。回答の言語で読み上げます。
+- **書きながらチェック。** AI タブ → 「書きながらチェック」：数秒（ボタンのメニューで 3〜10 秒）書くのを止めると、AI が新しい行だけを確認します。すべて正しければ何も言わず（チャットに小さく「すべて正解」と表示）、間違いがあれば用紙上で赤く丸で囲むか下線を引き、必要なら訂正を書いて一行で説明します。音声がオンなら読み上げもします。印はチャットから取り消せるインクで、あなたの行が二度チェックされることはありません。
+- **きれいな文字。** ホーム → 「きれいな文字」（オフ、弱、中、強）：書いている最中にリアルタイムで行をまっすぐにし、線をなめらかにし、単語を行にそろえ、高さ・傾き・間隔を均等にします（ペンを上げると新しい単語が落ち着きます）。変わるのはページの表示と書き出しだけ（ボード、アーカイブ、PDF/PNG/SVG…）：書いた線はそのまま残り、AI が読むのもそれで、オフにすれば元に戻ります。文書や署名には使いません。数字や数式もそのままです。
 - **チャットがボードに書き込む。** 「計算をチェックして間違いに印を付けて」「締め切りに下線を引いて」
   「2 行目の横に結果を書いて」と頼むと、ボードの用紙を 1 行ずつ、1 単語ずつ読み取り、ハイライト、下線、丸囲み、取り消し線、
   枠、矢印、チェックマーク、バツ印を付け、手書きで書き込みます（活字体または筆記体。
@@ -198,6 +203,7 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 実行時には BlueZ、GTK 3、WebKitGTK 4.1 が必要です。ユーザーが Bluetooth を使用できる権限を持っている必要があります。
 MP4 動画の書き出しには、インストールされていれば `ffmpeg`（`sudo apt install ffmpeg`）を使います。ない場合は初回に、
 Cisco の無料エンコーダー OpenH264（約 1 MB）を Cisco のサイトからダウンロードしてよいか確認します。
+回答の読み上げには `espeak-ng`（`sudo apt install espeak-ng`）または speech-dispatcher を使います。macOS と Windows はそれぞれのシステム音声を使います。
 
 ### Windows（試験的）
 
@@ -276,6 +282,8 @@ AI 機能はオプションです。プロバイダーは **ファイル → オ
 
 **音声入力**（`ai.toml` の `[voice]`）：`engine = "whisper"`（既定、コンピュータ上）または `/audio/transcriptions` に対応したエージェントの名前（OpenAI、Groq、Mistral…。チャットで使われないよう `enabled = false` に）。`model`（`large-v3-turbo`、`small`、`base`、またはサービスの文字起こしモデル）。`language`（空 = 話した言語）。`auto_send = true` で、話し終えるとすぐにメッセージを送信します。
 
+**回答の読み上げ**（`ai.toml` の `[speech]`）：`engine = "system"`（既定：システムの音声）、または `/audio/speech` に対応したエージェント名（OpenAI…）；`model` はそのエージェントのモデル（例：`gpt-4o-mini-tts`）；`voice`（空 = その言語で最良の声、または `"Alice"` などの名前）；`language`（空 = 回答の言語）；`rate`（0.5〜2）；`auto = "voice"` は質問を音声入力したとき自動で読み上げ、`"always"` または `"never"`（「聞く」ボタンは残ります）。
+
 **API キーが平文で保存されることはありません。** `ai.toml` には各キーを *どこで* 見つけるかだけが書かれています。
 
 ```toml
@@ -352,6 +360,9 @@ src/platform.rs                                           OS differences (data f
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/speech.rs                                             回答の読み上げ：システム音声（say、SAPI、espeak-ng）またはオンラインサービス
+src/beautify.rs, src/ui/nice.rs                           きれいな文字：画面と書き出しでまっすぐな行とそろった単語、元の線は保持
+src/ui/live_check.rs                                      書きながらチェック：一時停止のあとチャットが新しい行を確認
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

@@ -538,7 +538,7 @@ fn record(stop: Arc<AtomicBool>, level: Arc<AtomicU32>, ready: std::sync::mpsc::
 
 /// Cambia la frequenza: verso il basso media i campioni che diventano uno
 /// (un passa-basso semplice, basta per la voce), verso l'alto interpola.
-fn resample(x: &[f32], from: u32, to: u32) -> Vec<f32> {
+pub(crate) fn resample(x: &[f32], from: u32, to: u32) -> Vec<f32> {
     if from == to || x.is_empty() || from == 0 {
         return x.to_vec();
     }

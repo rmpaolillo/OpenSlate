@@ -172,6 +172,9 @@ pub fn save_from_json(body: &[u8]) -> Value {
         if v["config"].get("voice").is_none() {
             cfg.voice = old.voice.clone();
         }
+        if v["config"].get("speech").is_none() {
+            cfg.speech = old.speech.clone();
+        }
         if let Some(k) = v["web_new_key"].as_str().map(str::trim).filter(|k| !k.is_empty()) {
             keychain_store("WACOM_AI_WEB_KEY", k)?;
             cfg.web.key = "keychain:WACOM_AI_WEB_KEY".into();

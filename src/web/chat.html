@@ -133,6 +133,11 @@
   @keyframes shim { to { background-position: -200% 0; } }
   .spin { width: 10px; height: 10px; border: 2px solid var(--text-dim); border-top-color: transparent; border-radius: 50%; display: inline-block; animation: rot .8s linear infinite; flex-shrink: 0; }
   @keyframes rot { to { transform: rotate(360deg); } }
+  /* il controllo mentre scrivi: una riga piccola per la richiesta e per «tutto giusto» */
+  .msg.live { margin: 2px 0 6px; }
+  .msg.live .line { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); }
+  .msg.live .line .i { width: 13px; height: 13px; flex-shrink: 0; }
+  .msg.live.ok .line { color: var(--accent-text); }
   .msg.summary .body { background: var(--sum); border: 1px solid var(--sum-line); border-radius: 8px; padding: 6px 12px; font-size: 12.5px; }
   .msg.summary summary { cursor: pointer; color: var(--accent-text); }
   .cursor::after { content: "▍"; color: var(--accent); animation: blink 1s steps(2) infinite; }
@@ -190,6 +195,8 @@
   @keyframes micpulse { 50% { opacity: .35; } }
   #micinfo { font-size: 11.5px; color: var(--text-dim); white-space: nowrap; }
   #micinfo:empty { display: none; }
+  .msg .acts .ib.speaking { color: var(--accent); }
+  .msg .acts .ib.speaking svg { animation: micpulse 1.1s ease-in-out infinite; }
   #legend { display: none; position: fixed; z-index: 45; background: var(--menu); border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,.18); font-size: 12px; }
   #legend .bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--hover); margin: 4px 0 8px; position: relative; width: 240px; }
   #legend .bar i { display: block; height: 100%; }
@@ -300,7 +307,7 @@ const P = {
   globe: "M12 3a9 9 0 100 18 9 9 0 000-18zM3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z",
   file: "M14 3H6v18h12V7zM14 3v4h4", note: "M5 4h14v16H5zM8 9h8M8 13h8M8 17h5", brain: "M9 4a3 3 0 00-3 3 3 3 0 00-2 5 3 3 0 002 5 3 3 0 006 0V4zM15 4a3 3 0 013 3 3 3 0 012 5 3 3 0 01-2 5 3 3 0 01-6 0",
   tool: "M14.7 6.3a4 4 0 00-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 005.4-5.4l-2.4 2.4-2.6-.6-.6-2.6z", search: "M11 4a7 7 0 100 14 7 7 0 000-14zM21 21l-5-5",
-  copy: "M9 9h11v11H9zM5 15H4V4h11v1", redo: "M20 8a8 8 0 10.5 7M20 3v5h-5", undo: "M4 8a8 8 0 11-.5 7M4 3v5h5", branch: "M6 3v12M18 9a3 3 0 100-6 3 3 0 000 6zM6 21a3 3 0 100-6 3 3 0 000 6zM18 9c0 6-12 3-12 9",
+  copy: "M9 9h11v11H9zM5 15H4V4h11v1", speaker: "M4 9h4l5-4v14l-5-4H4zM16 9a4 4 0 010 6M19 6a8 8 0 010 12", redo: "M20 8a8 8 0 10.5 7M20 3v5h-5", undo: "M4 8a8 8 0 11-.5 7M4 3v5h5", branch: "M6 3v12M18 9a3 3 0 100-6 3 3 0 000 6zM6 21a3 3 0 100-6 3 3 0 000 6zM18 9c0 6-12 3-12 9",
   check: "M5 12l5 5 9-11", chev: "M9 6l6 6-6 6", down: "M6 9l6 6 6-6", edit: "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", compact: "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7",
   gear: "M12 9a3 3 0 100 6 3 3 0 000-6zM19 12l2-1-1-3-2 .3-1.5-1.5L17 4l-3-1-1 2h-2L10 3 7 4l.5 2.8L6 8.3 4 8 3 11l2 1v0l-2 1 1 3 2-.3 1.5 1.5L7 20l3 1 1-2h2l1 2 3-1-.5-2.8 1.5-1.5 2 .3 1-3z",
   image: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 9h.01", mic: "M12 3a3 3 0 00-3 3v6a3 3 0 006 0V6a3 3 0 00-3-3zM5 11a7 7 0 0014 0M12 18v3", user: "M12 12a4 4 0 100-8 4 4 0 000 8zM5 20a7 7 0 0114 0",
@@ -704,6 +711,11 @@ function emptyEl() {
 }
 // «Controlla il foglio»: l'AI rilegge quello che è scritto, qualunque cosa sia
 const CHECK = T("Rileggi con attenzione quello che ho scritto nella pagina allegata e controllalo. Segnala con precisione gli errori (ortografia e grammatica, nomi, date e dati, calcoli, ragionamento) e i punti poco chiari: per ciascuno dimmi dov'è, perché non va e come correggerlo. Se è tutto a posto dimmelo in breve. Non riscrivere tutto se non serve.");
+// Il controllo mentre scrivi (l'app lo chiede dopo una pausa della penna)
+const LIVE_CHECK = "Controllo mentre scrivo: sul foglio della lavagna ho appena scritto {} (i nomi sono quelli di lavagna_leggi). Controlla solo quella parte: il resto l'hai già visto. Se è tutto giusto rispondi soltanto «OK», nient'altro. Se c'è un errore (ortografia, grammatica, calcolo, dato, ragionamento) segnalo sul foglio con lavagna_annota, in rosso: cerchia o sottolinea la parola sbagliata e, se serve, scrivi accanto la correzione, corta. Poi spiegalo in una riga sola, da tutor, senza elenchi.";
+const liveOk = (t) => /^\s*\**\s*(ok|okay|tutto (giusto|ok|a posto)|✓)\s*[.!]?\s*\**\s*$/i.test(t || "");
+// l'ultima domanda era dettata: anche le correzioni del controllo tornano a voce
+let talkMode = false;
 const toolIcon = (label) => /cerco|ricerca/i.test(label) ? "search" : /pagina|leggo la/i.test(label) ? "globe" : /appunto/i.test(label) ? "pen" : /iva/i.test(label) ? "check" : "tool";
 // Righe compatte: ragionamento, agenti saltati, strumenti (clic per i dettagli).
 // Le righe aperte restano aperte anche mentre il modello scrive (la riga si
@@ -765,6 +777,14 @@ function msgEl(m, i) {
     d.querySelector(".md").innerHTML = renderMd(m.content);
     return d;
   }
+  // il controllo mentre scrivi: la domanda e l'«OK» in una riga piccola
+  if (m.live && (m.role === "user" || liveOk(m.content))) {
+    d.className = "msg live" + (m.role === "user" ? "" : " ok");
+    d.innerHTML = "<div class='line'>" + ic(m.role === "user" ? "pen" : "check") + "<span></span></div>";
+    d.querySelector("span").textContent = m.role === "user" ? T("Controllo mentre scrivi: {}", m.live) : T("{}: tutto giusto", m.live);
+    if (m.role !== "user" && m.by) d.title = m.by;
+    return d;
+  }
   d.className = "msg " + m.role;
   d.innerHTML = "<div class='who'><span class='av'></span><span class='name'></span></div><div class='steps-slot'></div><div class='body'></div><div class='acts'></div>";
   // l'avatar: un'icona (una scritta come «You» non ci sta nel cerchio)
@@ -784,6 +804,15 @@ function msgEl(m, i) {
     btn("redo", "Rigenera", "Rifà questa risposta", () => regenerate(i));
     if (noteShown()) btn("note", "Nell'appunto", "Aggiunge questa risposta in fondo all'appunto aperto", () => appendToNote(m.content));
     btn("branch", "Dirama", "Continua in una chat nuova da qui (questa resta com'è)", () => forkAt(i));
+    // la voce che legge la risposta (solo dentro l'app: la fa il sistema)
+    if (window.ipc) {
+      const sid = String(m.at || i);
+      const sp = btn("speaker", speakingId === sid ? "Ferma" : "Ascolta", "Legge la risposta ad alta voce (Esc la ferma)", () => {
+        if (speakingId === sid) toApp({ cmd: "speak", id: sid, text: "" });
+        else toApp({ cmd: "speak", id: sid, text: m.content });
+      });
+      sp.dataset.speak = sid;
+    }
     const p = pillsEl(m); if (p) acts.appendChild(p);
     if (m.edits && m.edits.length) d.insertBefore(editsEl(m), acts);
   }
@@ -876,7 +905,10 @@ function refreshPage() {
     setTimeout(done, 10000);
   });
 }
-async function send(text, images) {
+async function send(text, images, live) {
+  // la domanda è stata dettata: la risposta può tornare a voce
+  const dictated = live ? talkMode : micDictated;
+  if (!live) { micDictated = false; talkMode = dictated; }
   busy = busy || new AbortController(); // intanto un altro Invio va in coda
   drawSend(); // il tasto Stop c'è già mentre si prende il foglio
   await refreshPage();
@@ -884,11 +916,14 @@ async function send(text, images) {
   if (busy.signal.aborted) { busy = null; drawSend(); if (!q.value.trim()) { q.value = text; grow(); } if (images && images.length && !pendingImgs.length) { pendingImgs = images; drawPasted(); } return; }
   const userMsg = { role: "user", content: text, at: Date.now() };
   if (images && images.length) userMsg.images = images;
+  if (live) userMsg.live = live;
   cur.messages.push(userMsg);
+  if (cur.title === "Nuova chat" && live) { cur.title = T("Controllo mentre scrivi"); drawBar(); }
   if (cur.title === "Nuova chat") { cur.title = (text || T("Immagine")).replace(/\s+/g, " ").slice(0, 60) + (text.length > 60 ? "…" : ""); drawBar(); }
   $("empty")?.remove();
   log.appendChild(msgEl(userMsg, cur.messages.length - 1));
   const m = { role: "assistant", content: "", think: "", by: "", tools: [], notes: [], at: Date.now() };
+  if (live) m.live = live;
   const d = document.createElement("div");
   d.className = "msg assistant";
   d.innerHTML = "<div class='who'><span class='av'>" + ic("sparkle") + "</span><span class='name'>…</span></div><div class='steps-slot'></div><div class='body cursor'></div>";
@@ -965,6 +1000,8 @@ async function send(text, images) {
       const el = msgEl(m, cur.messages.length - 1);
       if (error) { const e = document.createElement("div"); e.className = "err"; e.textContent = "⚠ " + error; el.appendChild(e); }
       d.replaceWith(el);
+      // il tutor che parla: l'app legge da sola se [speech] auto lo vuole
+      if (!error && window.ipc && !(live && liveOk(m.content))) toApp({ cmd: "speak", id: String(m.at), text: m.content, auto: true, dictated });
     } else {
       cur.messages.pop();
       d.remove(); log.lastElementChild?.remove();
@@ -980,6 +1017,7 @@ async function send(text, images) {
     markLast();
     log.scrollTop = log.scrollHeight;
     saveSoon(); drawSend(); drawMeter();
+    if (live) toApp({ cmd: "live_check", state: "done" });
     // messaggi in coda (scritti mentre l'AI rispondeva)
     if (queue.length && !error) { const next = queue.shift(); drawQueue(); setTimeout(() => send(next), 60); }
   }
@@ -1320,7 +1358,7 @@ async function exportMd() {
 // ---------------- dall'app (WebView incorporata) ----------------
 // ---------------- voce: il microfono lo registra l'app, qui solo i comandi ----------------
 // stati: idle, rec (registra), busy (trascrive), download (scarica il modello di Whisper)
-let micState = "idle", micPtt = false, micTimer = null, micSince = 0;
+let micState = "idle", micPtt = false, micTimer = null, micSince = 0, micDictated = false, speakingId = null;
 const micBtn = $("micbtn");
 micBtn.innerHTML = ic("mic");
 if (window.ipc) micBtn.hidden = false;
@@ -1353,6 +1391,7 @@ document.addEventListener("keydown", (e) => {
   }
   if (micTimer) { clearTimeout(micTimer); micTimer = null; }
   if (e.key === "Escape" && (micState === "rec" || micState === "download")) { e.preventDefault(); micCancel(); return; }
+  if (e.key === "Escape" && speakingId) { e.preventDefault(); toApp({ cmd: "speak", id: speakingId, text: "" }); return; }
   if (e.key === "Enter" && micState === "rec") { e.preventDefault(); e.stopPropagation(); micStop(); }
 }, true);
 document.addEventListener("keyup", (e) => {
@@ -1368,6 +1407,7 @@ function insertDictated(text) {
   const sep = before && !/\s$/.test(before) ? " " : "";
   const sep2 = after && !/^\s/.test(after) ? " " : "";
   q.value = before + sep + text + sep2 + after;
+  micDictated = true;
   const at = (before + sep + text).length;
   q.focus(); q.setSelectionRange(at, at);
   grow(); drawMeter();
@@ -1384,6 +1424,15 @@ function onVoice(ev) {
   if (ev.error) toast("⚠ " + tr(ev.error));
   if (ev.info) toast(tr(ev.info));
   // la prima volta: Whisper si scarica solo se l'utente vuole
+  // la voce che legge una risposta: il pulsante diventa «Ferma» finché parla
+  if (ev.speak !== undefined) {
+    speakingId = ev.speaking ? ev.speak : (speakingId === ev.speak ? null : speakingId);
+    document.querySelectorAll("[data-speak]").forEach((b) => {
+      const on = b.dataset.speak === speakingId;
+      b.classList.toggle("speaking", on);
+      b.querySelector("span").textContent = T(on ? "Ferma" : "Ascolta");
+    });
+  }
   if (ev.offer) toast(T("Per dettare su questo computer serve il modello di Whisper «{}» ({} MB): si scarica una volta sola, poi funziona senza rete e la tua voce non esce dal computer.", ev.offer.name, ev.offer.mb), T("Scarica"), () => toApp({ cmd: "voice", action: "download" }));
 }
 
@@ -1406,6 +1455,15 @@ window.wsChat = {
     if (cur && (cur.messages.length || cur.page)) await newChat(cur.project);
     await attachIncoming(false);
     q.value = CHECK; grow(); submit();
+  },
+  // il controllo mentre scrivi: le righe nuove (nomi di lavagna_leggi)
+  liveCheck: (o) => {
+    if (busy || !cur || micState !== "idle") { toApp({ cmd: "live_check", state: "busy" }); return; }
+    const lines = (o && o.lines) || [];
+    if (!lines.length) return;
+    const what = lines.length === 1 ? T("la riga {}", lines[0]) : T("le righe {}", lines.join(", "));
+    toApp({ cmd: "live_check", state: "started", n: o.n || 0 });
+    send(T(LIVE_CHECK, what), [], lines.join(", "));
   },
   dropHint: (on) => document.body.classList.toggle("drophint", !!on),
   voice: onVoice,

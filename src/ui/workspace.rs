@@ -139,6 +139,10 @@ impl App {
             }
             "ocr" => actions.push(Action::Ocr),
             "voice" if slot == Slot::Chat => self.on_voice(v["action"].as_str().unwrap_or("")),
+            "live_check" if slot == Slot::Chat => self.on_live_check(&s("state"), v["n"].as_u64().unwrap_or(0) as usize),
+            "speak" if slot == Slot::Chat => {
+                self.on_speak(&s("id"), &s("text"), v["auto"].as_bool().unwrap_or(false), v["dictated"].as_bool().unwrap_or(false))
+            }
             "close_pane" => self.chat_open = false,
             // il pulsante lasciato sopra la chat l'ha visto la pagina, non la finestra
             "drop_here" => {

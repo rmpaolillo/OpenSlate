@@ -413,6 +413,26 @@ pub fn plain_lines(md: &str) -> Vec<String> {
     out
 }
 
+/// Il testo da leggere ad alta voce: come `plain_lines`, ma senza il codice
+/// (non si legge a voce) e con le righe di una tabella come frasi.
+pub fn speech_lines(md: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    for b in parse_blocks(md) {
+        match b {
+            Block::Heading(_, t) | Block::Para(t) | Block::Quote(t) => out.push(plain(&t)),
+            Block::List(_, items) => out.extend(items.iter().map(|(_, t)| plain(t))),
+            Block::Table(h, rows) => {
+                out.push(h.iter().map(|c| plain(c)).collect::<Vec<_>>().join(", "));
+                out.extend(rows.iter().map(|r| r.iter().map(|c| plain(c)).collect::<Vec<_>>().join(", ")));
+            }
+            Block::Math(m) => out.push(m.lines().map(|l| plain_math(l).split_whitespace().collect::<Vec<_>>().join(" ")).collect::<Vec<_>>().join(" ")),
+            Block::Code(_) | Block::Rule => {}
+        }
+    }
+    out.retain(|l| !l.trim().is_empty());
+    out
+}
+
 /// Le figure locali citate (percorsi relativi).
 pub fn figures(md: &str) -> Vec<String> {
     fn walk(v: &[Inline], out: &mut Vec<String>) {

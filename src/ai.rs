@@ -158,6 +158,27 @@ model = "large-v3-turbo"
 language = ""
 auto_send = false
 
+# Le risposte lette ad alta voce (il tutor che parla).
+#   engine    "system" = le voci del sistema (macOS: say, scegli le voci in
+#             Impostazioni di Sistema → Accessibilità → Contenuto letto; le
+#             «Premium» sono le più naturali; Windows: le voci di Windows;
+#             Linux: espeak-ng). Oppure il nome di un agente qui sopra che
+#             parla /audio/speech (es. OpenAI)
+#   model     per un agente: il suo modello (es. "gpt-4o-mini-tts", "tts-1")
+#   voice     "" = la migliore per la lingua (o "alloy" con un servizio);
+#             oppure il nome di una voce (es. "Alice", "Federica (Premium)")
+#   language  "" = quella della risposta; oppure "it", "en"…
+#   rate      velocità: 1 normale, da 0.5 a 2
+#   auto      "voice" = legge da sola se hai dettato la domanda; "always";
+#             "never" (resta il pulsante «Ascolta» sotto ogni risposta)
+[speech]
+engine = "system"
+model = ""
+voice = ""
+language = ""
+rate = 1.0
+auto = "voice"
+
 [web]
 enabled = true
 key = "dsh:DEEPSEEK_API_KEY | env:DEEPSEEK_API_KEY | keychain:DEEPSEEK_API_KEY"
@@ -306,6 +327,58 @@ pub struct VoiceOpts {
     pub auto_send: bool,
 }
 
+/// Le risposte lette ad alta voce: chi parla e quando. Vedi `src/speech.rs`.
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct SpeechOpts {
+    /// «system» = le voci del sistema; oppure il nome di un agente che parla
+    /// `/audio/speech`.
+    #[serde(default = "default_speech_engine")]
+    pub engine: String,
+    /// Per un agente: il suo modello di sintesi vocale (es. gpt-4o-mini-tts).
+    #[serde(default)]
+    pub model: String,
+    /// Vuota = la migliore per la lingua (sistema) o «alloy» (servizio).
+    #[serde(default)]
+    pub voice: String,
+    /// Vuota = quella della risposta, riconosciuta; oppure «it», «en»…
+    #[serde(default)]
+    pub language: String,
+    /// Velocità: 1 = normale (da 0,5 a 2).
+    #[serde(default = "default_rate")]
+    pub rate: f32,
+    /// Quando legge da sola: «voice» = se hai dettato la domanda, «always»,
+    /// «never» (resta il pulsante «Ascolta»).
+    #[serde(default = "default_speech_auto")]
+    pub auto: String,
+}
+
+fn default_speech_engine() -> String {
+    "system".into()
+}
+fn default_rate() -> f32 {
+    1.0
+}
+fn default_speech_auto() -> String {
+    "voice".into()
+}
+
+impl Default for SpeechOpts {
+    fn default() -> Self {
+        Self { engine: default_speech_engine(), model: String::new(), voice: String::new(), language: String::new(), rate: 1.0, auto: default_speech_auto() }
+    }
+}
+
+impl SpeechOpts {
+    /// La risposta va letta da sola? (`dictated`: la domanda è stata dettata)
+    pub fn reads_by_itself(&self, dictated: bool) -> bool {
+        match self.auto.trim() {
+            "always" | "sempre" => true,
+            "never" | "mai" => false,
+            _ => dictated,
+        }
+    }
+}
+
 fn default_voice_engine() -> String {
     "whisper".into()
 }
@@ -361,6 +434,9 @@ pub struct AiConfig {
     /// La voce nella chat (`[voice]`).
     #[serde(default)]
     pub voice: VoiceOpts,
+    /// Le risposte lette ad alta voce (`[speech]`).
+    #[serde(default)]
+    pub speech: SpeechOpts,
     /// Agente scelto in chat: risponde solo lui. Gli altri servono comunque a
     /// leggere il foglio allegato se lui non vede le immagini. `None` = catena.
     #[serde(skip)]

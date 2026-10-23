@@ -33,6 +33,9 @@ pub(super) struct LibUi {
     search: String,
     /// Anteprime: (vista, pixel di altezza, texture).
     pub thumbs: HashMap<String, (View, u32, egui::TextureHandle)>,
+    /// La pagina del visore in bella scrittura: per quale pagina, firma dei
+    /// tratti, vista e livello.
+    pub viewer_nice: Option<((String, u64, View, u8), crate::stroke::Drawing)>,
     /// Pagine appena spostate nel cestino (per «Ripristina»).
     pub last_trashed: Vec<String>,
     /// Pagine ancora nel pad (se noto).
@@ -52,6 +55,7 @@ impl LibUi {
             rename_focused: false,
             search: String::new(),
             thumbs: HashMap::new(),
+            viewer_nice: None,
             last_trashed: Vec::new(),
             pad_files: None,
             viewer_zoom: ZoomView::default(),
@@ -104,14 +108,16 @@ impl App {
             .collect()
     }
 
-    fn lib_pages(&self, ids: &[String]) -> Vec<(String, Page)> {
+    /// `nice`: in bella scrittura, se è accesa (per esportare e copiare; la
+    /// trascrizione legge i tratti veri).
+    fn lib_pages(&self, ids: &[String], nice: bool) -> Vec<(String, Page)> {
         let view = self.view();
         // In ordine cronologico (dalla più vecchia), come le pagine di un quaderno.
         let mut v: Vec<&library::Entry> = ids.iter().filter_map(|id| self.lib.get(id)).collect();
         v.sort_by(|a, b| a.meta.created.cmp(&b.meta.created));
         v.into_iter()
             .map(|e| {
-                let mut p = Page::from_drawing(&e.drawing, view);
+                let mut p = if nice { Page::from_drawing_nice(&e.drawing, view) } else { Page::from_drawing(&e.drawing, view) };
                 // il grafico dell'AI fa parte della pagina (export, trascrizione)
                 p.bg = e.chart.clone();
                 (e.meta.display_title(), p)
@@ -127,7 +133,7 @@ impl App {
         v.sort_by(|a, b| a.meta.created.cmp(&b.meta.created));
         v.into_iter()
             .map(|e| {
-                let mut page = Page::from_drawing(&e.drawing, view);
+                let mut page = Page::from_drawing_nice(&e.drawing, view);
                 page.bg = e.chart.clone();
                 let sig = crate::stroke::strokes_sig(&e.drawing.strokes);
                 let note = super::ocr_note_for(&format!("lib:{}", e.id), sig)
@@ -231,12 +237,12 @@ impl App {
                 self.export_pages(items, fmt);
             }
             LibAction::Copy(id) => {
-                if let Some((_, p)) = self.lib_pages(&[id]).pop() {
+                if let Some((_, p)) = self.lib_pages(&[id], true).pop() {
                     self.copy_page(p);
                 }
             }
             LibAction::Ocr(ids) => {
-                let pages = self.lib_pages(&ids);
+                let pages = self.lib_pages(&ids, false);
                 self.ocr_pages(pages);
             }
             LibAction::Trash(ids) => {
@@ -368,7 +374,7 @@ impl App {
                 continue;
             }
             let Some(e) = self.lib.get(id) else { continue };
-            let mut page = Page::from_drawing(&e.drawing, view);
+            let mut page = Page::from_drawing_nice(&e.drawing, view);
             page.bg = e.chart.clone();
             // tratti un po' più marcati: in piccolo restano leggibili
             for s in &mut page.strokes {
@@ -414,7 +420,16 @@ impl App {
                     Some(super::BgImage { tex, paper: true, rect: c.rect, baked: false, keep: None, detail: None })
                 });
                 if let Some(e) = self.lib.get(id) {
-                    paint_page(&ui.painter_at(rect), rect, &e.drawing, view, bg, &mut self.lui.viewer_zoom, None);
+                    // in bella scrittura, se è accesa (rifatta solo se cambia qualcosa)
+                    let key = (id.clone(), crate::stroke::strokes_sig(&e.drawing.strokes), view, crate::beautify::level());
+                    if crate::beautify::level() > 0 && self.lui.viewer_nice.as_ref().is_none_or(|(k, _)| *k != key) {
+                        self.lui.viewer_nice = Some((key.clone(), crate::beautify::nice(&e.drawing, view)));
+                    }
+                    let shown = match &self.lui.viewer_nice {
+                        Some((k, d)) if *k == key && key.3 > 0 => d,
+                        _ => &e.drawing,
+                    };
+                    paint_page(&ui.painter_at(rect), rect, shown, view, bg, &mut self.lui.viewer_zoom, None);
                 }
             }
             None => self.grid(ui, ctx, actions),

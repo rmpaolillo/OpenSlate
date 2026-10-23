@@ -21,6 +21,10 @@ Non è un prodotto Wacom e non è collegata a Wacom.
   modificabile, JPEG/WebP leggeri, Xournal++, GIF, SVG o video MP4 della pagina che si scrive, LaTeX
   o Typst dalla trascrizione.
 - **Parli alla chat.** Detti col microfono: Whisper trascrive sul tuo computer, senza rete.
+- **Il tutor ti risponde a voce** con le voci del sistema e, se vuoi, ti controlla mentre scrivi:
+  alla prima pausa segna gli errori sul foglio.
+- **Bella scrittura**, se la vuoi: righe dritte, tratti lisci e parole regolari sullo schermo e
+  negli export; i tratti veri non cambiano.
 - **L'AI che vuoi tu**: modelli locali (LM Studio, Ollama) o in cloud; le chiavi API mai in chiaro.
 - **Libera e open source**, in nove lingue, per macOS (piattaforma principale), Linux e Windows.
 
@@ -113,6 +117,9 @@ Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le
 | Grafici e modifiche nei documenti | Chiedi alla chat un grafico («disegna le due rette e la soluzione»): lo disegna in stile LaTeX con [Typst](https://typst.app) e [Lilaq](https://lilaq.org) (funzioni, punti, rette, barre, curve parametriche) e lo mostra nella risposta. Con un documento allegato alla chat lo può anche leggere e **modificare**, e metterci il grafico, coi server MCP della suite Craft che girano dentro l'app: WordCraft per i Word, PdfCraft per i PDF, VectorCraft per gli SVG, PhotoCraft per le foto (ritaglia, ridimensiona, ruota, luminosità, livelli, curve, bianco e nero, nitidezza…; la foto resta nel suo formato), e strumenti sul testo per i Markdown. Ogni modifica si vede subito nel documento accanto e si annulla dalla chat con un clic; il file originale sul disco non si tocca. Sugli appunti delle trascrizioni il grafico va al posto della figura disegnata a mano; sul foglio della lavagna (una pagina dello Slate) va al posto del disegno a mano, che OpenSlate trova da solo (assi ed etichette), o sotto lo scritto. Un SVG scritto dal modello nella risposta si vede disegnato |
 | Compilare i moduli PDF | Con un modulo PDF allegato alla chat, chiedile «compila questo modulo con i miei dati»: legge i campi e li compila con PdfCraft. Un modulo stampato o scansionato senza campi li riceve prima (PdfCraft trova gli spazi da riempire e li chiama come le etichette accanto), oppure la chat scrive testo, crocette e data dove servono. Usa solo quello che le dici e chiede quello che manca. Non firma mai: la firma la metti tu con la penna, e i valori compilati restano nella copia firmata |
 | Parlare alla chat | Clic sul microfono accanto a Invia, oppure tieni premuto il tasto Alt (Opzione) di destra mentre parli: le parole finiscono nel riquadro del messaggio, da correggere e mandare. Le trascrive Whisper sul tuo computer con [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (sui Mac sulla scheda grafica), senza rete: la voce non esce dal computer. Il modello (547 MB) si scarica una volta sola, la prima, se sei d'accordo; in `ai.toml` (`[voice]`) si sceglie un modello più leggero o un servizio in rete (OpenAI, Groq, Mistral…), e `auto_send = true` manda il messaggio appena finisci di parlare. Scrive nella lingua che parli, qualunque sia la lingua dell'app (`language` in `[voice]` ne fissa una). Esc annulla. La prima volta macOS chiede il permesso per il microfono |
+| Il tutor che parla | Sotto ogni risposta **Ascolta** la legge ad alta voce (Esc la ferma); se la domanda l'hai dettata, la risposta torna a voce da sola. Usa le voci del sistema, senza rete: `say` su macOS (le voci «Premium» o «Migliorata» sono le più naturali: Impostazioni di Sistema → Accessibilità → Contenuto letto), le voci di Windows, `espeak-ng` su Linux; oppure un servizio in rete che parla `/audio/speech` (OpenAI…), in `ai.toml` (`[speech]`). Legge nella lingua della risposta |
+| Controllo mentre scrivi | Scheda AI → «Controllo mentre scrivi»: quando smetti di scrivere per qualche secondo (da 3 a 10, nel menu del pulsante) l'AI guarda solo le righe nuove. Se è tutto giusto tace (nella chat una riga piccola «tutto giusto»); se trova un errore lo cerchia o lo sottolinea in rosso sul foglio, scrive la correzione se serve e lo spiega in una riga, anche a voce se la voce è attiva. I suoi segni sono inchiostro che si annulla dalla chat; le tue righe non si ricontrollano |
+| Bella scrittura | Home → «Bella scrittura» (Spenta, Leggera, Media, Forte): raddrizza le righe, liscia i tratti, mette le parole sulla riga e rende simili altezza, inclinazione e spazi, in tempo reale mentre scrivi (la parola nuova si assesta quando alzi la penna). Cambia solo come la pagina si vede e si esporta (lavagna, archivio, PDF/PNG/SVG…): i tratti che hai scritto restano com'erano, l'AI legge quelli, e spegnendola tornano. Mai sui documenti e sulle firme; numeri e formule restano come sono |
 | La chat scrive sulla lavagna | Chiedile «controlla i conti e segna gli errori», «sottolinea le scadenze», «scrivi il risultato accanto alla seconda riga»: legge il foglio riga per riga e parola per parola, poi evidenzia, sottolinea, cerchia, barra, fa riquadri, frecce, spunte e croci, e scrive a mano (stampatello o corsivo, coi caratteri di [Hershey](https://it.wikipedia.org/wiki/Hershey_fonts) a filo singolo: tratti veri). Se glielo chiedi sposta, ingrandisce, ricolora o cancella quello che c'è («il titolo più grande e blu», «sposta l'ultima riga più giù», «togli i miei evidenziatori»); da sola aggiunge soltanto, e per cancellare buona parte del foglio aspetta il tuo sì nella chat. Quello che fa è inchiostro come il tuo (si salva, si esporta, si cancella) e si toglie tutto con un clic nella chat |
 | La chat conosce l'archivio | «Trova la pagina dove ho scritto del bilancio di ottobre», «apri sulla lavagna gli appunti di ieri», «salva la lavagna come Riunione e dammi una pagina nuova», «esporta in un PDF le pagine di questa settimana»: cerca per titolo, data e testo delle trascrizioni, guarda una pagina, la apre sulla lavagna, salva la lavagna (aggiornando la pagina da cui viene), rinomina, esporta nella cartella dove esporti di solito (senza mai sovrascrivere), sposta nel cestino e riprende. Per il cestino aspetta sempre il tuo sì nella chat |
 | Server MCP | Altri server MCP (stdio) in `ai.toml`, come in Claude Desktop o DSH: `[[mcp]]` con `name`, `command`, `args`, `env` (valori come le chiavi: `env:`, `keychain:`, `dsh:`), `enabled`, `timeout`. I loro strumenti arrivano alla chat come `nome__strumento` |
@@ -142,6 +149,7 @@ Il video MP4 usa il codificatore del sistema: AVFoundation su macOS, Media Found
 (nelle edizioni «N» serve il Media Feature Pack di Microsoft). Su Linux usa `ffmpeg` se c'è
 (`sudo apt install ffmpeg`); altrimenti la prima volta chiede prima di scaricare dal sito di Cisco il
 loro codificatore gratuito OpenH264 (circa 1 MB).
+Per leggere le risposte a voce su Linux usa `espeak-ng` (`sudo apt install espeak-ng`) o speech-dispatcher; macOS e Windows usano le loro voci.
 
 ```bash
 cargo run --release                 # interfaccia grafica
@@ -182,6 +190,8 @@ anche LM Studio, MTPLX, Ollama, DeepSeek, Gemini e Claude. Vengono provati **in 
 **Chi ha risposto.** Ogni risposta della chat mostra l'agente e il modello che l'hanno scritta davvero (gli agenti si provano in ordine, quindi può non essere il primo). La chat dice anche al modello chi è, servizio, indirizzo e modello, perché spesso i modelli non lo sanno e possono dire di essere un altro: vale l'etichetta sopra la risposta.
 
 **Voce** (sezione `[voice]`): `engine = "whisper"` (di serie, sul computer) oppure il nome di un agente che parla `/audio/transcriptions` (OpenAI, Groq, Mistral…; con `enabled = false`, così la chat non lo usa); `model` (`large-v3-turbo`, `small`, `base`, o il modello di trascrizione del servizio); `language` (vuota = la lingua che parli); `auto_send = true` manda il messaggio appena finisci di parlare.
+
+**Voce delle risposte** (sezione `[speech]`): `engine = "system"` (di serie: le voci del sistema) oppure il nome di un agente che parla `/audio/speech` (OpenAI…); `model` per quell'agente (es. `gpt-4o-mini-tts`); `voice` (vuota = la migliore per la lingua, oppure un nome come `"Alice"`); `language` (vuota = quella della risposta); `rate` (da 0.5 a 2); `auto = "voice"` legge da sola se hai dettato la domanda, `"always"` o `"never"` (resta il pulsante Ascolta).
 
 Tutto si cambia dalla pagina «Impostazioni AI»; a mano: l'ordine è quello dei blocchi `[[provider]]`,
 `enabled = false` ne esclude uno, `context` è il contesto massimo in token.
@@ -245,6 +255,9 @@ chat_width = 0.55        # larghezza della chat (frazione della finestra)
 paper = bianco           # bianco | righe | righe10 | elem1 | elem2 | elem3 | quadretti5 | quadretti5m | quadretti4
                          # quadretti10 | millimetrata | cartesiano | puntinato | isometrica | pentagramma | cornell
 paper_margin = 1         # margini rossi a sinistra e a destra (solo fogli a righe)
+beautify = 0             # bella scrittura: 0 spenta | 1 leggera | 2 media | 3 forte (solo come si vede e si esporta)
+live_check = 0           # controllo mentre scrivi (scheda AI)
+live_check_pause = 4.0   # dopo quanti secondi senza scrivere parte il controllo
 save_dir =               # cartella proposta da «Salva con nome» (l'ultima scelta; vuoto = exports/)
 ```
 
@@ -324,6 +337,9 @@ src/formats.rs    i formati d'uscita delle pagine: PDF ricercabile (testo invisi
 src/mdconv.rs     gli appunti in LaTeX e Typst (e in testo semplice per i PDF ricercabili)
 src/video.rs      il video MP4 della pagina che si riscrive: AVFoundation (macOS, con src/swift/video_mp4.swift), Media Foundation (Windows), ffmpeg o OpenH264 di Cisco (Linux)
 src/voice.rs      la voce nella chat: il microfono (cpal) e chi trascrive, Whisper sul computer (whisper.cpp) o un servizio in rete (src/ui/voice_ui.rs: il pulsante e il tasto)
+src/speech.rs     le risposte lette ad alta voce: voci del sistema (say, SAPI, espeak-ng) o un servizio in rete
+src/beautify.rs   la bella scrittura: righe dritte, parole regolari, tratti lisciati (src/ui/nice.rs: sulla lavagna mentre scrivi)
+src/ui/live_check.rs  il controllo mentre scrivi: dopo una pausa la chat guarda le righe nuove
 src/ui/sysdlg.rs  le finestre del sistema (rfd; su Linux GTK nel thread della finestra, come la chat)
 src/figures.rs    figure della trascrizione ridisegnate dai tratti veri della penna
 src/update.rs     controllo degli aggiornamenti (ultima release su GitHub)

@@ -53,6 +53,10 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
 - **Die KI deiner Wahl**: lokale Modelle (LM Studio, Ollama) oder Cloud-Anbieter; API-Schlüssel werden nie
   im Klartext gespeichert.
 - **Mit dem Chat sprechen.** Diktieren per Mikrofon: Whisper transkribiert auf deinem Computer, offline.
+- **Der Tutor antwortet laut** mit den Stimmen des Systems und prüft dich auf Wunsch beim Schreiben:
+  bei der ersten Pause markiert er Fehler auf dem Blatt.
+- **Schöne Schrift**, wenn du willst: gerade Zeilen, glatte Striche und gleichmäßige Wörter auf dem
+  Bildschirm und im Export; deine echten Striche bleiben unverändert.
 - **Frei und Open Source**, in neun Sprachen, für macOS (Hauptplattform), Linux und Windows.
 
 ## Funktionen
@@ -118,6 +122,24 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   Mistral…) lässt sich in `ai.toml` (`[voice]`) wählen. Esc bricht ab. Beim ersten Mal fragt macOS
   nach der Erlaubnis für das Mikrofon.
   Er schreibt in der Sprache, die du sprichst, egal in welcher Sprache die App ist (`language` in `[voice]` legt eine fest).
+- **Der Tutor spricht.** Unter jeder Antwort liest **Anhören** sie vor (Esc hält an); hast du die
+  Frage diktiert, kommt die Antwort von selbst als Sprache zurück. Er nutzt die Stimmen des Systems,
+  offline: `say` unter macOS (die Stimmen «Premium» oder «Erweitert» klingen am natürlichsten:
+  Systemeinstellungen → Bedienungshilfen → Gesprochene Inhalte), die Windows-Stimmen, `espeak-ng`
+  unter Linux; oder einen Online-Dienst, der `/audio/speech` spricht (OpenAI…), in `ai.toml`
+  (`[speech]`). Er liest in der Sprache der Antwort.
+- **Prüfen beim Schreiben.** Reiter KI → «Prüfen beim Schreiben»: Wenn du ein paar Sekunden nicht
+  schreibst (3 bis 10, im Menü des Knopfs), schaut die KI nur die neuen Zeilen an. Ist alles
+  richtig, schweigt sie (im Chat eine kleine Zeile «alles richtig»); findet sie einen Fehler, kreist
+  sie ihn auf dem Blatt rot ein oder unterstreicht ihn, schreibt bei Bedarf die Korrektur und
+  erklärt ihn in einer Zeile, auch laut, wenn die Stimme an ist. Ihre Zeichen sind Tinte, die sich
+  im Chat rückgängig machen lässt; deine Zeilen werden nie zweimal geprüft.
+- **Schöne Schrift.** Start → «Schöne Schrift» (Aus, Leicht, Mittel, Stark): richtet die Zeilen
+  gerade, glättet die Striche, setzt die Wörter auf die Linie und gleicht Höhe, Neigung und Abstände
+  an, live beim Schreiben (das neue Wort rückt zurecht, wenn du den Stift hebst). Es ändert nur, wie
+  die Seite aussieht und exportiert wird (Tafel, Archiv, PDF/PNG/SVG…): deine geschriebenen Striche
+  bleiben, wie sie sind, die KI liest diese, und beim Ausschalten sind sie wieder da. Nie bei
+  Dokumenten und Unterschriften; Zahlen und Formeln bleiben unberührt.
 - **Der Chat schreibt auf die Tafel.** Bitte ihn: „prüf meine Rechnungen und markier die Fehler“,
   „unterstreich die Fristen“ oder „schreib das Ergebnis neben Zeile 2“: Er liest das Tafelblatt Zeile
   für Zeile und Wort für Wort, dann markiert, unterstreicht, umkreist, streicht durch, zeichnet Kästen,
@@ -218,6 +240,7 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 Zur Laufzeit braucht es BlueZ, GTK 3 und WebKitGTK 4.1. Dein Benutzer muss Bluetooth verwenden dürfen.
 Für den MP4-Video-Export nutzt es `ffmpeg`, falls installiert (`sudo apt install ffmpeg`); sonst fragt es
 beim ersten Mal, bevor es den kostenlosen OpenH264-Encoder von Cisco (etwa 1 MB) von Ciscos Website lädt.
+Zum Vorlesen der Antworten nutzt es `espeak-ng` (`sudo apt install espeak-ng`) oder speech-dispatcher; macOS und Windows nutzen ihre eigenen Stimmen.
 
 ### Windows (experimentell)
 
@@ -300,6 +323,8 @@ wird empfohlen; `fallback = false` bedeutet „immer und nur dieser“.
 
 **Sprache** (`[voice]` in `ai.toml`): `engine = "whisper"` (Standard, auf dem Computer) oder der Name eines Agenten mit `/audio/transcriptions` (OpenAI, Groq, Mistral…; mit `enabled = false`, damit der Chat ihn nicht nutzt); `model` (`large-v3-turbo`, `small`, `base` oder das Transkriptionsmodell des Dienstes); `language` (leer = die gesprochene Sprache); `auto_send = true` schickt die Nachricht ab, sobald du aufhörst zu sprechen.
 
+**Antworten vorlesen** (`[speech]` in `ai.toml`): `engine = "system"` (Standard: die Stimmen des Systems) oder der Name eines Agenten, der `/audio/speech` spricht (OpenAI…); `model` für diesen Agenten (z. B. `gpt-4o-mini-tts`); `voice` (leer = die beste für die Sprache, oder ein Name wie `"Alice"`); `language` (leer = die der Antwort); `rate` (0.5 bis 2); `auto = "voice"` liest von selbst, wenn du die Frage diktiert hast, `"always"` oder `"never"` (der Knopf Anhören bleibt).
+
 **API-Schlüssel werden nie im Klartext gespeichert.** `ai.toml` gibt nur an, *wo* jeder Schlüssel zu finden ist:
 
 ```toml
@@ -377,6 +402,9 @@ src/platform.rs                                           OS differences (data f
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/speech.rs                                             Antworten vorlesen: Systemstimmen (say, SAPI, espeak-ng) oder ein Online-Dienst
+src/beautify.rs, src/ui/nice.rs                           schöne Schrift: gerade Zeilen und gleichmäßige Wörter in Anzeige und Export, Originale bleiben
+src/ui/live_check.rs                                      Prüfen beim Schreiben: nach einer Pause schaut der Chat die neuen Zeilen an
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

@@ -14,7 +14,9 @@ mod chrome;
 mod doc_view;
 mod embed;
 mod library_view;
+mod live_check;
 mod options;
+mod nice;
 mod paper;
 mod quit;
 mod savedlg;
@@ -71,6 +73,7 @@ pub fn run_app(
     }
     let settings = Settings::load();
     crate::i18n::set_lang(crate::i18n::resolve(&settings.ui_lang));
+    crate::beautify::set_level(settings.beautify);
     let thumb_size = settings.thumb_size;
     let hub = Hub::new(Scene::new(&settings));
     // la chat AI può mettere grafici sul foglio della lavagna
@@ -207,6 +210,8 @@ pub fn run_app(
         lui: library_view::LibUi::new(thumb_size),
         chat_lib: Vec::new(),
         board_zoom: ZoomView::default(),
+        nice: nice::NiceBoard::new(),
+        live: live_check::LiveCheck::new(),
         docui: doc_view::DocUi::new(),
     };
     if web_now || app.settings.web_auto {
@@ -283,6 +288,35 @@ async fn demo_strokes(hub: Arc<Hub>) {
                 .collect();
             draw(&hub, pts, [20, 40, 140]);
             tokio::time::sleep(Duration::from_millis(500)).await;
+        }
+        return;
+    }
+    // WACOM_DEMO_SCRITTURA=<id di una pagina dell'archivio>: la riscrive
+    // tratto per tratto, come dal pad (prova della bella scrittura)
+    if let Ok(id) = std::env::var("WACOM_DEMO_SCRITTURA") {
+        tokio::time::sleep(Duration::from_secs(4)).await;
+        let Some(d) = crate::library::Library::open().get(&id).map(|e| e.drawing.clone()) else { return };
+        hub.edit(|s| {
+            s.drawing.width = d.width;
+            s.drawing.height = d.height;
+        });
+        let mut n = 0usize;
+        for st in d.strokes.iter().filter(|s| !s.highlight && !s.points.is_empty()) {
+            hub.lock().pen.color = st.color;
+            for (i, p) in st.points.iter().enumerate() {
+                hub.pen_event(ev(p.x, p.y, if i == 0 { PenPhase::Down } else { PenPhase::Move }));
+                tokio::time::sleep(Duration::from_millis(6)).await;
+            }
+            let p = st.points.last().unwrap();
+            hub.pen_event(ev(p.x, p.y, PenPhase::Up));
+            tokio::time::sleep(Duration::from_millis(120)).await;
+            // WACOM_DEMO_PAUSA=<ogni quanti tratti>: una pausa, come chi rilegge
+            if let Some(k) = std::env::var("WACOM_DEMO_PAUSA").ok().and_then(|v| v.parse::<usize>().ok()) {
+                n += 1;
+                if k > 0 && n % k == 0 {
+                    tokio::time::sleep(Duration::from_secs(8)).await;
+                }
+            }
         }
         return;
     }
@@ -435,6 +469,10 @@ struct App {
     chat_lib: Vec<(crate::libagent::Req, crate::libagent::Reply)>,
     /// Zoom della lavagna.
     board_zoom: ZoomView,
+    /// La lavagna in bella scrittura (vedi `nice`).
+    nice: nice::NiceBoard,
+    /// Il controllo mentre scrivi.
+    live: live_check::LiveCheck,
     /// Documenti importati e firma.
     docui: doc_view::DocUi,
 }
@@ -526,6 +564,11 @@ enum Action {
     /// Rigatura del foglio.
     Paper(paper::Paper),
     ToggleMargin,
+    /// Bella scrittura: 0 spenta, 1 leggera, 2 media, 3 forte.
+    Beautify(u8),
+    /// Il controllo mentre scrivi: acceso/spento, e dopo quanti secondi.
+    LiveCheck(bool),
+    LiveCheckPause(f32),
     /// Apre la finestra degli appunti.
     Appunti,
     /// Apre le impostazioni degli agenti AI.
@@ -936,9 +979,17 @@ impl App {
         ("lavagna".into(), self.hub.lock().page())
     }
 
+    /// La lavagna come si vede (bella scrittura), per esportarla o copiarla.
+    fn board_page_nice(&self) -> (String, Page) {
+        if self.docui.doc.is_some() || self.docui.capture.is_some() {
+            return self.board_page();
+        }
+        ("lavagna".into(), self.hub.lock().page_nice())
+    }
+
     /// La lavagna da esportare, con la sua trascrizione se c'è.
     fn board_item(&self) -> crate::formats::Item {
-        let (title, page) = self.board_page();
+        let (title, page) = self.board_page_nice();
         let note = self.board_note().map(|n| std::path::Path::new(export::EXPORT_DIR).join(n));
         crate::formats::Item { title, page, note }
     }
@@ -1906,6 +1957,29 @@ impl App {
                 self.settings.paper_margin = !self.settings.paper_margin;
                 self.settings.save();
             }
+            Action::LiveCheck(on) => self.set_live_check(on),
+            Action::LiveCheckPause(secs) => {
+                self.settings.live_check_pause = secs;
+                self.settings.save();
+                if !self.settings.live_check {
+                    self.set_live_check(true);
+                }
+            }
+            Action::Beautify(l) => {
+                let l = l.min(3);
+                self.settings.beautify = l;
+                self.settings.save();
+                crate::beautify::set_level(l);
+                // si ridisegnano lavagna, visore e anteprime
+                self.nice.reset();
+                self.lui.viewer_nice = None;
+                self.lui.thumbs.clear();
+                self.status = if l == 0 {
+                    "Bella scrittura spenta: la scrittura si vede com'è.".into()
+                } else {
+                    i18n::tf(format!("Bella scrittura {}: i tratti veri restano, spegnendola tornano come li hai scritti.", i18n::tr(crate::beautify::level_name(l))))
+                };
+            }
             Action::ShowBoard => {
                 self.center = workspace::Center::Board;
                 if self.tab == chrome::Tab::Appunto {
@@ -1924,7 +1998,7 @@ impl App {
                 crate::platform::open(savedlg::start_dir(&self.settings));
             }
             Action::CopyImage => {
-                let (_, p) = self.board_page();
+                let (_, p) = self.board_page_nice();
                 self.copy_page(p);
             }
             Action::Paste => self.paste(),
@@ -2184,7 +2258,11 @@ impl App {
                 let scene = self.hub.lock();
                 let painter = ui.painter_at(rect);
                 let paper = Some((paper::Paper::from_code(&self.settings.paper), self.settings.paper_margin));
-                let page = paint_page(&painter, rect, &scene.drawing, scene.view, bgtex, &mut self.board_zoom, paper);
+                // la bella scrittura: solo sul foglio (non sui documenti né sulla firma da registrare)
+                let plain = scene.bg.as_ref().is_some_and(|b| !b.is_chart()) || self.docui.capture.is_some();
+                let pen_down = scene.active_index().is_some() || scene.mouse_highlighting();
+                let shown = if plain { std::borrow::Cow::Borrowed(&scene.drawing) } else { self.nice.get(&scene.drawing, scene.view, pen_down, ctx) };
+                let page = paint_page(&painter, rect, &shown, scene.view, bgtex, &mut self.board_zoom, paper);
                 self.docui.last_page = page;
                 self.docui.last_view = rect;
                 if rulers {
@@ -2262,6 +2340,7 @@ impl eframe::App for App {
         self.embeds.set_wake(ctx);
         self.drain_events();
         self.voice_tick(ctx);
+        self.live_check_tick(ctx);
         self.chat_lib_requests(ctx);
         self.doc_tick(ctx);
         self.sync_chat_note();

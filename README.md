@@ -55,6 +55,10 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Your choice of AI**: local models (LM Studio, Ollama) or cloud providers; API keys never stored
   in plain text.
 - **Talk to the chat.** Dictate with the microphone: Whisper transcribes on your computer, offline.
+- **The tutor talks back.** Answers can be read aloud with the system voices, and a check as you
+  write marks mistakes on the page as soon as you pause.
+- **Neat handwriting**, if you want it: straight lines, smooth strokes and even words on screen and
+  in exports; your real strokes never change.
 - **Free and open source**, in nine languages, for macOS (main platform), Linux and Windows.
 
 ## Features
@@ -119,6 +123,23 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   lighter one or an online service (OpenAI, Groq, Mistral…) can be chosen in `ai.toml` (`[voice]`).
   Esc cancels. The first time, macOS asks for permission to use the microphone.
   It writes in the language you speak, whatever the language of the app (`language` in `[voice]` fixes one).
+- **The tutor talks.** Under every answer, **Listen** reads it aloud (Esc stops it); if you dictated
+  the question, the answer comes back by voice on its own. It uses the system voices, offline: `say`
+  on macOS (the «Premium» or «Enhanced» voices sound the most natural: System Settings →
+  Accessibility → Spoken Content), the Windows voices, `espeak-ng` on Linux; or an online service
+  that speaks `/audio/speech` (OpenAI…), in `ai.toml` (`[speech]`). It reads in the language of the
+  answer.
+- **Check as you write.** AI tab → «Check as you write»: when you stop writing for a few seconds (3
+  to 10, in the button's menu) the AI looks only at the new lines. If everything is right it stays
+  quiet (a small «all correct» line in the chat); if it finds a mistake it circles or underlines it
+  in red on the page, writes the correction if needed and explains it in one line, aloud too if the
+  voice is on. Its marks are ink you can undo from the chat; your lines are never checked twice.
+- **Neat handwriting.** Home → «Neat handwriting» (Off, Light, Medium, Strong): straightens the
+  lines, smooths the strokes, puts the words on the line and evens out height, slant and spacing,
+  live while you write (the new word settles when you lift the pen). It only changes how the page
+  looks and exports (board, library, PDF/PNG/SVG…): the strokes you wrote stay as they are, the AI
+  reads those, and turning it off brings them back. Never on documents and signatures; numbers and
+  formulas are left alone.
 - **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
   "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
   by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,
@@ -219,6 +240,7 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 At run time it needs BlueZ, GTK 3 and WebKitGTK 4.1. Your user must be allowed to use Bluetooth.
 For the MP4 video export it uses `ffmpeg` if installed (`sudo apt install ffmpeg`); otherwise, the
 first time, it asks before downloading Cisco's free OpenH264 encoder (about 1 MB) from Cisco's site.
+To read answers aloud it uses `espeak-ng` (`sudo apt install espeak-ng`) or speech-dispatcher; macOS and Windows use their own voices.
 
 ### Windows (experimental)
 
@@ -301,6 +323,8 @@ is recommended; `fallback = false` means "always and only that one".
 
 **Voice** (`[voice]` in `ai.toml`): `engine = "whisper"` (the default, on the computer) or the name of an agent that speaks `/audio/transcriptions` (OpenAI, Groq, Mistral…; set it to `enabled = false` so that the chat does not use it); `model` (`large-v3-turbo`, `small`, `base`, or the service's transcription model); `language` (empty = the language you speak); `auto_send = true` sends the message as soon as you stop talking.
 
+**Answers read aloud** (`[speech]` in `ai.toml`): `engine = "system"` (the default: the system voices) or the name of an agent that speaks `/audio/speech` (OpenAI…); `model` for that agent (e.g. `gpt-4o-mini-tts`); `voice` (empty = the best one for the language, or a name such as `"Alice"`); `language` (empty = that of the answer); `rate` (0.5 to 2); `auto = "voice"` reads by itself when you dictated the question, `"always"` or `"never"` (the Listen button stays).
+
 **API keys are never stored in plain text.** `ai.toml` only says *where* to find each key:
 
 ```toml
@@ -378,6 +402,9 @@ src/platform.rs                                           OS differences (data f
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/speech.rs                                             answers read aloud: system voices (say, SAPI, espeak-ng) or an online service
+src/beautify.rs, src/ui/nice.rs                           neat handwriting: straight lines and even words on screen and in exports, originals kept
+src/ui/live_check.rs                                      check as you write: after a pause the chat checks the new lines
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

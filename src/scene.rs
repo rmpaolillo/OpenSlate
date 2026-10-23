@@ -162,6 +162,15 @@ impl Page {
         }
     }
 
+    /// Come `from_drawing`, ma in bella scrittura se è accesa (per vedere
+    /// ed esportare; l'AI e i documenti usano sempre i tratti veri).
+    pub fn from_drawing_nice(d: &Drawing, view: View) -> Page {
+        if crate::beautify::level() == 0 {
+            return Page::from_drawing(d, view);
+        }
+        Page::from_drawing(&crate::beautify::nice(d, view), view)
+    }
+
     pub fn is_empty(&self) -> bool {
         self.strokes.is_empty()
     }
@@ -306,6 +315,17 @@ impl Scene {
 
     pub fn page(&self) -> Page {
         let mut p = Page::from_drawing(&self.drawing, self.view);
+        p.bg = self.bg.clone();
+        p
+    }
+
+    /// La pagina come si vede: in bella scrittura se è accesa, ma mai sopra
+    /// la pagina di un documento.
+    pub fn page_nice(&self) -> Page {
+        if self.bg.as_ref().is_some_and(|b| !b.is_chart()) {
+            return self.page();
+        }
+        let mut p = Page::from_drawing_nice(&self.drawing, self.view);
         p.bg = self.bg.clone();
         p
     }

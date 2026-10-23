@@ -145,6 +145,36 @@ impl App {
                     actions.push(Action::ToggleMargin);
                 }
             });
+            let lv = self.settings.beautify;
+            let r = big_ex(
+                ui,
+                ic::MAGIC_WAND,
+                "Bella\nscrittura",
+                "Righe dritte, tratti lisci, parole regolari: solo come si vede ed esporta, i tratti veri restano (mai su documenti e firme)",
+                !doc,
+                lv > 0,
+                true,
+            );
+            egui::Popup::menu(&r).show(|ui| {
+                ui.set_min_width(250.0);
+                let levels = [
+                    (0u8, "Spenta", "La scrittura com'è"),
+                    (1, "Leggera", "Tratti lisci e righe quasi dritte"),
+                    (2, "Media", "Righe dritte, parole sulla riga, altezze simili"),
+                    (3, "Forte", "Come la media, più decisa (anche spazi e inclinazione)"),
+                ];
+                for (l, label, tip) in levels {
+                    let icon = if l == lv { ic::RADIO_BUTTON } else { ic::CIRCLE };
+                    if menu_item(ui, true, icon, label, "") {
+                        actions.push(Action::Beautify(l));
+                    }
+                    let t = Tokens::get(ui.ctx());
+                    ui.horizontal(|ui| {
+                        ui.add_space(26.0);
+                        ui.label(egui::RichText::new(i18n::tr(tip).into_owned()).font(regular(11.0)).color(t.text_dim));
+                    });
+                }
+            });
             if big_ex(
                 ui,
                 ic::FLOPPY_DISK,
@@ -329,6 +359,30 @@ impl App {
             if big(ui, ic::CHECK_CIRCLE, "Controlla\nil foglio", "L'AI rilegge quello che hai scritto e segnala errori (ortografia, dati, calcoli, ragionamento) e punti poco chiari, con la correzione").clicked() {
                 actions.push(Action::ChatCheck);
             }
+            let on = self.settings.live_check;
+            let r = big_ex(
+                ui,
+                ic::SEAL_CHECK,
+                "Controllo\nmentre scrivi",
+                "Quando smetti di scrivere per qualche secondo l'AI guarda le righe nuove: se trova un errore lo segna sul foglio e lo spiega in una riga, altrimenti tace",
+                self.docui.doc.is_none(),
+                on,
+                true,
+            );
+            egui::Popup::menu(&r).show(|ui| {
+                ui.set_min_width(240.0);
+                if menu_item(ui, true, check_icon(on), "Controllo acceso", "") {
+                    actions.push(Action::LiveCheck(!on));
+                }
+                ui.separator();
+                let cur = self.settings.live_check_pause;
+                for (secs, label) in [(3.0f32, "Dopo 3 secondi di pausa"), (4.0, "Dopo 4 secondi di pausa"), (6.0, "Dopo 6 secondi di pausa"), (10.0, "Dopo 10 secondi di pausa")] {
+                    let icon = if (cur - secs).abs() < 0.05 { ic::RADIO_BUTTON } else { ic::CIRCLE };
+                    if menu_item(ui, true, icon, label, "") {
+                        actions.push(Action::LiveCheckPause(secs));
+                    }
+                }
+            });
             let doc_open = self.docui.doc.is_some();
             if big(
                 ui,

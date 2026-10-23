@@ -49,6 +49,8 @@ Inkspace——这块手写板所依赖的应用，于是这台硬件眼看就要
 - 导出为你需要的格式：可搜索的 PDF、手写为可编辑墨迹的 Word、轻量的 JPEG/WebP、Xournal++、重现书写过程的 GIF、SVG 动画或 MP4 视频，以及由转写生成的 LaTeX 或 Typst。
 - 自由选择 AI：本地模型（LM Studio、Ollama）或云端服务商；API 密钥从不以明文保存。
 - 和聊天说话。用麦克风听写：Whisper 在你的电脑上离线转写。
+- 导师会朗读回答。使用系统语音朗读；如果你愿意，还能在你书写时检查：一停笔就在纸上标出错误。
+- 美化书写（可选）：屏幕上和导出时行变直、笔画平滑、字词整齐；你真实的笔画不会改变。
 - 免费开源，支持九种语言，适用于 macOS（主要平台）、Linux 和 Windows。
 
 ## 功能
@@ -102,6 +104,9 @@ Inkspace——这块手写板所依赖的应用，于是这台硬件眼看就要
   你的声音不会离开电脑。模型（547 MB）只在第一次、你同意后下载一次；也可以在 `ai.toml`（`[voice]`）
   中选择更小的模型或在线服务（OpenAI、Groq、Mistral…）。按 Esc 取消。第一次使用时，macOS 会请求麦克风权限。
   无论应用是什么语言，它都按你说的语言转写（可在 `[voice]` 的 `language` 中固定一种语言）。
+- 会说话的导师。每条回答下方的“朗读”会把它读出来（按 Esc 停止）；如果问题是你口述的，回答会自动用语音返回。它离线使用系统语音：macOS 上的 `say`（“优化音质”或“高级”语音最自然：系统设置 → 辅助功能 → 朗读内容）、Windows 语音、Linux 上的 `espeak-ng`；也可以在 `ai.toml`（`[speech]`）中使用支持 `/audio/speech` 的在线服务（OpenAI…）。按回答的语言朗读。
+- 书写时检查。AI 选项卡 → “书写时检查”：当你停笔几秒钟（3 到 10 秒，在按钮菜单中设置），AI 只查看新写的行。全部正确就保持安静（聊天中显示一行小字“全部正确”）；发现错误就在纸上用红色圈出或划线，必要时写上更正，并用一行解释，如果开启了语音也会读出来。它的标记是可以在聊天中撤销的墨迹；你写过的行不会被重复检查。
+- 美化书写。主页 → “美化书写”（关闭、轻度、中度、强度）：在你书写时实时把行拉直、让笔画平滑、让字词落在行上，并统一高度、倾斜和间距（抬笔后新词会就位）。它只改变页面的显示和导出（画板、档案、PDF/PNG/SVG…）：你写下的笔画保持原样，AI 读取的也是原始笔画，关闭后即可恢复。绝不用于文档和签名；数字和公式保持不变。
 - 聊天会在画板上书写。让它「检查我的算式并标出错误」「给截止日期划线」或「在第 2 行旁边写上结果」：
   它会逐行、逐词读取画板页面，然后进行高亮、下划线、圈注、删除线、画框、画箭头、打勾和打叉，
   并用手写体书写（印刷体或连笔体，由 [Hershey](https://en.wikipedia.org/wiki/Hershey_fonts) 单线字体的笔画构成）。
@@ -190,6 +195,7 @@ sudo apt install ./openslate_<version>_amd64.deb     # Debian / Ubuntu
 运行时需要 BlueZ、GTK 3 和 WebKitGTK 4.1。你的用户必须拥有使用蓝牙的权限。
 导出 MP4 视频时，如果已安装 `ffmpeg`（`sudo apt install ffmpeg`）就使用它；否则第一次会先征得你的同意，
 再从 Cisco 网站下载 Cisco 免费的 OpenH264 编码器（约 1 MB）。
+朗读回答时使用 `espeak-ng`（`sudo apt install espeak-ng`）或 speech-dispatcher；macOS 和 Windows 使用各自的系统语音。
 
 ### Windows（实验性）
 
@@ -266,6 +272,8 @@ AI 功能是可选的。服务商可以在「文件 → 选项 → AI」中设�
 谁回答的。聊天中的每条回答都会显示实际写出它的智能体和模型（智能体按顺序尝试，所以不一定是第一个）。聊天还会告诉模型它是谁（服务、地址和模型），因为模型往往不知道自己是谁，可能会自称是别的模型：请以回答上方的标签为准。
 
 语音（`ai.toml` 中的 `[voice]`）：`engine = "whisper"`（默认，在电脑上运行），或支持 `/audio/transcriptions` 的智能体名称（OpenAI、Groq、Mistral…；设为 `enabled = false`，这样聊天不会使用它）；`model`（`large-v3-turbo`、`small`、`base`，或该服务的转写模型）；`language`（留空 = 你说的语言）；`auto_send = true` 会在你停止说话后立即发送消息。
+
+朗读回答（`ai.toml` 中的 `[speech]`）：`engine = "system"`（默认：系统语音），或支持 `/audio/speech` 的智能体名称（OpenAI…）；`model` 为该智能体的模型（例如 `gpt-4o-mini-tts`）；`voice`（留空 = 该语言最好的语音，或填写名称如 `"Alice"`）；`language`（留空 = 回答的语言）；`rate`（0.5 到 2）；`auto = "voice"` 在你口述问题时自动朗读，`"always"` 或 `"never"`（“朗读”按钮始终保留）。
 
 API 密钥从不以明文保存。`ai.toml` 只说明到哪里去找每个密钥：
 
@@ -344,6 +352,9 @@ src/platform.rs                                           OS differences (data f
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/speech.rs                                             朗读回答：系统语音（say、SAPI、espeak-ng）或在线服务
+src/beautify.rs, src/ui/nice.rs                           美化书写：屏幕和导出中的直行与整齐字词，保留原始笔画
+src/ui/live_check.rs                                      书写时检查：停笔后聊天查看新写的行
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
