@@ -1371,6 +1371,17 @@ const MAX_ROUNDS: usize = 6;
 /// il modello può chiedere ricerche, le si esegue e si continua finché
 /// risponde. Ritorna il testo pulito.
 #[allow(clippy::too_many_arguments)]
+/// Chi risponde, detto al modello: il servizio (con l'indirizzo) e il modello.
+fn identity(p: &Provider, model: &str) -> String {
+    let host = p.url.split("://").nth(1).unwrap_or(&p.url).split('/').next().unwrap_or("");
+    format!(
+        "Chi sei: in questa chat risponde il modello «{model}» del servizio «{}» ({host}), scelto dall'utente nelle impostazioni dell'app. \
+         Se ti chiedono chi sei o che modello sei, rispondi con questo. Non dire di essere un altro modello o di un'altra azienda: \
+         se di questo modello non sai altro, dillo invece di inventare.",
+        p.name
+    )
+}
+
 fn call(
     p: &Provider,
     key: &str,
@@ -1391,6 +1402,18 @@ fn call(
                 first["content"] = serde_json::json!(s);
             }
             _ => wire.insert(0, serde_json::json!({ "role": "system", "content": t.note.trim() })),
+        }
+    }
+    // in chat il modello sa chi è: da solo spesso non lo sa (DeepSeek a volte
+    // dice di essere Claude) e lo inventa
+    if task == Task::Chat {
+        let who = identity(p, model);
+        match wire.first_mut() {
+            Some(first) if first["role"] == "system" => {
+                let s = format!("{}\n\n{who}", first["content"].as_str().unwrap_or(""));
+                first["content"] = serde_json::json!(s);
+            }
+            _ => wire.insert(0, serde_json::json!({ "role": "system", "content": who })),
         }
     }
     let max_rounds = tools.map_or(MAX_ROUNDS, |t| t.rounds);
@@ -2337,6 +2360,33 @@ pub(crate) mod tests {
         let post = reqs.iter().find(|r| r.starts_with("POST /v1/chat/completions")).unwrap();
         assert!(post.contains("\"stream\":true") && post.contains("data:image/png;base64,iVBORw"));
         assert!(post.contains("\"temperature\":0"));
+    }
+
+    /// In chat il modello sa chi è (servizio, indirizzo e modello); nell'OCR no.
+    #[test]
+    fn il_modello_sa_chi_e() {
+        let p = provider("DeepSeek", "https://api.deepseek.com/v1".into());
+        let w = identity(&p, "deepseek-flash");
+        assert!(w.contains("«deepseek-flash»") && w.contains("«DeepSeek»") && w.contains("(api.deepseek.com)"), "{w}");
+        let (port, log) = fake_server(|req| {
+            if req.starts_with("GET") {
+                let b = r#"{"data":[{"id":"modello-prova"}]}"#;
+                format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{b}", b.len())
+            } else {
+                sse_reply(&["ok"])
+            }
+        });
+        let mut loc = provider("Locale", format!("http://127.0.0.1:{port}/v1"));
+        loc.model = "modello-prova".into();
+        let cfg = AiConfig { providers: vec![loc], ..Default::default() };
+        let msgs = vec![Msg::new("system", "Sei un assistente."), Msg::new("user", "chi sei?")];
+        run(&cfg, Task::Chat, &msgs, &mut |_| true).unwrap();
+        run(&cfg, Task::Ocr, &msgs, &mut |_| true).unwrap();
+        let reqs = log.lock().unwrap();
+        let posts: Vec<&String> = reqs.iter().filter(|r| r.starts_with("POST /v1/chat/completions")).collect();
+        assert_eq!(posts.len(), 2);
+        assert!(posts[0].contains("Sei un assistente.") && posts[0].contains("«modello-prova» del servizio «Locale» (127.0.0.1:"), "{}", posts[0]);
+        assert!(!posts[1].contains("Chi sei:"), "l'OCR non ne ha bisogno");
     }
 
     /// Errore HTTP (es. modello senza visione) → si passa al prossimo;
