@@ -286,7 +286,10 @@ pub fn build(c: &Ctx, m: &Value, n: usize) -> Result<(Vec<Mark>, String)> {
             }
         }
         "testo" | "text" | "scrivi" => {
-            let text = m["testo"].as_str().or(m["text"].as_str()).filter(|t| !t.trim().is_empty()).context("«testo»: manca il testo")?;
+            let raw = m["testo"].as_str().or(m["text"].as_str()).filter(|t| !t.trim().is_empty()).context("«testo»: manca il testo")?;
+            // a mano: la matematica come sul quaderno, non il LaTeX
+            let text_owned = to_hand(raw);
+            let text = text_owned.as_str();
             let style = Style::parse(m["stile"].as_str().unwrap_or("stampatello"));
             // di serie alto come la scrittura del foglio
             let cap = m["altezza"].as_f64().map(|v| v as f32 / if v > 1.0 { 1000.0 } else { 1.0 }).unwrap_or(h * 0.9).clamp(0.01, 0.12);
@@ -309,8 +312,25 @@ pub fn build(c: &Ctx, m: &Value, n: usize) -> Result<(Vec<Mark>, String)> {
                     }
                     l
                 }
-                // da un punto
-                Some(b) if b[2] - b[0] < 1e-4 => lay((b[0], b[1]), 0.97 - b[0], false, cap),
+                // da un punto: su una riga sola se ci sta (anche un po' più
+                // piccolo), così non va a capo sopra le righe di sotto
+                Some(b) if b[2] - b[0] < 1e-4 => {
+                    let mut l = lay((b[0], b[1]), 0.97 - b[0], false, cap);
+                    for k in [1.0, 0.85, 0.72, 0.6] {
+                        let c2 = cap * k;
+                        let try_l = lay((b[0], b[1]), 0.97 - b[0], false, c2);
+                        let one = lay((b[0], b[1]), 10.0, false, c2);
+                        let wrapped = try_l.bbox[3] - try_l.bbox[1] > 1.25 * (one.bbox[3] - one.bbox[1]);
+                        l = try_l;
+                        if !wrapped {
+                            break;
+                        }
+                    }
+                    if c.collides(l.bbox, None) {
+                        note.push_str(" (copre in parte lo scritto: scegli un altro punto o scrivi più piccolo)");
+                    }
+                    l
+                }
                 // accanto a un pezzo del foglio: dove c'è posto
                 Some(b) => {
                     let mut order = vec![dove.as_str()];
@@ -361,6 +381,9 @@ pub fn build(c: &Ctx, m: &Value, n: usize) -> Result<(Vec<Mark>, String)> {
                 bail!("il testo esce dal foglio in basso: scegli un altro posto, scrivi più piccolo («altezza») o usa una pagina nuova");
             }
             c.placed.borrow_mut().push(laid.bbox);
+            // dove è finito: il testo dopo va sotto (y più grande)
+            let q = |v: f32| (v * 1000.0).round() as i32;
+            note.push_str(&format!(" — occupa [{}, {}, {}, {}]", q(laid.bbox[0]), q(laid.bbox[1]), q(laid.bbox[2]), q(laid.bbox[3])));
             let mut out: Vec<Mark> = laid
                 .strokes
                 .into_iter()
@@ -375,6 +398,150 @@ pub fn build(c: &Ctx, m: &Value, n: usize) -> Result<(Vec<Mark>, String)> {
         other => bail!("tipo «{other}» sconosciuto: evidenzia, sottolinea, barra, cerchia, riquadro, freccia, linea, spunta, croce, testo"),
     };
     Ok((marks, kind))
+}
+
+/// Il testo da scrivere a mano: niente LaTeX né Markdown (la penna li
+/// scriverebbe lettera per lettera, «$x^2$»), ma la matematica come sul
+/// quaderno: x², x₁, a/b, √x, ⇒, ±, ≤.
+pub fn to_hand(text: &str) -> String {
+    let mut s = text.replace("\\[", " ").replace("\\]", " ").replace("\\(", " ").replace("\\)", " ").replace('$', "");
+    s = s.replace("**", "").replace("__", "").replace('`', "");
+    // \frac{a}{b} → a/b (fra parentesi se serve)
+    loop {
+        let Some(i) = s.find("\\frac") else { break };
+        let rest = &s[i + 5..];
+        let (Some((a, r1)), true) = (group(rest), true) else { s.replace_range(i..i + 5, ""); continue };
+        let Some((b, r2)) = group(r1) else { s.replace_range(i..i + 5, ""); continue };
+        let wrap = |t: &str| if t.chars().count() > 1 && t.chars().any(|c| "+-−·× ".contains(c)) { format!("({t})") } else { t.to_string() };
+        let new = format!("{}/{}", wrap(&a), wrap(&b));
+        let end = s.len() - r2.len();
+        s.replace_range(i..end, &new);
+    }
+    // \sqrt{a} → √a o √(a)
+    loop {
+        let Some(i) = s.find("\\sqrt") else { break };
+        let Some((a, r1)) = group(&s[i + 5..]) else { s.replace_range(i..i + 5, "√"); continue };
+        let new = if a.chars().count() > 1 { format!("√({a})") } else { format!("√{a}") };
+        let end = s.len() - r1.len();
+        s.replace_range(i..end, &new);
+    }
+    // \text{…}, \mathrm{…}, \left, \right
+    for cmd in ["\\text", "\\mathrm", "\\mathbf", "\\mathit", "\\operatorname"] {
+        while let Some(i) = s.find(cmd) {
+            match group(&s[i + cmd.len()..]) {
+                Some((a, r)) => {
+                    let end = s.len() - r.len();
+                    s.replace_range(i..end, &a);
+                }
+                None => s.replace_range(i..i + cmd.len(), ""),
+            }
+        }
+    }
+    const CMDS: [(&str, &str); 52] = [
+        ("\\Rightarrow", "⇒"), ("\\implies", "⇒"), ("\\Longrightarrow", "⇒"), ("\\rightarrow", "→"), ("\\to", "→"), ("\\leftarrow", "←"),
+        ("\\Leftrightarrow", "<=>"), ("\\iff", "<=>"), ("\\cdot", "·"), ("\\times", "×"), ("\\div", "÷"), ("\\pm", "±"), ("\\mp", "-/+"),
+        ("\\leq", "≤"), ("\\le", "≤"), ("\\geq", "≥"), ("\\ge", "≥"), ("\\neq", "≠"), ("\\ne", "≠"), ("\\approx", "≈"), ("\\infty", "∞"),
+        ("\\pi", "π"), ("\\Delta", "Δ"), ("\\circ", "°"), ("\\degree", "°"), ("\\checkmark", "✓"), ("\\alpha", "alfa"), ("\\beta", "beta"),
+        ("\\gamma", "gamma"), ("\\theta", "theta"), ("\\lambda", "lambda"), ("\\mu", "mu"), ("\\sigma", "sigma"), ("\\omega", "omega"),
+        ("\\varphi", "fi"), ("\\phi", "fi"), ("\\left", ""), ("\\right", ""), ("\\quad", " "), ("\\qquad", " "), ("\\;", " "), ("\\,", " "),
+        ("\\:", " "), ("\\!", ""), ("\\ ", " "), ("\\\\", " "), ("\\{", "{"), ("\\}", "}"), ("\\%", "%"), ("\\ldots", "…"), ("\\dots", "…"),
+        ("\\cdots", "…"),
+    ];
+    // i comandi più lunghi prima (\leq prima di \le)
+    let mut cmds = CMDS.to_vec();
+    cmds.sort_by_key(|(c, _)| std::cmp::Reverse(c.len()));
+    for (c, r) in cmds {
+        // solo se il comando finisce lì (\to e non \top)
+        let mut out = String::new();
+        let mut rest = s.as_str();
+        while let Some(i) = rest.find(c) {
+            let after = &rest[i + c.len()..];
+            let ends = !c.chars().last().unwrap().is_ascii_alphabetic() || !after.starts_with(|ch: char| ch.is_ascii_alphabetic());
+            out.push_str(&rest[..i]);
+            out.push_str(if ends { r } else { c });
+            rest = after;
+        }
+        out.push_str(rest);
+        s = out;
+    }
+    // esponenti e pedici: ^2, ^{10}, _1, _{n+1}
+    let mut out = String::new();
+    let mut it = s.chars().peekable();
+    while let Some(c) = it.next() {
+        if c == '^' || c == '_' {
+            let body: String = if it.peek() == Some(&'{') {
+                it.next();
+                let mut depth = 1;
+                let mut b = String::new();
+                for ch in it.by_ref() {
+                    match ch {
+                        '{' => depth += 1,
+                        '}' => {
+                            depth -= 1;
+                            if depth == 0 {
+                                break;
+                            }
+                        }
+                        _ => {}
+                    }
+                    b.push(ch);
+                }
+                b
+            } else {
+                it.next().map(String::from).unwrap_or_default()
+            };
+            let map = |ch: char| -> Option<char> {
+                let (from, sup, sub) = ("0123456789+-−=()ni", "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁻⁼⁽⁾ⁿⁱ", "₀₁₂₃₄₅₆₇₈₉₊₋₋₌₍₎");
+                let k = from.chars().position(|f| f == ch)?;
+                if c == '^' { sup.chars().nth(k) } else { sub.chars().nth(k) }
+            };
+            match body.chars().map(map).collect::<Option<String>>() {
+                Some(t) if !t.is_empty() => out.push_str(&t),
+                _ if body.chars().count() == 1 => {
+                    out.push(c);
+                    out.push_str(&body);
+                }
+                _ => {
+                    out.push(c);
+                    out.push('(');
+                    out.push_str(&body);
+                    out.push(')');
+                }
+            }
+            continue;
+        }
+        out.push(c);
+    }
+    // le graffe rimaste, i comandi sconosciuti (\foo → foo), gli spazi doppi
+    let out = out.replace(['{', '}'], "").replace('\\', "");
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// `{…}` all'inizio (anche dopo spazi), o un carattere solo: (contenuto, resto).
+fn group(s: &str) -> Option<(String, &str)> {
+    let t = s.trim_start();
+    let mut chars = t.char_indices();
+    let (_, first) = chars.next()?;
+    if first != '{' {
+        if first == '\\' {
+            return None;
+        }
+        return Some((first.to_string(), &t[first.len_utf8()..]));
+    }
+    let mut depth = 0;
+    for (i, ch) in t.char_indices() {
+        match ch {
+            '{' => depth += 1,
+            '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some((t[1..i].to_string(), &t[i + 1..]));
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 fn short(t: &str) -> String {
@@ -439,6 +606,19 @@ fn curve(a: (f32, f32), b: (f32, f32), bend: f32, rng: &mut Rng) -> Vec<(f32, f3
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn latex_scritto_a_mano() {
+        assert_eq!(to_hand("$x^2+2x+1=0$"), "x²+2x+1=0");
+        assert_eq!(to_hand("$\\Rightarrow (x+1)^2=0$"), "⇒ (x+1)²=0");
+        assert_eq!(to_hand("$\\;\\Rightarrow\\; x=-1$"), "⇒ x=-1");
+        assert_eq!(to_hand("soluzione doppia: $x_1=x_2=-1$"), "soluzione doppia: x₁=x₂=-1");
+        assert_eq!(to_hand("$\\frac{1}{2} + \\sqrt{x+1} \\leq 3$"), "1/2 + √(x+1) ≤ 3");
+        assert_eq!(to_hand("$\\frac{a+b}{2}$ e $x^{10}$, $a_{n+1}$"), "(a+b)/2 e x¹⁰, a_(n+1)");
+        assert_eq!(to_hand("**Bene!** $2 \\cdot 3 = 6$ \\checkmark"), "Bene! 2 · 3 = 6 ✓");
+        assert_eq!(to_hand("$e^{x y}$ \\to \\top"), "e^(x y) → top");
+        assert_eq!(to_hand("già scritto bene: x² − 1 ≥ 0"), "già scritto bene: x² − 1 ≥ 0");
+    }
     use crate::boardread::{read, tests::*};
     use serde_json::json;
 

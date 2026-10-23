@@ -53,24 +53,60 @@ static UNDO: Mutex<Vec<Edit>> = Mutex::new(Vec::new());
 /// L'ultima lettura del foglio: i nomi (`r2p3`) che il modello ha visto.
 static LAST: Mutex<Option<crate::boardread::Reading>> = Mutex::new(None);
 
-/// Le firme dei tratti messi dall'AI sul foglio: il controllo mentre scrivi
-/// non li prende per scrittura nuova da controllare.
-static AI_STROKES: Mutex<Vec<u64>> = Mutex::new(Vec::new());
+/// Le impronte dei tratti messi dall'AI sul foglio: il controllo mentre
+/// scrivi non li prende per scrittura nuova, e toglierli o rifarli non
+/// chiede la conferma dell'utente. Restano anche dopo un riavvio (file
+/// `ai_marks.txt` nella cartella dei dati).
+static AI_STROKES: Mutex<Option<Vec<u64>>> = Mutex::new(None);
+const AI_FILE: &str = "ai_marks.txt";
+const AI_KEEP: usize = 20_000;
+
+/// L'impronta di un tratto, a prova di salvataggio: coordinate arrotondate
+/// (l'archivio le salva con tre decimali).
+fn ai_sig(s: &Stroke) -> u64 {
+    let mut h: u64 = 1469598103934665603;
+    let mut mix = |v: u64| h = (h ^ v).wrapping_mul(1099511628211);
+    mix(s.points.len() as u64);
+    mix(u32::from_le_bytes([s.color[0], s.color[1], s.color[2], s.highlight as u8]) as u64);
+    for p in &s.points {
+        mix((p.x.round() as i64 as u64) << 32 ^ (p.y.round() as i64 as u64 & 0xffff_ffff));
+    }
+    h
+}
+
+fn ai_list<R>(f: impl FnOnce(&mut Vec<u64>) -> R) -> R {
+    let mut g = AI_STROKES.lock().unwrap();
+    let v = g.get_or_insert_with(|| {
+        if cfg!(test) {
+            return Vec::new();
+        }
+        std::fs::read_to_string(AI_FILE).map(|t| t.lines().filter_map(|l| u64::from_str_radix(l.trim(), 16).ok()).collect()).unwrap_or_default()
+    });
+    f(v)
+}
 
 /// Un tratto messo dall'AI (e non dal pennino)?
 pub fn is_ai_stroke(s: &Stroke) -> bool {
-    let sig = strokes_sig(std::slice::from_ref(s));
-    AI_STROKES.lock().unwrap().contains(&sig)
+    let sig = ai_sig(s);
+    ai_list(|v| v.contains(&sig))
 }
 
 fn mark_ai(strokes: &[Stroke]) {
-    let mut v = AI_STROKES.lock().unwrap();
-    v.extend(strokes.iter().map(|s| strokes_sig(std::slice::from_ref(s))));
-    // basta ricordare gli ultimi
-    let n = v.len();
-    if n > 4000 {
-        v.drain(..n - 4000);
-    }
+    let new: Vec<u64> = strokes.iter().map(ai_sig).collect();
+    ai_list(|v| {
+        v.extend(&new);
+        let n = v.len();
+        if n > AI_KEEP {
+            v.drain(..n - AI_KEEP);
+        }
+        if cfg!(test) {
+            return;
+        }
+        let text: String = v.iter().map(|x| format!("{x:x}\n")).collect();
+        if let Err(e) = crate::web::write_atomic(std::path::Path::new(AI_FILE), text.as_bytes()) {
+            tracing::warn!("{AI_FILE}: {e}");
+        }
+    });
 }
 
 /// Ogni domanda nella chat è un «giro»: una conferma chiesta in un giro vale
@@ -113,7 +149,12 @@ pub fn gate(sig: u64, given: Option<&str>) -> Gate {
         }
         (Some(c), Some(pd)) if *c == pd.code && pd.turn >= turn => Gate::Wait,
         _ => {
-            let code = confirm_code(sig);
+            // la stessa cosa da confermare: lo stesso codice e lo stesso giro
+            // (il sì dell'utente nel giro dopo vale ancora)
+            let (code, turn) = match p.as_ref() {
+                Some(pd) if pd.sig == sig => (pd.code.clone(), pd.turn),
+                _ => (confirm_code(sig), turn),
+            };
             *p = Some(Pending { turn, sig, code: code.clone() });
             Gate::Ask(code)
         }
@@ -145,7 +186,10 @@ pub fn definitions() -> Vec<Value> {
                     [x1, y1, x2, y2] o un punto [x, y] in 0–1000. freccia e linea: «da» e «a» (nomi o punti; con solo «a» o «su» la freccia arriva lì \
                     da in alto a destra). testo: «testo», «dove» rispetto a «su» (destra di serie, sotto, sopra, sinistra) oppure «riquadro» \
                     per scriverci dentro (va a capo), «altezza» delle maiuscole in 0–1000 (di serie come la scrittura del foglio), \
-                    «stile» stampatello (di serie) o corsivo. Facoltativi: «colore» (rosso di serie; l'evidenziatore usa il suo), \
+                    «stile» stampatello (di serie) o corsivo. Il testo è scritto a mano come sul quaderno: NON LaTeX né Markdown \
+                    (niente $, \\, ^, _, **): scrivi x², x₁, 1/2, √x, ⇒, →, ±, ≤, ≥, ≠, ≈, π, Δ, ✓ (il LaTeX viene comunque convertito). \
+                    Righe brevi: per più righe un segno per riga, ognuno sotto il precedente; il risultato dice dove è finito ogni testo \
+                    («occupa [x1, y1, x2, y2]»): il successivo va più in basso, senza toccare lo scritto. Facoltativi: «colore» (rosso di serie; l'evidenziatore usa il suo), \
                     «spessore», «doppia» per la sottolineatura."),
                 "parameters": {
                     "type": "object",
@@ -182,13 +226,13 @@ pub fn definitions() -> Vec<Value> {
                 "name": "lavagna_modifica",
                 "description": "Cambia quello che c'è sul foglio della lavagna, anche la scrittura dell'utente: SOLO se l'utente lo chiede. \
                     «azioni» si fanno tutte insieme (un solo Annulla). Ogni azione: azione (sposta, ridimensiona, ricolora, cancella); \
-                    cosa: «su» un nome di lavagna_leggi (\"r2p3\", \"r2\", \"r2p1-p4\", \"r2-r4\", \"d1\", \"e1\", \"grafico\", \"tutto\") o una lista di nomi, \
+                    cosa: «su» un nome di lavagna_leggi (\"r2p3\", \"r2\", \"r2p1-p4\", \"r2-r4\", \"d1\", \"e1\", \"grafico\", \"tutto\"; \"ai\" = tutti i segni e i testi messi da te) o una lista di nomi, \
                     oppure «riquadro» [x1, y1, x2, y2] in 0–1000 (i tratti dentro); filtri facoltativi «colore» (solo i tratti di quel colore) e \
                     «solo» (evidenziatore o inchiostro). sposta: «dx», «dy» in 0–1000 oppure «a» [x, y] dove va l'angolo in alto a sinistra. \
                     ridimensiona: «fattore» (2 = il doppio), dall'angolo in alto a sinistra. ricolora: «nuovo_colore». \
                     inchiostro: le evidenziature scelte diventano scrittura con la penna (per chi ha scritto con l'evidenziatore senza volerlo). \
-                    Per cancellare buona parte del foglio lo strumento chiede la conferma dell'utente e dà un codice: chiedi all'utente e, \
-                    se dice sì, richiama con «conferma» e il codice. Dopo una modifica i nomi del foglio cambiano: rileggilo.",
+                    Per cancellare buona parte di quello che ha scritto l'utente lo strumento chiede la sua conferma e dà un codice: chiedi all'utente e, \
+                    se dice sì, richiama con «conferma» e il codice. I segni e i testi che hai messo tu li cancelli o rifai senza conferma. Dopo una modifica i nomi del foglio cambiano: rileggilo.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -246,6 +290,8 @@ pub fn system_note() -> String {
      Per un grafico, anche al posto di un disegno fatto a mano: prima draw_chart, poi lavagna_inserisci_grafico. \
      Se l'utente chiede di spostare, ingrandire, ricolorare o cancellare qualcosa sul foglio (anche quello che ha scritto lui, \
      o i segni che hai messo tu): lavagna_modifica. Di tua iniziativa non cancelli e non sposti niente: aggiungi soltanto. \
+     Se l'utente ti chiede di correggere o rifare i segni che hai messo tu (testo storto, sovrapposto, scritto male), fallo subito: \
+     cancellali con lavagna_modifica («su»: \"ai\", non serve la sua conferma) e riscrivili con lavagna_annota, più corti e uno sotto l'altro. \
      Non dire che non puoi: gli strumenti ci sono. L'utente vede subito il risultato e lo può annullare dalla chat."
         .into()
 }
@@ -454,10 +500,21 @@ fn select(r: &crate::boardread::Reading, strokes: &[Stroke], g: &crate::scene::P
         _ => Vec::new(),
     };
     for n in &names {
-        if matches!(n.trim().to_lowercase().as_str(), "grafico" | "chart") {
+        let key = n.trim().to_lowercase();
+        if matches!(key.as_str(), "grafico" | "chart") {
             chart = r.chart.is_some();
             if !chart {
                 bail!("sul foglio non c'è un grafico");
+            }
+        } else if matches!(key.as_str(), "tutto" | "all") {
+            // tutto quello che c'è adesso (anche i segni aggiunti dopo l'ultima lettura)
+            idx.extend((0..strokes.len()).filter(|&i| !strokes[i].points.is_empty()));
+            chart = r.chart.is_some();
+        } else if matches!(key.as_str(), "ai" | "segni_ai" | "miei") {
+            // i segni e i testi messi dall'AI
+            idx.extend((0..strokes.len()).filter(|&i| !strokes[i].points.is_empty() && is_ai_stroke(&strokes[i])));
+            if idx.is_empty() {
+                bail!("sul foglio non ci sono segni messi dall'AI");
             }
         } else {
             idx.extend(r.strokes_of(n).with_context(|| format!("non trovo «{n}» sul foglio: rileggilo con lavagna_leggi"))?);
@@ -656,9 +713,16 @@ fn modify(args: &Value) -> Result<(String, Option<u64>)> {
         }
         // cancellare buona parte del foglio: prima il sì dell'utente (in un
         // giro dopo: la sua risposta)
-        let n_ink = s.drawing.strokes.iter().filter(|x| !x.points.is_empty()).count();
-        let sig = strokes_sig(&s.drawing.strokes);
-        if deleted.len() >= 20 && deleted.len() * 3 >= n_ink {
+        // (i segni messi dall'AI stessa non contano: rifarli o toglierli è
+        // correggere il proprio lavoro, non cancellare quello dell'utente)
+        let n_ink = s.drawing.strokes.iter().filter(|x| !x.points.is_empty() && !is_ai_stroke(x)).count();
+        let user_deleted = deleted.iter().filter(|&&i| s.drawing.strokes.get(i).is_some_and(|x| !is_ai_stroke(x))).count();
+        // la conferma vale per quei tratti: se intanto si scrive altrove resta buona
+        let sig = {
+            let del: Vec<Stroke> = deleted.iter().filter_map(|&i| s.drawing.strokes.get(i).cloned()).collect();
+            strokes_sig(&del)
+        };
+        if user_deleted >= 20 && user_deleted * 3 >= n_ink {
             match gate(sig, code_given.as_deref()) {
                 Gate::Go => {}
                 Gate::Wait => {
@@ -668,9 +732,9 @@ fn modify(args: &Value) -> Result<(String, Option<u64>)> {
                 Gate::Ask(code) => {
                     *LAST.lock().unwrap() = Some(reading);
                     return Ok(Err(format!(
-                        "NON FATTO: cancellerebbe {} tratti su {} ({}). Chiedi all'utente se va bene (potrà comunque annullare); se risponde di sì, \
+                        "NON FATTO: cancellerebbe {} tratti su {} scritti dall'utente ({}). Chiedi all'utente se va bene (potrà comunque annullare); se risponde di sì, \
                          richiama lavagna_modifica con le stesse azioni e \"conferma\": \"{code}\".",
-                        deleted.len(),
+                        user_deleted,
                         n_ink,
                         report.join("; ")
                     )));

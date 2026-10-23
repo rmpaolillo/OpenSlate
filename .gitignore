@@ -20,6 +20,7 @@ models/
 codecs/
 signatures/
 captures/
+ai_marks.txt
 *.log
 /wacom-export-*.svg
 .env
