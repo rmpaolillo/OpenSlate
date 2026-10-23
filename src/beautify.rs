@@ -83,7 +83,7 @@ pub fn active() -> bool {
 
 /// Livello e forme in un numero (per le chiavi delle pagine già pronte).
 pub fn mode() -> u8 {
-    level() | if shapes() { 4 } else { 0 }
+    level() | if shapes() { 4 } else { 0 } | if crate::rewrite::showing() { 8 } else { 0 }
 }
 
 /// Il disegno da mostrare: quello originale se la bella scrittura è spenta.
@@ -96,6 +96,8 @@ pub fn nice(d: &Drawing, view: View) -> Drawing {
     let g = PageGeom::new(view, pw, ph);
     let (strokes, shaped) = if shapes() { perfect(&d.strokes, &g) } else { (d.strokes.clone(), vec![false; d.strokes.len()]) };
     let strokes = if l > 0 { apply_with(&strokes, &g, l, &shaped) } else { strokes };
+    // le righe già lette: riscritte in bella al posto della tua scrittura
+    let strokes = if crate::rewrite::showing() { crate::rewrite::replace(&d.strokes, strokes, &g) } else { strokes };
     Drawing { strokes, width: d.width, height: d.height }
 }
 
@@ -932,6 +934,12 @@ fn smooth(s: &mut Stroke, passes: usize, cap: f32) {
 
 fn dist(a: (f32, f32), b: (f32, f32)) -> f32 {
     ((a.0 - b.0).powi(2) + (a.1 - b.1).powi(2)).sqrt()
+}
+
+/// La riga di base e l'altezza delle minuscole di un gruppo di tratti
+/// (coordinate fisiche della pagina: x × larghezza/altezza, y), se si capisce.
+pub(crate) fn base_and_xheight(idx: &[usize], ph: &[Vec<(f32, f32)>], hh: f32) -> Option<(f32, f32)> {
+    metrics(idx, ph, hh).map(|m| (m.base, m.size))
 }
 
 /// Riga di base, altezza e centro di una parola (dai tratti «di corpo»,

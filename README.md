@@ -146,6 +146,14 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   **How the AI writes on the page**: clean print (default), by hand (the same letters with the
   irregularities of a hand) or natural handwriting (a real handwriting font, Kalam, reduced to
   single lines so it stays pen strokes).
+- **Rewrite neatly.** Home → «Rewrite neatly»: the AI reads what you wrote, line by line and
+  formulas included, and the page shows it in clear handwriting with the maths laid out as in a tidy
+  exercise book: fractions in a column, small exponents and subscripts, roots with their sign, the
+  brace of a system, brackets as tall as their content, Greek letters, sums and integrals. With the
+  button for the whole page, or by itself at every pause («Also while I write»). Only the view and
+  the exports change: your strokes are kept (the AI reads those), hold **O** to see them, and a line
+  you write on again is read again. The reading uses the agent of «Page reading (OCR)» in
+  `ai.toml`.
 - **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
   "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
   by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,

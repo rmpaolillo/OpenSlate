@@ -85,6 +85,10 @@ pub struct Settings {
     pub perfect_shapes: bool,
     /// Come scrive l'AI sul foglio: 0 pulita, 1 a mano, 2 naturale.
     pub ai_hand: u8,
+    /// Riscrittura in bella: si vede (le righe lette dall'AI riscritte)…
+    pub rewrite_show: bool,
+    /// …e si fa da sola alla pausa (oltre che col pulsante).
+    pub rewrite_live: bool,
     /// Il controllo mentre scrivi: alla pausa l'AI guarda le righe nuove.
     pub live_check: bool,
     /// Dopo quanti secondi senza tratti nuovi parte il controllo.
@@ -131,6 +135,8 @@ impl Default for Settings {
             beautify: 0,
             perfect_shapes: true,
             ai_hand: 0,
+            rewrite_show: true,
+            rewrite_live: false,
             live_check: false,
             live_check_pause: 4.0,
         }
@@ -213,6 +219,8 @@ impl Settings {
             "beautify" => self.beautify = v.trim().parse::<u8>().unwrap_or(0).min(3),
             "perfect_shapes" => self.perfect_shapes = b(v),
             "ai_hand" => self.ai_hand = crate::boardmarks::hand_parse(v),
+            "rewrite_show" => self.rewrite_show = b(v),
+            "rewrite_live" => self.rewrite_live = b(v),
             "live_check" => self.live_check = b(v),
             "live_check_pause" => self.live_check_pause = v.trim().parse::<f32>().unwrap_or(self.live_check_pause).clamp(1.5, 30.0),
             "compact_ui" => self.compact_ui = b(v),
@@ -254,6 +262,7 @@ impl Settings {
              # bella scrittura sulla lavagna (solo come si vede e si esporta): 0 spenta, 1 leggera, 2 media, 3 forte\nbeautify = {}\n\
              # linee, frecce e cerchi fatti a mano: perfetti (solo come si vedono)\nperfect_shapes = {}\n\
              # come scrive l'AI sul foglio: pulita, mano (con le irregolarità della mano), naturale (carattere a mano vero)\nai_hand = {}\n\
+             # riscrittura in bella (l'AI legge le righe, si vedono in una scrittura chiara): si vede; si fa da sola alla pausa\nrewrite_show = {}\nrewrite_live = {}\n\
              # controllo mentre scrivi: alla pausa (secondi) l'AI guarda le righe nuove\nlive_check = {}\nlive_check_pause = {:.1}\n\
              # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
              # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n\
@@ -289,6 +298,8 @@ impl Settings {
             self.beautify,
             b(self.perfect_shapes),
             crate::boardmarks::hand_code(self.ai_hand),
+            b(self.rewrite_show),
+            b(self.rewrite_live),
             b(self.live_check),
             self.live_check_pause,
             self.save_dir,

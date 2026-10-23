@@ -19,6 +19,7 @@ mod options;
 mod nice;
 mod paper;
 mod quit;
+mod rewrite_ui;
 mod savedlg;
 mod sysdlg;
 mod ribbon;
@@ -76,6 +77,7 @@ pub fn run_app(
     crate::beautify::set_level(settings.beautify);
     crate::beautify::set_shapes(settings.perfect_shapes);
     crate::boardmarks::set_hand(settings.ai_hand);
+    crate::rewrite::set_showing(settings.rewrite_show);
     let thumb_size = settings.thumb_size;
     let hub = Hub::new(Scene::new(&settings));
     // la chat AI può mettere grafici sul foglio della lavagna
@@ -214,6 +216,7 @@ pub fn run_app(
         board_zoom: ZoomView::default(),
         nice: nice::NiceBoard::new(),
         live: live_check::LiveCheck::new(),
+        rw: rewrite_ui::RewriteUi::new(),
         docui: doc_view::DocUi::new(),
     };
     if web_now || app.settings.web_auto {
@@ -475,6 +478,8 @@ struct App {
     nice: nice::NiceBoard,
     /// Il controllo mentre scrivi.
     live: live_check::LiveCheck,
+    /// La riscrittura in bella.
+    rw: rewrite_ui::RewriteUi,
     /// Documenti importati e firma.
     docui: doc_view::DocUi,
 }
@@ -572,6 +577,11 @@ enum Action {
     PerfectShapes(bool),
     /// Come scrive l'AI sul foglio: 0 pulita, 1 a mano, 2 naturale.
     AiHand(u8),
+    /// Riscrivi in bella le righe della lavagna (`true`: tutte di nuovo).
+    Rewrite(bool),
+    /// Riscrittura in bella: si vede / si fa da sola alla pausa.
+    RewriteShow(bool),
+    RewriteLive(bool),
     /// Il controllo mentre scrivi: acceso/spento, e dopo quanti secondi.
     LiveCheck(bool),
     LiveCheckPause(f32),
@@ -1984,6 +1994,29 @@ impl App {
                     "Linee, frecce e cerchi come li hai disegnati.".into()
                 };
             }
+            Action::Rewrite(all) => self.rewrite_now(all),
+            Action::RewriteShow(on) => {
+                self.settings.rewrite_show = on;
+                self.settings.save();
+                crate::rewrite::set_showing(on);
+                self.rewrite_refresh();
+                self.status = if on { "Righe lette dall'AI riscritte in bella." } else { "Si vede la tua scrittura com'è." }.into();
+            }
+            Action::RewriteLive(on) => {
+                self.settings.rewrite_live = on;
+                if on {
+                    self.settings.rewrite_show = true;
+                    crate::rewrite::set_showing(true);
+                    self.rewrite_refresh();
+                }
+                self.settings.save();
+                self.status = if on {
+                    "Riscrittura in bella mentre scrivi: dopo qualche secondo di pausa l'AI legge le righe nuove."
+                } else {
+                    "Riscrittura in bella solo col pulsante."
+                }
+                .into();
+            }
             Action::AiHand(m) => {
                 self.settings.ai_hand = m.min(2);
                 self.settings.save();
@@ -2289,7 +2322,9 @@ impl App {
                 let painter = ui.painter_at(rect);
                 let paper = Some((paper::Paper::from_code(&self.settings.paper), self.settings.paper_margin));
                 // la bella scrittura: solo sul foglio (non sui documenti né sulla firma da registrare)
-                let plain = scene.bg.as_ref().is_some_and(|b| !b.is_chart()) || self.docui.capture.is_some();
+                // tenendo premuto O: la tua scrittura com'è (senza bella scrittura né riscrittura)
+                let original = ctx.input(|i| i.key_down(egui::Key::O) && i.modifiers.is_none()) && !ctx.egui_wants_keyboard_input();
+                let plain = original || scene.bg.as_ref().is_some_and(|b| !b.is_chart()) || self.docui.capture.is_some();
                 let pen_down = scene.active_index().is_some() || scene.mouse_highlighting();
                 let shown = if plain { std::borrow::Cow::Borrowed(&scene.drawing) } else { self.nice.get(&scene.drawing, scene.view, pen_down, ctx) };
                 let page = paint_page(&painter, rect, &shown, scene.view, bgtex, &mut self.board_zoom, paper);
@@ -2371,6 +2406,7 @@ impl eframe::App for App {
         self.drain_events();
         self.voice_tick(ctx);
         self.live_check_tick(ctx);
+        self.rewrite_tick(ctx);
         self.chat_lib_requests(ctx);
         self.doc_tick(ctx);
         self.sync_chat_note();

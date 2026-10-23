@@ -146,6 +146,14 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   bleiben erhalten. **Wie die KI auf das Blatt schreibt**: saubere Druckschrift (Standard), von Hand
   (dieselben Buchstaben mit den Unregelmäßigkeiten einer Hand) oder natürliche Handschrift (eine
   echte Handschrift, Kalam, auf einfache Linien reduziert, damit sie Stiftstriche bleibt).
+- **Sauber neu schreiben.** Start → «Sauber neu schreiben»: Die KI liest, was du geschrieben hast,
+  Zeile für Zeile und mit Formeln, und die Seite zeigt es in klarer Handschrift mit Mathematik wie
+  in einem ordentlichen Heft: Brüche untereinander, kleine Exponenten und Indizes, Wurzeln mit ihrem
+  Zeichen, die Klammer eines Gleichungssystems, Klammern so hoch wie ihr Inhalt, griechische
+  Buchstaben, Summen und Integrale. Mit dem Knopf für die ganze Seite oder von selbst in jeder Pause
+  («Auch beim Schreiben»). Nur Anzeige und Export ändern sich: deine Striche bleiben (die KI liest
+  diese), halte **O** gedrückt, um sie zu sehen, und eine Zeile, an der du weiterschreibst, wird neu
+  gelesen. Gelesen wird mit dem Agenten von «Seiten lesen (OCR)» in `ai.toml`.
 - **Der Chat schreibt auf die Tafel.** Bitte ihn: „prüf meine Rechnungen und markier die Fehler“,
   „unterstreich die Fristen“ oder „schreib das Ergebnis neben Zeile 2“: Er liest das Tafelblatt Zeile
   für Zeile und Wort für Wort, dann markiert, unterstreicht, umkreist, streicht durch, zeichnet Kästen,

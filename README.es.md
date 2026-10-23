@@ -145,6 +145,14 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   se toca y tus trazos reales se conservan. **Cómo escribe la IA en la hoja**: imprenta limpia (por
   defecto), a mano (las mismas letras con las irregularidades de la mano) o letra natural (una
   fuente manuscrita real, Kalam, reducida a líneas simples para que siga siendo trazo de lápiz).
+- **Reescribir en limpio.** Inicio → «Reescribir en limpio»: la IA lee lo que escribiste, línea por
+  línea y fórmulas incluidas, y la página lo muestra con una letra clara y la matemática compuesta
+  como en un cuaderno ordenado: fracciones en columna, exponentes y subíndices pequeños, raíces con
+  su signo, la llave de los sistemas, paréntesis tan altos como su contenido, letras griegas,
+  sumatorias e integrales. Con el botón para toda la página, o sola en cada pausa («También mientras
+  escribo»). Solo cambia lo que se ve y se exporta: tus trazos se conservan (la IA lee esos), mantén
+  pulsada la **O** para verlos, y una línea en la que vuelves a escribir se vuelve a leer. Lee el
+  agente de «Lectura de páginas (OCR)» en `ai.toml`.
 - **El chat escribe en la pizarra.** Pídele «revisa mis sumas y marca los errores»,
   «subraya los plazos» o «escribe el resultado junto a la línea 2»: lee la hoja de la pizarra línea
   a línea y palabra a palabra, y después resalta, subraya, rodea con un círculo, tacha, dibuja recuadros,

@@ -862,6 +862,8 @@ impl App {
         for (m, label) in [(0u8, "L'AI scrive in stampatello pulito"), (1, "L'AI scrive a mano"), (2, "L'AI scrive con una scrittura naturale")] {
             v.push(c(ic::PEN_NIB, label, "", Action::AiHand(m)));
         }
+        v.push(c(ic::SCRIBBLE_LOOP, "Riscrivi la pagina in bella", "", Action::Rewrite(false)));
+        v.push(c(ic::SCRIBBLE_LOOP, if self.settings.rewrite_live { "Riscrittura in bella: solo col pulsante" } else { "Riscrittura in bella anche mentre scrivo" }, "", Action::RewriteLive(!self.settings.rewrite_live)));
         for l in 0..=3u8 {
             v.push(c(ic::MAGIC_WAND, &format!("Bella scrittura: {}", i18n::tr(crate::beautify::level_name(l))), "", Action::Beautify(l)));
         }

@@ -190,6 +190,38 @@ impl App {
                     }
                 }
             });
+            let rw_on = self.settings.rewrite_show;
+            let r = big_ex(
+                ui,
+                ic::SCRIBBLE_LOOP,
+                "Riscrivi\nin bella",
+                "L'AI legge quello che hai scritto, formule comprese, e lo mostra in una scrittura chiara con la matematica impaginata (frazioni, esponenti, sistemi). La tua scrittura resta: tieni premuto O per vederla",
+                !doc,
+                rw_on && self.settings.rewrite_live,
+                true,
+            );
+            egui::Popup::menu(&r).show(|ui| {
+                ui.set_min_width(270.0);
+                if menu_item(ui, true, ic::SCRIBBLE_LOOP, "Riscrivi la pagina adesso", "") {
+                    actions.push(Action::Rewrite(false));
+                }
+                if menu_item(ui, true, ic::ARROWS_CLOCKWISE, "Rileggi tutte le righe", "") {
+                    actions.push(Action::Rewrite(true));
+                }
+                ui.separator();
+                let live = self.settings.rewrite_live;
+                if menu_item(ui, true, check_icon(live), "Anche mentre scrivo (alla pausa)", "") {
+                    actions.push(Action::RewriteLive(!live));
+                }
+                if menu_item(ui, true, check_icon(rw_on), "Mostra le righe in bella", "") {
+                    actions.push(Action::RewriteShow(!rw_on));
+                }
+                let t = Tokens::get(ui.ctx());
+                ui.horizontal(|ui| {
+                    ui.add_space(26.0);
+                    ui.label(egui::RichText::new(i18n::tr("Tieni premuto O per vedere la tua scrittura").into_owned()).font(regular(11.0)).color(t.text_dim));
+                });
+            });
             if big_ex(
                 ui,
                 ic::FLOPPY_DISK,

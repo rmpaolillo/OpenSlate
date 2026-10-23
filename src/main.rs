@@ -28,6 +28,8 @@ mod libagent;
 mod library;
 mod mcpclient;
 mod mathtex;
+mod mathhand;
+mod rewrite;
 mod typstworld;
 mod mdcraft;
 mod live;

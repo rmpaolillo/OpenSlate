@@ -17,6 +17,9 @@ const CURSIVE: &str = include_str!("handwrite/cursive.jhf");
 /// «Naturale»: un carattere a mano vero (Kalam), ridotto a linee da
 /// `packaging/stroke_font.py`.
 const NATURALE: &str = include_str!("handwrite/naturale.txt");
+/// Lettere greche e simboli matematici di Hershey (per le formule riscritte).
+const GREEK: &str = include_str!("handwrite/greek.jhf");
+const MATHLOW: &str = include_str!("handwrite/mathlow.jhf");
 
 /// Altezza delle maiuscole nelle unità di Hershey (da -12 a 9).
 const CAP: f32 = 21.0;
@@ -117,6 +120,32 @@ fn font(style: Style) -> &'static Font {
                     for p in st.iter_mut() {
                         *p = (p.0 * k, BASE_Y + (p.1 - BASE_Y) * k);
                     }
+                }
+            }
+            // il «4» aperto e il «5» senza asta di Kalam, piccoli, sembrano un
+            // «9» e una «S»: in matematica vanno rifatti, chiari (stesse misure)
+            for (c, shape) in [
+                ('4', vec![vec![(0.62, 0.0), (0.0, 0.68), (1.0, 0.68)], vec![(0.78, 0.25), (0.72, 1.0)]]),
+                ('5', vec![vec![(0.95, 0.0), (0.22, 0.0), (0.12, 0.42), (0.45, 0.36), (0.8, 0.42), (0.98, 0.62), (0.9, 0.88), (0.55, 1.0), (0.15, 0.95), (0.0, 0.85)]]),
+            ] {
+                if let Some(g) = glyphs.get_mut(&c) {
+                    let pts = g.strokes.iter().flatten();
+                    let (x0, x1, y0, y1) = pts.fold((f32::MAX, f32::MIN, f32::MAX, f32::MIN), |b, p| (b.0.min(p.0), b.1.max(p.0), b.2.min(p.1), b.3.max(p.1)));
+                    if x0 < x1 && y0 < y1 {
+                        // la stessa pendenza della scrittura (un po' a destra in alto)
+                        let slant = 0.12 * (y1 - y0);
+                        g.strokes = shape
+                            .into_iter()
+                            .map(|st| st.into_iter().map(|(u, v): (f32, f32)| (x0 + u * (x1 - x0 - slant) + (1.0 - v) * slant, y0 + v * (y1 - y0))).collect())
+                            .collect();
+                    }
+                }
+            }
+            // l'«1» di Kalam è un'asta sola (si confonde con la «l»): il becco in alto
+            if let Some(one) = glyphs.get_mut(&'1') {
+                let top = one.strokes.iter().flatten().copied().min_by(|a, b| a.1.total_cmp(&b.1));
+                if let Some((x, y)) = top {
+                    one.strokes.push(vec![(x - 5.0, y + 5.5), (x, y)]);
                 }
             }
             Font { glyphs, x_top: BASE_Y + (x_top - BASE_Y) * k, slant: 0.8 }
@@ -310,6 +339,52 @@ fn glyph(f: &Font, c: char) -> Option<Glyph> {
     let cx = if x0 <= x1 { (x0 + x1) / 2.0 } else { 0.0 } + if upper { 0.0 } else { f.slant };
     g.strokes.extend(accent(a, cx, top, upper));
     Some(g)
+}
+
+/// Un carattere per le formule: l'avanzamento e i tratti, con x da 0 e la
+/// riga di base a y = 0 (unità di Hershey, y verso il basso; le maiuscole
+/// arrivano a -21). Prova lo stile chiesto, poi le lettere greche e i
+/// simboli matematici di Hershey.
+pub struct CharGlyph {
+    pub adv: f32,
+    pub strokes: Vec<Vec<(f32, f32)>>,
+}
+
+pub fn char_glyph(style: Style, c: char) -> Option<CharGlyph> {
+    static GR: OnceLock<HashMap<char, Glyph>> = OnceLock::new();
+    static MA: OnceLock<HashMap<char, Glyph>> = OnceLock::new();
+    let norm = |g: &Glyph| CharGlyph {
+        adv: g.right - g.left,
+        strokes: g.strokes.iter().map(|s| s.iter().map(|&(x, y)| (x - g.left, y - BASE_Y)).collect()).collect(),
+    };
+    if let Some(g) = glyph(font(style), c) {
+        return Some(norm(&g));
+    }
+    const GREEK_MAP: [(char, char); 48] = [
+        ('α', 'a'), ('β', 'b'), ('χ', 'c'), ('δ', 'd'), ('ε', 'e'), ('φ', 'f'), ('γ', 'g'), ('η', 'h'), ('ι', 'i'), ('κ', 'k'),
+        ('λ', 'l'), ('μ', 'm'), ('ν', 'n'), ('ο', 'o'), ('π', 'p'), ('θ', 'q'), ('ρ', 'r'), ('σ', 's'), ('τ', 't'), ('υ', 'u'),
+        ('ω', 'w'), ('ξ', 'x'), ('ψ', 'y'), ('ζ', 'z'), ('Α', 'A'), ('Β', 'B'), ('Χ', 'C'), ('Δ', 'D'), ('Ε', 'E'), ('Φ', 'F'),
+        ('Γ', 'G'), ('Η', 'H'), ('Ι', 'I'), ('Κ', 'K'), ('Λ', 'L'), ('Μ', 'M'), ('Ν', 'N'), ('Ο', 'O'), ('Π', 'P'), ('Θ', 'Q'),
+        ('Ρ', 'R'), ('Σ', 'S'), ('Τ', 'T'), ('Υ', 'U'), ('Ω', 'W'), ('Ξ', 'X'), ('Ψ', 'Y'), ('Ζ', 'Z'),
+    ];
+    if let Some(&(_, k)) = GREEK_MAP.iter().find(|(g, _)| *g == c) {
+        let gr = GR.get_or_init(|| parse(GREEK));
+        return gr.get(&k).map(norm);
+    }
+    // i simboli di mathlow (nella posizione del carattere ASCII indicato)
+    const MATH_MAP: [(char, char); 16] = [
+        ('∓', '"'), ('≡', '@'), ('∝', '^'), ('∞', '_'), ('⊂', 'd'), ('∪', 'e'), ('⊃', 'f'), ('∩', 'g'), ('∈', 'h'),
+        ('∂', 'm'), ('∇', 'n'), ('∫', 'p'), ('∃', 'v'), ('∥', 'y'), ('⊥', 'z'), ('∠', '|'),
+    ];
+    if let Some(&(_, k)) = MATH_MAP.iter().find(|(g, _)| *g == c) {
+        let ma = MA.get_or_init(|| parse(MATHLOW));
+        return ma.get(&k).map(norm);
+    }
+    match c {
+        '∑' => char_glyph(style, 'Σ'),
+        '∏' => char_glyph(style, 'Π'),
+        _ => None,
+    }
 }
 
 /// Tutti i caratteri che so scrivere a mano, coi loro tratti (unità di

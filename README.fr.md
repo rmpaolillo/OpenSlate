@@ -149,6 +149,15 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   (par défaut), à la main (les mêmes lettres avec les irrégularités de la main) ou écriture
   naturelle (une vraie police manuscrite, Kalam, réduite à des lignes simples pour rester des traits
   de stylet).
+- **Réécrire au propre.** Accueil → « Réécrire au propre » : l'IA lit ce que vous avez écrit, ligne
+  par ligne et formules comprises, et la page l'affiche dans une écriture claire avec les maths
+  mises en page comme dans un cahier soigné : fractions en colonne, petits exposants et indices,
+  racines avec leur signe, l'accolade des systèmes, parenthèses aussi hautes que leur contenu,
+  lettres grecques, sommes et intégrales. Avec le bouton pour toute la page, ou toute seule à chaque
+  pause (« Aussi pendant que j'écris »). Seuls l'affichage et les exports changent : vos traits sont
+  conservés (l'IA lit ceux-là), maintenez **O** pour les voir, et une ligne sur laquelle vous
+  écrivez encore est relue. La lecture utilise l'agent de « La lecture des pages (OCR) » dans
+  `ai.toml`.
 - **Le chat écrit sur le tableau.** Demandez-lui « vérifiez mes additions et marquez les erreurs »,
   « soulignez les échéances » ou « écrivez le résultat à côté de la ligne 2 » : il lit la page du tableau ligne
   par ligne et mot par mot, puis surligne, souligne, entoure, barre, dessine des cadres,
