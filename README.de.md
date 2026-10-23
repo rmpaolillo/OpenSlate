@@ -343,10 +343,10 @@ Build-Abhängigkeiten unter Linux (Debian/Ubuntu):
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev cmake
 ```
 
-Unter macOS brauchst du die Xcode-Befehlszeilenwerkzeuge (`xcode-select --install`). Die kleinen Swift-Hilfsprogramme
+Unter macOS brauchst du die Xcode-Befehlszeilenwerkzeuge (`xcode-select --install`) und CMake (`brew install cmake`), das whisper.cpp für die Sprache im Chat baut. Die kleinen Swift-Hilfsprogramme
 (für die optionale Apple-Vision-OCR und das MP4-Video) werden bei der ersten Nutzung kompiliert oder sind im Release-`.app` enthalten.
 
 ## Projektstruktur

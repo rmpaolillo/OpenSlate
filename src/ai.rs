@@ -150,7 +150,7 @@ fallback = true
 #              suo modello di trascrizione (es. "voxtral-mini-latest" con
 #              Mistral, "whisper-large-v3-turbo" con Groq, "gpt-4o-transcribe"
 #              con OpenAI)
-#   language   "" = la lingua dell'interfaccia; "auto" = la riconosce; "it", "en"…
+#   language   "" = la lingua che parli (la riconosce); oppure fissa: "it", "en"…
 #   auto_send  true = il messaggio parte appena finisci di parlare
 [voice]
 engine = "whisper"
@@ -298,7 +298,7 @@ pub struct VoiceOpts {
     /// Whisper: large-v3-turbo, small o base. Un agente: il suo modello di trascrizione.
     #[serde(default = "default_voice_model")]
     pub model: String,
-    /// Vuota = la lingua dell'interfaccia; «auto» = la riconosce; oppure «it», «en»…
+    /// Vuota (o «auto») = la lingua che si parla, riconosciuta; oppure fissa: «it», «en»…
     #[serde(default)]
     pub language: String,
     /// true = il messaggio parte appena finisci di parlare.

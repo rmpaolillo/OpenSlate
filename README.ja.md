@@ -318,10 +318,10 @@ Linux のビルド依存関係（Debian/Ubuntu）:
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev cmake
 ```
 
-macOS では Xcode コマンドラインツール（`xcode-select --install`）が必要です。オプションの Apple Vision OCR と
+macOS では Xcode コマンドラインツール（`xcode-select --install`）と、チャットの音声入力用に whisper.cpp をビルドする CMake（`brew install cmake`）が必要です。オプションの Apple Vision OCR と
 MP4 動画用の小さな Swift ヘルパーは、初回使用時にコンパイルされるか、リリース版の `.app` に同梱されています。
 
 ## プロジェクト構成

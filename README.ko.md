@@ -342,10 +342,10 @@ Linux 빌드 의존성(Debian/Ubuntu):
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev cmake
 ```
 
-macOS에서는 Xcode 명령줄 도구가 필요합니다(`xcode-select --install`). 선택 사항인 Apple Vision
+macOS에서는 Xcode 명령줄 도구(`xcode-select --install`)와 채팅 음성 입력용 whisper.cpp를 빌드하는 CMake(`brew install cmake`)가 필요합니다. 선택 사항인 Apple Vision
 OCR과 MP4 동영상용 작은 Swift 도우미는 처음 사용할 때 컴파일되거나, 릴리스 `.app` 안에 포함되어 있습니다.
 
 ## 프로젝트 구조

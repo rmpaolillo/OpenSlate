@@ -134,6 +134,8 @@ l'app è firmata «ad hoc» e la prima volta va aperta da Impostazioni di sistem
 sicurezza → **Apri comunque**; gli aggiornamenti successivi, scaricati dall'app, no.
 
 Per compilare serve **Rust 1.95 o più recente** (i motori di WordCraft e PdfCraft lo chiedono): `rustup update`.
+Serve anche **CMake**, che compila whisper.cpp per la voce nella chat: `brew install cmake` su macOS,
+`sudo apt install cmake` su Linux (su Windows c'è già con Visual Studio).
 La prima compilazione è più lunga del solito; dalla seconda torna veloce.
 
 Il video MP4 usa il codificatore del sistema: AVFoundation su macOS, Media Foundation su Windows

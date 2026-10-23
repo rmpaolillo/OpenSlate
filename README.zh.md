@@ -310,10 +310,10 @@ Linux 构建依赖（Debian/Ubuntu）：
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev cmake
 ```
 
-在 macOS 上需要 Xcode 命令行工具（`xcode-select --install`）。用于可选的 Apple Vision OCR 和 MP4 视频的小型 Swift
+在 macOS 上需要 Xcode 命令行工具（`xcode-select --install`）和 CMake（`brew install cmake`，用于编译聊天语音输入所需的 whisper.cpp）。用于可选的 Apple Vision OCR 和 MP4 视频的小型 Swift
 辅助程序会在首次使用时编译，或已打包在发布版的 `.app` 中。
 
 ## 项目结构

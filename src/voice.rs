@@ -91,11 +91,13 @@ pub fn model_missing() -> Option<&'static Model> {
     }
 }
 
-/// La lingua di `[voice] language`: vuota = quella dell'interfaccia,
-/// «auto» = la riconosce Whisper.
+/// La lingua di `[voice] language`: vuota (o «auto») = quella che si parla,
+/// la riconosce Whisper; oppure una fissa («it», «en»…). Mai quella
+/// dell'interfaccia: con l'app in inglese e la voce in italiano Whisper
+/// tradurrebbe invece di trascrivere.
 fn language(setting: &str) -> Option<String> {
     match setting.trim() {
-        "" => Some(crate::i18n::lang().code().to_string()),
+        "" => None,
         s if s.eq_ignore_ascii_case("auto") => None,
         s => Some(s.to_ascii_lowercase()),
     }
@@ -743,6 +745,6 @@ mod tests {
         assert!(model_path(model("base")).ends_with("models/whisper/ggml-base-q5_1.bin"));
         assert_eq!(language("auto"), None);
         assert_eq!(language("EN").as_deref(), Some("en"));
-        assert!(language("").is_some());
+        assert_eq!(language(""), None);
     }
 }

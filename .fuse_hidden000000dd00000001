@@ -1,0 +1,246 @@
+[package]
+name = "openslate"
+version = "0.2.0"
+edition = "2021"
+authors = ["Marco Paolillo"]
+description = "Free, open-source companion app for the Wacom Bamboo Slate"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/rmpaolillo/OpenSlate"
+homepage = "https://github.com/rmpaolillo/OpenSlate"
+readme = "README.md"
+keywords = ["wacom", "bamboo-slate", "smartpad", "handwriting", "egui"]
+categories = ["gui", "hardware-support"]
+# I motori di WordCraft e PdfCraft (documenti Word e PDF) chiedono Rust 1.95
+rust-version = "1.95"
+publish = false
+
+[dependencies]
+# BLE cross-platform (su macOS usa CoreBluetooth, su Linux BlueZ/DBus, su Windows WinRT)
+btleplug = "0.11"
+uuid = "1"
+# chiave della diretta web (casuale, dal sistema)
+getrandom = "0.3"
+futures = "0.3"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "signal", "net", "io-util"] }
+
+# GUI nativa (eframe re-esporta egui come eframe::egui)
+eframe = "0.36"
+# Icone per i pulsanti (font Phosphor)
+egui-phosphor = "0.14"
+
+# Lingua del sistema (interfaccia multilingua)
+sys-locale = "0.3"
+
+# CLI + utility
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+thiserror = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+chrono = "0.4"
+
+# Export PNG (rasterizzazione dei tratti, anche per l'OCR)
+tiny-skia = "0.11"
+# OCR via modello con visione (API compatibile OpenAI)
+ureq = { version = "2", features = ["json"] }
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+base64 = "0.22"
+# Impronte SHA-256 dei file scaricati dall'aggiornamento
+sha2 = "0.10"
+# Configurazione dei provider AI (ai.toml)
+toml = "0.8"
+# Immagine negli appunti (Copia immagine → incolla in una chat AI)
+arboard = "3"
+# Documenti: lettura/scrittura PDF (firma sovrapposta), dialogo file
+lopdf = { version = "0.45", default-features = false }  # quello di PdfCraft (vedi [patch])
+rfd = { version = "0.14", default-features = false, features = ["gtk3"] }
+# Documenti Word (.docx, .doc, .odt, .rtf): pagine e firma col motore di WordCraft
+# (MIT OR Apache-2.0, © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
+wordcraft-engine = { git = "https://github.com/storytold/wordcraft", rev = "e05b7fe86f3b85454000dffc321de638d7009817" }
+# Foto (PNG, JPEG, WebP, TIFF…): le librerie di PhotoCraft per leggerle, scriverle e
+# disegnarci sopra col pennello (MIT OR Apache-2.0, © ArtCraft Team), senza la sua
+# interfaccia. Da GitHub, versione fissa.
+photocraft-codecs = { git = "https://github.com/storytold/photocraft", rev = "68348dcafcf42599846afaab42a8a724b630eed5" }
+photocraft-paint = { git = "https://github.com/storytold/photocraft", rev = "68348dcafcf42599846afaab42a8a724b630eed5" }
+photocraft-raster = { git = "https://github.com/storytold/photocraft", rev = "68348dcafcf42599846afaab42a8a724b630eed5" }
+photocraft-color = { git = "https://github.com/storytold/photocraft", rev = "68348dcafcf42599846afaab42a8a724b630eed5" }
+photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "68348dcafcf42599846afaab42a8a724b630eed5" }
+# Immagini SVG: pagine e firma col motore di VectorCraft (MIT OR Apache-2.0,
+# © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
+vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "cb0a7d9b31522dd57742b4cfe4550f2ec0a5e5c3" }
+vectorcraft-render = { git = "https://github.com/storytold/vectorcraft", rev = "cb0a7d9b31522dd57742b4cfe4550f2ec0a5e5c3" }
+# La chat AI modifica i documenti aperti coi server MCP della suite Craft, in
+# modalità headless dentro l'app (MIT OR Apache-2.0, © ArtCraft Team)
+wordcraft-mcp = { git = "https://github.com/storytold/wordcraft", rev = "e05b7fe86f3b85454000dffc321de638d7009817" }
+vectorcraft-mcp = { git = "https://github.com/storytold/vectorcraft", rev = "cb0a7d9b31522dd57742b4cfe4550f2ec0a5e5c3" }
+pdfcraft-automation = { git = "https://github.com/storytold/pdfcraft", rev = "416495145354828a9efefc39df381ba3ee8f864f" }
+pdfcraft-engine = { git = "https://github.com/storytold/pdfcraft", rev = "416495145354828a9efefc39df381ba3ee8f864f" }
+photocraft-automation = { git = "https://github.com/storytold/photocraft", rev = "68348dcafcf42599846afaab42a8a724b630eed5" }
+# Gli appunti scritti a mano esportati in Word: i caratteri dentro il file
+# (lo stesso zip che usa WordCraft)
+zip = { version = "3", default-features = false, features = ["deflate"] }
+# Espressioni delle funzioni nei grafici dell'AI (x^2 + sin(x)…)
+exmex = "0.20"
+# Formule dei Markdown aperti come documento: il LaTeX diventa Typst (MiTeX) e
+# Typst lo disegna in stile LaTeX (Apache-2.0), con i suoi font New Computer Modern.
+typst = "0.15.1"
+typst-render = "0.15.1"
+typst-layout = "0.15.1"
+typst-svg = "0.15.1"
+# (i font di Typst che servono sono in assets/fonts/typst: vedi src/typstworld.rs)
+mitex = "0.2.4"
+# I font dei documenti Markdown (Source Serif, Inter) registrati nel motore di WordCraft
+wordcraft-fonts = { git = "https://github.com/storytold/wordcraft", rev = "e05b7fe86f3b85454000dffc321de638d7009817" }
+# PDF: il disegno nitido delle pagine col motore di PdfCraft (MIT OR Apache-2.0,
+# © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
+pdfcraft-render = { git = "https://github.com/storytold/pdfcraft", rev = "416495145354828a9efefc39df381ba3ee8f864f" }
+# Chat e appunti dentro la finestra (WebView di sistema: WKWebView su macOS)
+wry = "0.57"
+tao = "0.37"
+
+[dev-dependencies]
+# le prove ritrovano i caratteri messi dentro un Word (src/docxfonts.rs)
+wordcraft-docx = { git = "https://github.com/storytold/wordcraft", rev = "e05b7fe86f3b85454000dffc321de638d7009817" }
+
+[profile.release]
+opt-level = 3
+# ottimizzato tutto insieme (LTO «thin»: la «fat» chiede più di 8 GB di memoria
+# e i runner di GitHub ne hanno 7), una sola unità per libreria: più piccolo
+lto = "thin"
+codegen-units = 1
+# senza i nomi dei simboli (−60 MB): crash.log tiene comunque il messaggio e
+# il punto del codice (file e riga)
+strip = true
+
+# Librerie che OpenSlate usa poco o mai, ma che arrivano con altre (JavaScript
+# e OCR dei PDF, bibliografie e colorazione del codice di Typst, formati di
+# immagine rari): ottimizzate per occupare poco, non per correre.
+[profile.release.package.biblatex]
+opt-level = "s"
+[profile.release.package.boa_ast]
+opt-level = "s"
+[profile.release.package.boa_engine]
+opt-level = "s"
+[profile.release.package.boa_gc]
+opt-level = "s"
+[profile.release.package.boa_interner]
+opt-level = "s"
+[profile.release.package.boa_parser]
+opt-level = "s"
+[profile.release.package.boa_string]
+opt-level = "s"
+[profile.release.package.citationberg]
+opt-level = "s"
+[profile.release.package.exr]
+opt-level = "s"
+[profile.release.package.hayagriva]
+opt-level = "s"
+[profile.release.package.jxl-bitstream]
+opt-level = "s"
+[profile.release.package.jxl-coding]
+opt-level = "s"
+[profile.release.package.jxl-color]
+opt-level = "s"
+[profile.release.package.jxl-frame]
+opt-level = "s"
+[profile.release.package.jxl-grid]
+opt-level = "s"
+[profile.release.package.jxl-image]
+opt-level = "s"
+[profile.release.package.jxl-jbr]
+opt-level = "s"
+[profile.release.package.jxl-modular]
+opt-level = "s"
+[profile.release.package.jxl-oxide]
+opt-level = "s"
+[profile.release.package.jxl-oxide-common]
+opt-level = "s"
+[profile.release.package.jxl-render]
+opt-level = "s"
+[profile.release.package.jxl-vardct]
+opt-level = "s"
+[profile.release.package.ocrs]
+opt-level = "s"
+[profile.release.package.rten]
+opt-level = "s"
+[profile.release.package.rten-base]
+opt-level = "s"
+[profile.release.package.rten-gemm]
+opt-level = "s"
+[profile.release.package.rten-imageproc]
+opt-level = "s"
+[profile.release.package.rten-model-file]
+opt-level = "s"
+[profile.release.package.rten-shape-inference]
+opt-level = "s"
+[profile.release.package.rten-simd]
+opt-level = "s"
+[profile.release.package.rten-tensor]
+opt-level = "s"
+[profile.release.package.rten-vecmath]
+opt-level = "s"
+[profile.release.package.syntect]
+opt-level = "s"
+[profile.release.package.two-face]
+opt-level = "s"
+[profile.release.package.wasmi]
+opt-level = "s"
+[profile.release.package.wasmi_collections]
+opt-level = "s"
+[profile.release.package.wasmi_core]
+opt-level = "s"
+[profile.release.package.wasmi_ir]
+opt-level = "s"
+[profile.release.package.wasmparser]
+opt-level = "s"
+
+# macOS: menu Modifica (Cmd+C / Cmd+V nella finestra «Appunti»)
+[target.'cfg(target_os = "macos")'.dependencies]
+muda = { version = "0.17", default-features = false }
+
+# Linux (X11): le WebView dentro la finestra usano GTK, che va fatto girare
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+
+# Le correzioni a librerie esterne che usano WordCraft e PdfCraft (le loro [patch]
+# valgono solo nei loro progetti: qui vanno ripetute).
+[patch.crates-io]
+# Typst compilato con hayro della suite Craft: vedi vendor/README.md
+typst-render = { path = "vendor/typst-render" }
+typst-svg = { path = "vendor/typst-svg" }
+# krilla e hayro-* da craft-libs (quelli di VectorCraft, che li vuole più nuovi);
+# hayro, lopdf e vello_common da PdfCraft
+krilla = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
+hayro-interpret = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
+hayro = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
+hayro-syntax = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
+hayro-jbig2 = { git = "https://github.com/storytold/craft-libs", rev = "ca50d63b773c99f96e75c77ce5a1d21e7c9cda0d" }
+lopdf = { git = "https://github.com/storytold/pdfcraft", rev = "416495145354828a9efefc39df381ba3ee8f864f" }
+vello_common = { git = "https://github.com/storytold/pdfcraft", rev = "416495145354828a9efefc39df381ba3ee8f864f" }
+
+# Pacchetto .deb (Linux), fatto dalla CI con cargo-deb
+[package.metadata.deb]
+name = "openslate"
+maintainer = "Marco Paolillo"
+copyright = "2026, Marco Paolillo"
+license-file = ["LICENSE", "0"]
+extended-description = "Free companion app for the Wacom Bamboo Slate: live board over Bluetooth, offline page sync, signing Word and PDF documents with the pen, handwriting transcription to text and an AI assistant."
+section = "graphics"
+priority = "optional"
+depends = "$auto, bluez"
+assets = [
+    ["target/release/openslate", "usr/bin/", "755"],
+    ["packaging/linux/openslate.desktop", "usr/share/applications/", "644"],
+    ["assets/icon/openslate-256.png", "usr/share/icons/hicolor/256x256/apps/openslate.png", "644"],
+    ["assets/icon/openslate-512.png", "usr/share/icons/hicolor/512x512/apps/openslate.png", "644"],
+    ["README.md", "usr/share/doc/openslate/README.md", "644"],
+    ["NOTICE", "usr/share/doc/openslate/NOTICE", "644"],
+    ["THIRD-PARTY.md", "usr/share/doc/openslate/THIRD-PARTY.md", "644"],
+    ["build/THIRD-PARTY-LICENSES.txt", "usr/share/doc/openslate/THIRD-PARTY-LICENSES.txt", "644"],
+]
+
+# L'impaginazione di WordCraft con le immagini nel testo spostabili sopra/sotto la riga
+# (per le formule dei Markdown): vedi vendor/README.md
+[patch."https://github.com/storytold/wordcraft"]
+wordcraft-layout = { path = "vendor/wordcraft-layout" }

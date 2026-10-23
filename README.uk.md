@@ -342,10 +342,10 @@ cargo test
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev cmake
 ```
 
-На macOS потрібні інструменти командного рядка Xcode (`xcode-select --install`). Невеликі допоміжні модулі на Swift
+На macOS потрібні інструменти командного рядка Xcode (`xcode-select --install`) і CMake (`brew install cmake`), який збирає whisper.cpp для голосу в чаті. Невеликі допоміжні модулі на Swift
 (необов'язковий OCR через Apple Vision і відео MP4) компілюються під час першого використання або входять до складу `.app` випуску.
 
 ## Структура проєкту

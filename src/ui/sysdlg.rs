@@ -6,7 +6,6 @@
 //! arriva mai e l'app resta bloccata. Su Linux quindi le finestre si fanno con
 //! GTK, nello stesso thread della finestra.
 
-use crate::i18n;
 use std::path::{Path, PathBuf};
 
 /// «Salva con nome»: `name` è il nome proposto (con l'estensione), `kind` e
@@ -60,6 +59,7 @@ mod imp {
 #[cfg(target_os = "linux")]
 mod imp {
     use super::*;
+    use crate::i18n;
     use gtk::prelude::*;
 
     /// GTK nel thread della finestra (se la chat l'ha già acceso, non fa niente).

@@ -344,10 +344,10 @@ Linux build dependencies (Debian/Ubuntu):
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev cmake
 ```
 
-On macOS you need the Xcode command-line tools (`xcode-select --install`). The small Swift
+On macOS you need the Xcode command-line tools (`xcode-select --install`) and CMake (`brew install cmake`), which builds whisper.cpp for the voice in the chat. The small Swift
 helpers (the optional Apple Vision OCR and the MP4 video) are compiled on first use, or bundled inside the release `.app`.
 
 ## Project layout

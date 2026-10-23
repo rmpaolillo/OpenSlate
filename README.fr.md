@@ -343,10 +343,10 @@ Dépendances de compilation sous Linux (Debian/Ubuntu) :
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev cmake
 ```
 
-Sur macOS, il vous faut les outils en ligne de commande de Xcode (`xcode-select --install`). Les petits utilitaires
+Sur macOS, il vous faut les outils en ligne de commande de Xcode (`xcode-select --install`) et CMake (`brew install cmake`), qui compile whisper.cpp pour la voix dans le chat. Les petits utilitaires
 Swift (l'OCR facultatif Apple Vision et la vidéo MP4) sont compilés à la première utilisation, ou intégrés dans le `.app` de la version publiée.
 
 ## Structure du projet
