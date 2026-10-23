@@ -117,6 +117,7 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   ersten Mal geladen, wenn du zustimmst; ein leichteres Modell oder ein Onlinedienst (OpenAI, Groq,
   Mistral…) lässt sich in `ai.toml` (`[voice]`) wählen. Esc bricht ab. Beim ersten Mal fragt macOS
   nach der Erlaubnis für das Mikrofon.
+  Er schreibt in der Sprache, die du sprichst, egal in welcher Sprache die App ist (`language` in `[voice]` legt eine fest).
 - **Der Chat schreibt auf die Tafel.** Bitte ihn: „prüf meine Rechnungen und markier die Fehler“,
   „unterstreich die Fristen“ oder „schreib das Ergebnis neben Zeile 2“: Er liest das Tafelblatt Zeile
   für Zeile und Wort für Wort, dann markiert, unterstreicht, umkreist, streicht durch, zeichnet Kästen,
@@ -294,6 +295,10 @@ ein, die bei der ersten Nutzung mit Kommentaren angelegt wird. Jeder Server, der
 (OCR)*): Wähle den Agenten, der die Handschrift für *Transkribieren* und für reine Text-Chatmodelle liest, oder
 lass das Feld leer, um den ersten Agenten der Liste zu verwenden, der Bilder sehen kann. Ein schneller wie Gemini
 wird empfohlen; `fallback = false` bedeutet „immer und nur dieser“.
+
+**Wer geantwortet hat.** Jede Antwort im Chat zeigt den Agenten und das Modell, die sie wirklich geschrieben haben (die Agenten werden der Reihe nach probiert, es muss also nicht der erste sein). Der Chat sagt dem Modell außerdem, welches es ist – Dienst, Adresse und Modell –, denn Modelle wissen das oft nicht und behaupten manchmal, ein anderes zu sein: Verlass dich auf die Angabe über der Antwort.
+
+**Sprache** (`[voice]` in `ai.toml`): `engine = "whisper"` (Standard, auf dem Computer) oder der Name eines Agenten mit `/audio/transcriptions` (OpenAI, Groq, Mistral…; mit `enabled = false`, damit der Chat ihn nicht nutzt); `model` (`large-v3-turbo`, `small`, `base` oder das Transkriptionsmodell des Dienstes); `language` (leer = die gesprochene Sprache); `auto_send = true` schickt die Nachricht ab, sobald du aufhörst zu sprechen.
 
 **API-Schlüssel werden nie im Klartext gespeichert.** `ai.toml` gibt nur an, *wo* jeder Schlüssel zu finden ist:
 

@@ -116,6 +116,7 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   Mac), sin conexión: tu voz no sale del ordenador. El modelo (547 MB) se descarga una vez, la
   primera, si aceptas; en `ai.toml` (`[voice]`) se puede elegir uno más ligero o un servicio en línea
   (OpenAI, Groq, Mistral…). Esc cancela. La primera vez macOS pide permiso para usar el micrófono.
+  Escribe en el idioma que hablas, sea cual sea el idioma de la aplicación (`language` en `[voice]` fija uno).
 - **El chat escribe en la pizarra.** Pídele «revisa mis sumas y marca los errores»,
   «subraya los plazos» o «escribe el resultado junto a la línea 2»: lee la hoja de la pizarra línea
   a línea y palabra a palabra, y después resalta, subraya, rodea con un círculo, tacha, dibuja recuadros,
@@ -293,6 +294,10 @@ que se crea con comentarios la primera vez que se usa. Funciona cualquier servid
 páginas*): elige el agente que lee la escritura a mano para *Transcribir* y para los modelos de chat solo de texto, o
 déjalo vacío para usar el primer agente de la lista que pueda ver imágenes. Se recomienda uno rápido como Gemini;
 `fallback = false` significa «siempre y solo ese».
+
+**Quién ha respondido.** Cada respuesta del chat muestra el agente y el modelo que la han escrito de verdad (los agentes se prueban en orden, así que puede no ser el primero). Además, el chat le dice al modelo cuál es —servicio, dirección y modelo—, porque los modelos a menudo no lo saben y pueden decir que son otro: fíate de la etiqueta encima de la respuesta.
+
+**Voz** (`[voice]` en `ai.toml`): `engine = "whisper"` (por defecto, en el ordenador) o el nombre de un agente con `/audio/transcriptions` (OpenAI, Groq, Mistral…; con `enabled = false` para que el chat no lo use); `model` (`large-v3-turbo`, `small`, `base` o el modelo de transcripción del servicio); `language` (vacío = el idioma que hablas); `auto_send = true` envía el mensaje en cuanto dejas de hablar.
 
 **Las claves de API nunca se guardan en texto plano.** `ai.toml` solo indica *dónde* encontrar cada clave:
 

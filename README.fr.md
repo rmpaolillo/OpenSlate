@@ -117,6 +117,7 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   télécharge une fois, la première, si vous acceptez ; un modèle plus léger ou un service en ligne
   (OpenAI, Groq, Mistral…) se choisit dans `ai.toml` (`[voice]`). Échap annule. La première fois,
   macOS demande l'autorisation d'utiliser le microphone.
+  Il écrit dans la langue que vous parlez, quelle que soit la langue de l'application (`language` dans `[voice]` en fixe une).
 - **Le chat écrit sur le tableau.** Demandez-lui « vérifiez mes additions et marquez les erreurs »,
   « soulignez les échéances » ou « écrivez le résultat à côté de la ligne 2 » : il lit la page du tableau ligne
   par ligne et mot par mot, puis surligne, souligne, entoure, barre, dessine des cadres,
@@ -294,6 +295,10 @@ Les fonctions d'IA sont facultatives. Les fournisseurs se configurent dans **Fic
 pages (OCR)*) : choisissez l'agent qui lit l'écriture manuscrite pour *Transcrire* et pour les modèles de chat texte seul, ou
 laissez vide pour utiliser le premier agent de la liste capable de voir les images. Un agent rapide comme Gemini
 est recommandé ; `fallback = false` signifie « toujours et uniquement celui-là ».
+
+**Qui a répondu.** Chaque réponse du chat indique l'agent et le modèle qui l'ont vraiment écrite (les agents sont essayés dans l'ordre, ce n'est donc pas forcément le premier). Le chat dit aussi au modèle lequel il est — service, adresse et modèle —, car les modèles ne le savent souvent pas et peuvent prétendre en être un autre : fiez-vous à l'étiquette au-dessus de la réponse.
+
+**Voix** (`[voice]` dans `ai.toml`) : `engine = "whisper"` (par défaut, sur l'ordinateur) ou le nom d'un agent qui parle `/audio/transcriptions` (OpenAI, Groq, Mistral… ; avec `enabled = false` pour que le chat ne l'utilise pas) ; `model` (`large-v3-turbo`, `small`, `base` ou le modèle de transcription du service) ; `language` (vide = la langue que vous parlez) ; `auto_send = true` envoie le message dès que vous cessez de parler.
 
 **Les clés d'API ne sont jamais stockées en clair.** `ai.toml` indique seulement *où* trouver chaque clé :
 

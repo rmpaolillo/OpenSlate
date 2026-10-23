@@ -118,6 +118,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   leaves the computer. The model (547 MB) is downloaded once, the first time, if you agree; a
   lighter one or an online service (OpenAI, Groq, Mistral…) can be chosen in `ai.toml` (`[voice]`).
   Esc cancels. The first time, macOS asks for permission to use the microphone.
+  It writes in the language you speak, whatever the language of the app (`language` in `[voice]` fixes one).
 - **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
   "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
   by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,
@@ -295,6 +296,10 @@ file, which is created on first use with comments. Any server that speaks the Op
 fogli*): pick the agent that reads handwriting for *Trascrivi* and for text-only chat models, or
 leave it empty to use the first agent in the list that can see images. A fast one such as Gemini
 is recommended; `fallback = false` means "always and only that one".
+
+**Who answered.** Every answer in the chat shows the agent and model that actually wrote it (agents are tried in order, so it may not be the first). The chat also tells the model which one it is, service, address and model, because models often do not know and may claim to be another one: trust the label above the answer.
+
+**Voice** (`[voice]` in `ai.toml`): `engine = "whisper"` (the default, on the computer) or the name of an agent that speaks `/audio/transcriptions` (OpenAI, Groq, Mistral…; set it to `enabled = false` so that the chat does not use it); `model` (`large-v3-turbo`, `small`, `base`, or the service's transcription model); `language` (empty = the language you speak); `auto_send = true` sends the message as soon as you stop talking.
 
 **API keys are never stored in plain text.** `ai.toml` only says *where* to find each key:
 
