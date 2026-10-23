@@ -28,5 +28,7 @@
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>OpenSlate connects to your Wacom Bamboo Slate over Bluetooth to download your pages.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>OpenSlate listens to the microphone only while you dictate to the AI chat (the microphone button).</string>
 </dict>
 </plist>

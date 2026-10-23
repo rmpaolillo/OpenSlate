@@ -489,10 +489,7 @@ impl App {
     pub(super) fn apply_doc(&mut self, a: DocAction) {
         match a {
             DocAction::OpenDialog => {
-                let picked = rfd::FileDialog::new()
-                    .set_title(i18n::t("Apri un documento da firmare"))
-                    .add_filter(i18n::t("Documenti"), crate::docimport::EXTENSIONS)
-                    .pick_file();
+                let picked = super::sysdlg::pick_file(i18n::t("Apri un documento da firmare"), i18n::t("Documenti"), crate::docimport::EXTENSIONS);
                 if let Some(p) = picked {
                     self.start_import(p);
                 }

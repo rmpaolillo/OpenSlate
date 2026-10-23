@@ -168,6 +168,10 @@ pub fn save_from_json(body: &[u8]) -> Value {
         // i server MCP esterni si scrivono solo a mano in ai.toml: la pagina
         // non li vede e non li cambia (un comando da eseguire non arriva da qui)
         cfg.mcp = old.mcp.clone();
+        // la voce si sceglie in ai.toml: la pagina la lascia com'è se non la manda
+        if v["config"].get("voice").is_none() {
+            cfg.voice = old.voice.clone();
+        }
         if let Some(k) = v["web_new_key"].as_str().map(str::trim).filter(|k| !k.is_empty()) {
             keychain_store("WACOM_AI_WEB_KEY", k)?;
             cfg.web.key = "keychain:WACOM_AI_WEB_KEY".into();

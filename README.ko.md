@@ -53,6 +53,7 @@
 - **필요한 형식으로 내보내기**: 검색 가능한 PDF, 손글씨를 편집 가능한 잉크로 담은 Word, 가벼운 JPEG/WebP, Xournal++, 페이지가 써지는 모습의 움직이는 GIF/SVG나 MP4 동영상, 변환된 텍스트로 만든 LaTeX 또는 Typst.
 - **원하는 AI 선택**: 로컬 모델(LM Studio, Ollama) 또는 클라우드 제공업체. API 키는 절대
   평문으로 저장되지 않습니다.
+- **채팅에 말하기.** 마이크로 받아쓰기: Whisper가 컴퓨터에서 오프라인으로 받아씁니다.
 - **무료 오픈 소스**이며 9개 언어를 지원하고, macOS(주 플랫폼), Linux, Windows에서 사용할 수 있습니다.
 
 ## 기능
@@ -110,6 +111,12 @@
   옆의 레이블로 이름을 붙입니다), 아니면 채팅이 텍스트, 체크 표시, 날짜를 알맞은 곳에 씁니다. 사용자가
   알려 준 정보만 쓰고 빠진 것은 물어봅니다. 서명은 절대 하지 않습니다. 서명은 사용자가 펜으로 하며,
   작성한 값은 서명된 사본에도 그대로 남습니다.
+- **채팅에 말하기.** 보내기 옆의 마이크를 클릭하거나, 말하는 동안 오른쪽 Alt(Option) 키를 누르고
+  있으세요: 말한 내용이 메시지 입력란에 들어가고, 고친 다음 보낼 수 있습니다. Whisper가
+  [whisper.cpp](https://github.com/ggml-org/whisper.cpp)(Mac에서는 GPU)로 컴퓨터에서 오프라인으로 받아쓰므로 목소리가 컴퓨터
+  밖으로 나가지 않습니다. 모델(547MB)은 처음에 동의한 경우에만 한 번 다운로드됩니다. 더 가벼운
+  모델이나 온라인 서비스(OpenAI, Groq, Mistral…)는 `ai.toml`(`[voice]`)에서 고를 수 있습니다. Esc를
+  누르면 취소됩니다. 처음에는 macOS가 마이크 사용 권한을 요청합니다.
 - **채팅이 보드에 씁니다.** "덧셈을 확인하고 틀린 곳을 표시해 줘", "마감일에 밑줄을 그어 줘",
   "2번째 줄 옆에 결과를 써 줘"라고 요청하면 보드 시트를 한 줄 한 줄, 한 단어 한 단어 읽은 다음
   강조 표시, 밑줄, 동그라미, 취소선, 상자, 화살표, 체크 표시와 X 표시를 하고, 손글씨로 씁니다
@@ -274,6 +281,7 @@ Gatekeeper가 다시 묻지 않습니다), `.deb`의 경우 `pkexec`를 통해 �
 대신 그 폴더에서 작업합니다. 그곳에는 `crash.log`(앱이 비정상 종료된 적이 있는 경우),
 `web.key`(웹 실시간 링크의 키), `updates/`(업데이트 후 보관되는 이전 버전의 앱)도 있습니다.
 Linux에서는 다운로드를 허용한 경우 `codecs/`에 Cisco의 OpenH264 인코더가 있습니다.
+`models/whisper/`에는 다운로드한 뒤 채팅 음성 입력용 Whisper 모델이 있습니다.
 
 ## AI 제공업체와 API 키
 
@@ -334,7 +342,7 @@ Linux 빌드 의존성(Debian/Ubuntu):
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
 ```
 
 macOS에서는 Xcode 명령줄 도구가 필요합니다(`xcode-select --install`). 선택 사항인 Apple Vision
@@ -362,6 +370,8 @@ src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (I
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
+src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

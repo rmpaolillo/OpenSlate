@@ -138,6 +138,26 @@ keep_recent = 4   # messaggi più recenti tenuti parola per parola
 agent = ""
 fallback = true
 
+# La voce nella chat (il microfono): chi trascrive quello che dici.
+#   engine     "whisper" = Whisper su questo computer: niente rete, l'audio
+#              non esce; il modello si scarica la prima volta, col tuo
+#              permesso. Oppure il nome di un agente qui sopra che trascrive
+#              l'audio (API /audio/transcriptions: OpenAI, Groq, Mistral…);
+#              un agente solo per la voce si mette con enabled = false, così
+#              la chat non lo usa
+#   model      per Whisper: "large-v3-turbo" (547 MB, il migliore), "small"
+#              (181 MB) o "base" (57 MB, il più leggero); per un agente: il
+#              suo modello di trascrizione (es. "voxtral-mini-latest" con
+#              Mistral, "whisper-large-v3-turbo" con Groq, "gpt-4o-transcribe"
+#              con OpenAI)
+#   language   "" = la lingua dell'interfaccia; "auto" = la riconosce; "it", "en"…
+#   auto_send  true = il messaggio parte appena finisci di parlare
+[voice]
+engine = "whisper"
+model = "large-v3-turbo"
+language = ""
+auto_send = false
+
 [web]
 enabled = true
 key = "dsh:DEEPSEEK_API_KEY | env:DEEPSEEK_API_KEY | keychain:DEEPSEEK_API_KEY"
@@ -268,6 +288,37 @@ impl Default for OcrOpts {
     }
 }
 
+/// La voce nella chat (il microfono): chi trascrive. Vedi `src/voice.rs`.
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct VoiceOpts {
+    /// «whisper» = Whisper sul computer; oppure il nome di un agente che
+    /// trascrive l'audio (`/audio/transcriptions`).
+    #[serde(default = "default_voice_engine")]
+    pub engine: String,
+    /// Whisper: large-v3-turbo, small o base. Un agente: il suo modello di trascrizione.
+    #[serde(default = "default_voice_model")]
+    pub model: String,
+    /// Vuota = la lingua dell'interfaccia; «auto» = la riconosce; oppure «it», «en»…
+    #[serde(default)]
+    pub language: String,
+    /// true = il messaggio parte appena finisci di parlare.
+    #[serde(default)]
+    pub auto_send: bool,
+}
+
+fn default_voice_engine() -> String {
+    "whisper".into()
+}
+fn default_voice_model() -> String {
+    "large-v3-turbo".into()
+}
+
+impl Default for VoiceOpts {
+    fn default() -> Self {
+        Self { engine: default_voice_engine(), model: default_voice_model(), language: String::new(), auto_send: false }
+    }
+}
+
 fn default_compact_at() -> u8 {
     80
 }
@@ -307,6 +358,9 @@ pub struct AiConfig {
     /// Lettura dei fogli (OCR).
     #[serde(default)]
     pub ocr: OcrOpts,
+    /// La voce nella chat (`[voice]`).
+    #[serde(default)]
+    pub voice: VoiceOpts,
     /// Agente scelto in chat: risponde solo lui. Gli altri servono comunque a
     /// leggere il foglio allegato se lui non vede le immagini. `None` = catena.
     #[serde(skip)]

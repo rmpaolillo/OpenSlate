@@ -27,12 +27,7 @@ pub fn start_dir(s: &Settings) -> PathBuf {
 /// «Salva con nome» per un file `<name>.<ext>`. `None` = annullato.
 /// Se si toglie l'estensione dal nome la si rimette.
 pub fn save_file(s: &mut Settings, title: &str, name: &str, kind: &str, ext: &str) -> Option<PathBuf> {
-    let mut p = rfd::FileDialog::new()
-        .set_title(i18n::tr(&title).into_owned())
-        .set_directory(start_dir(s))
-        .set_file_name(format!("{name}.{ext}"))
-        .add_filter(kind, &[ext])
-        .save_file()?;
+    let mut p = super::sysdlg::save_file(&i18n::tr(title), &start_dir(s), &format!("{name}.{ext}"), kind, ext)?;
     if !p.extension().is_some_and(|e| e.eq_ignore_ascii_case(ext)) {
         p = PathBuf::from(format!("{}.{ext}", p.display()));
     }
@@ -44,7 +39,7 @@ pub fn save_file(s: &mut Settings, title: &str, name: &str, kind: &str, ext: &st
 
 /// Sceglie una cartella (per più file insieme). `None` = annullato.
 pub fn pick_folder(s: &mut Settings, title: &str) -> Option<PathBuf> {
-    let dir = rfd::FileDialog::new().set_title(i18n::tr(&title).into_owned()).set_directory(start_dir(s)).pick_folder()?;
+    let dir = super::sysdlg::pick_folder(&i18n::tr(title), &start_dir(s))?;
     remember(s, &dir);
     Some(dir)
 }

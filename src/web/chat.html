@@ -183,6 +183,13 @@
   #send:hover { background: var(--accent-text); }
   #send.stop { background: var(--text); color: var(--panel); }
   #send svg { width: 15px; height: 15px; }
+  #micbtn { width: 28px; height: 28px; border-radius: 50%; position: relative; --lvl: 0; transition: box-shadow .08s linear; }
+  #micbtn.rec { background: #d93a3a; color: #fff; box-shadow: 0 0 0 calc(2px + var(--lvl) * 9px) rgba(217, 58, 58, .28); }
+  #micbtn.rec:hover { background: #c22f2f; }
+  #micbtn.busy, #micbtn.download { color: var(--accent); animation: micpulse 1.1s ease-in-out infinite; }
+  @keyframes micpulse { 50% { opacity: .35; } }
+  #micinfo { font-size: 11.5px; color: var(--text-dim); white-space: nowrap; }
+  #micinfo:empty { display: none; }
   #legend { display: none; position: fixed; z-index: 45; background: var(--menu); border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,.18); font-size: 12px; }
   #legend .bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--hover); margin: 4px 0 8px; position: relative; width: 240px; }
   #legend .bar i { display: block; height: 100%; }
@@ -256,6 +263,8 @@ li > input[type="checkbox"] { margin: 0 .45em 0 0; vertical-align: -1px; }
         <input type="file" id="imgfile" accept="image/*" multiple hidden>
         <span class="sp"></span>
         <span id="ctx" title="Contesto usato (clic per il dettaglio e per compattare)"></span>
+        <span id="micinfo" data-noi18n></span>
+        <button class="ib" id="micbtn" hidden title="Detta: clic per iniziare e per finire, oppure tieni premuto il tasto Alt (Opzione) di destra mentre parli"></button>
         <button id="send" title="Invia (Invio)"></button>
       </div>
     </div>
@@ -294,7 +303,7 @@ const P = {
   copy: "M9 9h11v11H9zM5 15H4V4h11v1", redo: "M20 8a8 8 0 10.5 7M20 3v5h-5", undo: "M4 8a8 8 0 11-.5 7M4 3v5h5", branch: "M6 3v12M18 9a3 3 0 100-6 3 3 0 000 6zM6 21a3 3 0 100-6 3 3 0 000 6zM18 9c0 6-12 3-12 9",
   check: "M5 12l5 5 9-11", chev: "M9 6l6 6-6 6", down: "M6 9l6 6 6-6", edit: "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", compact: "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7",
   gear: "M12 9a3 3 0 100 6 3 3 0 000-6zM19 12l2-1-1-3-2 .3-1.5-1.5L17 4l-3-1-1 2h-2L10 3 7 4l.5 2.8L6 8.3 4 8 3 11l2 1v0l-2 1 1 3 2-.3 1.5 1.5L7 20l3 1 1-2h2l1 2 3-1-.5-2.8 1.5-1.5 2 .3 1-3z",
-  image: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 9h.01", user: "M12 12a4 4 0 100-8 4 4 0 000 8zM5 20a7 7 0 0114 0",
+  image: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 9h.01", mic: "M12 3a3 3 0 00-3 3v6a3 3 0 006 0V6a3 3 0 00-3-3zM5 11a7 7 0 0014 0M12 18v3", user: "M12 12a4 4 0 100-8 4 4 0 000 8zM5 20a7 7 0 0114 0",
   pen: "M4 20l4-1 11-11-3-3L5 16zM14 6l3 3", trash: "M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3", hammer: "M14 4l6 6-3 3-6-6zM11 7L3 15l3 3 8-8",
 };
 function ic(n, cls) { return "<svg class='i " + (cls || "") + "' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='" + (P[n] || "") + "'/></svg>"; }
@@ -538,7 +547,7 @@ function toast(text, action, fn) {
   b.onclick = async () => { t.classList.remove("show"); if (fn) await fn(); };
   t.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 9000);
+  toastTimer = setTimeout(() => t.classList.remove("show"), action ? 30000 : 9000);
 }
 async function deleteChats(ids) {
   ids = [...new Set(ids)].filter(Boolean);
@@ -1309,6 +1318,75 @@ async function exportMd() {
 }
 
 // ---------------- dall'app (WebView incorporata) ----------------
+// ---------------- voce: il microfono lo registra l'app, qui solo i comandi ----------------
+// stati: idle, rec (registra), busy (trascrive), download (scarica il modello di Whisper)
+let micState = "idle", micPtt = false, micTimer = null, micSince = 0;
+const micBtn = $("micbtn");
+micBtn.innerHTML = ic("mic");
+if (window.ipc) micBtn.hidden = false;
+function micInfo(t) { $("micinfo").textContent = t || ""; }
+function setMic(st) {
+  micState = st;
+  micBtn.classList.toggle("rec", st === "rec");
+  micBtn.classList.toggle("busy", st === "busy");
+  micBtn.classList.toggle("download", st === "download");
+  if (st !== "rec") micBtn.style.setProperty("--lvl", 0);
+  micBtn.title = st === "rec" ? T("Ti ascolto: clic (o Invio) per finire, Esc per annullare")
+    : st === "busy" ? T("Trascrivo…")
+    : st === "download" ? T("Scarico il modello di Whisper… (Esc per annullare)")
+    : T("Detta: clic per iniziare e per finire, oppure tieni premuto il tasto Alt (Opzione) di destra mentre parli");
+  if (st === "rec") { micSince = Date.now(); micInfo(T("Ti ascolto…")); }
+  else if (st === "busy") micInfo(T("Trascrivo…"));
+  else if (st === "idle") micInfo("");
+}
+function micStart(ptt) { if (micState !== "idle") return; micPtt = !!ptt; toApp({ cmd: "voice", action: "start" }); }
+function micStop() { if (micState === "rec") toApp({ cmd: "voice", action: "stop" }); }
+function micCancel() { toApp({ cmd: "voice", action: "cancel" }); }
+micBtn.onclick = () => { if (micState === "idle") micStart(false); else if (micState === "rec") micStop(); };
+// tenere premuto il tasto Alt (Opzione) di destra: dopo un attimo registra, lasciandolo trascrive
+// (un altro tasto premuto nel frattempo è una scorciatoia, per esempio AltGr+ò per la @: niente voce)
+document.addEventListener("keydown", (e) => {
+  if (e.code === "AltRight" && !e.repeat && micState === "idle" && window.ipc) {
+    clearTimeout(micTimer);
+    micTimer = setTimeout(() => { micTimer = null; micStart(true); }, 280);
+    return;
+  }
+  if (micTimer) { clearTimeout(micTimer); micTimer = null; }
+  if (e.key === "Escape" && (micState === "rec" || micState === "download")) { e.preventDefault(); micCancel(); return; }
+  if (e.key === "Enter" && micState === "rec") { e.preventDefault(); e.stopPropagation(); micStop(); }
+}, true);
+document.addEventListener("keyup", (e) => {
+  if (e.code !== "AltRight") return;
+  if (micTimer) { clearTimeout(micTimer); micTimer = null; return; }
+  if (micPtt && micState === "rec") { micPtt = false; micStop(); }
+});
+window.addEventListener("blur", () => { if (micTimer) { clearTimeout(micTimer); micTimer = null; } if (micPtt && micState === "rec") { micPtt = false; micStop(); } });
+// il testo dettato va dov'è il cursore (o in fondo), con lo spazio giusto
+function insertDictated(text) {
+  const a = q.selectionStart ?? q.value.length, b = q.selectionEnd ?? q.value.length;
+  const before = q.value.slice(0, a), after = q.value.slice(b);
+  const sep = before && !/\s$/.test(before) ? " " : "";
+  const sep2 = after && !/^\s/.test(after) ? " " : "";
+  q.value = before + sep + text + sep2 + after;
+  const at = (before + sep + text).length;
+  q.focus(); q.setSelectionRange(at, at);
+  grow(); drawMeter();
+}
+function onVoice(ev) {
+  if (ev.state) setMic(ev.state);
+  if (ev.level !== undefined && micState === "rec") {
+    micBtn.style.setProperty("--lvl", Math.min(1, Math.sqrt(ev.level) * 2.2).toFixed(3));
+    const s = Math.floor((Date.now() - micSince) / 1000);
+    micInfo(T("Ti ascolto…") + " " + Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"));
+  }
+  if (ev.total) micInfo(T("Scarico Whisper: {} di {} MB", Math.round(ev.done / 1048576), Math.round(ev.total / 1048576)));
+  if (ev.text) { insertDictated(ev.text); if (ev.send) submit(); }
+  if (ev.error) toast("⚠ " + tr(ev.error));
+  if (ev.info) toast(tr(ev.info));
+  // la prima volta: Whisper si scarica solo se l'utente vuole
+  if (ev.offer) toast(T("Per dettare su questo computer serve il modello di Whisper «{}» ({} MB): si scarica una volta sola, poi funziona senza rete e la tua voce non esce dal computer.", ev.offer.name, ev.offer.mb), T("Scarica"), () => toApp({ cmd: "voice", action: "download" }));
+}
+
 window.wsChat = {
   // un appunto diverso arriva con la sua scheda accesa (non quella spenta di prima)
   // `board` = è l'appunto della pagina in lavagna: vale solo nelle chat che hanno quella pagina
@@ -1330,6 +1408,7 @@ window.wsChat = {
     q.value = CHECK; grow(); submit();
   },
   dropHint: (on) => document.body.classList.toggle("drophint", !!on),
+  voice: onVoice,
   reloadConfig: async () => { await loadConfig(); if (cur) { drawBar(); setMax(); drawChips(); } },
 };
 

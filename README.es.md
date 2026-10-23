@@ -52,6 +52,7 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
 - **Exporta a lo que necesites**: PDF con búsqueda, Word con la escritura como tinta editable, JPEG/WebP ligeros, Xournal++, un GIF, SVG o vídeo MP4 de la página escribiéndose, y LaTeX o Typst desde la transcripción.
 - **La IA que tú elijas**: modelos locales (LM Studio, Ollama) o proveedores en la nube; las claves de API nunca se guardan
   en texto plano.
+- **Habla con el chat.** Dicta con el micrófono: Whisper transcribe en tu ordenador, sin conexión.
 - **Libre y de código abierto**, en nueve idiomas, para macOS (plataforma principal), Linux y Windows.
 
 ## Funciones
@@ -109,6 +110,12 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   según sus etiquetas), o el chat escribe texto, marcas y la fecha donde corresponde. Solo usa lo
   que le dices y pregunta lo que falta. Nunca firma: la firma la pones tú con el lápiz, y los
   valores rellenados quedan en la copia firmada.
+- **Habla con el chat.** Haz clic en el micrófono junto a Enviar, o mantén pulsada la tecla Alt
+  (Opción) derecha mientras hablas: las palabras llegan al cuadro del mensaje, listas para corregir
+  y enviar. Whisper las transcribe en tu ordenador con [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (en la GPU en los
+  Mac), sin conexión: tu voz no sale del ordenador. El modelo (547 MB) se descarga una vez, la
+  primera, si aceptas; en `ai.toml` (`[voice]`) se puede elegir uno más ligero o un servicio en línea
+  (OpenAI, Groq, Mistral…). Esc cancela. La primera vez macOS pide permiso para usar el micrófono.
 - **El chat escribe en la pizarra.** Pídele «revisa mis sumas y marca los errores»,
   «subraya los plazos» o «escribe el resultado junto a la línea 2»: lee la hoja de la pizarra línea
   a línea y palabra a palabra, y después resalta, subraya, rodea con un círculo, tacha, dibuja recuadros,
@@ -274,6 +281,7 @@ Puedes cambiarlo con la variable de entorno `OPENSLATE_DATA`. Cuando se inicia c
 `crash.log` (si la aplicación llegó a bloquearse), `web.key` (la clave del enlace web en directo) y `updates/`
 (la versión anterior de la aplicación, conservada tras una actualización). En Linux, `codecs/` guarda el
 codificador OpenH264 de Cisco, si permitiste la descarga.
+`models/whisper/` guarda el modelo de Whisper para la voz en el chat, una vez descargado.
 
 ## Proveedores de IA y claves de API
 
@@ -334,7 +342,7 @@ Dependencias de compilación en Linux (Debian/Ubuntu):
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
 ```
 
 En macOS necesitas las herramientas de línea de comandos de Xcode (`xcode-select --install`). Los pequeños asistentes
@@ -362,6 +370,8 @@ src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (I
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
+src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

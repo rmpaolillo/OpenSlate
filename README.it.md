@@ -20,6 +20,7 @@ Non è un prodotto Wacom e non è collegata a Wacom.
 - **Esporti in quello che ti serve**: PDF ricercabile, Word con la scrittura come inchiostro
   modificabile, JPEG/WebP leggeri, Xournal++, GIF, SVG o video MP4 della pagina che si scrive, LaTeX
   o Typst dalla trascrizione.
+- **Parli alla chat.** Detti col microfono: Whisper trascrive sul tuo computer, senza rete.
 - **L'AI che vuoi tu**: modelli locali (LM Studio, Ollama) o in cloud; le chiavi API mai in chiaro.
 - **Libera e open source**, in nove lingue, per macOS (piattaforma principale), Linux e Windows.
 
@@ -111,6 +112,7 @@ Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le
 | Agenti AI con riserva | In `ai.toml`: prima i modelli locali (LM Studio, Ollama), poi DeepSeek, Google Gemini, Anthropic Claude. Se uno non risponde si passa al successivo; la chat dice chi ha risposto e chi è stato saltato. Vedi sotto |
 | Grafici e modifiche nei documenti | Chiedi alla chat un grafico («disegna le due rette e la soluzione»): lo disegna in stile LaTeX con [Typst](https://typst.app) e [Lilaq](https://lilaq.org) (funzioni, punti, rette, barre, curve parametriche) e lo mostra nella risposta. Con un documento allegato alla chat lo può anche leggere e **modificare**, e metterci il grafico, coi server MCP della suite Craft che girano dentro l'app: WordCraft per i Word, PdfCraft per i PDF, VectorCraft per gli SVG, PhotoCraft per le foto (ritaglia, ridimensiona, ruota, luminosità, livelli, curve, bianco e nero, nitidezza…; la foto resta nel suo formato), e strumenti sul testo per i Markdown. Ogni modifica si vede subito nel documento accanto e si annulla dalla chat con un clic; il file originale sul disco non si tocca. Sugli appunti delle trascrizioni il grafico va al posto della figura disegnata a mano; sul foglio della lavagna (una pagina dello Slate) va al posto del disegno a mano, che OpenSlate trova da solo (assi ed etichette), o sotto lo scritto. Un SVG scritto dal modello nella risposta si vede disegnato |
 | Compilare i moduli PDF | Con un modulo PDF allegato alla chat, chiedile «compila questo modulo con i miei dati»: legge i campi e li compila con PdfCraft. Un modulo stampato o scansionato senza campi li riceve prima (PdfCraft trova gli spazi da riempire e li chiama come le etichette accanto), oppure la chat scrive testo, crocette e data dove servono. Usa solo quello che le dici e chiede quello che manca. Non firma mai: la firma la metti tu con la penna, e i valori compilati restano nella copia firmata |
+| Parlare alla chat | Clic sul microfono accanto a Invia, oppure tieni premuto il tasto Alt (Opzione) di destra mentre parli: le parole finiscono nel riquadro del messaggio, da correggere e mandare. Le trascrive Whisper sul tuo computer con [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (sui Mac sulla scheda grafica), senza rete: la voce non esce dal computer. Il modello (547 MB) si scarica una volta sola, la prima, se sei d'accordo; in `ai.toml` (`[voice]`) si sceglie un modello più leggero o un servizio in rete (OpenAI, Groq, Mistral…), e `auto_send = true` manda il messaggio appena finisci di parlare. Esc annulla. La prima volta macOS chiede il permesso per il microfono |
 | La chat scrive sulla lavagna | Chiedile «controlla i conti e segna gli errori», «sottolinea le scadenze», «scrivi il risultato accanto alla seconda riga»: legge il foglio riga per riga e parola per parola, poi evidenzia, sottolinea, cerchia, barra, fa riquadri, frecce, spunte e croci, e scrive a mano (stampatello o corsivo, coi caratteri di [Hershey](https://it.wikipedia.org/wiki/Hershey_fonts) a filo singolo: tratti veri). Se glielo chiedi sposta, ingrandisce, ricolora o cancella quello che c'è («il titolo più grande e blu», «sposta l'ultima riga più giù», «togli i miei evidenziatori»); da sola aggiunge soltanto, e per cancellare buona parte del foglio aspetta il tuo sì nella chat. Quello che fa è inchiostro come il tuo (si salva, si esporta, si cancella) e si toglie tutto con un clic nella chat |
 | La chat conosce l'archivio | «Trova la pagina dove ho scritto del bilancio di ottobre», «apri sulla lavagna gli appunti di ieri», «salva la lavagna come Riunione e dammi una pagina nuova», «esporta in un PDF le pagine di questa settimana»: cerca per titolo, data e testo delle trascrizioni, guarda una pagina, la apre sulla lavagna, salva la lavagna (aggiornando la pagina da cui viene), rinomina, esporta nella cartella dove esporti di solito (senza mai sovrascrivere), sposta nel cestino e riprende. Per il cestino aspetta sempre il tuo sì nella chat |
 | Server MCP | Altri server MCP (stdio) in `ai.toml`, come in Claude Desktop o DSH: `[[mcp]]` con `name`, `command`, `args`, `env` (valori come le chiavi: `env:`, `keychain:`, `dsh:`), `enabled`, `timeout`. I loro strumenti arrivano alla chat come `nome__strumento` |
@@ -284,7 +286,8 @@ dei dati dell'utente: macOS `~/Library/Application Support/OpenSlate`, Linux
 `~/.local/share/openslate`, Windows `%APPDATA%\OpenSlate` (si cambia con `OPENSLATE_DATA`).
 Lì ci sono anche `crash.log` (se l'app è andata in crash), `web.key` (la chiave del link della
 diretta web), `updates/` (la versione precedente dell'app, tenuta dopo un aggiornamento) e, su
-Linux, `codecs/` (il codificatore OpenH264 di Cisco, se ne hai permesso lo scaricamento).
+Linux, `codecs/` (il codificatore OpenH264 di Cisco, se ne hai permesso lo scaricamento). In
+`models/whisper/` c'è il modello di Whisper per la voce nella chat, una volta scaricato.
 
 ## Struttura
 
@@ -314,6 +317,8 @@ src/craftexport.rs export con VectorCraft (SVG, PDF) e PhotoCraft (PNG, JPEG, We
 src/formats.rs    i formati d'uscita delle pagine: PDF ricercabile (testo invisibile), Word con l'inchiostro, Xournal++, GIF e SVG animati
 src/mdconv.rs     gli appunti in LaTeX e Typst (e in testo semplice per i PDF ricercabili)
 src/video.rs      il video MP4 della pagina che si riscrive: AVFoundation (macOS, con src/swift/video_mp4.swift), Media Foundation (Windows), ffmpeg o OpenH264 di Cisco (Linux)
+src/voice.rs      la voce nella chat: il microfono (cpal) e chi trascrive, Whisper sul computer (whisper.cpp) o un servizio in rete (src/ui/voice_ui.rs: il pulsante e il tasto)
+src/ui/sysdlg.rs  le finestre del sistema (rfd; su Linux GTK nel thread della finestra, come la chat)
 src/figures.rs    figure della trascrizione ridisegnate dai tratti veri della penna
 src/update.rs     controllo degli aggiornamenti (ultima release su GitHub)
 src/selfupdate.rs aggiornamento dentro l'app: scarica, controlla le impronte, installa, riavvia

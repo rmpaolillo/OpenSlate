@@ -16,6 +16,8 @@ documents/
 exports/
 chats/
 charts/
+models/
+codecs/
 signatures/
 captures/
 *.log

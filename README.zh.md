@@ -48,6 +48,7 @@ Inkspace——这块手写板所依赖的应用，于是这台硬件眼看就要
   以印刷字体或手写字体呈现。
 - 导出为你需要的格式：可搜索的 PDF、手写为可编辑墨迹的 Word、轻量的 JPEG/WebP、Xournal++、重现书写过程的 GIF、SVG 动画或 MP4 视频，以及由转写生成的 LaTeX 或 Typst。
 - 自由选择 AI：本地模型（LM Studio、Ollama）或云端服务商；API 密钥从不以明文保存。
+- 和聊天说话。用麦克风听写：Whisper 在你的电脑上离线转写。
 - 免费开源，支持九种语言，适用于 macOS（主要平台）、Linux 和 Windows。
 
 ## 功能
@@ -96,6 +97,10 @@ Inkspace——这块手写板所依赖的应用，于是这台硬件眼看就要
   没有字段的纸质或扫描表单会先生成字段（PdfCraft 找出空白处，并按旁边的标签命名），或者由聊天在合适的位置
   写上文字、勾选标记和日期。它只使用你告诉它的信息，缺少的会向你询问。它从不签名：签名由你用笔完成，
   填写的内容也会保留在签名后的副本中。
+- 和聊天说话。点击“发送”旁边的麦克风，或在说话时按住右侧的 Alt（Option）键：说的话会进入消息框，
+  改好后再发送。Whisper 借助 [whisper.cpp](https://github.com/ggml-org/whisper.cpp)（在 Mac 上使用 GPU）在你的电脑上离线转写，
+  你的声音不会离开电脑。模型（547 MB）只在第一次、你同意后下载一次；也可以在 `ai.toml`（`[voice]`）
+  中选择更小的模型或在线服务（OpenAI、Groq、Mistral…）。按 Esc 取消。第一次使用时，macOS 会请求麦克风权限。
 - 聊天会在画板上书写。让它「检查我的算式并标出错误」「给截止日期划线」或「在第 2 行旁边写上结果」：
   它会逐行、逐词读取画板页面，然后进行高亮、下划线、圈注、删除线、画框、画箭头、打勾和打叉，
   并用手写体书写（印刷体或连笔体，由 [Hershey](https://en.wikipedia.org/wiki/Hershey_fonts) 单线字体的笔画构成）。
@@ -245,6 +250,7 @@ OpenSlate 会像 Craft 系列应用一样，在你确认后自行更新。当 Gi
 它会改为在该文件夹中工作。在数据文件夹中还能找到 `crash.log`（如果应用曾经崩溃）、`web.key`
 （网页实时链接的密钥）和 `updates/`（更新后保留的上一版本应用）。在 Linux 上，如果你允许下载，
 `codecs/` 中存放 Cisco 的 OpenH264 编码器。
+下载后，`models/whisper/` 中存放聊天语音输入所用的 Whisper 模型。
 
 ## AI 服务商与 API 密钥
 
@@ -304,7 +310,7 @@ Linux 构建依赖（Debian/Ubuntu）：
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
 ```
 
 在 macOS 上需要 Xcode 命令行工具（`xcode-select --install`）。用于可选的 Apple Vision OCR 和 MP4 视频的小型 Swift
@@ -332,6 +338,8 @@ src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (I
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
+src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

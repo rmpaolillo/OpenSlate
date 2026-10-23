@@ -50,6 +50,7 @@ Issue やプルリクエストを歓迎します。[CONTRIBUTING.md](CONTRIBUTIN
   活字でも手書きフォントでも出力できます。
 - **必要な形式で書き出し**：検索できる PDF、手書きを編集できるインクにした Word、軽い JPEG/WebP、Xournal++、ページが書かれていく様子のアニメーション GIF / SVG や MP4 動画、文字起こしから作る LaTeX または Typst。
 - **AI は自由に選べます**: ローカルモデル（LM Studio、Ollama）またはクラウドプロバイダー。API キーが平文で保存されることはありません。
+- **チャットに話しかける。** マイクで音声入力：Whisper がコンピュータ上でオフラインで文字起こしします。
 - **無料でオープンソース**、9 か国語対応、macOS（メインプラットフォーム）、Linux、Windows で動作します。
 
 ## 機能
@@ -100,6 +101,12 @@ Issue やプルリクエストを歓迎します。[CONTRIBUTING.md](CONTRIBUTIN
   フィールドを作成します（PdfCraft が空欄を見つけ、ラベルから名前を付けます）。または、チャットが
   テキスト、チェックマーク、日付を適切な場所に書き込みます。使うのはあなたが伝えた情報だけで、足りない
   ものは質問します。署名は決してしません。署名はあなたがペンで行い、記入した値は署名済みのコピーにも残ります。
+- **チャットに話しかける。** 送信ボタンの横のマイクをクリックするか、話している間は右側の Alt（Option）
+  キーを押し続けます：言葉がメッセージ欄に入り、直してから送信できます。Whisper が
+  [whisper.cpp](https://github.com/ggml-org/whisper.cpp)（Mac では GPU）を使ってコンピュータ上でオフラインで文字起こしするので、
+  あなたの声がコンピュータの外に出ることはありません。モデル（547 MB）は初回に、同意した場合だけ
+  一度ダウンロードされます。`ai.toml`（`[voice]`）で、より軽いモデルやオンラインサービス（OpenAI、
+  Groq、Mistral…）も選べます。Esc でキャンセル。初回は macOS がマイクの使用許可を求めます。
 - **チャットがボードに書き込む。** 「計算をチェックして間違いに印を付けて」「締め切りに下線を引いて」
   「2 行目の横に結果を書いて」と頼むと、ボードの用紙を 1 行ずつ、1 単語ずつ読み取り、ハイライト、下線、丸囲み、取り消し線、
   枠、矢印、チェックマーク、バツ印を付け、手書きで書き込みます（活字体または筆記体。
@@ -251,6 +258,7 @@ macOS ではアップデートが `OpenSlate.app` を置き換えます（アプ
 代わりにそのフォルダーで動作します。そこには `crash.log`（アプリがクラッシュしたことがある場合）、`web.key`（Web ライブリンクのキー）、
 `updates/`（アップデート後に保持される、以前のバージョンのアプリ）もあります。Linux では、ダウンロードを
 許可した場合、`codecs/` に Cisco の OpenH264 エンコーダーが置かれます。
+`models/whisper/` には、ダウンロード後、チャットの音声入力用の Whisper モデルが置かれます。
 
 ## AI プロバイダーと API キー
 
@@ -310,7 +318,7 @@ Linux のビルド依存関係（Debian/Ubuntu）:
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
 ```
 
 macOS では Xcode コマンドラインツール（`xcode-select --install`）が必要です。オプションの Apple Vision OCR と
@@ -338,6 +346,8 @@ src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (I
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
+src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

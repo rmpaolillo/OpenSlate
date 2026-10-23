@@ -52,6 +52,7 @@ Issues і pull requests вітаються: див. [CONTRIBUTING.md](CONTRIBUTI
 - **Експорт у те, що потрібно**: PDF із пошуком, Word із письмом як чорнилом, яке можна редагувати, легкі JPEG/WebP, Xournal++, анімований GIF, SVG або відео MP4 сторінки, що пишеться, а також LaTeX чи Typst із розпізнаного тексту.
 - **ШІ на ваш вибір**: локальні моделі (LM Studio, Ollama) або хмарні провайдери; API-ключі ніколи не зберігаються
   відкритим текстом.
+- **Говоріть із чатом.** Диктуйте в мікрофон: Whisper розпізнає мову на вашому комп'ютері, без мережі.
 - **Безкоштовний і з відкритим кодом**, дев'ятьма мовами, для macOS (основна платформа), Linux і Windows.
 
 ## Можливості
@@ -109,6 +110,12 @@ Issues і pull requests вітаються: див. [CONTRIBUTING.md](CONTRIBUTI
   пише текст, позначки й дату там, де треба. Він використовує лише те, що ви йому сказали, і питає
   про те, чого бракує. Він ніколи не підписує: підпис ставите ви пером, а заповнені значення
   залишаються в підписаній копії.
+- **Говоріть із чатом.** Клацніть мікрофон поруч із «Надіслати» або тримайте праву клавішу Alt
+  (Option), поки говорите: слова з'являються в полі повідомлення, готові до виправлення й надсилання.
+  Whisper розпізнає їх на вашому комп'ютері за допомогою [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (на Mac — на
+  графічному процесорі), без мережі: ваш голос не залишає комп'ютер. Модель (547 МБ) завантажується
+  один раз, першого разу, якщо ви погодитеся; легшу модель чи онлайн-сервіс (OpenAI, Groq, Mistral…)
+  можна вибрати в `ai.toml` (`[voice]`). Esc скасовує. Першого разу macOS просить дозвіл на мікрофон.
 - **Чат пише на дошці.** Попросіть його «перевір мої обчислення й познач помилки»,
   «підкресли дедлайни» або «напиши результат поруч із рядком 2»: він читає аркуш дошки рядок
   за рядком і слово за словом, а потім виділяє, підкреслює, обводить, закреслює, малює рамки,
@@ -274,6 +281,7 @@ OpenSlate.
 `crash.log` (якщо застосунок колись аварійно завершувався), `web.key` (ключ вебпосилання наживо) і `updates/`
 (попередня версія застосунку, збережена після оновлення). На Linux у `codecs/` лежить кодувальник
 OpenH264 від Cisco, якщо ви дозволили завантаження.
+У `models/whisper/` — модель Whisper для голосу в чаті, коли її завантажено.
 
 ## ШІ-провайдери та API-ключі
 
@@ -334,7 +342,7 @@ cargo test
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
 ```
 
 На macOS потрібні інструменти командного рядка Xcode (`xcode-select --install`). Невеликі допоміжні модулі на Swift
@@ -362,6 +370,8 @@ src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (I
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
+src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

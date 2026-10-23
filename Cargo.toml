@@ -104,6 +104,12 @@ pdfcraft-render = { git = "https://github.com/storytold/pdfcraft", rev = "39844f
 # Chat e appunti dentro la finestra (WebView di sistema: WKWebView su macOS)
 wry = "0.57"
 tao = "0.37"
+# La voce nella chat: il microfono (CoreAudio, WASAPI, ALSA)...
+cpal = "0.18"
+# ...e chi trascrive: Whisper sul computer con whisper.cpp (MIT); il modello si
+# scarica la prima volta, col permesso dell'utente (vedi src/voice.rs)
+whisper-rs = { version = "0.16", features = ["tracing_backend"] }
+sha1 = "0.10"
 
 [dev-dependencies]
 # le prove ritrovano i caratteri messi dentro un Word (src/docxfonts.rs)
@@ -207,6 +213,8 @@ opt-level = "s"
 # macOS: menu Modifica (Cmd+C / Cmd+V nella finestra «Appunti»)
 [target.'cfg(target_os = "macos")'.dependencies]
 muda = { version = "0.17", default-features = false }
+# Whisper sulla scheda grafica (Metal) dei Mac
+whisper-rs = { version = "0.16", features = ["tracing_backend", "metal"] }
 
 # Linux (X11): le WebView dentro la finestra usano GTK, che va fatto girare
 [target.'cfg(target_os = "linux")'.dependencies]

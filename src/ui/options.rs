@@ -400,11 +400,7 @@ fn prefs_page(ui: &mut egui::Ui, p: &mut Prefs, ai: &mut bool) {
                     ui.label(egui::RichText::new(i18n::tr(&shown.display().to_string()).into_owned()).monospace());
                     ui.horizontal(|ui| {
                         if ui.button(i18n::t("Scegli…")).clicked() {
-                            if let Some(dir) = rfd::FileDialog::new()
-                                .set_title(i18n::t("Cartella proposta quando si salva o si esporta"))
-                                .set_directory(&shown)
-                                .pick_folder()
-                            {
+                            if let Some(dir) = super::sysdlg::pick_folder(i18n::t("Cartella proposta quando si salva o si esporta"), &shown) {
                                 d.save_dir = dir.to_string_lossy().into();
                             }
                         }

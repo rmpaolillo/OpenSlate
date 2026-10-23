@@ -138,6 +138,7 @@ impl App {
                 self.embeds.eval(Slot::Chat, "window.wsChat && wsChat.attachNow()");
             }
             "ocr" => actions.push(Action::Ocr),
+            "voice" if slot == Slot::Chat => self.on_voice(v["action"].as_str().unwrap_or("")),
             "close_pane" => self.chat_open = false,
             // il pulsante lasciato sopra la chat l'ha visto la pagina, non la finestra
             "drop_here" => {

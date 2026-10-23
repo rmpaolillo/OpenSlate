@@ -106,6 +106,12 @@ Third-party material
   (licence: https://www.openh264.org/BINARY_LICENSE.txt). macOS and Windows use their own system
   encoders (AVFoundation, Media Foundation).
 
+- Voice in the AI chat (src/voice.rs): whisper.cpp and ggml (MIT, Copyright (c) 2023-2024 The
+  ggml authors) are compiled into OpenSlate through the whisper-rs crate (Unlicense). The Whisper
+  model (OpenAI, MIT) is not distributed with OpenSlate: it is downloaded in whisper.cpp format
+  from huggingface.co/ggerganov/whisper.cpp the first time the user dictates, with their consent,
+  and kept only if its SHA-1 matches the one published by whisper.cpp.
+
 The full licence texts of all components are in THIRD-PARTY-LICENSES.txt in the release
 packages (packaging/collect_licenses.py).
 

@@ -54,6 +54,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   the transcription.
 - **Your choice of AI**: local models (LM Studio, Ollama) or cloud providers; API keys never stored
   in plain text.
+- **Talk to the chat.** Dictate with the microphone: Whisper transcribes on your computer, offline.
 - **Free and open source**, in nine languages, for macOS (main platform), Linux and Windows.
 
 ## Features
@@ -111,6 +112,12 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   writes text, check marks and the date where they belong. It only uses what you tell it and asks
   for what is missing. It never signs: the signature is yours, with the pen, and the filled-in
   values stay in the signed copy.
+- **Talk to the chat.** Click the microphone next to Send, or hold the right Alt (Option) key while
+  you speak: the words land in the message box, ready to correct and send. Whisper transcribes
+  them on your computer with [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (on the GPU on Macs), offline: your voice never
+  leaves the computer. The model (547 MB) is downloaded once, the first time, if you agree; a
+  lighter one or an online service (OpenAI, Groq, Mistral…) can be chosen in `ai.toml` (`[voice]`).
+  Esc cancels. The first time, macOS asks for permission to use the microphone.
 - **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
   "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
   by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,
@@ -276,6 +283,7 @@ You can override this with the `OPENSLATE_DATA` environment variable. When start
 `crash.log` (if the app ever crashed), `web.key` (the key of the web live link) and `updates/`
 (the previous version of the app, kept after an update). On Linux, `codecs/` holds Cisco's
 OpenH264 encoder, if you allowed the download.
+`models/whisper/` holds the Whisper model for the voice in the chat, once downloaded.
 
 ## AI providers and API keys
 
@@ -336,7 +344,7 @@ Linux build dependencies (Debian/Ubuntu):
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
 ```
 
 On macOS you need the Xcode command-line tools (`xcode-select --install`). The small Swift
@@ -364,6 +372,8 @@ src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (I
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
+src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Hardened-runtime entitlements for OpenSlate (as in ArtCraft Launcher). Deliberately empty:
+<!-- Hardened-runtime entitlements for OpenSlate (as in ArtCraft Launcher). Almost empty:
      the app is Rust, loads no unsigned code, needs no JIT and is not sandboxed (Bluetooth needs
      only the usage string in Info.plist). Add exceptions here only with a reason in a comment. -->
 <plist version="1.0">
 <dict>
+	<!-- Voice in the AI chat: with the hardened runtime the microphone needs this exception
+	     (plus NSMicrophoneUsageDescription in Info.plist); macOS still asks the user first. -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
 </dict>
 </plist>

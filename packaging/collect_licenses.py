@@ -78,6 +78,9 @@ def main():
         seen.add(key)
         folder = os.path.dirname(p["manifest_path"])
         files = license_files(folder)
+        # codice C/C++ compilato dentro il crate, con la sua licenza (whisper.cpp in whisper-rs-sys)
+        for sub in ("whisper.cpp",):
+            files += [f for f in license_files(os.path.join(folder, sub)) if f not in files]
         if p.get("license_file"):
             lf = os.path.join(folder, p["license_file"])
             if os.path.isfile(lf) and lf not in files:

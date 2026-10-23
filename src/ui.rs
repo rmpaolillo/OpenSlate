@@ -18,8 +18,10 @@ mod options;
 mod paper;
 mod quit;
 mod savedlg;
+mod sysdlg;
 mod ribbon;
 mod theme;
+mod voice_ui;
 mod widgets;
 mod workspace;
 mod zoom;
@@ -194,6 +196,7 @@ pub fn run_app(
         center_rect: None,
         banner_hidden: false,
         chat_drop_hint: false,
+        voice: voice_ui::VoiceUi::new(),
         drag_last_pos: None,
         drag_what: None,
         settings_open: false,
@@ -414,6 +417,8 @@ struct App {
     banner_hidden: bool,
     /// La chat mostra «lascia qui» (una scheda trascinata ci passa sopra).
     chat_drop_hint: bool,
+    /// Il microfono della chat.
+    voice: voice_ui::VoiceUi,
     /// Ultimo punto del puntatore mentre si trascina una scheda.
     drag_last_pos: Option<egui::Pos2>,
     /// Cosa si sta trascinando (se il rilascio lo vede solo la pagina della chat).
@@ -1463,13 +1468,7 @@ impl App {
                 "Per il video su Linux serve il codificatore H.264 OpenH264 di Cisco (gratuito, circa 1 MB): si scarica una volta sola dal sito di Cisco, che paga i diritti dell'H.264. In alternativa installa ffmpeg.\n\n{}\n\nScaricarlo adesso?",
                 crate::video::CISCO_NOTICE
             ));
-            let yes = rfd::MessageDialog::new()
-                .set_level(rfd::MessageLevel::Info)
-                .set_title(crate::i18n::t("Video MP4"))
-                .set_description(msg)
-                .set_buttons(rfd::MessageButtons::YesNo)
-                .show();
-            if yes != rfd::MessageDialogResult::Yes {
+            if !sysdlg::confirm(crate::i18n::t("Video MP4"), &msg) {
                 self.status = "Video non fatto: serve il codificatore di Cisco (o ffmpeg).".into();
                 return;
             }
@@ -2260,7 +2259,9 @@ impl eframe::App for App {
             self.chat_note_key = None;
             self.chat_note_sent = None;
         }
+        self.embeds.set_wake(ctx);
         self.drain_events();
+        self.voice_tick(ctx);
         self.chat_lib_requests(ctx);
         self.doc_tick(ctx);
         self.sync_chat_note();

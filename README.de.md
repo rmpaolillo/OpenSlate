@@ -52,6 +52,7 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
 - **Export in das, was du brauchst**: durchsuchbares PDF, Word mit der Handschrift als bearbeitbare Tinte, leichte JPEG/WebP, Xournal++, ein animiertes GIF, SVG oder MP4-Video der Seite, die sich schreibt, und LaTeX oder Typst aus der Transkription.
 - **Die KI deiner Wahl**: lokale Modelle (LM Studio, Ollama) oder Cloud-Anbieter; API-Schlüssel werden nie
   im Klartext gespeichert.
+- **Mit dem Chat sprechen.** Diktieren per Mikrofon: Whisper transkribiert auf deinem Computer, offline.
 - **Frei und Open Source**, in neun Sprachen, für macOS (Hauptplattform), Linux und Windows.
 
 ## Funktionen
@@ -109,6 +110,13 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   sie nach ihren Beschriftungen), oder der Chat schreibt Text, Häkchen und das Datum an die richtige
   Stelle. Er verwendet nur, was du ihm sagst, und fragt nach, was fehlt. Unterschreiben tut er nie:
   die Unterschrift setzt du mit dem Stift, und die ausgefüllten Werte bleiben in der unterschriebenen Kopie.
+- **Mit dem Chat sprechen.** Klick auf das Mikrofon neben Senden oder halte beim Sprechen die rechte
+  Alt-Taste (Wahltaste) gedrückt: Die Worte landen im Eingabefeld, bereit zum Korrigieren und Senden.
+  Whisper transkribiert sie auf deinem Computer mit [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (auf dem Mac auf der
+  Grafikkarte), offline: Deine Stimme verlässt den Computer nicht. Das Modell (547 MB) wird beim
+  ersten Mal geladen, wenn du zustimmst; ein leichteres Modell oder ein Onlinedienst (OpenAI, Groq,
+  Mistral…) lässt sich in `ai.toml` (`[voice]`) wählen. Esc bricht ab. Beim ersten Mal fragt macOS
+  nach der Erlaubnis für das Mikrofon.
 - **Der Chat schreibt auf die Tafel.** Bitte ihn: „prüf meine Rechnungen und markier die Fehler“,
   „unterstreich die Fristen“ oder „schreib das Ergebnis neben Zeile 2“: Er liest das Tafelblatt Zeile
   für Zeile und Wort für Wort, dann markiert, unterstreicht, umkreist, streicht durch, zeichnet Kästen,
@@ -274,6 +282,7 @@ Du kannst das mit der Umgebungsvariable `OPENSLATE_DATA` überschreiben. Wird di
 `crash.log` (falls die App je abgestürzt ist), `web.key` (den Schlüssel des Web-Live-Links) und `updates/`
 (die vorherige Version der App, aufbewahrt nach einem Update). Unter Linux liegt in `codecs/` der
 OpenH264-Encoder von Cisco, falls du den Download erlaubt hast.
+In `models/whisper/` liegt das Whisper-Modell für die Sprache im Chat, sobald es geladen ist.
 
 ## KI-Anbieter und API-Schlüssel
 
@@ -334,7 +343,7 @@ Build-Abhängigkeiten unter Linux (Debian/Ubuntu):
 
 ```bash
 sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev
+                 libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev libasound2-dev
 ```
 
 Unter macOS brauchst du die Xcode-Befehlszeilenwerkzeuge (`xcode-select --install`). Die kleinen Swift-Hilfsprogramme
@@ -362,6 +371,8 @@ src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (I
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
+src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
+src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
 packaging/, .github/workflows/                            app bundle, .deb, CI and releases

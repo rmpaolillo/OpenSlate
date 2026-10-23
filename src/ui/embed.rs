@@ -45,6 +45,9 @@ pub(super) struct Embeds {
     /// Angolo dell'area della finestra sullo schermo (punti; serve su Linux).
     #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
     origin: egui::Pos2,
+    /// Per svegliare la finestra quando una pagina manda un messaggio (un clic
+    /// nella pagina non la ridisegna: il microfono deve partire subito).
+    wake: Option<egui::Context>,
 }
 
 fn to_wry(r: egui::Rect) -> wry::Rect {
@@ -72,6 +75,7 @@ impl Embeds {
             #[cfg(target_os = "linux")]
             gtk: false,
             origin: egui::Pos2::ZERO,
+            wake: None,
         }
     }
 
@@ -102,6 +106,7 @@ impl Embeds {
             }
         }
         let tx = self.tx.clone();
+        let wake = self.wake.clone();
         let o1 = origin.to_string();
         let o2 = origin.to_string();
         let builder = wry::WebViewBuilder::new()
@@ -114,6 +119,9 @@ impl Embeds {
             .with_ipc_handler(move |req| {
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(req.body()) {
                     let _ = tx.send((slot, v));
+                    if let Some(c) = &wake {
+                        c.request_repaint();
+                    }
                 }
             })
             // le pagine dell'app restano qui; i link esterni nel browser
@@ -157,6 +165,13 @@ impl Embeds {
                 self.failed = Some(e.to_string());
                 false
             }
+        }
+    }
+
+    /// Il contesto da svegliare quando arriva un messaggio da una pagina.
+    pub fn set_wake(&mut self, ctx: &egui::Context) {
+        if self.wake.is_none() {
+            self.wake = Some(ctx.clone());
         }
     }
 

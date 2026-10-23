@@ -22,6 +22,8 @@ Per-file attributions are in [NOTICE](NOTICE). The release packages also contain
 | [Typst](https://github.com/typst/typst) | The Typst Project Developers | Apache-2.0 | `typst`, `typst-layout`, `typst-render`, `typst-assets` crates: the LaTeX formulas of Markdown files opened as documents are drawn by Typst in LaTeX style. `typst-render` and `typst-svg` are copied in `vendor/` with a one-line change each, to build against the Craft suite's `hayro` (see `vendor/README.md`). |
 | [Lilaq](https://github.com/lilaq-project/lilaq) and its dependencies [zero](https://github.com/Mc-Zen/zero), [tiptoe](https://github.com/Mc-Zen/tiptoe), [elembic](https://github.com/PgBiel/elembic), [suiji](https://github.com/liuguangxi/suiji) | Mc-Zen; PgBiel; liuguangxi | MIT (elembic: MIT OR Apache-2.0) | Typst packages bundled unmodified in `src/typst-pkg/`: the charts drawn by the AI chat (`draw_chart`). |
 | [MiTeX](https://github.com/mitex-rs/mitex) | Myriad-Dreamin, OrangeX4, mgt and the MiTeX contributors | Apache-2.0 | `mitex` crate: turns LaTeX formulas into Typst code; its Typst definitions (`src/typst-pkg/mitex-specs/`, from the MiTeX Typst package, unmodified) are bundled. |
+| [whisper.cpp](https://github.com/ggml-org/whisper.cpp) and [ggml](https://github.com/ggml-org/ggml) | Georgi Gerganov and the whisper.cpp/ggml contributors | MIT | Compiled into the app through the `whisper-rs` crate (Unlicense): the voice in the AI chat is transcribed on the computer, on the GPU with Metal on Macs. |
+| [Whisper](https://github.com/openai/whisper) models | OpenAI | MIT | Not bundled: the model in whisper.cpp format (`ggml-large-v3-turbo-q5_0.bin`, or `small`/`base`) is downloaded from the whisper.cpp repository on Hugging Face the first time the user dictates, with their consent, and kept only if its SHA-1 matches the published one. |
 | [craft-libs](https://github.com/storytold/craft-libs) | ArtCraft Team | MIT OR Apache-2.0 | Patched `krilla` (PDF writing) and `hayro` (PDF reading) used by WordCraft, PdfCraft and VectorCraft. |
 | [ArtCraft Launcher](https://github.com/storytold/craft-launcher) | ArtCraft Team | MIT OR Apache-2.0 | Model for the in-app updates: GitHub releases check, download in the background, check against the release's `SHA256SUMS.txt`, install in place of the running app (macOS `.app` from the DMG, `.deb`, archives) and restart; and for the Developer ID signing and notarization in the release workflow. Design adapted, no code copied. |
 | [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | DeepSeek | — | Inspiration for the chat (ideas only, no code copied). |
@@ -45,7 +47,8 @@ Per-file attributions are in [NOTICE](NOTICE). The release packages also contain
 
 - **macOS**: CoreBluetooth, WKWebView, Vision (optional OCR) and AVFoundation (the MP4 video export), through small Swift helpers in `src/swift/`, Keychain.
 - **All systems**: the system's Chinese/Japanese/Korean font (PingFang, Hiragino, Apple SD Gothic Neo, Microsoft YaHei, Yu Gothic, Malgun Gothic, Noto Sans CJK…) when the interface is in one of those languages.
-- **Linux**: BlueZ (via D-Bus), GTK 3, WebKitGTK. For the MP4 video export: `ffmpeg` if installed, otherwise the [OpenH264](https://www.openh264.org) library downloaded from Cisco on first use, with the user's consent (not bundled; checked against its SHA-256). *OpenH264 Video Codec provided by Cisco Systems, Inc.* ([licence](https://www.openh264.org/BINARY_LICENSE.txt)).
+- **All systems**: the microphone through the system's audio (CoreAudio on macOS, WASAPI on Windows, ALSA on Linux) for the voice in the AI chat, only while dictating.
+- **Linux**: BlueZ (via D-Bus), GTK 3 (also for the system dialogs), WebKitGTK. For the MP4 video export: `ffmpeg` if installed, otherwise the [OpenH264](https://www.openh264.org) library downloaded from Cisco on first use, with the user's consent (not bundled; checked against its SHA-256). *OpenH264 Video Codec provided by Cisco Systems, Inc.* ([licence](https://www.openh264.org/BINARY_LICENSE.txt)).
 - **Windows**: WinRT Bluetooth, WebView2, Media Foundation (the MP4 video export).
 
 ## Rust crates
@@ -76,6 +79,8 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [alloc-no-stdlib](https://github.com/dropbox/rust-alloc-no-stdlib) | 2.0.4 | BSD-3-Clause | Daniel Reiter Horn |
 | [alloc-stdlib](https://github.com/dropbox/rust-alloc-no-stdlib) | 0.2.4 | BSD-3-Clause | Daniel Reiter Horn |
 | [allocator-api2](https://github.com/zakarumych/allocator-api2) | 0.2.21 | MIT OR Apache-2.0 | Zakarum |
+| [alsa](https://github.com/diwic/alsa-rs) | 0.11.0 | Apache-2.0 OR MIT | David Henningsson |
+| [alsa-sys](https://github.com/diwic/alsa-sys) | 0.4.0 | MIT | Pierre Krieger, David Henningsson |
 | [ambient-authority](https://github.com/sunfishcode/ambient-authority) | 0.0.2 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | Dan Gohman |
 | [android-activity](https://github.com/rust-mobile/android-activity) | 0.6.1 | MIT OR Apache-2.0 | — |
 | [android-properties](https://github.com/miklelappo/android-properties) | 0.2.2 | MIT | Mikhail Lappo |
@@ -121,6 +126,7 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [beef](https://github.com/maciejhirsz/beef) | 0.5.2 | MIT OR Apache-2.0 | Maciej Hirsz |
 | [biblatex](https://github.com/typst/biblatex) | 0.12.0 | MIT OR Apache-2.0 | Martin Haug |
 | [bincode](https://github.com/servo/bincode) | 1.3.3 | MIT | Ty Overby, Francesco Mazzoli, David Tolnay, Zoey Riordan |
+| [bindgen](https://github.com/rust-lang/rust-bindgen) | 0.72.1 | BSD-3-Clause | Jyun-Yan You, Emilio Cobos Álvarez, Nick Fitzgerald, The Servo project developers |
 | [bit-set](https://github.com/contain-rs/bit-set) | 0.10.0 | Apache-2.0 OR MIT | Alexis Beingessner |
 | [bit-set](https://github.com/contain-rs/bit-set) | 0.8.0 | Apache-2.0 OR MIT | Alexis Beingessner |
 | [bit-vec](https://github.com/contain-rs/bit-vec) | 0.8.0 | Apache-2.0 OR MIT | Alexis Beingessner |
@@ -172,6 +178,7 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [cbc](https://github.com/RustCrypto/block-modes) | 0.2.1 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [cc](https://github.com/rust-lang/cc-rs) | 1.9.0 | MIT OR Apache-2.0 | — |
 | [cesu8](https://github.com/emk/cesu8-rs) | 1.1.0 | Apache-2.0 OR MIT | Eric Kidd |
+| [cexpr](https://github.com/jethrogb/rust-cexpr) | 0.6.0 | Apache-2.0 OR MIT | Jethro Beekman |
 | [cfb](https://github.com/mdsteele/rust-cfb) | 0.15.0 | MIT | Matthew D. Steele |
 | [cfg-expr](https://github.com/EmbarkStudios/cfg-expr) | 0.15.8 | MIT OR Apache-2.0 | Embark, Jake Shadle |
 | [cfg-if](https://github.com/rust-lang/cfg-if) | 1.0.5 | MIT OR Apache-2.0 | Alex Crichton |
@@ -188,6 +195,7 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [cipher](https://github.com/RustCrypto/traits) | 0.4.4 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [cipher](https://github.com/RustCrypto/traits) | 0.5.2 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [citationberg](https://github.com/typst/citationberg) | 0.7.0 | MIT OR Apache-2.0 | Martin Haug |
+| [clang-sys](https://github.com/KyleMayes/clang-sys) | 1.9.1 | Apache-2.0 | Kyle Mayes |
 | [clap](https://github.com/clap-rs/clap) | 4.6.7 | MIT OR Apache-2.0 | — |
 | [clap_builder](https://github.com/clap-rs/clap) | 4.6.7 | MIT OR Apache-2.0 | — |
 | [clap_derive](https://github.com/clap-rs/clap) | 4.6.7 | MIT OR Apache-2.0 | — |
@@ -220,8 +228,10 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [core-graphics-types](https://github.com/servo/core-foundation-rs) | 0.2.0 | MIT OR Apache-2.0 | The Servo Project Developers |
 | [core_detect](https://github.com/thomcc/core_detect) | 1.0.0 | MIT OR Apache-2.0 | Thom Chiovoloni |
 | [core_maths](https://github.com/robertbastian/core_maths) | 0.1.1 | MIT | Robert Bastian <me@robertbastian.dev |
+| [coreaudio-rs](https://github.com/RustAudio/coreaudio-rs.git) | 0.14.2 | MIT OR Apache-2.0 | mitchmindtree, yupferris |
 | [countme](https://github.com/matklad/countme) | 3.0.1 | MIT OR Apache-2.0 | Aleksey Kladov |
 | [cow-utils](https://github.com/RReverser/cow-utils-rs) | 0.1.3 | MIT | Ingvar Stepanyan |
+| [cpal](https://github.com/RustAudio/cpal) | 0.18.2 | Apache-2.0 | — |
 | [cpubits](https://github.com/RustCrypto/utils) | 0.1.1 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [cpufeatures](https://github.com/RustCrypto/utils) | 0.2.17 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [cpufeatures](https://github.com/RustCrypto/utils) | 0.3.1 | MIT OR Apache-2.0 | RustCrypto Developers |
@@ -255,11 +265,12 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [darling_macro](https://github.com/TedDriggs/darling) | 0.24.1 | MIT | Ted Driggs |
 | [dashmap](https://github.com/xacrimon/dashmap) | 5.5.3 | MIT | Acrimon |
 | [dashmap](https://github.com/xacrimon/dashmap) | 6.2.1 | MIT | Acrimon |
+| [dasp_sample](https://github.com/rustaudio/sample.git) | 0.11.0 | MIT OR Apache-2.0 | mitchmindtree |
 | [data-url](https://github.com/servo/rust-url) | 0.3.2 | MIT OR Apache-2.0 | Simon Sapin |
 | [dbus](https://github.com/diwic/dbus-rs) | 0.9.12 | Apache-2.0 OR MIT | David Henningsson |
 | [dbus-tokio](https://github.com/diwic/dbus-rs) | 0.7.6 | Apache-2.0 OR MIT | David Henningsson |
-| [der](https://github.com/RustCrypto/formats) | 0.8.2 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [der](https://github.com/RustCrypto/formats/tree/master/der) | 0.7.10 | Apache-2.0 OR MIT | RustCrypto Developers |
+| [der](https://github.com/RustCrypto/formats) | 0.8.2 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [der_derive](https://github.com/RustCrypto/formats/tree/master/der/derive) | 0.7.3 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [deranged](https://github.com/jhpratt/deranged) | 0.5.9 | MIT OR Apache-2.0 | Jacob Pratt |
 | [derive_arbitrary](https://github.com/rust-fuzz/arbitrary) | 1.5.0 | MIT OR Apache-2.0 | The Rust-Fuzz Project Developers, Nick Fitzgerald, Manish Goregaokar, Andre Bogus, Corey Farwell |
@@ -390,6 +401,7 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [glifo](https://github.com/linebender/vello) | 0.1.1 | Apache-2.0 OR MIT | — |
 | [glifo](https://github.com/linebender/vello) | 0.2.0 | Apache-2.0 OR MIT | — |
 | [glifo](https://github.com/linebender/vello) | 0.3.0 | Apache-2.0 OR MIT | — |
+| [glob](https://github.com/rust-lang/glob) | 0.3.4 | MIT OR Apache-2.0 | The Rust Project Developers |
 | [glow](https://github.com/grovesNL/glow) | 0.17.0 | MIT OR Apache-2.0 OR Zlib | Joshua Groves, Dzmitry Malyshau |
 | [glutin](https://github.com/rust-windowing/glutin) | 0.32.3 | Apache-2.0 | Kirill Chibisov |
 | [glutin-winit](https://github.com/rust-windowing/glutin) | 0.5.0 | MIT | Kirill Chibisov |
@@ -473,6 +485,7 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [io-lifetimes](https://github.com/sunfishcode/io-lifetimes) | 3.0.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | Dan Gohman |
 | [ipnet](https://github.com/krisprice/ipnet) | 2.12.2 | MIT OR Apache-2.0 | Kris Price |
 | [is_terminal_polyfill](https://github.com/polyfill-rs/is_terminal_polyfill) | 1.70.2 | MIT OR Apache-2.0 | — |
+| [itertools](https://github.com/rust-itertools/itertools) | 0.13.0 | MIT OR Apache-2.0 | bluss |
 | [itertools](https://github.com/rust-itertools/itertools) | 0.14.0 | MIT OR Apache-2.0 | bluss |
 | [itertools](https://github.com/rust-itertools/itertools) | 0.15.0 | MIT OR Apache-2.0 | bluss |
 | [itoa](https://github.com/dtolnay/itoa) | 1.0.18 | MIT OR Apache-2.0 | David Tolnay |
@@ -533,6 +546,7 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [logos-derive](https://github.com/maciejhirsz/logos) | 0.13.0 | MIT OR Apache-2.0 | Maciej Hirsz |
 | [lopdf](https://github.com/J-F-Liu/lopdf.git) | 0.45.0 | MIT | Junfeng Liu, Emulator |
 | [lru-slab](https://github.com/Ralith/lru-slab) | 0.1.3 | MIT OR Apache-2.0 OR Zlib | Benjamin Saunders |
+| [mach2](https://github.com/JohnTitor/mach2) | 0.6.0 | BSD-2-Clause OR MIT OR Apache-2.0 | — |
 | [malloc_buf](https://github.com/SSheldon/malloc_buf) | 0.0.6 | MIT | Steven Sheldon |
 | [markup5ever](https://github.com/servo/html5ever) | 0.39.0 | MIT OR Apache-2.0 | The html5ever Project Developers |
 | [matchers](https://github.com/hawkw/matchers) | 0.2.0 | MIT | Eliza Weisman |
@@ -543,6 +557,7 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [memmap2](https://github.com/RazrFalcon/memmap2-rs) | 0.9.11 | MIT OR Apache-2.0 | Dan Burkert, Yevhenii Reizner, The Contributors |
 | [memoffset](https://github.com/Gilnaa/memoffset) | 0.9.1 | MIT | Gilad Naaman |
 | [mime](https://github.com/hyperium/mime) | 0.3.17 | MIT OR Apache-2.0 | Sean McArthur |
+| [minimal-lexical](https://github.com/Alexhuszagh/minimal-lexical) | 0.2.1 | MIT OR Apache-2.0 | Alex Huszagh |
 | [miniz_oxide](https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide) | 0.8.9 | MIT OR Zlib OR Apache-2.0 | Frommi, oyvindln, Rich Geldreich richgel99@gmail.com |
 | [miniz_oxide](https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide) | 0.9.1 | MIT OR Zlib OR Apache-2.0 | Frommi, oyvindln, Rich Geldreich richgel99@gmail.com |
 | [mio](https://github.com/tokio-rs/mio) | 1.2.4 | MIT | Carl Lerche, Thomas de Zeeuw, Tokio Contributors |
@@ -564,12 +579,14 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [ndk-sys](https://github.com/rust-mobile/ndk) | 0.6.0+11769913 | MIT OR Apache-2.0 | The Rust Windowing contributors |
 | [new_debug_unreachable](https://github.com/mbrubeck/rust-debug-unreachable) | 1.0.6 | MIT | Matt Brubeck, Jonathan Reem |
 | [nohash-hasher](https://github.com/paritytech/nohash-hasher) | 0.2.0 | Apache-2.0 OR MIT | Parity Technologies |
+| [nom](https://github.com/Geal/nom) | 7.1.3 | MIT | contact@geoffroycouprie.com |
 | [nom](https://github.com/rust-bakery/nom) | 8.0.0 | MIT | contact@geoffroycouprie.com |
 | [nu-ansi-term](https://github.com/nushell/nu-ansi-term) | 0.50.3 | MIT | ogham@bsago.me, Ryan Scheel (Havvy), Josh Triplett, The Nushell Project Developers |
 | [num-bigint](https://github.com/rust-num/num-bigint) | 0.4.8 | MIT OR Apache-2.0 | The Rust Project Developers |
 | [num-bigint](https://github.com/rust-num/num-bigint) | 0.5.1 | MIT OR Apache-2.0 | — |
 | [num-complex](https://github.com/rust-num/num-complex) | 0.4.6 | MIT OR Apache-2.0 | The Rust Project Developers |
 | [num-conv](https://github.com/jhpratt/num-conv) | 0.2.2 | MIT OR Apache-2.0 | Jacob Pratt |
+| [num-derive](https://github.com/rust-num/num-derive) | 0.4.2 | MIT OR Apache-2.0 | The Rust Project Developers |
 | [num-integer](https://github.com/rust-num/num-integer) | 0.1.47 | MIT OR Apache-2.0 | The Rust Project Developers |
 | [num-traits](https://github.com/rust-num/num-traits) | 0.2.19 | MIT OR Apache-2.0 | The Rust Project Developers |
 | [num_cpus](https://github.com/seanmonstar/num_cpus) | 1.17.0 | MIT OR Apache-2.0 | Sean McArthur |
@@ -583,9 +600,13 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [objc2](https://github.com/madsmtm/objc2) | 0.6.5 | MIT | Mads Marquart |
 | [objc2-app-kit](https://github.com/madsmtm/objc2) | 0.2.2 | MIT | — |
 | [objc2-app-kit](https://github.com/madsmtm/objc2) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | — |
+| [objc2-audio-toolbox](https://github.com/madsmtm/objc2) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | — |
+| [objc2-avf-audio](https://github.com/madsmtm/objc2) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | — |
 | [objc2-cloud-kit](https://github.com/madsmtm/objc2) | 0.2.2 | MIT | — |
 | [objc2-cloud-kit](https://github.com/madsmtm/objc2) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | — |
 | [objc2-contacts](https://github.com/madsmtm/objc2) | 0.2.2 | MIT | — |
+| [objc2-core-audio](https://github.com/madsmtm/objc2) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | — |
+| [objc2-core-audio-types](https://github.com/madsmtm/objc2) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | — |
 | [objc2-core-bluetooth](https://github.com/madsmtm/objc2) | 0.2.2 | MIT | — |
 | [objc2-core-data](https://github.com/madsmtm/objc2) | 0.2.2 | MIT | — |
 | [objc2-core-data](https://github.com/madsmtm/objc2) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | — |
@@ -677,8 +698,8 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [pdfcraft-xfa](https://github.com/storytold/pdfcraft) | 0.12.0 | MIT OR Apache-2.0 | — |
 | [pdfcraft-xfdf](https://crates.io/crates/pdfcraft-xfdf) | 0.12.0 | MIT OR Apache-2.0 | — |
 | [pem](https://github.com/jcreekmore/pem-rs.git) | 3.0.6 | MIT | Jonathan Creekmore |
-| [pem-rfc7468](https://github.com/RustCrypto/formats) | 1.0.0 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [pem-rfc7468](https://github.com/RustCrypto/formats/tree/master/pem-rfc7468) | 0.7.0 | Apache-2.0 OR MIT | RustCrypto Developers |
+| [pem-rfc7468](https://github.com/RustCrypto/formats) | 1.0.0 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [peniko](https://github.com/linebender/peniko) | 0.6.1 | Apache-2.0 OR MIT | — |
 | [percent-encoding](https://github.com/servo/rust-url/) | 2.3.2 | MIT OR Apache-2.0 | The rust-url developers |
 | [phf](https://github.com/rust-phf/rust-phf) | 0.13.1 | MIT | Steven Fackler |
@@ -736,6 +757,7 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [ppv-lite86](https://github.com/cryptocorrosion/cryptocorrosion) | 0.2.21 | MIT OR Apache-2.0 | The CryptoCorrosion Contributors |
 | [precomputed-hash](https://github.com/emilio/precomputed-hash) | 0.1.1 | MIT | Emilio Cobos Álvarez |
 | [presser](https://github.com/EmbarkStudios/presser) | 0.3.1 | MIT OR Apache-2.0 | Embark, Gray Olson <gray@grayolson.com |
+| [prettyplease](https://github.com/dtolnay/prettyplease) | 0.2.37 | MIT OR Apache-2.0 | David Tolnay |
 | [primal-check](https://github.com/huonw/primal) | 0.3.4 | MIT OR Apache-2.0 | Huon Wilson |
 | [primefield](https://github.com/RustCrypto/elliptic-curves) | 0.14.0 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [primeorder](https://github.com/RustCrypto/elliptic-curves) | 0.14.0 | Apache-2.0 OR MIT | RustCrypto Developers |
@@ -768,8 +790,8 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [rand](https://github.com/rust-random/rand) | 0.10.3 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers |
 | [rand](https://github.com/rust-random/rand) | 0.8.8 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers |
 | [rand_chacha](https://github.com/rust-random/rand) | 0.3.1 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers, The CryptoCorrosion Contributors |
-| [rand_core](https://github.com/rust-random/rand) | 0.6.4 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers |
 | [rand_core](https://github.com/rust-random/rand_core) | 0.10.1 | MIT OR Apache-2.0 | The Rand Project Developers |
+| [rand_core](https://github.com/rust-random/rand) | 0.6.4 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers |
 | [rand_pcg](https://github.com/rust-random/rngs) | 0.10.2 | MIT OR Apache-2.0 | The Rand Project Developers |
 | [range-alloc](https://github.com/gfx-rs/range-alloc) | 0.1.5 | MIT OR Apache-2.0 | the gfx-rs Developers |
 | [rangemap](https://github.com/jeffparsons/rangemap) | 1.8.0 | MIT OR Apache-2.0 | Jeff Parsons |
@@ -784,9 +806,9 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [read-fonts](https://github.com/googlefonts/fontations) | 0.43.3 | MIT OR Apache-2.0 | — |
 | [read-fonts](https://github.com/googlefonts/fontations) | 0.44.0 | MIT OR Apache-2.0 | — |
 | [reborrow](https://github.com/sarah-ek/reborrow/) | 0.5.5 | MIT | sarah |
-| [redox_syscall](https://gitlab.redox-os.org/redox-os/kernel) | 0.9.5 | MIT | Jeremy Soller |
 | [redox_syscall](https://gitlab.redox-os.org/redox-os/syscall) | 0.4.1 | MIT | Jeremy Soller |
 | [redox_syscall](https://gitlab.redox-os.org/redox-os/syscall) | 0.5.18 | MIT | Jeremy Soller |
+| [redox_syscall](https://gitlab.redox-os.org/redox-os/kernel) | 0.9.5 | MIT | Jeremy Soller |
 | [redox_users](https://gitlab.redox-os.org/redox-os/users) | 0.5.3 | MIT | Jose Narvaez, Wesley Hershberger |
 | [ref-cast](https://github.com/dtolnay/ref-cast) | 1.0.27 | MIT OR Apache-2.0 | David Tolnay |
 | [ref-cast-impl](https://github.com/dtolnay/ref-cast) | 1.0.27 | MIT OR Apache-2.0 | David Tolnay |
@@ -879,10 +901,11 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [sha2](https://github.com/RustCrypto/hashes) | 0.11.1 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [sha3](https://github.com/RustCrypto/hashes) | 0.12.0 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [sharded-slab](https://github.com/hawkw/sharded-slab) | 0.1.7 | MIT | Eliza Weisman |
+| [shlex](https://github.com/comex/rust-shlex) | 1.3.0 | MIT OR Apache-2.0 | comex, Fenhl, Adrian Taylor, Alex Touchet, Daniel Parks, Garrett Berg |
 | [shlex](https://github.com/comex/rust-shlex) | 2.0.1 | MIT OR Apache-2.0 | comex, Fenhl, Adrian Taylor, Alex Touchet, Daniel Parks, Garrett Berg |
 | [signal-hook-registry](https://github.com/vorner/signal-hook) | 1.4.8 | MIT OR Apache-2.0 | Michal 'vorner' Vaner, Masaki Hara |
-| [signature](https://github.com/RustCrypto/traits) | 3.0.0 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [signature](https://github.com/RustCrypto/traits/tree/master/signature) | 2.2.0 | Apache-2.0 OR MIT | RustCrypto Developers |
+| [signature](https://github.com/RustCrypto/traits) | 3.0.0 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [sigstore-bundle](https://github.com/prefix-dev/sigstore-rust) | 0.6.6 | Apache-2.0 | — |
 | [sigstore-crypto](https://github.com/prefix-dev/sigstore-rust) | 0.6.6 | Apache-2.0 | — |
 | [sigstore-merkle](https://github.com/prefix-dev/sigstore-rust) | 0.6.6 | Apache-2.0 | — |
@@ -912,8 +935,8 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [soup3-sys](https://gitlab.gnome.org/World/Rust/soup3-rs) | 0.5.0 | MIT | The Gtk-rs Project Developers |
 | [spin](https://github.com/mvdnes/spin-rs.git) | 0.9.9 | MIT | Mathijs van de Nes, John Ericson, Joshua Barretto |
 | [spirv](https://github.com/gfx-rs/rspirv) | 0.4.0+sdk-1.4.341.0 | Apache-2.0 | Lei Zhang |
-| [spki](https://github.com/RustCrypto/formats) | 0.8.1 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [spki](https://github.com/RustCrypto/formats/tree/master/spki) | 0.7.3 | Apache-2.0 OR MIT | RustCrypto Developers |
+| [spki](https://github.com/RustCrypto/formats) | 0.8.1 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [sponge-cursor](https://github.com/RustCrypto/utils) | 0.1.0 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [stable_deref_trait](https://github.com/storyyeller/stable_deref_trait) | 1.2.1 | MIT OR Apache-2.0 | Robert Grosse |
 | [stacker](https://github.com/rust-lang/stacker) | 0.1.25 | MIT OR Apache-2.0 | Alex Crichton, Simonas Kazlauskas |
@@ -1131,6 +1154,8 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [wgpu-naga-bridge](https://github.com/gfx-rs/wgpu) | 30.0.1 | MIT OR Apache-2.0 | gfx-rs developers |
 | [wgpu-types](https://github.com/gfx-rs/wgpu) | 30.0.1 | MIT OR Apache-2.0 | gfx-rs developers |
 | [which](https://github.com/harryfei/which-rs.git) | 5.0.0 | MIT | Harry Fei |
+| [whisper-rs](https://codeberg.org/tazz4843/whisper-rs) | 0.16.0 | Unlicense | — |
+| [whisper-rs-sys](https://codeberg.org/tazz4843/whisper-rs) | 0.15.0 | Unlicense | — |
 | [wide](https://github.com/Lokathor/wide) | 1.7.1 | Zlib OR Apache-2.0 OR MIT | Lokathor |
 | [winapi](https://github.com/retep998/winapi-rs) | 0.3.9 | MIT OR Apache-2.0 | Peter Atashian |
 | [winapi-i686-pc-windows-gnu](https://github.com/retep998/winapi-rs) | 0.4.0 | MIT OR Apache-2.0 | Peter Atashian |

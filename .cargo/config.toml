@@ -1,0 +1,11 @@
+# whisper.cpp (src/voice.rs) si compila per i processori di chi usa l'app, non
+# per quello della macchina che compila: niente -march=native. Sugli x86-64
+# (Windows, Linux, Mac Intel) usa AVX2 (processori dal 2013 in poi); sui
+# processori ARM (Mac Apple) queste righe non contano.
+[env]
+GGML_NATIVE = "OFF"
+GGML_AVX = "ON"
+GGML_AVX2 = "ON"
+GGML_FMA = "ON"
+GGML_F16C = "ON"
+GGML_BMI2 = "ON"
