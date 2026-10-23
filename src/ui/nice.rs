@@ -50,10 +50,10 @@ impl NiceBoard {
     /// ridisegno quando la pagina deve ancora assestarsi.
     pub fn get<'a>(&'a mut self, d: &'a Drawing, view: View, pen_down: bool, ctx: &eframe::egui::Context) -> Cow<'a, Drawing> {
         let level = beautify::level();
-        if level == 0 || d.strokes.is_empty() {
+        if !beautify::active() || d.strokes.is_empty() {
             return Cow::Borrowed(d);
         }
-        let key = Key { level, view, w: d.width.to_bits(), h: d.height.to_bits() };
+        let key = Key { level: beautify::mode(), view, w: d.width.to_bits(), h: d.height.to_bits() };
         let all = strokes_sig(&d.strokes);
         if all != self.last_sig {
             self.last_sig = all;

@@ -74,6 +74,8 @@ pub fn run_app(
     let settings = Settings::load();
     crate::i18n::set_lang(crate::i18n::resolve(&settings.ui_lang));
     crate::beautify::set_level(settings.beautify);
+    crate::beautify::set_shapes(settings.perfect_shapes);
+    crate::boardmarks::set_hand(settings.ai_hand);
     let thumb_size = settings.thumb_size;
     let hub = Hub::new(Scene::new(&settings));
     // la chat AI può mettere grafici sul foglio della lavagna
@@ -566,6 +568,10 @@ enum Action {
     ToggleMargin,
     /// Bella scrittura: 0 spenta, 1 leggera, 2 media, 3 forte.
     Beautify(u8),
+    /// Linee, frecce e cerchi perfetti (acceso/spento).
+    PerfectShapes(bool),
+    /// Come scrive l'AI sul foglio: 0 pulita, 1 a mano, 2 naturale.
+    AiHand(u8),
     /// Il controllo mentre scrivi: acceso/spento, e dopo quanti secondi.
     LiveCheck(bool),
     LiveCheckPause(f32),
@@ -1964,6 +1970,30 @@ impl App {
                 if !self.settings.live_check {
                     self.set_live_check(true);
                 }
+            }
+            Action::PerfectShapes(on) => {
+                self.settings.perfect_shapes = on;
+                self.settings.save();
+                crate::beautify::set_shapes(on);
+                self.nice.reset();
+                self.lui.viewer_nice = None;
+                self.lui.thumbs.clear();
+                self.status = if on {
+                    "Linee, frecce e cerchi perfetti: i tratti veri restano, spegnendo tornano come li hai disegnati.".into()
+                } else {
+                    "Linee, frecce e cerchi come li hai disegnati.".into()
+                };
+            }
+            Action::AiHand(m) => {
+                self.settings.ai_hand = m.min(2);
+                self.settings.save();
+                crate::boardmarks::set_hand(m);
+                self.status = match m {
+                    1 => "L'AI scrive sul foglio a mano, con le irregolarità della mano.",
+                    2 => "L'AI scrive sul foglio con una scrittura a mano naturale.",
+                    _ => "L'AI scrive sul foglio in stampatello pulito.",
+                }
+                .into();
             }
             Action::Beautify(l) => {
                 let l = l.min(3);

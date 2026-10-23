@@ -140,6 +140,12 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   die Seite aussieht und exportiert wird (Tafel, Archiv, PDF/PNG/SVG…): deine geschriebenen Striche
   bleiben, wie sie sind, die KI liest diese, und beim Ausschalten sind sie wieder da. Nie bei
   Dokumenten und Unterschriften; Zahlen und Formeln bleiben unberührt.
+- **Perfekte Formen und die Schrift der KI.** Im Menü «Schöne Schrift»: **Perfekte Linien, Pfeile
+  und Kreise** (standardmäßig an) macht von Hand gezeichnete Linien gerade, Pfeilspitzen symmetrisch
+  und Kreise und Ellipsen rund, auch die der KI; die Schrift bleibt unberührt, deine echten Striche
+  bleiben erhalten. **Wie die KI auf das Blatt schreibt**: saubere Druckschrift (Standard), von Hand
+  (dieselben Buchstaben mit den Unregelmäßigkeiten einer Hand) oder natürliche Handschrift (eine
+  echte Handschrift, Kalam, auf einfache Linien reduziert, damit sie Stiftstriche bleibt).
 - **Der Chat schreibt auf die Tafel.** Bitte ihn: „prüf meine Rechnungen und markier die Fehler“,
   „unterstreich die Fristen“ oder „schreib das Ergebnis neben Zeile 2“: Er liest das Tafelblatt Zeile
   für Zeile und Wort für Wort, dann markiert, unterstreicht, umkreist, streicht durch, zeichnet Kästen,

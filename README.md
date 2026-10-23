@@ -140,6 +140,12 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   looks and exports (board, library, PDF/PNG/SVG…): the strokes you wrote stay as they are, the AI
   reads those, and turning it off brings them back. Never on documents and signatures; numbers and
   formulas are left alone.
+- **Perfect shapes and the AI's handwriting.** In the «Neat handwriting» menu: **Perfect lines,
+  arrows and circles** (on by default) makes hand-drawn lines straight, arrowheads symmetric and
+  circles and ellipses round, the AI's too; writing is never touched and your real strokes are kept.
+  **How the AI writes on the page**: clean print (default), by hand (the same letters with the
+  irregularities of a hand) or natural handwriting (a real handwriting font, Kalam, reduced to
+  single lines so it stays pen strokes).
 - **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
   "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
   by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,

@@ -142,6 +142,13 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   les traits que vous avez écrits restent tels quels, l'IA lit ceux-là, et en la désactivant ils
   reviennent. Jamais sur les documents ni les signatures ; les nombres et les formules ne sont pas
   touchés.
+- **Formes parfaites et écriture de l'IA.** Dans le menu « Belle écriture » : **Lignes, flèches et
+  cercles parfaits** (activé par défaut) redresse les lignes, rend symétriques les pointes de flèche
+  et ronds les cercles et ellipses dessinés à la main, ceux de l'IA aussi ; l'écriture n'est jamais
+  touchée et vos vrais traits sont conservés. **Comment l'IA écrit sur la feuille** : script net
+  (par défaut), à la main (les mêmes lettres avec les irrégularités de la main) ou écriture
+  naturelle (une vraie police manuscrite, Kalam, réduite à des lignes simples pour rester des traits
+  de stylet).
 - **Le chat écrit sur le tableau.** Demandez-lui « vérifiez mes additions et marquez les erreurs »,
   « soulignez les échéances » ou « écrivez le résultat à côté de la ligne 2 » : il lit la page du tableau ligne
   par ligne et mot par mot, puis surligne, souligne, entoure, barre, dessine des cadres,

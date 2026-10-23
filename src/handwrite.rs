@@ -14,23 +14,31 @@ use std::sync::OnceLock;
 
 const FUTURAL: &str = include_str!("handwrite/futural.jhf");
 const CURSIVE: &str = include_str!("handwrite/cursive.jhf");
+/// «Naturale»: un carattere a mano vero (Kalam), ridotto a linee da
+/// `packaging/stroke_font.py`.
+const NATURALE: &str = include_str!("handwrite/naturale.txt");
 
 /// Altezza delle maiuscole nelle unità di Hershey (da -12 a 9).
 const CAP: f32 = 21.0;
 const CAP_TOP: f32 = -12.0;
 /// Da una riga all'altra (unità di Hershey).
 const LINE: f32 = 34.0;
+/// La riga di base (y di Hershey).
+const BASE_Y: f32 = 9.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Style {
     Stampatello,
     Corsivo,
+    /// Scrittura a mano naturale (da Kalam, SIL OFL).
+    Naturale,
 }
 
 impl Style {
     pub fn parse(s: &str) -> Style {
         match s.trim().to_lowercase().as_str() {
             "corsivo" | "cursive" | "script" | "corsiva" => Style::Corsivo,
+            "naturale" | "natural" | "mano" | "a mano" | "handwriting" => Style::Naturale,
             _ => Style::Stampatello,
         }
     }
@@ -91,10 +99,55 @@ fn parse(src: &str) -> HashMap<char, Glyph> {
 fn font(style: Style) -> &'static Font {
     static F: OnceLock<Font> = OnceLock::new();
     static C: OnceLock<Font> = OnceLock::new();
+    static N: OnceLock<Font> = OnceLock::new();
     match style {
         Style::Stampatello => F.get_or_init(|| Font { glyphs: parse(FUTURAL), x_top: -5.0, slant: 0.0 }),
         Style::Corsivo => C.get_or_init(|| Font { glyphs: parse(CURSIVE), x_top: 0.0, slant: 2.0 }),
+        Style::Naturale => N.get_or_init(|| {
+            let mut glyphs = parse_lines(NATURALE);
+            // dove comincia il corpo delle minuscole: la cima della «x»
+            let x_top = glyphs.get(&'x').map(|g| g.strokes.iter().flatten().map(|p| p.1).fold(f32::MAX, f32::min)).filter(|v| v.is_finite()).unwrap_or(-4.0);
+            // le minuscole di Kalam sono piccole: grande quanto lo stampatello
+            // (il corpo delle minuscole alto 14, come in futural), attorno alla riga di base
+            let k = (14.0 / (BASE_Y - x_top)).clamp(1.0, 1.5);
+            for g in glyphs.values_mut() {
+                g.left *= k;
+                g.right *= k;
+                for st in g.strokes.iter_mut() {
+                    for p in st.iter_mut() {
+                        *p = (p.0 * k, BASE_Y + (p.1 - BASE_Y) * k);
+                    }
+                }
+            }
+            Font { glyphs, x_top: BASE_Y + (x_top - BASE_Y) * k, slant: 0.8 }
+        }),
     }
+}
+
+/// Il formato di `packaging/stroke_font.py`: «U+0041<TAB>sinistra<TAB>destra<TAB>tratti».
+fn parse_lines(src: &str) -> HashMap<char, Glyph> {
+    let mut out = HashMap::new();
+    for l in src.lines().filter(|l| !l.starts_with('#') && !l.trim().is_empty()) {
+        let mut f = l.split('\t');
+        let (Some(code), Some(left), Some(right)) = (f.next(), f.next(), f.next()) else { continue };
+        let Some(c) = code.strip_prefix("U+").and_then(|h| u32::from_str_radix(h, 16).ok()).and_then(char::from_u32) else { continue };
+        let strokes: Vec<Vec<(f32, f32)>> = f
+            .next()
+            .unwrap_or("")
+            .split('|')
+            .map(|st| {
+                st.split_whitespace()
+                    .filter_map(|p| {
+                        let (x, y) = p.split_once(',')?;
+                        Some((x.parse().ok()?, y.parse().ok()?))
+                    })
+                    .collect::<Vec<(f32, f32)>>()
+            })
+            .filter(|st| !st.is_empty())
+            .collect();
+        out.insert(c, Glyph { left: left.parse().unwrap_or(0.0), right: right.parse().unwrap_or(0.0), strokes });
+    }
+    out
 }
 
 #[derive(Clone, Copy)]
@@ -390,9 +443,95 @@ pub fn layout(text: &str, style: Style, cap: f32, aspect: f32, origin: (f32, f32
     Laid { strokes: out, bbox: bb, missing }
 }
 
+/// Come `layout`, ma più «a mano»: la riga ondeggia, le lettere cambiano
+/// un poco altezza e inclinazione, il tratto trema appena. Sempre uguale per
+/// lo stesso testo (si può ridisegnare).
+pub fn layout_natural(text: &str, style: Style, cap: f32, aspect: f32, origin: (f32, f32), max_w: f32, right_align: bool) -> Laid {
+    let mut l = layout(text, style, cap, aspect, origin, max_w, right_align);
+    let s = cap / CAP;
+    let line_h = LINE * s;
+    let seed = text.bytes().fold(0xD1B5_4A32_D192_ED03u64, |h, b| (h ^ b as u64).wrapping_mul(0x100_0000_01B3)) | 1;
+    let mut rng = Rng(seed);
+    let ph: Vec<f32> = (0..6).map(|_| rng.next() * std::f32::consts::PI).collect();
+    let tau = std::f32::consts::TAU;
+    let wave = |x: f32, len: f32, k: usize| (tau * x / (len * cap) + ph[k]).sin();
+    let mut bb = [f32::MAX, f32::MAX, f32::MIN, f32::MIN];
+    for (si, st) in l.strokes.iter_mut().enumerate() {
+        let tremor = rng.next() * std::f32::consts::PI;
+        let n = st.len().max(1) as f32;
+        for (k, p) in st.iter_mut().enumerate() {
+            // in unità fisiche (x come y), per misurare in altezze di lettera
+            let x = (p.0 - origin.0) * aspect;
+            let li = ((p.1 - origin.1) / line_h).floor().max(0.0);
+            let base = origin.1 + li * line_h + CAP * s;
+            // altezza che cambia un po' (attorno alla riga di base)
+            let size = 1.0 + 0.06 * wave(x, 2.3, 0);
+            let mut y = base + (p.1 - base) * size;
+            // inclinazione un po' a destra, che varia lungo la riga
+            // (la scrittura naturale ha già la sua inclinazione)
+            let slant = if style == Style::Naturale { 0.02 + 0.03 * wave(x, 5.0, 1) } else { 0.09 + 0.05 * wave(x, 5.0, 1) };
+            let mut xx = x + (base - y) * slant;
+            // la riga che ondeggia
+            y += cap * (0.06 * wave(x, 4.1, 2) + 0.03 * wave(x, 1.7, 3));
+            // il tremolio della mano, lento lungo il tratto
+            let t = k as f32 / n;
+            xx += cap * 0.012 * (tau * 2.0 * t + tremor + si as f32).sin();
+            y += cap * 0.012 * (tau * 3.0 * t + tremor * 1.7).cos();
+            *p = (origin.0 + xx / aspect, y);
+            bb = [bb[0].min(p.0), bb[1].min(p.1), bb[2].max(p.0), bb[3].max(p.1)];
+        }
+    }
+    if bb[0] <= bb[2] {
+        l.bbox = bb;
+    }
+    l
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// I tre modi a confronto: HAND_PNG=file.png cargo test -- --ignored tre_scritture
+    #[test]
+    #[ignore]
+    fn tre_scritture() {
+        let Ok(out) = std::env::var("HAND_PNG") else { return };
+        let t = "x² + 2x + 1 = 0 ⇒ (x + 1)² = 0 ⇒ x = −1. Bene, è giusto!";
+        let aspect = 1.6;
+        let mut strokes = Vec::new();
+        for (i, (style, nat)) in [(Style::Stampatello, false), (Style::Stampatello, true), (Style::Naturale, true)].into_iter().enumerate() {
+            let o = (0.04, 0.08 + i as f32 * 0.3);
+            let l = if nat { layout_natural(t, style, 0.07, aspect, o, 0.95, false) } else { layout(t, style, 0.07, aspect, o, 0.95, false) };
+            strokes.extend(l.strokes.into_iter().map(|pts| crate::scene::PageStroke { color: [200, 30, 30], width: 2.0, pts, highlight: false }));
+        }
+        let page = crate::scene::Page { w: 1.6, h: 1.0, strokes, bg: None };
+        std::fs::write(out, crate::export::page_to_png(&page, 1600).unwrap()).unwrap();
+    }
+
+    #[test]
+    fn carattere_naturale() {
+        let l = layout("Bene! È giusto: x² + 1 = 0 ⇒ niente", Style::Naturale, 0.03, 0.7, (0.1, 0.2), 3.0, false);
+        assert!(l.missing.is_empty(), "{:?}", l.missing);
+        assert!(l.strokes.len() > 20);
+        // alta come le altre: le maiuscole più o meno «cap»
+        let h = l.bbox[3] - l.bbox[1];
+        assert!(h > 0.025 && h < 0.08, "{h}");
+        assert!(all_glyphs(Style::Naturale).len() > 150);
+    }
+
+    #[test]
+    fn a_mano_naturale() {
+        let t = "x + 1 = 0 ⇒ x = -1";
+        let a = layout(t, Style::Stampatello, 0.03, 0.7, (0.1, 0.2), 0.8, false);
+        let b = layout_natural(t, Style::Stampatello, 0.03, 0.7, (0.1, 0.2), 0.8, false);
+        let c = layout_natural(t, Style::Stampatello, 0.03, 0.7, (0.1, 0.2), 0.8, false);
+        assert_eq!(a.strokes.len(), b.strokes.len());
+        // diverso dal pulito, uguale a se stesso
+        assert!(a.strokes.iter().zip(&b.strokes).any(|(p, q)| p.iter().zip(q).any(|(u, v)| (u.0 - v.0).abs() + (u.1 - v.1).abs() > 1e-4)));
+        assert_eq!(b.strokes, c.strokes);
+        // sempre lì intorno: la stessa riga, non più alta di mezza lettera in più
+        assert!((b.bbox[1] - a.bbox[1]).abs() < 0.015 && (b.bbox[3] - a.bbox[3]).abs() < 0.015, "{:?} {:?}", a.bbox, b.bbox);
+    }
 
     /// I tratti di tutti i caratteri, per `packaging/hand_fonts.py`:
     /// HAND_OUT=cartella cargo test -- --ignored glifi_per_i_caratteri

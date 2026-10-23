@@ -139,6 +139,12 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   Solo cambia cómo se ve y se exporta la página (pizarra, archivo, PDF/PNG/SVG…): los trazos que
   escribiste quedan como estaban, la IA lee esos, y al apagarla vuelven. Nunca en documentos ni
   firmas; los números y las fórmulas no se tocan.
+- **Formas perfectas y la letra de la IA.** En el menú de «Letra bonita»: **Líneas, flechas y
+  círculos perfectos** (activado por defecto) endereza las líneas, hace simétricas las puntas de
+  flecha y redondos los círculos y elipses dibujados a mano, también los de la IA; la escritura no
+  se toca y tus trazos reales se conservan. **Cómo escribe la IA en la hoja**: imprenta limpia (por
+  defecto), a mano (las mismas letras con las irregularidades de la mano) o letra natural (una
+  fuente manuscrita real, Kalam, reducida a líneas simples para que siga siendo trazo de lápiz).
 - **El chat escribe en la pizarra.** Pídele «revisa mis sumas y marca los errores»,
   «subraya los plazos» o «escribe el resultado junto a la línea 2»: lee la hoja de la pizarra línea
   a línea y palabra a palabra, y después resalta, subraya, rodea con un círculo, tacha, dibuja recuadros,

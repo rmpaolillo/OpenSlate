@@ -421,8 +421,8 @@ impl App {
                 });
                 if let Some(e) = self.lib.get(id) {
                     // in bella scrittura, se è accesa (rifatta solo se cambia qualcosa)
-                    let key = (id.clone(), crate::stroke::strokes_sig(&e.drawing.strokes), view, crate::beautify::level());
-                    if crate::beautify::level() > 0 && self.lui.viewer_nice.as_ref().is_none_or(|(k, _)| *k != key) {
+                    let key = (id.clone(), crate::stroke::strokes_sig(&e.drawing.strokes), view, crate::beautify::mode());
+                    if crate::beautify::active() && self.lui.viewer_nice.as_ref().is_none_or(|(k, _)| *k != key) {
                         self.lui.viewer_nice = Some((key.clone(), crate::beautify::nice(&e.drawing, view)));
                     }
                     let shown = match &self.lui.viewer_nice {

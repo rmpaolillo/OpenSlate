@@ -16,7 +16,7 @@
 
 use crate::scene::{PageGeom, View};
 use crate::stroke::{Drawing, Stroke};
-use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 /// 0 = spenta, 1 = leggera, 2 = media, 3 = forte.
 static LEVEL: AtomicU8 = AtomicU8::new(0);
@@ -64,15 +64,39 @@ fn params(level: u8) -> Option<Params> {
     })
 }
 
+/// Linee, frecce e cerchi fatti a mano diventano perfetti (`perfect_shapes`
+/// in settings.conf), anche con la bella scrittura spenta.
+static SHAPES: AtomicBool = AtomicBool::new(false);
+
+pub fn shapes() -> bool {
+    SHAPES.load(Ordering::Relaxed)
+}
+
+pub fn set_shapes(on: bool) {
+    SHAPES.store(on, Ordering::Relaxed);
+}
+
+/// C'è qualcosa da cambiare in come si vede il foglio?
+pub fn active() -> bool {
+    mode() > 0
+}
+
+/// Livello e forme in un numero (per le chiavi delle pagine già pronte).
+pub fn mode() -> u8 {
+    level() | if shapes() { 4 } else { 0 }
+}
+
 /// Il disegno da mostrare: quello originale se la bella scrittura è spenta.
 pub fn nice(d: &Drawing, view: View) -> Drawing {
     let l = level();
-    if l == 0 || d.strokes.is_empty() {
+    if !active() || d.strokes.is_empty() {
         return d.clone();
     }
     let (pw, ph) = crate::scene::page_dims(d);
     let g = PageGeom::new(view, pw, ph);
-    Drawing { strokes: apply(&d.strokes, &g, l), width: d.width, height: d.height }
+    let (strokes, shaped) = if shapes() { perfect(&d.strokes, &g) } else { (d.strokes.clone(), vec![false; d.strokes.len()]) };
+    let strokes = if l > 0 { apply_with(&strokes, &g, l, &shaped) } else { strokes };
+    Drawing { strokes, width: d.width, height: d.height }
 }
 
 /// Solo la lisciatura (per il tratto che si sta scrivendo: il resto si
@@ -90,6 +114,12 @@ pub fn smooth_only(s: &Stroke, level: u8) -> Stroke {
 
 /// I tratti riordinati (stesso numero, stesso ordine: cambiano solo i punti).
 pub fn apply(strokes: &[Stroke], g: &PageGeom, level: u8) -> Vec<Stroke> {
+    apply_with(strokes, g, level, &vec![false; strokes.len()])
+}
+
+/// Come `apply`; `shaped` sono le forme già rese perfette (linee, frecce,
+/// cerchi): non sono scrittura, seguono le parole che toccano.
+fn apply_with(strokes: &[Stroke], g: &PageGeom, level: u8, shaped: &[bool]) -> Vec<Stroke> {
     let Some(p) = params(level) else { return strokes.to_vec() };
     let mut out: Vec<Stroke> = strokes.to_vec();
     let reading = crate::boardread::read(&out, g, None);
@@ -131,7 +161,7 @@ pub fn apply(strokes: &[Stroke], g: &PageGeom, level: u8) -> Vec<Stroke> {
         }
         if in_drawing.contains(&i) {
             moved[i] = true;
-        } else if !is_mark(i, &boxes, &ink, hh) {
+        } else if !shaped.get(i).copied().unwrap_or(false) && !is_mark(i, &boxes, &ink, hh) {
             text.push(i);
         }
     }
@@ -502,6 +532,332 @@ fn is_mark(i: usize, boxes: &[Option<[f32; 4]>], ink: &[bool], hh: f32) -> bool 
     boxes.iter().enumerate().any(|(j, o)| {
         j != i && ink[j] && o.is_some_and(|o| o[3] - o[1] >= 0.4 * hh && o[0] > b[0] + m && o[2] < b[2] - m && o[1] > b[1] + m && o[3] < b[3] - m)
     })
+}
+
+// ---------------------------------------------------------------------------
+// Forme perfette: linee, frecce, cerchi ed ellissi
+
+/// Riconosce le linee, le frecce e i cerchi fatti a mano e li rifà perfetti
+/// (stessi tratti, stesso numero di punti). Solo i segni e i disegni, mai la
+/// scrittura: una «o» resta una «o». Il secondo vettore dice quali tratti
+/// sono diventati forme.
+pub fn perfect(strokes: &[Stroke], g: &PageGeom) -> (Vec<Stroke>, Vec<bool>) {
+    let mut out = strokes.to_vec();
+    let mut shaped = vec![false; strokes.len()];
+    if strokes.is_empty() {
+        return (out, shaped);
+    }
+    let reading = crate::boardread::read(strokes, g, None);
+    let hh = reading.char_h;
+    let aspect = g.w / g.h;
+    let ph: Vec<Vec<(f32, f32)>> = strokes
+        .iter()
+        .map(|s| {
+            s.points
+                .iter()
+                .map(|q| {
+                    let (u, v) = g.unit(q.x, q.y);
+                    (u * aspect, v)
+                })
+                .collect()
+        })
+        .collect();
+    let boxes: Vec<Option<[f32; 4]>> = ph.iter().map(|p| pbox(p)).collect();
+    let ink: Vec<bool> = strokes.iter().map(|s| !s.highlight).collect();
+    let in_drawing: Vec<usize> = reading.drawing.as_ref().map(|d| d.strokes.clone()).unwrap_or_default();
+    let mut new_pts: Vec<Option<Vec<(f32, f32)>>> = vec![None; strokes.len()];
+    // le linee perfette (per attaccarci le punte delle frecce): (inizio, fine)
+    let mut lines: Vec<((f32, f32), (f32, f32))> = Vec::new();
+    for i in 0..strokes.len() {
+        if !ink[i] || ph[i].len() < 3 {
+            continue;
+        }
+        let candidate = is_mark(i, &boxes, &ink, hh) || in_drawing.contains(&i) || straight(&ph[i]).is_some_and(|(a, b)| dist(a, b) >= 2.2 * hh)
+            || arrow(&ph[i], hh).is_some_and(|a| dist(a[0], a[1]) >= 2.2 * hh);
+        if !candidate {
+            continue;
+        }
+        let n = ph[i].len();
+        if let Some((a, b)) = straight(&ph[i]) {
+            if dist(a, b) >= 1.2 * hh {
+                let (a, b) = snap_line(a, b);
+                new_pts[i] = Some(resample(&[a, b], n));
+                lines.push((a, b));
+                continue;
+            }
+        }
+        if let Some(pts) = arrow(&ph[i], hh) {
+            new_pts[i] = Some(resample(&pts, n));
+            continue;
+        }
+        if let Some(pts) = ellipse(&ph[i], n) {
+            new_pts[i] = Some(pts);
+        }
+    }
+    // le punte disegnate a parte: una «V» piccola vicino alla fine di una linea
+    for i in 0..strokes.len() {
+        if !ink[i] || new_pts[i].is_some() || ph[i].len() < 3 {
+            continue;
+        }
+        let Some(b) = boxes[i] else { continue };
+        if (b[2] - b[0]).max(b[3] - b[1]) > 1.8 * hh {
+            continue;
+        }
+        if let Some(pts) = arrow_head(&ph[i], &lines, hh) {
+            new_pts[i] = Some(resample(&pts, ph[i].len()));
+        }
+    }
+    for (i, np) in new_pts.into_iter().enumerate() {
+        let Some(np) = np else { continue };
+        shaped[i] = true;
+        for (q, (x, y)) in out[i].points.iter_mut().zip(np) {
+            let (px, py) = g.pad(x / aspect, y);
+            q.x = px;
+            q.y = py;
+        }
+    }
+    (out, shaped)
+}
+
+/// Il tratto è una linea (quasi) dritta? Allora i suoi estremi.
+fn straight(p: &[(f32, f32)]) -> Option<((f32, f32), (f32, f32))> {
+    let (a, b) = (p[0], *p.last()?);
+    let len = dist(a, b);
+    if len <= 0.0 {
+        return None;
+    }
+    let path: f32 = p.windows(2).map(|w| dist(w[0], w[1])).sum();
+    let dev = p.iter().map(|&q| seg_dist(q, a, b)).fold(0.0f32, f32::max);
+    (dev < 0.06 * len && path < 1.15 * len).then_some((a, b))
+}
+
+/// Quasi orizzontale o verticale (entro 5°): proprio orizzontale o verticale,
+/// attorno al punto di mezzo.
+fn snap_line(a: (f32, f32), b: (f32, f32)) -> ((f32, f32), (f32, f32)) {
+    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+    let ang = dy.atan2(dx);
+    let len = dist(a, b);
+    let m = ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0);
+    let step = std::f32::consts::FRAC_PI_2;
+    let near = (ang / step).round() * step;
+    let ang = if (ang - near).abs() < 5f32.to_radians() { near } else { ang };
+    let (s, c) = ang.sin_cos();
+    ((m.0 - c * len / 2.0, m.1 - s * len / 2.0), (m.0 + c * len / 2.0, m.1 + s * len / 2.0))
+}
+
+/// Una freccia in un tratto solo: un'asta lunga e la punta (uno o due
+/// tagli corti) a un capo. La rifà: asta dritta e punta simmetrica.
+fn arrow(p: &[(f32, f32)], hh: f32) -> Option<Vec<(f32, f32)>> {
+    let total: f32 = p.windows(2).map(|w| dist(w[0], w[1])).sum();
+    let simp = rdp(p, (0.04 * total).max(0.12 * hh));
+    if simp.len() < 3 || simp.len() > 6 {
+        return None;
+    }
+    let segs: Vec<f32> = simp.windows(2).map(|w| dist(w[0], w[1])).collect();
+    let (k, &long) = segs.iter().enumerate().max_by(|a, b| a.1.total_cmp(b.1))?;
+    let rest: f32 = segs.iter().sum::<f32>() - long;
+    if long < 0.6 * (long + rest) || long < 1.5 * hh {
+        return None;
+    }
+    // l'asta va dal capo opposto alla punta
+    let (tail, tip, barbs): ((f32, f32), (f32, f32), Vec<(f32, f32)>) = if k == 0 {
+        (simp[0], simp[1], simp[2..].to_vec())
+    } else if k == segs.len() - 1 {
+        (simp[simp.len() - 1], simp[simp.len() - 2], simp[..simp.len() - 2].to_vec())
+    } else {
+        return None;
+    };
+    // la punta sta vicino alla fine dell'asta e torna indietro (i punti che
+    // ripassano sulla punta non contano)
+    let barbs: Vec<(f32, f32)> = barbs.into_iter().filter(|&q| dist(q, tip) > 0.03 * long).collect();
+    if barbs.is_empty() {
+        return None;
+    }
+    let dir = ((tip.0 - tail.0) / long, (tip.1 - tail.1) / long);
+    let near = barbs.iter().all(|&q| dist(q, tip) < 0.45 * long && ((q.0 - tip.0) * dir.0 + (q.1 - tip.1) * dir.1) < 0.0);
+    if !near {
+        return None;
+    }
+    let barb = barbs.iter().map(|&q| dist(q, tip)).fold(0.0f32, f32::max).clamp(0.08 * long, 0.3 * long);
+    let (tail, tip) = snap_line(tail, tip);
+    let (b1, b2) = head(tail, tip, barb);
+    Some(vec![tail, tip, b1, tip, b2])
+}
+
+/// Le due alette di una punta in `tip`, per un'asta che viene da `tail`.
+fn head(tail: (f32, f32), tip: (f32, f32), barb: f32) -> ((f32, f32), (f32, f32)) {
+    let ang = (tail.1 - tip.1).atan2(tail.0 - tip.0);
+    let a = 28f32.to_radians();
+    let p = |t: f32| (tip.0 + barb * t.cos(), tip.1 + barb * t.sin());
+    (p(ang + a), p(ang - a))
+}
+
+/// Una punta disegnata a parte: una «V» col vertice vicino al capo di una linea.
+fn arrow_head(p: &[(f32, f32)], lines: &[((f32, f32), (f32, f32))], hh: f32) -> Option<Vec<(f32, f32)>> {
+    let total: f32 = p.windows(2).map(|w| dist(w[0], w[1])).sum();
+    let simp = rdp(p, (0.12 * total).max(0.05 * hh));
+    if simp.len() != 3 {
+        return None;
+    }
+    let (b1, apex, b2) = (simp[0], simp[1], simp[2]);
+    let (l1, l2) = (dist(b1, apex), dist(b2, apex));
+    if l1.min(l2) < 0.4 * l1.max(l2) {
+        return None;
+    }
+    for &(a, b) in lines {
+        for (tail, tip) in [(a, b), (b, a)] {
+            let len = dist(tail, tip);
+            if dist(apex, tip) > 0.6 * hh.max(0.15 * len) {
+                continue;
+            }
+            // le alette tornano verso l'asta
+            let dir = ((tip.0 - tail.0) / len, (tip.1 - tail.1) / len);
+            let back = |q: (f32, f32)| (q.0 - apex.0) * dir.0 + (q.1 - apex.1) * dir.1 < 0.0;
+            if back(b1) && back(b2) {
+                let (h1, h2) = head(tail, tip, (l1 + l2) / 2.0);
+                return Some(vec![h1, tip, h2]);
+            }
+        }
+    }
+    None
+}
+
+/// Un cerchio o un'ellisse chiusa, fatta a mano: la stessa figura perfetta
+/// (un cerchio se è quasi tondo, dritta se è quasi dritta), con `n` punti
+/// dallo stesso punto di partenza e nello stesso verso.
+fn ellipse(p: &[(f32, f32)], n: usize) -> Option<Vec<(f32, f32)>> {
+    // punti a passo costante (la velocità della mano non deve pesare)
+    let q = resample(p, 64);
+    let (cx, cy) = q.iter().fold((0.0, 0.0), |a, b| (a.0 + b.0 / 64.0, a.1 + b.1 / 64.0));
+    let (mut sxx, mut syy, mut sxy) = (0.0f32, 0.0f32, 0.0f32);
+    for &(x, y) in &q {
+        sxx += (x - cx) * (x - cx) / 64.0;
+        syy += (y - cy) * (y - cy) / 64.0;
+        sxy += (x - cx) * (y - cy) / 64.0;
+    }
+    // assi principali
+    let tr = sxx + syy;
+    let det = sxx * syy - sxy * sxy;
+    let disc = ((tr * tr / 4.0) - det).max(0.0).sqrt();
+    let (l1, l2) = (tr / 2.0 + disc, (tr / 2.0 - disc).max(0.0));
+    let theta = 0.5 * (2.0 * sxy).atan2(sxx - syy);
+    let (a, b) = ((2.0 * l1).sqrt(), (2.0 * l2).sqrt());
+    if a <= 0.0 || b < 0.15 * a {
+        return None;
+    }
+    // chiusa: la fine torna vicino all'inizio, e il giro è quasi completo
+    if dist(p[0], *p.last()?) > 0.5 * b.max(0.35 * a) {
+        return None;
+    }
+    let (st, ct) = theta.sin_cos();
+    let local = |&(x, y): &(f32, f32)| {
+        let (dx, dy) = (x - cx, y - cy);
+        (dx * ct + dy * st, -dx * st + dy * ct)
+    };
+    let mut err = 0.0f32;
+    let mut worst = 0.0f32;
+    let mut sweep = 0.0f32;
+    let mut prev: Option<f32> = None;
+    for pt in &q {
+        let (u, v) = local(pt);
+        let r = ((u / a).powi(2) + (v / b).powi(2)).sqrt();
+        err += (r - 1.0).abs() / 64.0;
+        worst = worst.max((r - 1.0).abs());
+        let ang = v.atan2(u);
+        if let Some(pa) = prev {
+            let mut d = ang - pa;
+            while d > std::f32::consts::PI {
+                d -= std::f32::consts::TAU;
+            }
+            while d < -std::f32::consts::PI {
+                d += std::f32::consts::TAU;
+            }
+            sweep += d;
+        }
+        prev = Some(ang);
+    }
+    if err > 0.12 || worst > 0.35 || sweep.abs() < 300f32.to_radians() {
+        return None;
+    }
+    // quasi tondo: cerchio; quasi dritta: senza rotazione
+    let (a, b, theta) = if b / a > 0.85 {
+        let r = (a + b) / 2.0;
+        (r, r, 0.0)
+    } else {
+        let step = std::f32::consts::FRAC_PI_2;
+        let near = (theta / step).round() * step;
+        (a, b, if (theta - near).abs() < 6f32.to_radians() { near } else { theta })
+    };
+    let (st, ct) = theta.sin_cos();
+    let (u0, v0) = {
+        let (dx, dy) = (p[0].0 - cx, p[0].1 - cy);
+        (dx * ct + dy * st, -dx * st + dy * ct)
+    };
+    let start = (v0 / b).atan2(u0 / a);
+    let dir = sweep.signum();
+    Some(
+        (0..n)
+            .map(|k| {
+                let t = start + dir * std::f32::consts::TAU * k as f32 / (n - 1).max(1) as f32;
+                let (u, v) = (a * t.cos(), b * t.sin());
+                (cx + u * ct - v * st, cy + u * st + v * ct)
+            })
+            .collect(),
+    )
+}
+
+/// `n` punti a distanza costante lungo la spezzata.
+fn resample(p: &[(f32, f32)], n: usize) -> Vec<(f32, f32)> {
+    if p.len() < 2 || n < 2 {
+        return vec![p.first().copied().unwrap_or((0.0, 0.0)); n];
+    }
+    let cum: Vec<f32> = std::iter::once(0.0)
+        .chain(p.windows(2).scan(0.0, |acc, w| {
+            *acc += dist(w[0], w[1]);
+            Some(*acc)
+        }))
+        .collect();
+    let total = *cum.last().unwrap();
+    let mut out = Vec::with_capacity(n);
+    let mut j = 0;
+    for k in 0..n {
+        let t = total * k as f32 / (n - 1) as f32;
+        while j + 1 < cum.len() - 1 && cum[j + 1] < t {
+            j += 1;
+        }
+        let seg = (cum[j + 1] - cum[j]).max(1e-9);
+        let f = ((t - cum[j]) / seg).clamp(0.0, 1.0);
+        out.push((p[j].0 + (p[j + 1].0 - p[j].0) * f, p[j].1 + (p[j + 1].1 - p[j].1) * f));
+    }
+    out
+}
+
+/// Ramer–Douglas–Peucker: gli spigoli della spezzata.
+fn rdp(p: &[(f32, f32)], eps: f32) -> Vec<(f32, f32)> {
+    if p.len() < 3 {
+        return p.to_vec();
+    }
+    let (a, b) = (p[0], p[p.len() - 1]);
+    let (k, d) = p.iter().enumerate().skip(1).take(p.len() - 2).map(|(i, &q)| (i, seg_dist(q, a, b))).fold((0, 0.0f32), |m, x| if x.1 > m.1 { x } else { m });
+    if d <= eps {
+        return vec![a, b];
+    }
+    let mut left = rdp(&p[..=k], eps);
+    let right = rdp(&p[k..], eps);
+    left.pop();
+    left.extend(right);
+    left
+}
+
+/// Distanza di `q` dal segmento a–b.
+fn seg_dist(q: (f32, f32), a: (f32, f32), b: (f32, f32)) -> f32 {
+    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+    let l2 = dx * dx + dy * dy;
+    if l2 <= 0.0 {
+        return dist(q, a);
+    }
+    let t = (((q.0 - a.0) * dx + (q.1 - a.1) * dy) / l2).clamp(0.0, 1.0);
+    dist(q, (a.0 + t * dx, a.1 + t * dy))
 }
 
 #[derive(Clone, Copy)]
@@ -924,6 +1280,64 @@ mod tests {
         assert_eq!(out[9].color, [214, 40, 40]);
     }
 
+    fn stroke_of(pts: &[(f32, f32)]) -> Stroke {
+        let mut s = Stroke::new([20, 20, 20], 2.0);
+        for &(x, y) in pts {
+            s.points.push(PenEvent { x, y, pressure: 0.7, phase: PenPhase::Move });
+        }
+        s
+    }
+
+    #[test]
+    fn forme_perfette() {
+        let g = geom();
+        let wob = |k: usize| ((k * 7919 % 97) as f32 / 97.0 - 0.5) * 120.0;
+        // una linea storta e un po' inclinata (2°): diventa orizzontale e dritta
+        let line: Vec<(f32, f32)> = (0..60).map(|k| (2000.0 + k as f32 * 150.0, 20000.0 + k as f32 * 150.0 * 0.035 + wob(k))).collect();
+        // un cerchio tremolante, un po' più di un giro
+        let circle: Vec<(f32, f32)> = (0..80)
+            .map(|k| {
+                let t = k as f32 / 79.0 * 6.6;
+                (10000.0 + 1800.0 * t.cos() + wob(k), 8000.0 + 1800.0 * t.sin() + wob(k + 3))
+            })
+            .collect();
+        // una freccia in un tratto: asta, poi le due alette
+        let mut arrow: Vec<(f32, f32)> = (0..40).map(|k| (2000.0 + k as f32 * 150.0, 14000.0 + wob(k) * 0.5)).collect();
+        arrow.extend([(7300.0, 13500.0), (7850.0, 14000.0), (7350.0, 14550.0)]);
+        // e una parola normale, che non si tocca
+        let mut strokes = tilted_line();
+        let first_word = strokes.len();
+        strokes.push(stroke_of(&line));
+        strokes.push(stroke_of(&circle));
+        strokes.push(stroke_of(&arrow));
+        let (out, shaped) = perfect(&strokes, &g);
+        assert_eq!(out.len(), strokes.len());
+        // la scrittura resta com'è
+        assert!((0..first_word).all(|i| !shaped[i] && out[i].points.iter().zip(&strokes[i].points).all(|(a, b)| a.x == b.x && a.y == b.y)));
+        assert!(shaped[first_word] && shaped[first_word + 1] && shaped[first_word + 2], "{shaped:?}");
+        // la linea: tutti i punti alla stessa altezza
+        let l = &out[first_word].points;
+        let (lo, hi) = l.iter().fold((f32::MAX, f32::MIN), |m, p| (m.0.min(p.y), m.1.max(p.y)));
+        assert!(hi - lo < 1.0, "{lo} {hi}");
+        // il cerchio: tutti alla stessa distanza dal centro
+        let c = &out[first_word + 1].points;
+        let bx = c.iter().fold([f32::MAX, f32::MAX, f32::MIN, f32::MIN], |b, p| [b[0].min(p.x), b[1].min(p.y), b[2].max(p.x), b[3].max(p.y)]);
+        let (cx, cy) = ((bx[0] + bx[2]) / 2.0, (bx[1] + bx[3]) / 2.0);
+        let r: Vec<f32> = c.iter().map(|p| ((p.x - cx).powi(2) + (p.y - cy).powi(2)).sqrt()).collect();
+        let (rmin, rmax) = r.iter().fold((f32::MAX, f32::MIN), |m, &x| (m.0.min(x), m.1.max(x)));
+        assert!((rmax - rmin) / rmax < 0.02, "{rmin} {rmax}");
+        assert_eq!(c.len(), circle.len());
+        // la freccia: asta orizzontale e alette uguali
+        let a = &out[first_word + 2].points;
+        assert_eq!(a.len(), arrow.len());
+        assert!((a[0].y - 14000.0).abs() < 200.0);
+        let tip = a.iter().max_by(|p, q| p.x.total_cmp(&q.x)).unwrap();
+        let ends: Vec<&PenEvent> = a.iter().filter(|p| p.x < tip.x - 100.0 && (p.y - tip.y).abs() > 200.0).collect();
+        let up = ends.iter().map(|p| p.y).fold(f32::MAX, f32::min);
+        let down = ends.iter().map(|p| p.y).fold(f32::MIN, f32::max);
+        assert!(((tip.y - up) - (down - tip.y)).abs() < 40.0, "{} {} {}", up, tip.y, down);
+    }
+
     #[test]
     fn i_disegni_restano() {
         // un grande riquadro (un disegno) e una riga di testo sotto
@@ -965,6 +1379,26 @@ mod tests {
             eprintln!("{}: {:?}", e.id, t0.elapsed());
         }
         set_level(0);
+    }
+
+    #[test]
+    #[ignore]
+    fn forme_trovate() {
+        let (Ok(dir), Ok(id)) = (std::env::var("BEAUTIFY_DIR"), std::env::var("BEAUTIFY_ID")) else { return };
+        let lib = crate::library::Library::open_in(std::path::Path::new(&dir));
+        let e = lib.get(&id).unwrap();
+        let view = View { rot: 1, flip_x: false, flip_y: false };
+        let (pw, ph0) = crate::scene::page_dims(&e.drawing);
+        let g = PageGeom::new(view, pw, ph0);
+        let aspect = g.w / g.h;
+        let r = crate::boardread::read(&e.drawing.strokes, &g, None);
+        let (_, shaped) = perfect(&e.drawing.strokes, &g);
+        for (i, s) in e.drawing.strokes.iter().enumerate().rev().take(3) {
+            let ph: Vec<(f32, f32)> = s.points.iter().map(|q| { let (u, v) = g.unit(q.x, q.y); (u * aspect, v) }).collect();
+            let total: f32 = ph.windows(2).map(|w| dist(w[0], w[1])).sum();
+            let simp = rdp(&ph, (0.04 * total).max(0.12 * r.char_h));
+            eprintln!("{i}: shaped {} hh {:.4} total {:.4} simp {:?} arrow {:?}", shaped[i], r.char_h, total, simp, arrow(&ph, r.char_h).map(|a| a.len()));
+        }
     }
 
     #[test]

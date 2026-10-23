@@ -174,6 +174,21 @@ impl App {
                         ui.label(egui::RichText::new(i18n::tr(tip).into_owned()).font(regular(11.0)).color(t.text_dim));
                     });
                 }
+                ui.separator();
+                let shapes = self.settings.perfect_shapes;
+                if menu_item(ui, true, check_icon(shapes), "Linee, frecce e cerchi perfetti", "") {
+                    actions.push(Action::PerfectShapes(!shapes));
+                }
+                ui.separator();
+                ui.add_space(2.0);
+                ui.label(egui::RichText::new(i18n::tr("Come scrive l'AI sul foglio").into_owned()).font(medium(11.0)).color(Tokens::get(ui.ctx()).text_dim));
+                let hand = self.settings.ai_hand;
+                for (m, label) in [(0u8, "Stampatello pulito"), (1, "A mano (con le irregolarità della mano)"), (2, "Scrittura naturale")] {
+                    let icon = if m == hand { ic::RADIO_BUTTON } else { ic::CIRCLE };
+                    if menu_item(ui, true, icon, label, "") {
+                        actions.push(Action::AiHand(m));
+                    }
+                }
             });
             if big_ex(
                 ui,

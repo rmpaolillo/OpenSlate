@@ -81,6 +81,10 @@ pub struct Settings {
     /// Bella scrittura sulla lavagna: 0 spenta, 1 leggera, 2 media, 3 forte
     /// (solo come si vede e si esporta: i tratti originali restano).
     pub beautify: u8,
+    /// Linee, frecce e cerchi fatti a mano: perfetti (solo come si vedono).
+    pub perfect_shapes: bool,
+    /// Come scrive l'AI sul foglio: 0 pulita, 1 a mano, 2 naturale.
+    pub ai_hand: u8,
     /// Il controllo mentre scrivi: alla pausa l'AI guarda le righe nuove.
     pub live_check: bool,
     /// Dopo quanti secondi senza tratti nuovi parte il controllo.
@@ -125,6 +129,8 @@ impl Default for Settings {
             paper: "bianco".into(),
             paper_margin: true,
             beautify: 0,
+            perfect_shapes: true,
+            ai_hand: 0,
             live_check: false,
             live_check_pause: 4.0,
         }
@@ -205,6 +211,8 @@ impl Settings {
             "paper" => self.paper = v.into(),
             "paper_margin" => self.paper_margin = b(v),
             "beautify" => self.beautify = v.trim().parse::<u8>().unwrap_or(0).min(3),
+            "perfect_shapes" => self.perfect_shapes = b(v),
+            "ai_hand" => self.ai_hand = crate::boardmarks::hand_parse(v),
             "live_check" => self.live_check = b(v),
             "live_check_pause" => self.live_check_pause = v.trim().parse::<f32>().unwrap_or(self.live_check_pause).clamp(1.5, 30.0),
             "compact_ui" => self.compact_ui = b(v),
@@ -244,6 +252,8 @@ impl Settings {
              # scrittura degli appunti: vuoto (stampata), corsivo, stampatello (a mano)\nnote_hand = {}\n\
              # rigatura del foglio: bianco, righe, righe10, quadretti5, quadretti4, quadretti10; margini rossi (solo righe)\npaper = {}\npaper_margin = {}\n\
              # bella scrittura sulla lavagna (solo come si vede e si esporta): 0 spenta, 1 leggera, 2 media, 3 forte\nbeautify = {}\n\
+             # linee, frecce e cerchi fatti a mano: perfetti (solo come si vedono)\nperfect_shapes = {}\n\
+             # come scrive l'AI sul foglio: pulita, mano (con le irregolarità della mano), naturale (carattere a mano vero)\nai_hand = {}\n\
              # controllo mentre scrivi: alla pausa (secondi) l'AI guarda le righe nuove\nlive_check = {}\nlive_check_pause = {:.1}\n\
              # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
              # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n\
@@ -277,6 +287,8 @@ impl Settings {
             self.paper,
             b(self.paper_margin),
             self.beautify,
+            b(self.perfect_shapes),
+            crate::boardmarks::hand_code(self.ai_hand),
             b(self.live_check),
             self.live_check_pause,
             self.save_dir,

@@ -165,7 +165,7 @@ impl Page {
     /// Come `from_drawing`, ma in bella scrittura se è accesa (per vedere
     /// ed esportare; l'AI e i documenti usano sempre i tratti veri).
     pub fn from_drawing_nice(d: &Drawing, view: View) -> Page {
-        if crate::beautify::level() == 0 {
+        if !crate::beautify::active() {
             return Page::from_drawing(d, view);
         }
         Page::from_drawing(&crate::beautify::nice(d, view), view)
