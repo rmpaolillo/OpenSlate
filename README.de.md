@@ -132,6 +132,10 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   die des Stifts: Widerrufen bringt deine Schrift zurück. Zeichnungen, Textmarker, die Zeichen der
   KI und unleserliche Zeilen bleiben, wie sie sind. Es nutzt die Agenten, die Seiten lesen
   (`[ocr]`).
+  So geht's: Zieh mit der Maus einen Rahmen um den gewünschten Teil (oder «Ganze Seite»); eine
+  Vorschau erscheint über dem Blatt, dann nimmt Eingabe sie an und Esc lehnt sie ab. «Wer liest»
+  wählt einen einzigen Agenten, der Bilder sieht (deinen schnellsten); die Statusleiste zeigt, wer
+  liest und seit wann. Jede Zeile bleibt an ihrem Platz und läuft nicht in die Nachbarspalte.
   In Zeichnungen werden ohne KI Geraden, Pfeile (gebogen, mit zwei Spitzen, auch mit getrennt
   gezeichneter Spitze), Kreise und Ellipsen (auch in zwei Hälften gezeichnet), Kreis- und
   Ellipsenbögen und Vielecke perfekt: fast waagrechte oder senkrechte Linien werden gerade, fast

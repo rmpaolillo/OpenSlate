@@ -131,6 +131,10 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   accolades des systèmes, sommes, intégrales, limites). C'est de la vraie encre, comme celle du
   stylet : Annuler ramène votre écriture. Les dessins, les surlignages, les marques de l'IA et les
   lignes illisibles restent tels quels. Il utilise les agents qui lisent les feuilles (`[ocr]`).
+  Comment ça marche : tracez à la souris un cadre autour de la partie voulue (ou « Toute la page ») ;
+  un aperçu apparaît sur la feuille, puis Entrée l'accepte et Échap le refuse. « Qui lit » choisit un
+  seul agent qui voit les images (le plus rapide que vous ayez) ; la barre d'état indique qui lit et
+  depuis combien de temps. Chaque ligne reste à sa place et ne déborde pas sur la colonne voisine.
   Dans les dessins, sans IA, droites, flèches (courbes, à deux pointes, même avec la pointe à part),
   cercles et ellipses (même tracées en deux moitiés), arcs de cercle et d'ellipse et polygones
   deviennent parfaits : les lignes presque horizontales ou verticales se redressent, les angles

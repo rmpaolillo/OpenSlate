@@ -354,8 +354,28 @@ pub fn describe(r: &Reading) -> String {
 
 /// L'immagine del foglio con le righe nominate e le parole nei riquadri.
 pub fn labelled_png(page: &crate::scene::Page, r: &Reading) -> anyhow::Result<Vec<u8>> {
+    labelled_pixmap(page, r, 1400)?.encode_png().map_err(|e| anyhow::anyhow!("PNG: {e}"))
+}
+
+/// Come `labelled_png`, ritagliata su una zona (u0, v0, u1, v1) e grande
+/// abbastanza perché la zona si legga bene (circa 1400 punti sul lato lungo).
+/// Attorno si lascia un po' di margine, per i nomi delle righe a sinistra.
+pub fn labelled_png_crop(page: &crate::scene::Page, r: &Reading, crop: [f32; 4]) -> anyhow::Result<Vec<u8>> {
+    let c = [(crop[0] - 0.07).max(0.0), (crop[1] - 0.03).max(0.0), (crop[2] + 0.02).min(1.0), (crop[3] + 0.03).min(1.0)];
+    // la frazione del lato lungo della pagina che la zona occupa
+    let long = page.w.max(page.h).max(1e-6);
+    let f = ((c[2] - c[0]) * page.w / long).max((c[3] - c[1]) * page.h / long).max(0.05);
+    let side = ((1400.0 / f) as u32).clamp(1400, 4200);
+    let pm = labelled_pixmap(page, r, side)?;
+    let (w, h) = (pm.width() as f32, pm.height() as f32);
+    let rect = tiny_skia::IntRect::from_ltrb((c[0] * w) as i32, (c[1] * h) as i32, (c[2] * w).ceil() as i32, (c[3] * h).ceil() as i32).ok_or_else(|| anyhow::anyhow!("zona vuota"))?;
+    let cut = pm.clone_rect(rect).ok_or_else(|| anyhow::anyhow!("zona fuori dalla pagina"))?;
+    cut.encode_png().map_err(|e| anyhow::anyhow!("PNG: {e}"))
+}
+
+fn labelled_pixmap(page: &crate::scene::Page, r: &Reading, side: u32) -> anyhow::Result<tiny_skia::Pixmap> {
     use tiny_skia::{Paint, PathBuilder, Pixmap, Stroke as Sk, Transform};
-    let png = crate::export::page_to_png(page, 1400)?;
+    let png = crate::export::page_to_png(page, side)?;
     let mut pm = Pixmap::decode_png(&png).map_err(|e| anyhow::anyhow!("PNG: {e}"))?;
     let (w, h) = (pm.width() as f32, pm.height() as f32);
     let mut boxp = Paint::default();
@@ -406,7 +426,7 @@ pub fn labelled_png(page: &crate::scene::Page, r: &Reading) -> anyhow::Result<Ve
     for e in &r.highlights {
         label(&mut pm, &e.id, e.bbox[0] - 0.008, (e.bbox[1] + e.bbox[3]) / 2.0);
     }
-    pm.encode_png().map_err(|e| anyhow::anyhow!("PNG: {e}"))
+    Ok(pm)
 }
 
 #[cfg(test)]

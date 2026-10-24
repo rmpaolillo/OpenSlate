@@ -530,8 +530,8 @@ enum Action {
     /// Rigatura del foglio.
     Paper(paper::Paper),
     ToggleMargin,
-    /// «Trasforma in bella»: la scrittura della lavagna diventa la sua bella copia.
-    InBella,
+    /// La bella copia (pulsante «Trasforma in bella»): zona, anteprima, accetta.
+    Fair(inbella_ui::Fair),
     /// Apre la finestra degli appunti.
     Appunti,
     /// Apre le impostazioni degli agenti AI.
@@ -1909,7 +1909,7 @@ impl App {
                 self.settings.save();
                 self.status = format!("Foglio: {}.", p.label());
             }
-            Action::InBella => self.inbella_now(),
+            Action::Fair(a) => self.fair_action(a),
             Action::ToggleMargin => {
                 self.settings.paper_margin = !self.settings.paper_margin;
                 self.settings.save();
@@ -1996,6 +1996,11 @@ impl App {
     }
 
     fn board_keyboard(&self, ctx: &egui::Context, actions: &mut Vec<Action>) {
+        // Invio ed Esc della bella copia anche se il pulsante appena premuto
+        // ha ancora il fuoco della tastiera
+        if self.fair_keys(ctx, actions) {
+            return;
+        }
         if ctx.egui_wants_keyboard_input() {
             return;
         }
@@ -2164,7 +2169,7 @@ impl App {
                     let s = self.hub.lock();
                     (s.eraser, s.tool == crate::scene::Tool::Highlighter && !s.eraser)
                 };
-                if !self.stamp_input(ui, &resp) {
+                if !self.fair_input(ui, &resp) && !self.stamp_input(ui, &resp) {
                     // Con la gomma o l'evidenziatore il tasto sinistro
                     // cancella o evidenzia (si sposta col centrale).
                     if erasing {
@@ -2205,6 +2210,10 @@ impl App {
                     chrome::paint_rulers(&ui.painter_at(full), h, v, page, (g.w / 1000.0, g.h / 1000.0), resp.hover_pos(), &t);
                 }
                 self.paint_doc_overlay(&painter, page, &scene);
+                {
+                    let (pw, ph) = crate::scene::page_dims(&scene.drawing);
+                    self.fair_paint(&painter, page, &PageGeom::new(scene.view, pw, ph));
+                }
                 // Alt + passaggio del mouse: segna l'evidenziatura; Alt+clic la toglie.
                 if ui.input(|i| i.modifiers.alt) {
                     if let Some(pos) = resp.hover_pos() {

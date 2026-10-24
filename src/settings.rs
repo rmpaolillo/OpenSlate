@@ -78,6 +78,9 @@ pub struct Settings {
     pub paper: String,
     /// Margini rossi a sinistra e a destra nei fogli a righe.
     pub paper_margin: bool,
+    /// Chi legge la scrittura per la bella copia (un agente con la visione;
+    /// vuoto = gli agenti di «Lettura dei fogli»).
+    pub fair_agent: String,
 }
 
 impl Default for Settings {
@@ -117,6 +120,7 @@ impl Default for Settings {
             update_auto: false,
             paper: "bianco".into(),
             paper_margin: true,
+            fair_agent: String::new(),
         }
     }
 }
@@ -194,6 +198,7 @@ impl Settings {
             "chat_side" => self.chat_side = if v.trim() == "destra" { "destra".into() } else { "sinistra".into() },
             "paper" => self.paper = v.into(),
             "paper_margin" => self.paper_margin = b(v),
+            "fair_agent" => self.fair_agent = v.trim().to_string(),
             "compact_ui" => self.compact_ui = b(v),
             "note_hand" => self.note_hand = crate::mdcraft::Hand::parse(v).key().into(),
             "chat_zoom" => self.chat_zoom = v.parse::<f32>().unwrap_or(self.chat_zoom).clamp(0.6, 2.5),
@@ -230,6 +235,7 @@ impl Settings {
              # vista compatta: niente barra dei menu e strumenti\ncompact_ui = {}\n\
              # scrittura degli appunti: vuoto (stampata), corsivo, stampatello (a mano)\nnote_hand = {}\n\
              # rigatura del foglio: bianco, righe, righe10, quadretti5, quadretti4, quadretti10; margini rossi (solo righe)\npaper = {}\npaper_margin = {}\n\
+             # bella copia: chi legge la scrittura (vuoto = gli agenti di «Lettura dei fogli»)\nfair_agent = {}\n\
              # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
              # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n\
              # aggiornamenti: avvisa quando c'è una versione nuova su GitHub; versione saltata; installa da solo senza chiedere\nupdate_check = {}\nupdate_skip = {}\nupdate_install_auto = {}\n",
@@ -261,6 +267,7 @@ impl Settings {
             self.note_hand,
             self.paper,
             b(self.paper_margin),
+            self.fair_agent,
             self.save_dir,
             self.ui_lang,
             b(self.update_check),

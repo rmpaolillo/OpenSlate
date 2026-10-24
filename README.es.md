@@ -130,6 +130,10 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   sumatorios, integrales, límites). Es tinta de verdad, como la del lápiz: Deshacer devuelve tu
   letra. Los dibujos, los resaltados, las marcas de la IA y las líneas que no se leen quedan como
   están. Usa los agentes que leen las hojas (`[ocr]`).
+  Cómo funciona: arrastra con el ratón un recuadro alrededor de la parte que quieres (o «Toda la
+  página»); aparece una vista previa sobre la hoja, luego Intro la acepta y Esc la rechaza. «Quién
+  lee» elige un solo agente que vea imágenes (el más rápido que tengas); la barra de estado dice
+  quién lee y desde hace cuánto. Cada línea queda en su sitio y no invade la columna de al lado.
   En los dibujos, sin IA, rectas, flechas (curvas, de dos puntas, también con la punta aparte),
   círculos y elipses (también hechas en dos mitades), arcos de círculo y de elipse y polígonos quedan
   perfectos: las líneas casi horizontales o verticales se enderezan, los ángulos casi rectos se

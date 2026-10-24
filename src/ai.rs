@@ -2202,12 +2202,31 @@ pub fn transcribe(png: Arc<Vec<u8>>) -> Result<Reply> {
 }
 
 /// Fa leggere un'immagine con una domanda precisa («Trasforma in bella»:
-/// le righe della lavagna): gli agenti che leggono i fogli, sezione [ocr].
-pub fn read_image(png: Arc<Vec<u8>>, prompt: &str) -> Result<Reply> {
+/// le righe della lavagna). `agent`: solo quell'agente (deve vedere le
+/// immagini); vuoto = gli agenti che leggono i fogli, sezione [ocr].
+pub fn read_image_by(png: Arc<Vec<u8>>, prompt: &str, agent: &str) -> Result<Reply> {
     let mut cfg = AiConfig::load()?;
-    cfg.providers = cfg.ocr_chain().map_err(|e| anyhow!("{e}"))?;
+    let agent = agent.trim();
+    cfg.providers = if agent.is_empty() {
+        cfg.ocr_chain().map_err(|e| anyhow!("{e}"))?
+    } else {
+        let Some(p) = cfg.providers.iter().find(|p| p.name == agent) else {
+            bail!("l'agente «{agent}» scelto per la bella copia non c'è più in Impostazioni AI");
+        };
+        if !p.vision {
+            bail!("«{agent}» non vede le immagini: scegli un altro agente per la bella copia");
+        }
+        let mut p = p.clone();
+        p.enabled = true;
+        vec![p]
+    };
     let msgs = vec![Msg::new("user", prompt).with_image(png)];
     complete(&cfg, Task::Ocr, &msgs)
+}
+
+/// Gli agenti che vedono le immagini (per scegliere chi legge la bella copia).
+pub fn vision_agents() -> Vec<String> {
+    AiConfig::load().map(|c| c.providers.iter().filter(|p| p.vision).map(|p| p.name.clone()).collect()).unwrap_or_default()
 }
 
 /// Stato dei provider (per `OpenSlate ai` e la pagina della chat).

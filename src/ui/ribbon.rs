@@ -33,6 +33,10 @@ fn radio_icon(on: bool) -> &'static str {
 
 impl App {
     pub(super) fn ribbon_home(&self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
+        if self.inbella.active() {
+            self.ribbon_fair(ui, actions);
+            return;
+        }
         let (pen, eraser, tool) = {
             let s = self.hub.lock();
             (s.pen, s.eraser, s.tool)
@@ -149,14 +153,14 @@ impl App {
                 ui,
                 ic::MAGIC_WAND,
                 "Trasforma\nin bella",
-                "L'AI legge quello che hai scritto, formule comprese, e al suo posto lo riscrive in bella: una scrittura chiara con la matematica impaginata (frazioni, esponenti, radici, sistemi). Nei disegni rette, frecce, cerchi, archi e poligoni diventano perfetti. Annulla riporta la tua scrittura",
+                "Scegli una zona col mouse: l'AI legge quello che hai scritto, formule comprese, e lo riscrive in bella (scrittura chiara, matematica impaginata); nei disegni rette, frecce, cerchi, archi e poligoni diventano perfetti. Prima vedi l'anteprima, poi accetti o rifiuti",
                 !doc,
                 false,
                 false,
             )
             .clicked()
             {
-                actions.push(Action::InBella);
+                actions.push(Action::Fair(super::inbella_ui::Fair::Toggle));
             }
             if big_ex(
                 ui,
@@ -170,6 +174,54 @@ impl App {
             .clicked()
             {
                 actions.push(Action::SaveBoard);
+            }
+        });
+    }
+
+    /// La barra durante la bella copia: zona, chi legge, accetta o rifiuta.
+    fn ribbon_fair(&self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
+        use super::inbella_ui::{Fair, Phase};
+        let fair = |a: Fair| Action::Fair(a);
+        let phase = &self.inbella.phase;
+        group(ui, "Bella copia", |ui| {
+            match phase {
+                Phase::Select { .. } => {
+                    if big(ui, ic::SELECTION_ALL, "Tutta\nla pagina", "Mette in bella tutta la pagina (oppure trascina un riquadro sul foglio)").clicked() {
+                        actions.push(fair(Fair::All));
+                    }
+                }
+                Phase::Reading { .. } => {
+                    big_ex(ui, ic::HOURGLASS, "Sto\nleggendo…", "L'AI sta leggendo la zona", false, false, false);
+                }
+                Phase::Preview { .. } => {
+                    if big(ui, ic::CHECK_CIRCLE, "Accetta", "Mette la bella copia sul foglio (Invio); Annulla la toglie").clicked() {
+                        actions.push(fair(Fair::Accept));
+                    }
+                    if big(ui, ic::ARROWS_CLOCKWISE, "Rileggi", "Fa rileggere la zona all'AI").clicked() {
+                        actions.push(fair(Fair::Reread));
+                    }
+                }
+                Phase::Off => {}
+            }
+            // chi legge: un agente che vede le immagini
+            let cur = self.settings.fair_agent.clone();
+            let r = big_ex(ui, ic::ROBOT, "Chi\nlegge", "L'agente che legge la scrittura per la bella copia: uno solo, il più veloce che hai", !matches!(phase, Phase::Reading { .. }), false, true);
+            egui::Popup::menu(&r).show(|ui| {
+                ui.set_min_width(240.0);
+                let radio = |on: bool| if on { ic::RADIO_BUTTON } else { ic::CIRCLE };
+                if menu_item(ui, true, radio(cur.is_empty()), "Gli agenti di «Lettura dei fogli»", "") {
+                    actions.push(fair(Fair::Agent(String::new())));
+                }
+                ui.separator();
+                for name in crate::ai::vision_agents() {
+                    if menu_item(ui, true, radio(cur == name), &name, "") {
+                        actions.push(fair(Fair::Agent(name.clone())));
+                    }
+                }
+            });
+            let (label, tip) = if matches!(phase, Phase::Preview { .. }) { ("Rifiuta".to_string(), "Lascia il foglio com'era (Esc)") } else { (crate::i18n::tc("cancel", "Annulla").to_string(), "Torna al foglio (Esc)") };
+            if big(ui, ic::X_CIRCLE, &label, tip).clicked() {
+                actions.push(fair(Fair::Reject));
             }
         });
     }

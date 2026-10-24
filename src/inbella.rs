@@ -168,27 +168,53 @@ fn lines_of(r: &Reading, strokes: &[Stroke], g: &PageGeom) -> Vec<(String, u64)>
         .collect()
 }
 
-/// Fa leggere all'AI le righe della pagina (bloccante: in un thread).
-/// Torna il testo di ogni riga letta, per impronta (vuoto = da lasciare).
-pub fn recognize(strokes: &[Stroke], width: f32, height: f32, view: View) -> Result<HashMap<u64, String>> {
+/// I tratti nel riquadro `rect` (u0, v0, u1, v1 in frazioni della pagina):
+/// quelli col centro dentro.
+pub fn select(strokes: &[Stroke], g: &PageGeom, rect: [f32; 4]) -> Vec<usize> {
+    (0..strokes.len())
+        .filter(|&i| {
+            let s = &strokes[i];
+            if s.points.is_empty() {
+                return false;
+            }
+            let (mut u0, mut u1, mut v0, mut v1) = (f32::MAX, f32::MIN, f32::MAX, f32::MIN);
+            for p in &s.points {
+                let (u, v) = g.unit(p.x, p.y);
+                u0 = u0.min(u);
+                u1 = u1.max(u);
+                v0 = v0.min(v);
+                v1 = v1.max(v);
+            }
+            let (cu, cv) = ((u0 + u1) / 2.0, (v0 + v1) / 2.0);
+            cu >= rect[0] && cu <= rect[2] && cv >= rect[1] && cv <= rect[3]
+        })
+        .collect()
+}
+
+/// Fa leggere all'AI le righe di una zona (bloccante: in un thread).
+/// `strokes` sono solo i tratti della zona; all'AI va l'immagine ritagliata
+/// sulla zona `crop`, in alta risoluzione. `agent`: chi legge (vuoto = gli
+/// agenti di «Lettura dei fogli»). Torna il testo di ogni riga letta, per
+/// impronta (vuoto = da lasciare), e il nome dell'agente che ha letto.
+pub fn recognize_region(strokes: &[Stroke], width: f32, height: f32, view: View, crop: [f32; 4], agent: &str) -> Result<(HashMap<u64, String>, String)> {
     let d = Drawing { strokes: strokes.to_vec(), width, height };
     let (pw, ph) = crate::scene::page_dims(&d);
     let g = PageGeom::new(view, pw, ph);
     let reading = crate::boardread::read(strokes, &g, None);
     let lines = lines_of(&reading, strokes, &g);
     if lines.is_empty() {
-        return Ok(HashMap::new());
+        return Ok((HashMap::new(), String::new()));
     }
     let page = crate::scene::Page::from_drawing(&d, view);
-    let png = crate::boardread::labelled_png(&page, &reading)?;
+    let png = crate::boardread::labelled_png_crop(&page, &reading, crop)?;
     let ids: Vec<&str> = lines.iter().map(|(id, _)| id.as_str()).collect();
     let prompt = PROMPT.replace("{RIGHE}", &ids.join(", "));
-    let reply = crate::ai::read_image(std::sync::Arc::new(png), &prompt)?;
+    let reply = crate::ai::read_image_by(std::sync::Arc::new(png), &prompt, agent)?;
     let map = parse_reply(&reply.text)?;
-    Ok(lines.iter().filter_map(|(id, k)| map.get(id).map(|v| (*k, v.clone().unwrap_or_default()))).collect())
+    Ok((lines.iter().filter_map(|(id, k)| map.get(id).map(|v| (*k, v.clone().unwrap_or_default()))).collect(), reply.provider))
 }
 
-const PROMPT: &str = "Questa è una pagina scritta a mano col pennino. Accanto a ogni riga c'è il suo nome in rosa (r1, r2…) e ogni parola ha un riquadro.\n\
+const PROMPT: &str = "Questa è una pagina (o una sua parte) scritta a mano col pennino. Accanto a ogni riga c'è il suo nome in rosa (r1, r2…) e ogni parola ha un riquadro.\n\
 Trascrivi esattamente il contenuto di queste righe: {RIGHE}.\n\
 Regole:\n\
 - copia fedelmente, errori compresi: non correggere, non completare, non aggiungere niente;\n\
@@ -220,6 +246,17 @@ pub struct Done {
 /// `None` se non cambia niente. Le righe cambiate nel frattempo (impronta
 /// diversa) restano come sono.
 pub fn apply(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom) -> Option<(Vec<Stroke>, Done)> {
+    apply_with(strokes, texts, g, None)
+}
+
+/// Come `apply`, per i tratti di una zona: la scrittura nuova non va oltre
+/// il bordo destro della zona (`right`, in frazioni della larghezza), così
+/// non finisce sopra la colonna accanto.
+pub fn apply_region(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, right: f32) -> Option<(Vec<Stroke>, Done)> {
+    apply_with(strokes, texts, g, Some(right))
+}
+
+fn apply_with(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, right: Option<f32>) -> Option<(Vec<Stroke>, Done)> {
     if strokes.is_empty() {
         return None;
     }
@@ -253,7 +290,8 @@ pub fn apply(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom) -> 
         });
         // unità di Hershey → unità della pagina: il corpo delle minuscole (14) come il tuo
         let mut s = (1.15 * xh / 14.0).clamp(0.7 * hh / 21.0, 1.15 * hh / 21.0);
-        let room = (0.985 * aspect - x0).max(0.05);
+        let edge = right.map_or(0.985, |r| r.min(0.985)) * aspect;
+        let room = (edge - x0).max(0.05);
         if b.w * s > room {
             s = room / b.w;
         }
@@ -315,7 +353,9 @@ pub fn apply(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom) -> 
             drawing[i] || (x1 - x0).max(y1 - y0) >= 2.2 * hh
         })
         .collect();
-    let shaped = crate::shapes::perfect(&ph, &cand, hh);
+    // fuori dai disegni solo le forme riconosciute: una parola lunga in
+    // corsivo non si «liscia»
+    let shaped: Vec<crate::shapes::Shaped> = crate::shapes::perfect(&ph, &cand, hh).into_iter().filter(|s| drawing[s.index] || s.kind != crate::shapes::Kind::Curve).collect();
     if added.is_empty() && shaped.is_empty() {
         return None;
     }
@@ -658,5 +698,25 @@ mod tests {
             let page = crate::scene::Page::from_drawing(&Drawing { strokes: st, width: 21000.0, height: 29700.0 }, View::default());
             std::fs::write(format!("{out}-{name}.png"), crate::export::page_to_png(&page, 1200).unwrap()).unwrap();
         }
+    }
+
+    #[test]
+    fn zona_e_bordo_destro() {
+        let g = PageGeom::new(View::default(), 21000.0, 29700.0);
+        let strokes = page();
+        // un riquadro attorno alla prima riga sola
+        let lines = pending(&strokes, &g);
+        let (u0, v0) = g.unit(1800.0, 5000.0);
+        let (u1, v1) = g.unit(6500.0, 6500.0);
+        let sel = select(&strokes, &g, [u0.min(u1), v0.min(v1), u0.max(u1), v0.max(v1)]);
+        assert_eq!(sel, (0..6).collect::<Vec<_>>());
+        // una riga lunga, in una zona stretta: non va oltre il bordo destro
+        let sub: Vec<Stroke> = sel.iter().map(|&i| strokes[i].clone()).collect();
+        let texts: HashMap<u64, String> = [(lines[0].1, "una riga molto lunga che non ci starebbe mai in una zona così stretta".to_string())].into();
+        let right = u0.max(u1);
+        let (out, done) = apply_region(&sub, &texts, &g, right).unwrap();
+        assert_eq!(done.lines, 1);
+        let max_u = out.iter().flat_map(|s| s.points.iter().map(|p| g.unit(p.x, p.y).0)).fold(f32::MIN, f32::max);
+        assert!(max_u <= right + 0.01, "{max_u} > {right}");
     }
 }

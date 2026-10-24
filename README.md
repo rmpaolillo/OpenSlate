@@ -132,6 +132,10 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   limits). It is real ink like the pen's: Undo brings back your handwriting. Drawings,
   highlighters, the AI's marks and lines that cannot be read stay as they are. It uses the agents
   that read pages (`[ocr]`).
+  How it works: drag a box with the mouse around the part you want (or «Whole page»); a preview
+  appears over the page, then Enter accepts it and Esc rejects it. «Who reads» picks a single agent
+  that can see images (the fastest you have); the status bar shows who is reading and for how long.
+  Each line stays in place and never runs over the column next to it.
   In drawings, without AI, lines, arrows (curved, double-headed, heads drawn apart too), circles
   and ellipses (also drawn in two halves), arcs of circles and ellipses and polygons become perfect:
   nearly horizontal or vertical lines straighten, near right angles become right angles, nearly

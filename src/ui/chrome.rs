@@ -858,7 +858,7 @@ impl App {
             v.push(c(glyph, &format!("Foglio: {}", i18n::tr(&p.label())), "", Action::Paper(p)));
         }
         if !doc {
-            v.push(c(ic::MAGIC_WAND, "Trasforma la lavagna in bella", "", Action::InBella));
+            v.push(c(ic::MAGIC_WAND, "Trasforma la lavagna in bella", "", Action::Fair(super::inbella_ui::Fair::Toggle)));
         }
         if doc {
             v.push(c(ic::FILE_PDF, "Salva il documento firmato (nello stesso formato)", &cmd_key("Shift+S"), Action::Doc(DocAction::SaveSigned)));
