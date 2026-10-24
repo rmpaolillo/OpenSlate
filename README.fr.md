@@ -143,6 +143,15 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   triangle équilatéral ou isocèle, polygones réguliers), les pointillés ont des traits égaux et
   alignés, les extrémités proches se rejoignent, les courbes libres sont lissées ; ce qui n'est pas
   reconnu reste tel quel.
+- **Ton écriture.** « Mise au propre » → « Écriture » → « Entraîne ton écriture… » : en quelques tours,
+  tu écris au stylet, sur des pages vides, les lettres (chacune plusieurs fois), les chiffres, les
+  symboles mathématiques, les lettres grecques, les lettres accentuées et trois phrases. Après chaque
+  tour tu vois les signes découpés et tu peux écarter ceux qui ne te plaisent pas ; à la fin il y a un
+  aperçu et, si tu veux, l'IA essaie de lire une phrase écrite avec tes signes. Dès lors, la mise au
+  propre écrit avec ton écriture : une version différente de chaque lettre à chaque fois, les
+  espacements mesurés sur tes phrases et, en cursive, les lettres liées. On peut entraîner la cursive
+  et le script (chiffres et symboles servent aux deux). Tout reste dans le dossier de données `mano/`,
+  sur ton ordinateur.
 - **Le chat écrit sur le tableau.** Demandez-lui « vérifiez mes additions et marquez les erreurs »,
   « soulignez les échéances » ou « écrivez le résultat à côté de la ligne 2 » : il lit la page du tableau ligne
   par ligne et mot par mot, puis surligne, souligne, entoure, barre, dessine des cadres,
@@ -408,6 +417,7 @@ src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: m
 src/speech.rs                                             réponses à voix haute : voix du système (say, SAPI, espeak-ng) ou un service en ligne
 src/inbella.rs, src/mathhand.rs                           mettre au propre : l'IA lit les lignes, réécrites avec les maths mises en page
 src/shapes.rs                                             dessins au propre : droites, flèches, cercles, arcs et polygones parfaits
+src/campioni.rs, src/ui/allena_ui.rs                      ton écriture : tours d'entraînement, tes signes, mots écrits avec eux
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

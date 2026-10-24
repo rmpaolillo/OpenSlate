@@ -219,25 +219,34 @@ impl App {
                     }
                 }
             });
-            // con che scrittura: solo dove c'è il modello di «la tua mano»
-            if crate::mano::available() {
-                let hand = self.settings.fair_hand;
-                let r = big_ex(ui, ic::PEN_NIB, "Scrittura", "Con che scrittura fare la bella copia", !matches!(phase, Phase::Reading { .. }), false, true);
-                egui::Popup::menu(&r).show(|ui| {
-                    ui.set_min_width(240.0);
-                    let radio = |on: bool| if on { ic::RADIO_BUTTON } else { ic::CIRCLE };
-                    if menu_item(ui, true, radio(!hand), "Carattere chiaro", "") {
-                        actions.push(fair(Fair::Hand(false)));
+            // con che scrittura: il carattere chiaro, la tua (addestrata), la rete
+            let cur = crate::campioni::Mode::parse(&self.settings.fair_style);
+            let r = big_ex(ui, ic::PEN_NIB, "Scrittura", "Con che scrittura fare la bella copia", !matches!(phase, Phase::Reading { .. }), false, true);
+            egui::Popup::menu(&r).show(|ui| {
+                use crate::campioni::{Mode, Style};
+                ui.set_min_width(260.0);
+                let radio = |on: bool| if on { ic::RADIO_BUTTON } else { ic::CIRCLE };
+                if menu_item(ui, true, radio(cur == Mode::Chiaro), "Carattere chiaro", "") {
+                    actions.push(fair(Fair::Style("chiaro".into())));
+                }
+                let trained = crate::campioni::trained();
+                for st in Style::ALL {
+                    let label = match st {
+                        Style::Corsivo => "La tua scrittura (corsivo)",
+                        Style::Stampatello => "La tua scrittura (stampatello)",
+                    };
+                    if trained.contains(&st) && menu_item(ui, true, radio(cur == Mode::Scrittura(st)), label, "") {
+                        actions.push(fair(Fair::Style(st.key().into())));
                     }
-                    if menu_item(ui, true, radio(hand), "La tua mano (sperimentale)", "") {
-                        actions.push(fair(Fair::Hand(true)));
-                    }
-                    ui.separator();
-                    if menu_item(ui, true, ic::NOTE_PENCIL, "Pagina di prova della tua mano…", "") {
-                        actions.push(fair(Fair::HandPage));
-                    }
-                });
-            }
+                }
+                if crate::mano::available() && menu_item(ui, true, radio(cur == Mode::Mano), "La tua mano (sperimentale)", "") {
+                    actions.push(fair(Fair::Style("mano".into())));
+                }
+                ui.separator();
+                if menu_item(ui, true, ic::NOTE_PENCIL, "Addestra la tua scrittura…", "") {
+                    actions.push(fair(Fair::Train));
+                }
+            });
             let (label, tip) = if matches!(phase, Phase::Preview { .. }) { ("Rifiuta".to_string(), "Lascia il foglio com'era (Esc)") } else { (crate::i18n::tc("cancel", "Annulla").to_string(), "Torna al foglio (Esc)") };
             if big(ui, ic::X_CIRCLE, &label, tip).clicked() {
                 actions.push(fair(Fair::Reject));

@@ -143,6 +143,15 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   regelmäßig (Quadrat, Rechteck, Raute, Parallelogramm, gleichseitiges oder gleichschenkliges
   Dreieck, regelmäßige Vielecke), gestrichelte Linien bekommen gleiche Striche in einer Reihe, nahe
   Enden werden verbunden, freie Kurven geglättet; was nicht erkannt wird, bleibt, wie es ist.
+- **Deine Handschrift.** «Reinschrift» → «Schrift» → «Deine Handschrift trainieren…»: In wenigen Runden
+  schreibst du mit dem Stift auf leere Seiten die Buchstaben (jeden mehrmals), Ziffern,
+  Mathe-Symbole, griechische Buchstaben, Buchstaben mit Akzent und drei Sätze. Nach jeder Runde
+  siehst du die ausgeschnittenen Zeichen und kannst die verwerfen, die dir nicht gefallen; am Ende
+  gibt es eine Vorschau, und auf Wunsch versucht die KI, einen Satz in deinen Zeichen zu lesen. Von da
+  an schreibt die Reinschrift mit deiner Handschrift: jedes Mal eine andere Version jedes Buchstabens,
+  die Abstände aus deinen Sätzen gemessen, in Schreibschrift mit verbundenen Buchstaben. Schreib- und
+  Druckschrift lassen sich beide trainieren (Ziffern und Symbole gelten für beide). Alles bleibt im
+  Datenordner `mano/`, auf deinem Computer.
 - **Der Chat schreibt auf die Tafel.** Bitte ihn: „prüf meine Rechnungen und markier die Fehler“,
   „unterstreich die Fristen“ oder „schreib das Ergebnis neben Zeile 2“: Er liest das Tafelblatt Zeile
   für Zeile und Wort für Wort, dann markiert, unterstreicht, umkreist, streicht durch, zeichnet Kästen,
@@ -408,6 +417,7 @@ src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: m
 src/speech.rs                                             Antworten vorlesen: Systemstimmen (say, SAPI, espeak-ng) oder ein Online-Dienst
 src/inbella.rs, src/mathhand.rs                           ins Reine schreiben: die KI liest die Zeilen, neu geschrieben mit gesetzter Mathematik
 src/shapes.rs                                             Zeichnungen ins Reine: Geraden, Pfeile, Kreise, Bögen und Vielecke perfekt
+src/campioni.rs, src/ui/allena_ui.rs                      deine Handschrift: Trainingsrunden, deine Zeichen, Wörter daraus
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

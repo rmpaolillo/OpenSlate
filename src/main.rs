@@ -11,6 +11,7 @@ mod ble;
 mod charts;
 mod boardagent;
 mod boardmarks;
+mod campioni;
 mod inbella;
 mod mano;
 mod shapes;

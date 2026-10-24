@@ -142,6 +142,14 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   parallel segments become parallel, almost-regular figures become regular (square, rectangle,
   rhombus, parallelogram, equilateral or isosceles triangle, regular polygons), dashed lines get even
   dashes in a row, close ends join, free curves are smoothed; what is not recognised stays as it is.
+- **Your handwriting.** «Fair copy» → «Writing» → «Train your handwriting…»: in a few rounds you write
+  with the pen, on empty pages, the letters (each several times), digits, maths symbols, Greek letters,
+  accented letters and three sentences. After each round you see the signs it cut out and can discard
+  the ones you don't like; at the end there is a preview, and if you want the AI tries to read a
+  sentence written with your signs. From then on the fair copy writes with your handwriting: a
+  different version of each letter every time, the spacing measured from your sentences, and in
+  cursive the letters joined. Cursive and print can both be trained (digits and symbols are shared).
+  Everything stays in the data folder `mano/`, on your computer.
 - **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
   "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
   by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,
@@ -407,6 +415,7 @@ src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: m
 src/speech.rs                                             answers read aloud: system voices (say, SAPI, espeak-ng) or an online service
 src/inbella.rs, src/mathhand.rs                           fair copy: the AI reads the lines, they are rewritten with the maths laid out
 src/shapes.rs                                             fair copy of drawings: lines, arrows, circles, arcs and polygons made perfect
+src/campioni.rs, src/ui/allena_ui.rs                      your handwriting: training rounds, your signs, words written with them
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

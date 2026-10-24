@@ -13,6 +13,7 @@ mod chat_lib;
 mod chrome;
 mod doc_view;
 mod embed;
+mod allena_ui;
 mod inbella_ui;
 mod library_view;
 mod options;
@@ -210,6 +211,7 @@ pub fn run_app(
         board_zoom: ZoomView::default(),
         docui: doc_view::DocUi::new(),
         inbella: inbella_ui::InBellaUi::new(),
+        allena: allena_ui::AllenaUi::default(),
     };
     if web_now || app.settings.web_auto {
         app.start_web();
@@ -441,6 +443,7 @@ struct App {
     docui: doc_view::DocUi,
     /// «Trasforma in bella» (la lettura dell'AI in corso).
     inbella: inbella_ui::InBellaUi,
+    allena: allena_ui::AllenaUi,
 }
 
 /// I formati d'uscita delle pagine (vedi `formats`).
@@ -2280,7 +2283,7 @@ impl eframe::App for App {
         self.drain_events();
         self.voice_tick(ctx);
         self.inbella_tick(ctx);
-        self.hand_window(ctx);
+        self.train_window(ctx);
         self.chat_lib_requests(ctx);
         self.doc_tick(ctx);
         self.sync_chat_note();

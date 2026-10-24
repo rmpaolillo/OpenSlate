@@ -9,17 +9,16 @@
 //!   scrivere legge una tua riga (la «frase di prova»): da lì prende lo
 //!   stile. Scrive una parola alla volta; di ogni parola ne prova alcune e
 //!   tiene quella con l'attenzione più regolare.
-//! - Cifre, lettere sole e simboli delle formule vengono dalla pagina di
-//!   prova: li scrivi una volta, in righe, e si ritagliano uno per uno.
+//! - Cifre, lettere sole e simboli delle formule vengono dall'addestramento
+//!   della tua scrittura (`crate::campioni`); la sua prima frase dà lo stile.
 //!
 //! Tutto sta nella cartella `mano/` dei dati (mai su GitHub): i pesi
 //! (`graves.bin`, che non si distribuiscono: sono addestrati su IAM-OnDB,
-//! solo per ricerca), la frase di prova (`prima.txt`), i segni
-//! (`glifi.txt`) e le parole già scritte (`parole.txt`). Senza `graves.bin`
+//! solo per ricerca), la frase di prova (`prima.txt`) e le parole già
+//! scritte (`parole.txt`). Senza `graves.bin`
 //! la funzione non c'è e l'interfaccia non la mostra.
 
 use anyhow::{bail, Context, Result};
-use std::cell::Cell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -28,7 +27,6 @@ use std::sync::{Arc, Mutex, OnceLock};
 pub const DIR: &str = "mano";
 const WEIGHTS: &str = "graves.bin";
 const PRIME: &str = "prima.txt";
-const GLYPHS: &str = "glifi.txt";
 const CACHE: &str = "parole.txt";
 
 /// L'alfabeto del modello (73 segni: niente Q, X, Z, accenti, + = /).
@@ -660,7 +658,6 @@ impl Hand {
 
 static HAND: Mutex<Option<Arc<Hand>>> = Mutex::new(None);
 static WORDS: Mutex<Option<HashMap<String, Option<WordInk>>>> = Mutex::new(None);
-static GLYPHS_MEM: Mutex<Option<HashMap<char, Glyph>>> = Mutex::new(None);
 /// Parole scritte e da scrivere (per la barra di stato).
 static DONE: AtomicUsize = AtomicUsize::new(0);
 static TOTAL: AtomicUsize = AtomicUsize::new(0);
@@ -825,273 +822,26 @@ pub fn word(w: &str) -> Option<WordInk> {
     words_map(|m| m.get(w).cloned().flatten())
 }
 
-// ---------------------------------------------------------------------------
-// I segni della pagina di prova
 
-/// Un segno: avanzamento e tratti (unità di Hershey, riga di base a 0).
-#[derive(Clone, Debug)]
-pub struct Glyph {
-    pub adv: f32,
-    pub strokes: Vec<Vec<(f32, f32)>>,
-}
-
-fn load_glyphs() -> HashMap<char, Glyph> {
-    let mut m = HashMap::new();
-    let Ok(t) = std::fs::read_to_string(path(GLYPHS)) else { return m };
-    for l in t.lines() {
-        let mut f = l.split('\t');
-        let (Some(c), Some(adv), Some(st)) = (f.next(), f.next(), f.next()) else { continue };
-        let (Some(c), Ok(adv)) = (c.chars().next(), adv.parse::<f32>()) else { continue };
-        let strokes: Vec<Vec<(f32, f32)>> = st
-            .split('|')
-            .map(|s| {
-                s.split(' ')
-                    .filter_map(|p| {
-                        let (a, b) = p.split_once(',')?;
-                        Some((a.parse().ok()?, b.parse().ok()?))
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .filter(|s: &Vec<(f32, f32)>| !s.is_empty())
-            .collect();
-        m.insert(c, Glyph { adv, strokes });
-    }
-    m
-}
-
-/// Il tuo segno per `c`, se l'hai scritto nella pagina di prova.
-pub fn glyph(c: char) -> Option<Glyph> {
-    let mut g = GLYPHS_MEM.lock().unwrap();
-    g.get_or_insert_with(load_glyphs).get(&c).cloned()
-}
-
-/// Quanti segni ci sono (per la finestra della pagina di prova).
-pub fn glyph_count() -> usize {
-    let mut g = GLYPHS_MEM.lock().unwrap();
-    g.get_or_insert_with(load_glyphs).len()
-}
-
-/// La frase di prova salvata (vuota se non c'è).
-pub fn prime_text() -> String {
-    read_prime().1
-}
-
-// ---------------------------------------------------------------------------
-// Bella copia con la tua mano: il segnale per `mathhand`
-
-thread_local! {
-    static ACTIVE: Cell<bool> = const { Cell::new(false) };
-}
-
-/// Esegue `f` con «la tua mano» accesa (se `on` e se c'è il modello).
-pub fn using<R>(on: bool, f: impl FnOnce() -> R) -> R {
-    let on = on && (available() || cfg!(test));
-    let prev = ACTIVE.with(|a| a.replace(on));
-    let r = f();
-    ACTIVE.with(|a| a.set(prev));
-    r
-}
-
-pub fn active() -> bool {
-    ACTIVE.with(|a| a.get())
-}
-
-// ---------------------------------------------------------------------------
-// La pagina di prova
-
-/// La frase di prova (solo lettere del modello).
-pub const SENTENCE: &str = "Studiare il grafico della seguente funzione";
-
-/// Le righe della pagina di prova: la frase, poi i segni separati da spazi.
-pub const ROWS: [&str; 9] = [
-    SENTENCE,
-    "0 1 2 3 4 5 6 7 8 9",
-    "a b c d e f g h i j k l m",
-    "n o p q r s t u v w x y z",
-    "A B C D E F G H I J K L M",
-    "N O P Q R S T U V W X Y Z",
-    "+ − × = ≠ < > ≤ ≥ ± /",
-    "( ) [ ] { } | ∫ √ ∞ →",
-    "α β γ δ ε θ λ μ π σ φ ω Δ",
-];
-
-pub struct Calib {
-    pub prime: Vec<[f32; 3]>,
-    pub glyphs: Vec<(char, Glyph)>,
-}
-
-fn bb(pts: impl Iterator<Item = (f32, f32)>) -> (f32, f32, f32, f32) {
-    pts.fold((f32::MAX, f32::MIN, f32::MAX, f32::MIN), |b, p| (b.0.min(p.0), b.1.max(p.0), b.2.min(p.1), b.3.max(p.1)))
-}
-
-/// Divide i tratti in righe (dall'alto): un tratto va nella riga se il suo
-/// centro è dentro la riga o se la tocca per metà della sua altezza; le
-/// «righe» minuscole (il puntino di una i sopra la riga) vanno con la più
-/// vicina.
-fn rows_of(strokes: &[Vec<(f32, f32)>]) -> Vec<Vec<usize>> {
-    let boxes: Vec<(f32, f32, f32, f32)> = strokes.iter().map(|s| bb(s.iter().cloned())).collect();
-    let mut order: Vec<usize> = (0..strokes.len()).filter(|&i| !strokes[i].is_empty()).collect();
-    order.sort_by(|&a, &b| ((boxes[a].2 + boxes[a].3) / 2.0).total_cmp(&((boxes[b].2 + boxes[b].3) / 2.0)));
-    let mut rows: Vec<(f32, f32, Vec<usize>)> = Vec::new();
-    for i in order {
-        let (_, _, y0, y1) = boxes[i];
-        let cy = (y0 + y1) / 2.0;
-        let h = (y1 - y0).max(1e-6);
-        if let Some(r) = rows.last_mut() {
-            let rh = r.1 - r.0;
-            let overlap = (y1.min(r.1) - y0.max(r.0)).max(0.0);
-            if cy <= r.1 + 0.1 * rh || overlap >= 0.5 * h {
-                r.0 = r.0.min(y0);
-                r.1 = r.1.max(y1);
-                r.2.push(i);
-                continue;
-            }
-        }
-        rows.push((y0, y1, vec![i]));
-    }
-    // le righe piccole con la vicina
-    loop {
-        let mut hs: Vec<f32> = rows.iter().map(|r| r.1 - r.0).collect();
-        let med = quantile(&mut hs, 0.5);
-        let Some(k) = rows.iter().position(|r| r.1 - r.0 < 0.35 * med) else { break };
-        if rows.len() < 2 {
-            break;
-        }
-        let r = rows.remove(k);
-        let cy = (r.0 + r.1) / 2.0;
-        let j = (0..rows.len()).min_by(|&a, &b| {
-            let d = |x: &(f32, f32, Vec<usize>)| if cy < x.0 { x.0 - cy } else if cy > x.1 { cy - x.1 } else { 0.0 };
-            d(&rows[a]).total_cmp(&d(&rows[b]))
-        });
-        let j = j.unwrap();
-        rows[j].0 = rows[j].0.min(r.0);
-        rows[j].1 = rows[j].1.max(r.1);
-        rows[j].2.extend(r.2);
-    }
-    rows.into_iter()
-        .map(|mut r| {
-            r.2.sort_unstable();
-            r.2
-        })
-        .collect()
-}
-
-/// Divide una riga in segni (da sinistra): tratti che si sovrappongono in
-/// orizzontale stanno nello stesso segno; se ne vengono troppi si uniscono
-/// quelli più vicini.
-fn glyphs_of(strokes: &[Vec<(f32, f32)>], row: &[usize], want: usize) -> Vec<Vec<usize>> {
-    let mut idx = row.to_vec();
-    let boxes: HashMap<usize, (f32, f32, f32, f32)> = idx.iter().map(|&i| (i, bb(strokes[i].iter().cloned()))).collect();
-    idx.sort_by(|a, b| boxes[a].0.total_cmp(&boxes[b].0));
-    let mut out: Vec<(f32, f32, Vec<usize>)> = Vec::new();
-    for i in idx {
-        let (x0, x1, _, _) = boxes[&i];
-        if let Some(g) = out.last_mut() {
-            if x0 < g.1 {
-                g.1 = g.1.max(x1);
-                g.2.push(i);
-                continue;
-            }
-        }
-        out.push((x0, x1, vec![i]));
-    }
-    while out.len() > want && out.len() > 1 {
-        let k = (0..out.len() - 1).min_by(|&a, &b| (out[a + 1].0 - out[a].1).total_cmp(&(out[b + 1].0 - out[b].1))).unwrap();
-        let g = out.remove(k + 1);
-        out[k].1 = out[k].1.max(g.1);
-        out[k].2.extend(g.2);
-    }
-    out.into_iter()
-        .map(|mut g| {
-            g.2.sort_unstable();
-            g.2
-        })
-        .collect()
-}
-
-/// La pagina di prova scritta (tratti nell'ordine in cui li hai scritti, x
-/// verso destra e y verso il basso) → la tua frase e i tuoi segni. L'errore
-/// è un messaggio da mostrare (con i numeri dentro, da tradurre con `tf`).
-pub fn calibrate(strokes: &[Vec<(f32, f32)>]) -> std::result::Result<Calib, String> {
-    let rows = rows_of(strokes);
-    if rows.len() != ROWS.len() {
-        return Err(format!("Ho trovato {} righe scritte, ne servono {}: una riga per ogni riga dell'esempio, ben staccate.", rows.len(), ROWS.len()));
-    }
-    let prime_strokes: Vec<Vec<(f32, f32)>> = rows[0].iter().map(|&i| strokes[i].clone()).collect();
-    let prime = prime_from(&prime_strokes);
+/// La tua frase scritta nell'addestramento (tratti del pennino, x verso
+/// destra e y verso il basso) diventa lo stile della rete. Ritorna false se
+/// è troppo corta per servire.
+pub fn save_prime(strokes: &[Vec<(f32, f32)>], text: &str) -> Result<bool> {
+    let prime = prime_from(strokes);
     if prime.len() < 60 {
-        return Err("La frase della prima riga è troppo corta.".into());
+        return Ok(false);
     }
-    // i segni di ogni riga, con la scala e la riga di base dai segni chiari
-    // (le stesse misure del carattere chiaro)
-    let mut per_row: Vec<Vec<(char, Vec<usize>)>> = Vec::new();
-    for (r, spec) in ROWS.iter().enumerate().skip(1) {
-        let chars: Vec<char> = spec.split(' ').filter_map(|s| s.chars().next()).collect();
-        let gs = glyphs_of(strokes, &rows[r], chars.len());
-        if gs.len() != chars.len() {
-            return Err(format!("Riga {}: ho trovato {} segni, ne servono {} (lascia un po' di spazio fra un segno e l'altro).", r + 1, gs.len(), chars.len()));
-        }
-        per_row.push(chars.into_iter().zip(gs).collect());
-    }
-    let reference = |c: char| -> Option<(f32, f32)> {
-        let g = crate::handwrite::char_glyph(crate::handwrite::Style::Naturale, c)?;
-        let (_, _, t, b) = bb(g.strokes.iter().flatten().cloned());
-        (b - t > 3.0).then_some((t, b))
-    };
-    // ref = a·y + b, ai minimi quadrati, riga per riga
-    let mut fits: Vec<(f32, Vec<(f32, f32)>)> = Vec::new();
-    for row in &per_row {
-        let mut pairs: Vec<(f32, f32)> = Vec::new();
-        for (c, g) in row {
-            let Some((rt, rb)) = reference(*c) else { continue };
-            let (_, _, t, b) = bb(g.iter().flat_map(|&i| strokes[i].iter().cloned()));
-            pairs.push((t, rt));
-            pairs.push((b, rb));
-        }
-        let n = pairs.len() as f32;
-        let (mx, my) = (pairs.iter().map(|p| p.0).sum::<f32>() / n, pairs.iter().map(|p| p.1).sum::<f32>() / n);
-        let sxx: f32 = pairs.iter().map(|p| (p.0 - mx).powi(2)).sum();
-        let sxy: f32 = pairs.iter().map(|p| (p.0 - mx) * (p.1 - my)).sum();
-        fits.push(((sxx > 0.0).then(|| sxy / sxx).unwrap_or(0.0), pairs));
-    }
-    let mut a_all: Vec<f32> = fits.iter().map(|f| f.0).filter(|a| *a > 0.0).collect();
-    if a_all.is_empty() {
-        return Err("Non riesco a misurare i segni della pagina di prova.".into());
-    }
-    let a = quantile(&mut a_all, 0.5);
-    const SIDE: f32 = 1.5;
-    let mut glyphs = Vec::new();
-    for (row, (_, pairs)) in per_row.iter().zip(&fits) {
-        let b = if pairs.is_empty() { 0.0 } else { pairs.iter().map(|p| p.1 - a * p.0).sum::<f32>() / pairs.len() as f32 };
-        for (c, g) in row {
-            let (x0, x1, _, _) = bb(g.iter().flat_map(|&i| strokes[i].iter().cloned()));
-            let st: Vec<Vec<(f32, f32)>> = g.iter().map(|&i| strokes[i].iter().map(|p| (a * (p.0 - x0) + SIDE, a * p.1 + b)).collect()).collect();
-            glyphs.push((*c, Glyph { adv: a * (x1 - x0) + 2.0 * SIDE, strokes: st }));
-        }
-    }
-    Ok(Calib { prime, glyphs })
-}
-
-/// Salva la pagina di prova in `mano/` e ricomincia con la mano nuova.
-pub fn save_calib(c: &Calib) -> Result<()> {
     std::fs::create_dir_all(DIR)?;
-    let mut p = format!("{SENTENCE}\n");
-    for x in &c.prime {
+    let mut p = format!("{text}\n");
+    for x in &prime {
         p.push_str(&format!("{:.5} {:.5} {}\n", x[0], x[1], x[2] as i32));
     }
     crate::web::write_atomic(&path(PRIME), p.as_bytes())?;
-    let mut g = String::new();
-    for (ch, gl) in &c.glyphs {
-        let st: Vec<String> = gl.strokes.iter().map(|s| s.iter().map(|p| format!("{:.2},{:.2}", p.0, p.1)).collect::<Vec<_>>().join(" ")).collect();
-        g.push_str(&format!("{ch}\t{:.2}\t{}\n", gl.adv, st.join("|")));
-    }
-    crate::web::write_atomic(&path(GLYPHS), g.as_bytes())?;
-    // via la mano vecchia, i segni e le parole scritte con lei
+    // via la mano vecchia e le parole scritte con lei
     *HAND.lock().unwrap() = None;
-    *GLYPHS_MEM.lock().unwrap() = None;
     *WORDS.lock().unwrap() = Some(HashMap::new());
     save_cache();
-    Ok(())
+    Ok(true)
 }
 
 #[cfg(test)]
@@ -1119,41 +869,6 @@ mod tests {
         for i in 3..7 {
             assert!((s[i] - v[i]).abs() < 1e-3);
         }
-    }
-
-    /// Una pagina di prova finta: ogni segno è un quadratino (due tratti per
-    /// «=»), le righe ben staccate.
-    #[test]
-    fn pagina_di_prova() {
-        let mut strokes: Vec<Vec<(f32, f32)>> = Vec::new();
-        for (r, spec) in ROWS.iter().enumerate() {
-            let y = 0.1 + r as f32 * 0.1;
-            if r == 0 {
-                // la frase: un'onda lunga
-                for k in 0..8 {
-                    strokes.push((0..40).map(|i| (0.05 + k as f32 * 0.1 + i as f32 * 0.002, y - 0.02 * ((i as f32) * 0.5).sin().abs())).collect());
-                }
-                continue;
-            }
-            for (k, c) in spec.split(' ').enumerate() {
-                let x = 0.05 + k as f32 * 0.06;
-                let h = if c.chars().next().unwrap().is_uppercase() { 0.03 } else { 0.02 };
-                strokes.push(vec![(x, y), (x + 0.02, y), (x + 0.02, y - h), (x, y - h), (x, y)]);
-                if c == "=" || c == "i" {
-                    strokes.push(vec![(x + 0.005, y - h - 0.006), (x + 0.012, y - h - 0.006)]);
-                }
-            }
-        }
-        let c = calibrate(&strokes).unwrap();
-        assert!(c.prime.len() > 60);
-        let n: usize = ROWS.iter().skip(1).map(|r| r.split(' ').count()).sum();
-        assert_eq!(c.glyphs.len(), n);
-        let x = &c.glyphs.iter().find(|g| g.0 == 'x').unwrap().1;
-        let (_, _, t, b) = bb(x.strokes.iter().flatten().cloned());
-        // riga di base vicina a 0, corpo come quello del carattere chiaro
-        assert!(b.abs() < 4.0 && t < -5.0, "{t} {b}");
-        // righe che mancano: messaggio
-        assert!(calibrate(&strokes[..strokes.len() - 13]).is_err());
     }
 
     /// Un passo del modello contro numpy (`GRAVES_DIR` con graves.bin e
@@ -1205,7 +920,7 @@ mod tests {
         let mut boxes = Vec::new();
         for l in lines {
             boxes.push(crate::mathhand::line_box(style, l));
-            boxes.push(using(true, || crate::mathhand::line_box(style, l)));
+            boxes.push(crate::campioni::using(crate::campioni::Mode::Mano, || crate::mathhand::line_box(style, l)));
         }
         let s = 2.2;
         let mut pm = tiny_skia::Pixmap::new(1600, 110 * boxes.len() as u32 + 40).unwrap();

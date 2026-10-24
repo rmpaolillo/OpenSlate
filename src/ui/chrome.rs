@@ -859,6 +859,7 @@ impl App {
         }
         if !doc {
             v.push(c(ic::MAGIC_WAND, "Trasforma la lavagna in bella", "", Action::Fair(super::inbella_ui::Fair::Toggle)));
+            v.push(c(ic::NOTE_PENCIL, "Addestra la tua scrittura (per la bella copia)", "", Action::Fair(super::inbella_ui::Fair::Train)));
         }
         if doc {
             v.push(c(ic::FILE_PDF, "Salva il documento firmato (nello stesso formato)", &cmd_key("Shift+S"), Action::Doc(DocAction::SaveSigned)));

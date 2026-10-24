@@ -81,9 +81,10 @@ pub struct Settings {
     /// Chi legge la scrittura per la bella copia (un agente con la visione;
     /// vuoto = gli agenti di «Lettura dei fogli»).
     pub fair_agent: String,
-    /// Bella copia con «la tua mano» (sperimentale: solo dove c'è
-    /// `mano/graves.bin`, vedi `crate::mano`).
-    pub fair_hand: bool,
+    /// Con che scrittura la bella copia: chiaro, corsivo o stampatello (la
+    /// tua, addestrata: `crate::campioni`), mano (la rete, solo dove c'è
+    /// `mano/graves.bin`).
+    pub fair_style: String,
 }
 
 impl Default for Settings {
@@ -124,7 +125,7 @@ impl Default for Settings {
             paper: "bianco".into(),
             paper_margin: true,
             fair_agent: String::new(),
-            fair_hand: false,
+            fair_style: "chiaro".into(),
         }
     }
 }
@@ -203,7 +204,9 @@ impl Settings {
             "paper" => self.paper = v.into(),
             "paper_margin" => self.paper_margin = b(v),
             "fair_agent" => self.fair_agent = v.trim().to_string(),
-            "fair_hand" => self.fair_hand = b(v),
+            "fair_style" => self.fair_style = crate::campioni::Mode::parse(v).key().into(),
+            // com'era prima: «la tua mano» accesa o spenta
+            "fair_hand" if b(v) => self.fair_style = "mano".into(),
             "compact_ui" => self.compact_ui = b(v),
             "note_hand" => self.note_hand = crate::mdcraft::Hand::parse(v).key().into(),
             "chat_zoom" => self.chat_zoom = v.parse::<f32>().unwrap_or(self.chat_zoom).clamp(0.6, 2.5),
@@ -241,7 +244,7 @@ impl Settings {
              # scrittura degli appunti: vuoto (stampata), corsivo, stampatello (a mano)\nnote_hand = {}\n\
              # rigatura del foglio: bianco, righe, righe10, quadretti5, quadretti4, quadretti10; margini rossi (solo righe)\npaper = {}\npaper_margin = {}\n\
              # bella copia: chi legge la scrittura (vuoto = gli agenti di «Lettura dei fogli»)\nfair_agent = {}\n\
-             # bella copia con la tua mano (sperimentale, serve mano/graves.bin)\nfair_hand = {}\n\
+             # bella copia: con che scrittura (chiaro, corsivo, stampatello: la tua, addestrata; mano: la rete, se c'è mano/graves.bin)\nfair_style = {}\n\
              # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
              # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n\
              # aggiornamenti: avvisa quando c'è una versione nuova su GitHub; versione saltata; installa da solo senza chiedere\nupdate_check = {}\nupdate_skip = {}\nupdate_install_auto = {}\n",
@@ -274,7 +277,7 @@ impl Settings {
             self.paper,
             b(self.paper_margin),
             self.fair_agent,
-            b(self.fair_hand),
+            self.fair_style,
             self.save_dir,
             self.ui_lang,
             b(self.update_check),

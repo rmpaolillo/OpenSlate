@@ -141,6 +141,14 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   vuelven regulares (cuadrado, rectángulo, rombo, paralelogramo, triángulo equilátero o isósceles,
   polígonos regulares), las líneas discontinuas quedan con trazos iguales y alineados, los extremos
   cercanos se unen, las curvas libres se suavizan; lo que no se reconoce queda como está.
+- **Tu letra.** «Pasar a limpio» → «Escritura» → «Entrena tu letra…»: en unos pocos turnos escribes
+  con el lápiz, en páginas vacías, las letras (cada una varias veces), las cifras, los símbolos
+  matemáticos, las letras griegas, las acentuadas y tres frases. Después de cada turno ves los signos
+  recortados y puedes descartar los que no te gusten; al final hay una vista previa y, si quieres, la
+  IA intenta leer una frase escrita con tus signos. Desde entonces el paso a limpio escribe con tu
+  letra: cada vez una versión distinta de cada letra, los espacios medidos en tus frases y, en
+  cursiva, las letras ligadas. Se pueden entrenar cursiva e imprenta (cifras y símbolos valen para
+  las dos). Todo queda en la carpeta de datos `mano/`, en tu ordenador.
 - **El chat escribe en la pizarra.** Pídele «revisa mis sumas y marca los errores»,
   «subraya los plazos» o «escribe el resultado junto a la línea 2»: lee la hoja de la pizarra línea
   a línea y palabra a palabra, y después resalta, subraya, rodea con un círculo, tacha, dibuja recuadros,
@@ -406,6 +414,7 @@ src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: m
 src/speech.rs                                             respuestas en voz alta: voces del sistema (say, SAPI, espeak-ng) o un servicio en línea
 src/inbella.rs, src/mathhand.rs                           pasar a limpio: la IA lee las líneas y se reescriben con la matemática compuesta
 src/shapes.rs                                             dibujos en limpio: rectas, flechas, círculos, arcos y polígonos perfectos
+src/campioni.rs, src/ui/allena_ui.rs                      tu letra: turnos de entrenamiento, tus signos, palabras escritas con ellos
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

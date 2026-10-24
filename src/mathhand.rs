@@ -68,10 +68,10 @@ const CAP: f32 = 21.0;
 
 /// Un carattere.
 fn glyph_box(style: Style, c: char) -> MBox {
-    // con «la tua mano»: il tuo segno della pagina di prova, se c'è
-    if crate::mano::active() {
-        if let Some(g) = crate::mano::glyph(c) {
-            return from_strokes(g.adv, g.strokes);
+    // con la tua scrittura: il tuo segno, se l'hai addestrato
+    if crate::campioni::mode() != crate::campioni::Mode::Chiaro {
+        if let Some((adv, st)) = crate::campioni::glyph(c) {
+            return from_strokes(adv, st);
         }
     }
     if c == '−' {
@@ -135,10 +135,11 @@ fn hand_text_box(style: Style, text: &str) -> MBox {
 
 /// Testo semplice (senza formule), su una riga.
 pub fn text_box(style: Style, text: &str) -> MBox {
-    if crate::mano::active() {
-        return hand_text_box(style, text);
+    match crate::campioni::mode() {
+        crate::campioni::Mode::Mano => hand_text_box(style, text),
+        crate::campioni::Mode::Scrittura(_) => crate::campioni::text_box(text).map_or_else(|| plain_text_box(style, text), |(w, st)| from_strokes(w, st)),
+        crate::campioni::Mode::Chiaro => plain_text_box(style, text),
     }
-    plain_text_box(style, text)
 }
 
 fn plain_text_box(style: Style, text: &str) -> MBox {
@@ -1037,7 +1038,7 @@ mod tests {
         // senza parole scritte né segni: lettera per lettera, come prima
         let t = "Risolvi: $x^2+2x+1=0$";
         let a = bx(t);
-        let b = crate::mano::using(true, || bx(t));
+        let b = crate::campioni::using_store(crate::campioni::Mode::Mano, None, || bx(t));
         assert!(b.w > 20.0 && !b.strokes.is_empty());
         assert_eq!(a.strokes.len(), b.strokes.len());
     }
