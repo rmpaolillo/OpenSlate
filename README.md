@@ -132,9 +132,12 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   limits). It is real ink like the pen's: Undo brings back your handwriting. Drawings,
   highlighters, the AI's marks and lines that cannot be read stay as they are. It uses the agents
   that read pages (`[ocr]`).
-  In drawings, without AI, lines, arrows (heads drawn apart too), circles and ellipses, arcs and
-  polygons become perfect: nearly horizontal or vertical lines straighten, close ends join, free
-  curves are smoothed; what is not recognised stays as it is.
+  In drawings, without AI, lines, arrows (curved, double-headed, heads drawn apart too), circles
+  and ellipses (also drawn in two halves), arcs of circles and ellipses and polygons become perfect:
+  nearly horizontal or vertical lines straighten, near right angles become right angles, nearly
+  parallel segments become parallel, almost-regular figures become regular (square, rectangle,
+  rhombus, parallelogram, equilateral or isosceles triangle, regular polygons), dashed lines get even
+  dashes in a row, close ends join, free curves are smoothed; what is not recognised stays as it is.
 - **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
   "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
   by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,

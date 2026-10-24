@@ -555,8 +555,9 @@ enum Action {
 /// Immagine sotto i tratti (pagina di un documento).
 pub(super) struct BgImage {
     pub tex: egui::TextureId,
-    /// Un grafico messo dall'AI (trasparente): la carta a righe o a
-    /// quadretti resta sotto. Una pagina di documento la copre.
+    /// Un grafico messo dall'AI: la carta a righe o a quadretti si disegna
+    /// sotto, e il grafico (fondo bianco pieno) la copre dove sta. Una
+    /// pagina di documento la copre tutta.
     pub paper: bool,
     /// Dove sta sulla pagina (0..1).
     pub rect: [f32; 4],

@@ -132,9 +132,13 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   die des Stifts: Widerrufen bringt deine Schrift zurück. Zeichnungen, Textmarker, die Zeichen der
   KI und unleserliche Zeilen bleiben, wie sie sind. Es nutzt die Agenten, die Seiten lesen
   (`[ocr]`).
-  In Zeichnungen werden ohne KI Geraden, Pfeile (auch mit getrennt gezeichneter Spitze), Kreise und
-  Ellipsen, Bögen und Vielecke perfekt: fast waagrechte oder senkrechte Linien werden gerade, nahe
-  Enden verbunden, freie Kurven geglättet; was nicht erkannt wird, bleibt, wie es ist.
+  In Zeichnungen werden ohne KI Geraden, Pfeile (gebogen, mit zwei Spitzen, auch mit getrennt
+  gezeichneter Spitze), Kreise und Ellipsen (auch in zwei Hälften gezeichnet), Kreis- und
+  Ellipsenbögen und Vielecke perfekt: fast waagrechte oder senkrechte Linien werden gerade, fast
+  rechte Winkel werden rechte Winkel, fast parallele Strecken parallel, fast regelmäßige Figuren
+  regelmäßig (Quadrat, Rechteck, Raute, Parallelogramm, gleichseitiges oder gleichschenkliges
+  Dreieck, regelmäßige Vielecke), gestrichelte Linien bekommen gleiche Striche in einer Reihe, nahe
+  Enden werden verbunden, freie Kurven geglättet; was nicht erkannt wird, bleibt, wie es ist.
 - **Der Chat schreibt auf die Tafel.** Bitte ihn: „prüf meine Rechnungen und markier die Fehler“,
   „unterstreich die Fristen“ oder „schreib das Ergebnis neben Zeile 2“: Er liest das Tafelblatt Zeile
   für Zeile und Wort für Wort, dann markiert, unterstreicht, umkreist, streicht durch, zeichnet Kästen,

@@ -149,6 +149,12 @@ fn letters(line: &[usize], strokes: &[Stroke], ph: &[Vec<(f32, f32)>], hh: f32) 
         .collect()
 }
 
+/// Una «riga» fatta solo di forme (una freccia, un cerchio) o di trattini
+/// (una linea tratteggiata): un disegno, da rifare e non da far leggere.
+fn drawing_line(line: &[usize], strokes: &[Stroke], ph: &[Vec<(f32, f32)>], hh: f32) -> bool {
+    line.iter().filter(|&&i| writable(&strokes[i])).all(|&i| crate::shapes::is_shape(&ph[i], hh) || crate::shapes::is_dash(&ph[i], hh))
+}
+
 fn lines_of(r: &Reading, strokes: &[Stroke], g: &PageGeom) -> Vec<(String, u64)> {
     let ph = physical(strokes, g);
     let hh = r.char_h.clamp(0.012, 0.035);
@@ -157,7 +163,7 @@ fn lines_of(r: &Reading, strokes: &[Stroke], g: &PageGeom) -> Vec<(String, u64)>
         .filter(|l| !letters(&l.group.strokes, strokes, &ph, r.char_h).is_empty())
         // una «riga» fatta solo di forme (una freccia, un cerchio) è un disegno:
         // non si fa leggere, si rifà
-        .filter(|l| !l.group.strokes.iter().filter(|&&i| writable(&strokes[i])).all(|&i| crate::shapes::is_shape(&ph[i], hh)))
+        .filter(|l| !drawing_line(&l.group.strokes, strokes, &ph, hh))
         .map(|l| (l.group.id.clone(), line_key(strokes, &l.group.strokes)))
         .collect()
 }
@@ -290,9 +296,10 @@ pub fn apply(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom) -> 
             drawing[i] = true;
         }
     }
+    let hh_shapes = hh.clamp(0.012, 0.035);
     for line in &reading.lines {
         let k = line_key(strokes, &line.group.strokes);
-        if texts.get(&k).is_some_and(|t| t.trim().is_empty()) {
+        if texts.get(&k).is_some_and(|t| t.trim().is_empty()) || drawing_line(&line.group.strokes, strokes, &ph, hh_shapes) {
             for &i in &line.group.strokes {
                 drawing[i] = true;
             }
@@ -578,6 +585,74 @@ mod tests {
         strokes.push(hand(seg((3000.0, 23000.0), (9000.0, 23300.0), 40).into_iter().chain(seg((9000.0, 23300.0), (8500.0, 22900.0), 6)).chain(seg((8500.0, 22900.0), (9000.0, 23300.0), 3)).chain(seg((9000.0, 23300.0), (8450.0, 23700.0), 6)).collect(), 12.0));
         let before = strokes.clone();
         let (after, done) = apply(&strokes, &HashMap::new(), &g).unwrap();
+        eprintln!("{done:?}");
+        for (name, st) in [("prima", before), ("dopo", after)] {
+            let page = crate::scene::Page::from_drawing(&Drawing { strokes: st, width: 21000.0, height: 29700.0 }, View::default());
+            std::fs::write(format!("{out}-{name}.png"), crate::export::page_to_png(&page, 1200).unwrap()).unwrap();
+        }
+    }
+
+    /// Le figure nuove (archi d'ellisse, angoli retti, parallele, poligoni
+    /// regolari, frecce curve e doppie, tratteggi), prima e dopo:
+    /// FORME_PNG=prefisso cargo test -- --ignored figure_nuove
+    #[test]
+    #[ignore]
+    fn figure_nuove() {
+        let Ok(out) = std::env::var("FORME_PNG") else { return };
+        let g = PageGeom::new(View::default(), 21000.0, 29700.0);
+        let hand = |pts: Vec<(f32, f32)>, seed: f32| -> Stroke {
+            let mut s = Stroke::new([20, 20, 30], 2.0);
+            let n = pts.len();
+            for (k, (x, y)) in pts.into_iter().enumerate() {
+                let t = k as f32;
+                let (dx, dy) = (30.0 * (t * 0.9 + seed).sin() + 18.0 * (t * 0.31 + seed * 2.0).cos(), 30.0 * (t * 0.7 + seed).cos() + 18.0 * (t * 0.23).sin());
+                let phase = if k == 0 { PenPhase::Down } else if k + 1 == n { PenPhase::Up } else { PenPhase::Move };
+                s.points.push(PenEvent { x: x + dx, y: y + dy, pressure: 0.7, phase });
+            }
+            s
+        };
+        let seg = |a: (f32, f32), b: (f32, f32), n: usize| -> Vec<(f32, f32)> { (0..n).map(|k| { let f = k as f32 / (n - 1) as f32; (a.0 + (b.0 - a.0) * f, a.1 + (b.1 - a.1) * f) }).collect() };
+        let ell = |cx: f32, cy: f32, a: f32, b: f32, t0: f32, t1: f32, n: usize| -> Vec<(f32, f32)> { (0..=n).map(|k| { let t = t0 + (t1 - t0) * k as f32 / n as f32; (cx + a * t.cos(), cy + b * t.sin()) }).collect() };
+        let pi = std::f32::consts::PI;
+        let mut st = Vec::new();
+        // un cilindro: ellisse sopra (due metà), lati, mezza ellisse sotto
+        st.push(hand(ell(4000.0, 3000.0, 2000.0, 600.0, 0.05, pi - 0.03, 40), 1.0));
+        st.push(hand(ell(4000.0, 3000.0, 2000.0, 600.0, pi + 0.06, 2.0 * pi - 0.04, 40), 2.0));
+        st.push(hand(seg((2000.0, 3050.0), (2030.0, 7000.0), 40), 3.0));
+        st.push(hand(seg((6000.0, 3000.0), (5980.0, 7000.0), 40), 4.0));
+        st.push(hand(ell(4000.0, 7000.0, 2000.0, 600.0, 0.02, pi - 0.02, 40), 5.0));
+        // un angolo retto inclinato (87°) e due parallele inclinate (31° e 34°)
+        let r = |deg: f32, len: f32, o: (f32, f32)| { let t = deg.to_radians(); (o.0 + len * t.cos(), o.1 + len * t.sin()) };
+        let c = (9000.0, 6500.0);
+        st.push(hand([seg(r(-30.0, 3500.0, c), c, 30), seg(c, r(-30.0 + 87.0 + 180.0 + 180.0, 2500.0, c), 25)].concat(), 6.0));
+        st.push(hand(seg((13000.0, 3000.0), r(31.0, 5000.0, (13000.0, 3000.0)), 40), 7.0));
+        st.push(hand(seg((13000.0, 4800.0), r(34.0, 5000.0, (13000.0, 4800.0)), 40), 8.0));
+        // un quadrato storto, un rombo, un esagono, un triangolo quasi equilatero
+        st.push(hand([seg((2000.0, 10000.0), (5000.0, 10150.0), 20), seg((5000.0, 10150.0), (4900.0, 13050.0), 20), seg((4900.0, 13050.0), (1950.0, 12950.0), 20), seg((1950.0, 12950.0), (2000.0, 10100.0), 20)].concat(), 9.0));
+        let (rc, u, w) = ((9000.0, 11500.0), (2200.0, 500.0), (-450.0, 1700.0));
+        st.push(hand([seg((rc.0 + u.0, rc.1 + u.1), (rc.0 + w.0, rc.1 + w.1), 20), seg((rc.0 + w.0, rc.1 + w.1), (rc.0 - u.0, rc.1 - u.1), 20), seg((rc.0 - u.0, rc.1 - u.1), (rc.0 - w.0 + 100.0, rc.1 - w.1), 20), seg((rc.0 - w.0 + 100.0, rc.1 - w.1), (rc.0 + u.0, rc.1 + u.1 + 60.0), 20)].concat(), 10.0));
+        let hex: Vec<(f32, f32)> = (0..=6).map(|k| { let t = k as f32 * std::f32::consts::TAU / 6.0 + 0.08; let rr = if k % 2 == 0 { 1700.0 } else { 1600.0 }; (15500.0 + rr * t.cos(), 11500.0 + rr * t.sin()) }).collect();
+        st.push(hand(hex.windows(2).flat_map(|w| seg(w[0], w[1], 15)).collect(), 11.0));
+        st.push(hand([seg((2000.0, 18000.0), (5200.0, 18150.0), 20), seg((5200.0, 18150.0), (3700.0, 15300.0), 20), seg((3700.0, 15300.0), (2000.0, 17900.0), 20)].concat(), 12.0));
+        // una freccia curva e una freccia a due punte in un tratto
+        let mut cur = ell(9500.0, 17500.0, 2500.0, 2500.0, pi, 1.6 * pi, 40);
+        let tip = cur[cur.len() - 1];
+        let b1 = (tip.0 + 500.0 * 170f32.to_radians().cos(), tip.1 + 500.0 * 170f32.to_radians().sin());
+        let b2 = (tip.0 + 500.0 * 226f32.to_radians().cos(), tip.1 + 500.0 * 226f32.to_radians().sin());
+        cur.extend(seg(tip, b1, 5));
+        cur.extend(seg(b1, tip, 4));
+        cur.extend(seg(tip, b2, 5));
+        st.push(hand(cur, 13.0));
+        let (a, b) = ((13000.0, 17000.0), (19000.0, 17300.0));
+        st.push(hand([seg((a.0 + 500.0, a.1 - 350.0), a, 5), seg(a, (a.0 + 500.0, a.1 + 350.0), 5), seg((a.0 + 500.0, a.1 + 350.0), a, 5), seg(a, b, 40), seg(b, (b.0 - 500.0, b.1 - 350.0), 5), seg((b.0 - 500.0, b.1 - 350.0), b, 5), seg(b, (b.0 - 500.0, b.1 + 350.0), 5)].concat(), 14.0));
+        // una linea tratteggiata un po' storta
+        for k in 0..7 {
+            let x = 2000.0 + k as f32 * 1300.0 + if k == 3 { 150.0 } else { 0.0 };
+            let y = 21500.0 + if k % 2 == 0 { 60.0 } else { -50.0 };
+            st.push(hand(seg((x, y), (x + 700.0 + 80.0 * (k % 3) as f32, y + 20.0), 8), 15.0 + k as f32));
+        }
+        let before = st.clone();
+        let (after, done) = apply(&st, &HashMap::new(), &g).unwrap();
         eprintln!("{done:?}");
         for (name, st) in [("prima", before), ("dopo", after)] {
             let page = crate::scene::Page::from_drawing(&Drawing { strokes: st, width: 21000.0, height: 29700.0 }, View::default());

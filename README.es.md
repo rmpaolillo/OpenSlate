@@ -130,8 +130,12 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   sumatorios, integrales, límites). Es tinta de verdad, como la del lápiz: Deshacer devuelve tu
   letra. Los dibujos, los resaltados, las marcas de la IA y las líneas que no se leen quedan como
   están. Usa los agentes que leen las hojas (`[ocr]`).
-  En los dibujos, sin IA, rectas, flechas (también con la punta aparte), círculos y elipses, arcos y
-  polígonos quedan perfectos: las líneas casi horizontales o verticales se enderezan, los extremos
+  En los dibujos, sin IA, rectas, flechas (curvas, de dos puntas, también con la punta aparte),
+  círculos y elipses (también hechas en dos mitades), arcos de círculo y de elipse y polígonos quedan
+  perfectos: las líneas casi horizontales o verticales se enderezan, los ángulos casi rectos se
+  vuelven rectos, los segmentos casi paralelos se vuelven paralelos, las figuras casi regulares se
+  vuelven regulares (cuadrado, rectángulo, rombo, paralelogramo, triángulo equilátero o isósceles,
+  polígonos regulares), las líneas discontinuas quedan con trazos iguales y alineados, los extremos
   cercanos se unen, las curvas libres se suavizan; lo que no se reconoce queda como está.
 - **El chat escribe en la pizarra.** Pídele «revisa mis sumas y marca los errores»,
   «subraya los plazos» o «escribe el resultado junto a la línea 2»: lee la hoja de la pizarra línea

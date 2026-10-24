@@ -796,8 +796,8 @@ fn insert(args: &Value) -> Result<(String, u64)> {
     let hub = HUB.get().context("lavagna non disponibile")?;
     let id = args["grafico"].as_str().or(args["image"].as_str()).context("manca «grafico» (l'id di draw_chart)")?;
     let chart = crate::charts::find(id).with_context(|| format!("non trovo il grafico «{id}»: fallo prima con draw_chart"))?;
-    // il bianco del grafico diventa trasparente: sotto si vedono righe e quadretti
-    let png = Arc::new(white_to_alpha(&std::fs::read(&chart.png)?)?);
+    // il grafico ha il fondo bianco pieno: copre righe e quadretti del foglio
+    let png = Arc::new(on_white(&std::fs::read(&chart.png)?)?);
     let replace = args["al_posto_del_disegno"].as_bool().unwrap_or(true);
     let given: Option<[f32; 4]> = args["riquadro"].as_array().and_then(|a| {
         let n: Vec<f32> = a.iter().filter_map(|v| v.as_f64().map(|x| x as f32)).collect();
@@ -883,25 +883,15 @@ fn insert(args: &Value) -> Result<(String, u64)> {
     ))
 }
 
-/// Il bianco diventa trasparente («colore → alfa»): sul foglio bianco
-/// l'immagine resta identica, sulla carta a righe o a quadretti le righe si
-/// vedono sotto, come se il grafico fosse stampato sul foglio.
-pub fn white_to_alpha(png: &[u8]) -> Result<Vec<u8>> {
+/// L'immagine su fondo bianco pieno (niente trasparenze): sul foglio a
+/// righe o a quadretti il grafico copre la carta, come un foglio incollato.
+pub fn on_white(png: &[u8]) -> Result<Vec<u8>> {
     let mut img = tiny_skia::Pixmap::decode_png(png).map_err(|e| anyhow::anyhow!("PNG: {e}"))?;
     for px in img.pixels_mut() {
-        let c = px.demultiply();
-        let a0 = c.alpha() as f32 / 255.0;
-        let [r, g, b] = [c.red(), c.green(), c.blue()].map(|v| v as f32 / 255.0);
-        // quanto il colore si allontana dal bianco
-        let a = (1.0 - r).max(1.0 - g).max(1.0 - b);
-        let (nr, ng, nb, na) = if a <= 1e-4 {
-            (0.0, 0.0, 0.0, 0.0)
-        } else {
-            let f = |v: f32| (1.0 - (1.0 - v) / a).clamp(0.0, 1.0);
-            (f(r), f(g), f(b), a * a0)
-        };
-        let q = |v: f32| (v * 255.0).round() as u8;
-        *px = tiny_skia::ColorU8::from_rgba(q(nr), q(ng), q(nb), q(na)).premultiply();
+        // premoltiplicato: il colore sul bianco è c + (1 − a)
+        let a = px.alpha();
+        let add = 255 - a;
+        *px = tiny_skia::PremultipliedColorU8::from_rgba(px.red().saturating_add(add), px.green().saturating_add(add), px.blue().saturating_add(add), 255).unwrap();
     }
     img.encode_png().map_err(|e| anyhow::anyhow!("PNG: {e}"))
 }
@@ -993,13 +983,16 @@ mod tests {
         assert!(find_drawing(&[b(0.1, 0.1, 0.12, 0.12)]).is_none());
         // solo righe di testo in corsivo (lunghe ma basse) e una sottolineatura: niente da sostituire
         assert!(find_drawing(&[b(0.10, 0.20, 0.80, 0.24), b(0.10, 0.30, 0.75, 0.34), b(0.10, 0.36, 0.60, 0.365)]).is_none());
-        // bianco → trasparente, il nero resta nero e pieno
-        let mut pm = tiny_skia::Pixmap::new(2, 1).unwrap();
-        pm.pixels_mut()[0] = tiny_skia::ColorU8::from_rgba(255, 255, 255, 255).premultiply();
+        // trasparente → bianco pieno, il nero resta nero, il mezzo rosso diventa rosa
+        let mut pm = tiny_skia::Pixmap::new(3, 1).unwrap();
+        pm.pixels_mut()[0] = tiny_skia::ColorU8::from_rgba(0, 0, 0, 0).premultiply();
         pm.pixels_mut()[1] = tiny_skia::ColorU8::from_rgba(0, 0, 0, 255).premultiply();
-        let out = tiny_skia::Pixmap::decode_png(&white_to_alpha(&pm.encode_png().unwrap()).unwrap()).unwrap();
-        assert_eq!(out.pixels()[0].alpha(), 0);
+        pm.pixels_mut()[2] = tiny_skia::ColorU8::from_rgba(255, 0, 0, 128).premultiply();
+        let out = tiny_skia::Pixmap::decode_png(&on_white(&pm.encode_png().unwrap()).unwrap()).unwrap();
+        assert_eq!(out.pixels()[0].demultiply(), tiny_skia::ColorU8::from_rgba(255, 255, 255, 255));
         assert_eq!(out.pixels()[1].demultiply(), tiny_skia::ColorU8::from_rgba(0, 0, 0, 255));
+        let pink = out.pixels()[2].demultiply();
+        assert!(pink.alpha() == 255 && pink.red() == 255 && (120..=135).contains(&pink.green()), "{pink:?}");
         let r = fit([0.2, 0.2, 0.8, 0.5], 2.0);
         assert!((r[2] - 0.6).abs() < 1e-6 && (r[3] - 0.3).abs() < 1e-6);
     }

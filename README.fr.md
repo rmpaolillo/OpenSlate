@@ -131,10 +131,14 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   accolades des systèmes, sommes, intégrales, limites). C'est de la vraie encre, comme celle du
   stylet : Annuler ramène votre écriture. Les dessins, les surlignages, les marques de l'IA et les
   lignes illisibles restent tels quels. Il utilise les agents qui lisent les feuilles (`[ocr]`).
-  Dans les dessins, sans IA, droites, flèches (même avec la pointe à part), cercles et ellipses, arcs
-  et polygones deviennent parfaits : les lignes presque horizontales ou verticales se redressent, les
-  extrémités proches se rejoignent, les courbes libres sont lissées ; ce qui n'est pas reconnu reste
-  tel quel.
+  Dans les dessins, sans IA, droites, flèches (courbes, à deux pointes, même avec la pointe à part),
+  cercles et ellipses (même tracées en deux moitiés), arcs de cercle et d'ellipse et polygones
+  deviennent parfaits : les lignes presque horizontales ou verticales se redressent, les angles
+  presque droits deviennent droits, les segments presque parallèles deviennent parallèles, les
+  figures presque régulières deviennent régulières (carré, rectangle, losange, parallélogramme,
+  triangle équilatéral ou isocèle, polygones réguliers), les pointillés ont des traits égaux et
+  alignés, les extrémités proches se rejoignent, les courbes libres sont lissées ; ce qui n'est pas
+  reconnu reste tel quel.
 - **Le chat écrit sur le tableau.** Demandez-lui « vérifiez mes additions et marquez les erreurs »,
   « soulignez les échéances » ou « écrivez le résultat à côté de la ligne 2 » : il lit la page du tableau ligne
   par ligne et mot par mot, puis surligne, souligne, entoure, barre, dessine des cadres,
