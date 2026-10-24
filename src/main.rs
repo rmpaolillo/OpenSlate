@@ -12,6 +12,7 @@ mod charts;
 mod boardagent;
 mod boardmarks;
 mod inbella;
+mod shapes;
 mod boardread;
 mod chats;
 mod craftexport;

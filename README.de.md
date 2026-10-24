@@ -132,6 +132,9 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   die des Stifts: Widerrufen bringt deine Schrift zurück. Zeichnungen, Textmarker, die Zeichen der
   KI und unleserliche Zeilen bleiben, wie sie sind. Es nutzt die Agenten, die Seiten lesen
   (`[ocr]`).
+  In Zeichnungen werden ohne KI Geraden, Pfeile (auch mit getrennt gezeichneter Spitze), Kreise und
+  Ellipsen, Bögen und Vielecke perfekt: fast waagrechte oder senkrechte Linien werden gerade, nahe
+  Enden verbunden, freie Kurven geglättet; was nicht erkannt wird, bleibt, wie es ist.
 - **Der Chat schreibt auf die Tafel.** Bitte ihn: „prüf meine Rechnungen und markier die Fehler“,
   „unterstreich die Fristen“ oder „schreib das Ergebnis neben Zeile 2“: Er liest das Tafelblatt Zeile
   für Zeile und Wort für Wort, dann markiert, unterstreicht, umkreist, streicht durch, zeichnet Kästen,
@@ -396,6 +399,7 @@ src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             Antworten vorlesen: Systemstimmen (say, SAPI, espeak-ng) oder ein Online-Dienst
 src/inbella.rs, src/mathhand.rs                           ins Reine schreiben: die KI liest die Zeilen, neu geschrieben mit gesetzter Mathematik
+src/shapes.rs                                             Zeichnungen ins Reine: Geraden, Pfeile, Kreise, Bögen und Vielecke perfekt
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

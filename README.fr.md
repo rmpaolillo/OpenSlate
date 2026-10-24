@@ -131,6 +131,10 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   accolades des systèmes, sommes, intégrales, limites). C'est de la vraie encre, comme celle du
   stylet : Annuler ramène votre écriture. Les dessins, les surlignages, les marques de l'IA et les
   lignes illisibles restent tels quels. Il utilise les agents qui lisent les feuilles (`[ocr]`).
+  Dans les dessins, sans IA, droites, flèches (même avec la pointe à part), cercles et ellipses, arcs
+  et polygones deviennent parfaits : les lignes presque horizontales ou verticales se redressent, les
+  extrémités proches se rejoignent, les courbes libres sont lissées ; ce qui n'est pas reconnu reste
+  tel quel.
 - **Le chat écrit sur le tableau.** Demandez-lui « vérifiez mes additions et marquez les erreurs »,
   « soulignez les échéances » ou « écrivez le résultat à côté de la ligne 2 » : il lit la page du tableau ligne
   par ligne et mot par mot, puis surligne, souligne, entoure, barre, dessine des cadres,
@@ -395,6 +399,7 @@ src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             réponses à voix haute : voix du système (say, SAPI, espeak-ng) ou un service en ligne
 src/inbella.rs, src/mathhand.rs                           mettre au propre : l'IA lit les lignes, réécrites avec les maths mises en page
+src/shapes.rs                                             dessins au propre : droites, flèches, cercles, arcs et polygones parfaits
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

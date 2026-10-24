@@ -132,6 +132,9 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   limits). It is real ink like the pen's: Undo brings back your handwriting. Drawings,
   highlighters, the AI's marks and lines that cannot be read stay as they are. It uses the agents
   that read pages (`[ocr]`).
+  In drawings, without AI, lines, arrows (heads drawn apart too), circles and ellipses, arcs and
+  polygons become perfect: nearly horizontal or vertical lines straighten, close ends join, free
+  curves are smoothed; what is not recognised stays as it is.
 - **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
   "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
   by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,
@@ -396,6 +399,7 @@ src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             answers read aloud: system voices (say, SAPI, espeak-ng) or an online service
 src/inbella.rs, src/mathhand.rs                           fair copy: the AI reads the lines, they are rewritten with the maths laid out
+src/shapes.rs                                             fair copy of drawings: lines, arrows, circles, arcs and polygons made perfect
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

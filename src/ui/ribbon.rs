@@ -149,7 +149,7 @@ impl App {
                 ui,
                 ic::MAGIC_WAND,
                 "Trasforma\nin bella",
-                "L'AI legge quello che hai scritto, formule comprese, e al suo posto lo riscrive in bella: una scrittura chiara con la matematica impaginata (frazioni, esponenti, radici, sistemi). Annulla riporta la tua scrittura",
+                "L'AI legge quello che hai scritto, formule comprese, e al suo posto lo riscrive in bella: una scrittura chiara con la matematica impaginata (frazioni, esponenti, radici, sistemi). Nei disegni rette, frecce, cerchi, archi e poligoni diventano perfetti. Annulla riporta la tua scrittura",
                 !doc,
                 false,
                 false,

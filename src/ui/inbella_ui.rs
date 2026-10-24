@@ -52,7 +52,9 @@ impl App {
         let (pw, ph) = crate::scene::page_dims(&d);
         let n = crate::inbella::pending(&strokes, &crate::scene::PageGeom::new(view, pw, ph)).len();
         if n == 0 {
-            self.status = "Non c'è niente da trasformare: la pagina è vuota o è già in bella.".into();
+            // niente da leggere: solo i disegni, subito (senza AI)
+            let done = self.inbella_apply(&HashMap::new());
+            self.status = if done.shapes == 0 { "Non c'è niente da trasformare: la pagina è vuota o è già in bella.".into() } else { inbella_status(done) };
             return;
         }
         self.inbella.busy = true;
@@ -72,8 +74,10 @@ impl App {
             match self.inbella.rx.try_recv() {
                 Ok(Ok(texts)) => self.inbella.ready = Some(texts),
                 Ok(Err(e)) => {
+                    // l'AI non ha letto: i disegni si fanno lo stesso
                     self.inbella.busy = false;
                     tracing::warn!("trasforma in bella: {e:#}");
+                    self.inbella_apply(&HashMap::new());
                     self.status = format!("⚠ {}", crate::i18n::tf(format!("trasforma in bella: {e:#}")));
                     ctx.request_repaint();
                     return;
@@ -99,23 +103,35 @@ impl App {
         }
         let texts = self.inbella.ready.take().unwrap_or_default();
         self.inbella.busy = false;
-        let done = self.hub.edit(|s| {
+        let done = self.inbella_apply(&texts);
+        self.status = if done.lines + done.shapes == 0 { "Non ho trovato righe da trasformare (disegni o scrittura che non si legge).".into() } else { inbella_status(done) };
+        ctx.request_repaint();
+    }
+
+    /// La pagina in bella sulla lavagna (un passo solo da annullare).
+    fn inbella_apply(&mut self, texts: &HashMap<u64, String>) -> crate::inbella::Done {
+        self.hub.edit(|s| {
             // non sopra un documento aperto nel frattempo
             if s.bg.as_ref().is_some_and(|b| !b.is_chart()) {
-                return 0;
+                return crate::inbella::Done::default();
             }
             let (pw, ph) = crate::scene::page_dims(&s.drawing);
             let g = crate::scene::PageGeom::new(s.view, pw, ph);
-            let Some((strokes, n)) = crate::inbella::apply(&s.drawing.strokes, &texts, &g) else { return 0 };
+            let Some((strokes, done)) = crate::inbella::apply(&s.drawing.strokes, texts, &g) else { return crate::inbella::Done::default() };
             let bg = s.bg.clone();
             s.replace_page(strokes, bg);
-            n
-        });
-        self.status = if done == 0 {
-            "Non ho trovato righe da trasformare (disegni o scrittura che non si legge).".into()
-        } else {
-            crate::i18n::tf(format!("{done} righe trasformate in bella: Annulla riporta la tua scrittura."))
-        };
-        ctx.request_repaint();
+            done
+        })
+    }
+}
+
+fn inbella_status(d: crate::inbella::Done) -> String {
+    let (l, f) = (d.lines, d.shapes);
+    if l > 0 && f > 0 {
+        crate::i18n::tf(format!("{l} righe e {f} forme in bella: Annulla riporta la tua scrittura."))
+    } else if l > 0 {
+        crate::i18n::tf(format!("{l} righe trasformate in bella: Annulla riporta la tua scrittura."))
+    } else {
+        crate::i18n::tf(format!("{f} forme rifatte perfette: Annulla riporta i tuoi tratti."))
     }
 }

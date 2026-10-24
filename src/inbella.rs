@@ -111,13 +111,17 @@ fn physical(strokes: &[Stroke], g: &PageGeom) -> Vec<Vec<(f32, f32)>> {
         .collect()
 }
 
+fn dist2(a: (f32, f32), b: (f32, f32)) -> f32 {
+    (a.0 - b.0).hypot(a.1 - b.1)
+}
+
 fn bbox(pts: &[(f32, f32)]) -> (f32, f32, f32, f32) {
     pts.iter().fold((f32::MAX, f32::MIN, f32::MAX, f32::MIN), |b, p| (b.0.min(p.0), b.1.max(p.0), b.2.min(p.1), b.3.max(p.1)))
 }
 
 /// Le lettere da trasformare di una riga: tutta la scrittura del pennino
-/// (anche le graffe e le parentesi alte, che la bella copia rifà), tranne la
-/// sottolineatura: una linea lunga e piatta con niente sotto (una linea di
+/// (anche le graffe e le parentesi alte, che la bella copia rifà), tranne il
+/// giro attorno a una parola e la sottolineatura: una linea lunga e piatta con niente sotto (una linea di
 /// frazione ha sotto il denominatore, e va rifatta).
 fn letters(line: &[usize], strokes: &[Stroke], ph: &[Vec<(f32, f32)>], hh: f32) -> Vec<usize> {
     let ink: Vec<usize> = line.iter().copied().filter(|&i| strokes.get(i).is_some_and(writable) && !ph[i].is_empty()).collect();
@@ -125,6 +129,14 @@ fn letters(line: &[usize], strokes: &[Stroke], ph: &[Vec<(f32, f32)>], hh: f32) 
     (0..ink.len())
         .filter(|&a| {
             let (x0, x1, y0, y1) = boxes[a];
+            // un giro attorno ad altri tratti (il cerchio attorno a una parola): resta
+            let m = 0.1 * hh;
+            let pts = &ph[ink[a]];
+            let closed = dist2(pts[0], pts[pts.len() - 1]) < 0.3 * (x1 - x0).max(y1 - y0);
+            let around = closed && boxes.iter().enumerate().any(|(b, &(bx0, bx1, by0, by1))| b != a && by1 - by0 >= 0.4 * hh && bx0 > x0 + m && bx1 < x1 - m && by0 > y0 + m && by1 < y1 - m);
+            if around {
+                return false;
+            }
             let flat = x1 - x0 > 3.0 * hh && y1 - y0 < 0.35 * hh;
             if !flat {
                 return true;
@@ -139,9 +151,13 @@ fn letters(line: &[usize], strokes: &[Stroke], ph: &[Vec<(f32, f32)>], hh: f32) 
 
 fn lines_of(r: &Reading, strokes: &[Stroke], g: &PageGeom) -> Vec<(String, u64)> {
     let ph = physical(strokes, g);
+    let hh = r.char_h.clamp(0.012, 0.035);
     r.lines
         .iter()
         .filter(|l| !letters(&l.group.strokes, strokes, &ph, r.char_h).is_empty())
+        // una «riga» fatta solo di forme (una freccia, un cerchio) è un disegno:
+        // non si fa leggere, si rifà
+        .filter(|l| !l.group.strokes.iter().filter(|&&i| writable(&strokes[i])).all(|&i| crate::shapes::is_shape(&ph[i], hh)))
         .map(|l| (l.group.id.clone(), line_key(strokes, &l.group.strokes)))
         .collect()
 }
@@ -186,12 +202,19 @@ fn parse_reply(text: &str) -> Result<HashMap<String, Option<String>>> {
         .collect())
 }
 
+/// Com'è andata: righe riscritte e forme rifatte.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Done {
+    pub lines: usize,
+    pub shapes: usize,
+}
+
 /// La pagina in bella: le righe lette (per impronta) tolte e riscritte al
-/// loro posto. `None` se non cambia niente; altrimenti i tratti nuovi e
-/// quante righe sono state trasformate. Le righe cambiate nel frattempo
-/// (impronta diversa) restano come sono.
-pub fn apply(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom) -> Option<(Vec<Stroke>, usize)> {
-    if strokes.is_empty() || texts.is_empty() {
+/// loro posto, e i disegni con le forme rifatte perfette (`shapes`).
+/// `None` se non cambia niente. Le righe cambiate nel frattempo (impronta
+/// diversa) restano come sono.
+pub fn apply(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom) -> Option<(Vec<Stroke>, Done)> {
+    if strokes.is_empty() {
         return None;
     }
     let reading = crate::boardread::read(strokes, g, None);
@@ -258,13 +281,62 @@ pub fn apply(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom) -> 
         }
         n += 1;
     }
-    if added.is_empty() {
+    // i disegni: i tratti del disegno, quelli delle righe che l'AI ha detto
+    // disegni (null), e i tratti grandi rimasti (una sottolineatura, una
+    // freccia fra le righe)
+    let mut drawing = vec![false; strokes.len()];
+    if let Some(d) = &reading.drawing {
+        for &i in &d.strokes {
+            drawing[i] = true;
+        }
+    }
+    for line in &reading.lines {
+        let k = line_key(strokes, &line.group.strokes);
+        if texts.get(&k).is_some_and(|t| t.trim().is_empty()) {
+            for &i in &line.group.strokes {
+                drawing[i] = true;
+            }
+        }
+    }
+    // senza scrittura sul foglio l'altezza di una lettera è una stima larga:
+    // per le forme serve una misura da quaderno
+    let hh = hh.clamp(0.012, 0.035);
+    let cand: Vec<usize> = (0..strokes.len())
+        .filter(|&i| !hidden[i] && writable(&strokes[i]))
+        .filter(|&i| {
+            let (x0, x1, y0, y1) = bbox(&ph[i]);
+            drawing[i] || (x1 - x0).max(y1 - y0) >= 2.2 * hh
+        })
+        .collect();
+    let shaped = crate::shapes::perfect(&ph, &cand, hh);
+    if added.is_empty() && shaped.is_empty() {
         return None;
     }
+    let mut new_shape: Vec<Option<Stroke>> = vec![None; strokes.len()];
+    for sh in &shaped {
+        let o = &strokes[sh.index];
+        let mut st = if o.highlight { Stroke::highlighter(o.color, o.width) } else { Stroke::new(o.color, o.width) };
+        let m = sh.points.len();
+        let pressure = o.points.get(o.points.len() / 2).map_or(0.6, |q| q.pressure);
+        for (j, &(x, y)) in sh.points.iter().enumerate() {
+            let (px, py) = g.pad(x / aspect, y);
+            let phase = if j == 0 { PenPhase::Down } else if j + 1 == m { PenPhase::Up } else { PenPhase::Move };
+            st.points.push(PenEvent { x: px, y: py, pressure, phase });
+        }
+        new_shape[sh.index] = Some(st);
+    }
+    let new_shapes: Vec<Stroke> = new_shape.iter().flatten().cloned().collect();
     mark_neat(&added);
-    let mut out: Vec<Stroke> = strokes.iter().zip(hidden).filter(|(_, h)| !h).map(|(s, _)| s.clone()).collect();
+    mark_neat(&new_shapes);
+    let mut out: Vec<Stroke> = Vec::with_capacity(strokes.len() + added.len());
+    for (i, s) in strokes.iter().enumerate() {
+        if hidden[i] {
+            continue;
+        }
+        out.push(new_shape[i].take().unwrap_or_else(|| s.clone()));
+    }
     out.extend(added);
-    Some((out, n))
+    Some((out, Done { lines: n, shapes: shaped.len() }))
 }
 
 /// Riga di base e corpo delle minuscole di una riga (y verso il basso): la
@@ -393,7 +465,7 @@ mod tests {
         // la prima riga letta come una formula, la seconda illeggibile
         let texts: HashMap<u64, String> = [(lines[0].1, "$\\frac{x+1}{2} = 3$".to_string()), (lines[1].1, String::new())].into();
         let (out, n) = apply(&strokes, &texts, &g).unwrap();
-        assert_eq!(n, 1);
+        assert_eq!(n.lines, 1);
         // la seconda riga è ancora lì, tale e quale
         for s in &strokes[6..] {
             assert!(out.iter().any(|o| same(o, s)));
@@ -441,7 +513,11 @@ mod tests {
         let texts: HashMap<u64, String> = [(lines[0].1, "$\\begin{cases} x = 1 \\\\ y = 2 \\end{cases}$".to_string())].into();
         let (out, _) = apply(&strokes, &texts, &g).unwrap();
         assert!(!out.iter().any(|o| same(o, &strokes[6])), "la graffa a mano resta");
-        assert!(out.iter().any(|o| same(o, &strokes[7])), "la sottolineatura sparisce");
+        // la sottolineatura resta, rifatta dritta
+        assert!(
+            out.iter().any(|o| o.points.iter().all(|q| (q.y - o.points[0].y).abs() < 1.0) && o.points[0].x < 2100.0 && o.points.last().unwrap().x > 6000.0),
+            "la sottolineatura sparisce"
+        );
     }
 
     #[test]
@@ -461,5 +537,51 @@ mod tests {
         let texts: HashMap<u64, String> = lines.iter().map(|(_, k)| (*k, "$\\frac{abc}{d}$".to_string())).collect();
         let (out, _) = apply(&strokes, &texts, &g).unwrap();
         assert!(!out.iter().any(|o| same(o, &strokes[6])), "la linea di frazione a mano resta");
+    }
+
+    /// Un disegno fatto «a mano» prima e dopo, in due PNG:
+    /// FORME_PNG=prefisso cargo test -- --ignored disegno_prima_dopo
+    #[test]
+    #[ignore]
+    fn disegno_prima_dopo() {
+        let Ok(out) = std::env::var("FORME_PNG") else { return };
+        let g = PageGeom::new(View::default(), 21000.0, 29700.0);
+        // tremolio della mano e un po' di storto
+        let hand = |pts: Vec<(f32, f32)>, seed: f32| -> Stroke {
+            let mut s = Stroke::new([20, 20, 30], 2.0);
+            let n = pts.len();
+            for (k, (x, y)) in pts.into_iter().enumerate() {
+                let t = k as f32;
+                let (dx, dy) = (35.0 * (t * 0.9 + seed).sin() + 20.0 * (t * 0.31 + seed * 2.0).cos(), 35.0 * (t * 0.7 + seed).cos() + 20.0 * (t * 0.23).sin());
+                let phase = if k == 0 { PenPhase::Down } else if k + 1 == n { PenPhase::Up } else { PenPhase::Move };
+                s.points.push(PenEvent { x: x + dx, y: y + dy, pressure: 0.7, phase });
+            }
+            s
+        };
+        let seg = |a: (f32, f32), b: (f32, f32), n: usize| -> Vec<(f32, f32)> { (0..n).map(|k| { let f = k as f32 / (n - 1) as f32; (a.0 + (b.0 - a.0) * f, a.1 + (b.1 - a.1) * f) }).collect() };
+        let mut strokes = Vec::new();
+        // assi con le frecce (punte a parte)
+        strokes.push(hand(seg((2000.0, 9000.0), (10000.0, 9150.0), 60), 1.0));
+        strokes.push(hand(seg((9700.0, 8850.0), (10000.0, 9150.0), 8).into_iter().chain(seg((10000.0, 9150.0), (9680.0, 9420.0), 8)).collect(), 2.0));
+        strokes.push(hand(seg((5000.0, 13000.0), (5120.0, 3000.0), 60), 3.0));
+        strokes.push(hand(seg((4820.0, 3300.0), (5120.0, 3000.0), 8).into_iter().chain(seg((5120.0, 3000.0), (5400.0, 3320.0), 8)).collect(), 4.0));
+        // una parabola
+        strokes.push(hand((0..=60).map(|k| { let x = -1.0 + 2.0 * k as f32 / 60.0; (5050.0 + 2800.0 * x, 10500.0 - 5500.0 * (1.0 - x * x)) }).collect(), 5.0));
+        // un cerchio, un triangolo in tre tratti, un rettangolo in un tratto, un arco, una freccia
+        strokes.push(hand((0..=70).map(|k| { let t = k as f32 / 70.0 * 6.5; (15000.0 + 2200.0 * t.cos(), 6000.0 + 2000.0 * t.sin()) }).collect(), 6.0));
+        let (a, b, c) = ((12500.0, 14000.0), (17500.0, 14200.0), (14500.0, 10500.0));
+        strokes.push(hand(seg(a, b, 30), 7.0));
+        strokes.push(hand(seg((b.0 + 150.0, b.1 - 120.0), c, 30), 8.0));
+        strokes.push(hand(seg((c.0 - 100.0, c.1 + 130.0), (a.0 + 160.0, a.1 - 90.0), 30), 9.0));
+        strokes.push(hand([seg((2500.0, 16000.0), (8500.0, 16250.0), 25), seg((8500.0, 16250.0), (8600.0, 20000.0), 20), seg((8600.0, 20000.0), (2600.0, 19800.0), 25), seg((2600.0, 19800.0), (2500.0, 16100.0), 20)].concat(), 10.0));
+        strokes.push(hand((0..=40).map(|k| { let t = 3.3 + k as f32 / 40.0 * 2.4; (15000.0 + 2500.0 * t.cos(), 19500.0 + 2500.0 * t.sin()) }).collect(), 11.0));
+        strokes.push(hand(seg((3000.0, 23000.0), (9000.0, 23300.0), 40).into_iter().chain(seg((9000.0, 23300.0), (8500.0, 22900.0), 6)).chain(seg((8500.0, 22900.0), (9000.0, 23300.0), 3)).chain(seg((9000.0, 23300.0), (8450.0, 23700.0), 6)).collect(), 12.0));
+        let before = strokes.clone();
+        let (after, done) = apply(&strokes, &HashMap::new(), &g).unwrap();
+        eprintln!("{done:?}");
+        for (name, st) in [("prima", before), ("dopo", after)] {
+            let page = crate::scene::Page::from_drawing(&Drawing { strokes: st, width: 21000.0, height: 29700.0 }, View::default());
+            std::fs::write(format!("{out}-{name}.png"), crate::export::page_to_png(&page, 1200).unwrap()).unwrap();
+        }
     }
 }

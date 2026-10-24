@@ -130,6 +130,9 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   sumatorios, integrales, límites). Es tinta de verdad, como la del lápiz: Deshacer devuelve tu
   letra. Los dibujos, los resaltados, las marcas de la IA y las líneas que no se leen quedan como
   están. Usa los agentes que leen las hojas (`[ocr]`).
+  En los dibujos, sin IA, rectas, flechas (también con la punta aparte), círculos y elipses, arcos y
+  polígonos quedan perfectos: las líneas casi horizontales o verticales se enderezan, los extremos
+  cercanos se unen, las curvas libres se suavizan; lo que no se reconoce queda como está.
 - **El chat escribe en la pizarra.** Pídele «revisa mis sumas y marca los errores»,
   «subraya los plazos» o «escribe el resultado junto a la línea 2»: lee la hoja de la pizarra línea
   a línea y palabra a palabra, y después resalta, subraya, rodea con un círculo, tacha, dibuja recuadros,
@@ -394,6 +397,7 @@ src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             respuestas en voz alta: voces del sistema (say, SAPI, espeak-ng) o un servicio en línea
 src/inbella.rs, src/mathhand.rs                           pasar a limpio: la IA lee las líneas y se reescriben con la matemática compuesta
+src/shapes.rs                                             dibujos en limpio: rectas, flechas, círculos, arcos y polígonos perfectos
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

@@ -110,7 +110,7 @@ Issue やプルリクエストを歓迎します。[CONTRIBUTING.md](CONTRIBUTIN
   Groq、Mistral…）も選べます。Esc でキャンセル。初回は macOS がマイクの使用許可を求めます。
   アプリの言語に関係なく、話した言語で書き起こします（`[voice]` の `language` で固定もできます）。
 - **話すチューター。** 各回答の下の **聞く** で読み上げます（Esc で停止）。質問を音声入力した場合は、回答も自動的に音声で返ります。オフラインでシステムの音声を使います：macOS では `say`（「プレミアム」や「拡張」の声が最も自然です：システム設定 → アクセシビリティ → 読み上げコンテンツ）、Windows の音声、Linux では `espeak-ng`。または `/audio/speech` に対応したオンラインサービス（OpenAI…）を `ai.toml`（`[speech]`）で設定できます。回答の言語で読み上げます。
-- **清書する。** ホーム → 「清書する」：ボードに書いた内容を数式も含めて AI が読み取り、同じ場所に読みやすい手書き文字で書き直します。数式は整ったノートのように組まれます（縦書きの分数、指数、根号、連立方程式の括弧、総和、積分、極限）。ペンと同じ本物のインクで、「取り消す」で元の文字に戻ります。図、蛍光ペン、AI の印、読めない行はそのまま残ります。用紙を読むエージェント（`[ocr]`）を使います。
+- **清書する。** ホーム → 「清書する」：ボードに書いた内容を数式も含めて AI が読み取り、同じ場所に読みやすい手書き文字で書き直します。数式は整ったノートのように組まれます（縦書きの分数、指数、根号、連立方程式の括弧、総和、積分、極限）。ペンと同じ本物のインクで、「取り消す」で元の文字に戻ります。図、蛍光ペン、AI の印、読めない行はそのまま残ります。用紙を読むエージェント（`[ocr]`）を使います。図は AI なしで、直線・矢印（矢じりを別に描いても）・円と楕円・弧・多角形がきれいな形になります。ほぼ水平・垂直の線はまっすぐに、近い端はつながり、自由な曲線はなめらかになります。認識できないものはそのまま残ります。
 - **チャットがボードに書き込む。** 「計算をチェックして間違いに印を付けて」「締め切りに下線を引いて」
   「2 行目の横に結果を書いて」と頼むと、ボードの用紙を 1 行ずつ、1 単語ずつ読み取り、ハイライト、下線、丸囲み、取り消し線、
   枠、矢印、チェックマーク、バツ印を付け、手書きで書き込みます（活字体または筆記体。
@@ -360,6 +360,7 @@ src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             回答の読み上げ：システム音声（say、SAPI、espeak-ng）またはオンラインサービス
 src/inbella.rs, src/mathhand.rs                           清書：AI が行を読み取り、組まれた数式で書き直す
+src/shapes.rs                                             図の清書：直線・矢印・円・弧・多角形をきれいな形に
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

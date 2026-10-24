@@ -126,6 +126,8 @@
 - **깔끔하게 옮겨 쓰기.** 홈 → «깔끔하게 옮겨 쓰기»: AI가 보드에 쓴 내용을 수식까지 읽어서 같은 자리에 또렷한 손글씨로 다시 씁니다.
   수식은 정돈된 공책처럼 조판됩니다(세로 분수, 지수, 근호, 연립방정식의 중괄호, 합, 적분, 극한). 펜과 같은 진짜 잉크이며, 실행 취소하면
   원래 글씨로 돌아갑니다. 그림, 형광펜, AI의 표시, 읽을 수 없는 줄은 그대로 남습니다. 종이를 읽는 에이전트(`[ocr]`)를 씁니다.
+  그림에서는 AI 없이 직선, 화살표(촉을 따로 그려도), 원과 타원, 호, 다각형이 반듯해집니다: 거의 수평이나 수직인 선은 곧게 펴지고,
+  가까운 끝은 이어지며, 자유 곡선은 매끄러워집니다. 알아보지 못한 것은 그대로 남습니다.
 - **채팅이 보드에 씁니다.** "덧셈을 확인하고 틀린 곳을 표시해 줘", "마감일에 밑줄을 그어 줘",
   "2번째 줄 옆에 결과를 써 줘"라고 요청하면 보드 시트를 한 줄 한 줄, 한 단어 한 단어 읽은 다음
   강조 표시, 밑줄, 동그라미, 취소선, 상자, 화살표, 체크 표시와 X 표시를 하고, 손글씨로 씁니다
@@ -389,6 +391,7 @@ src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             답변 읽어 주기: 시스템 음성(say, SAPI, espeak-ng) 또는 온라인 서비스
 src/inbella.rs, src/mathhand.rs                           깔끔하게 옮겨 쓰기: AI가 줄을 읽고, 조판된 수식으로 다시 씀
+src/shapes.rs                                             그림 정리: 반듯한 직선, 화살표, 원, 호, 다각형
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
