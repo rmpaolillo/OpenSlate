@@ -111,17 +111,29 @@ fn physical(strokes: &[Stroke], g: &PageGeom) -> Vec<Vec<(f32, f32)>> {
         .collect()
 }
 
-/// Le lettere da trasformare di una riga: la scrittura del pennino, senza i
-/// segni (la sottolineatura di un titolo, una parentesi graffa lunga restano).
+fn bbox(pts: &[(f32, f32)]) -> (f32, f32, f32, f32) {
+    pts.iter().fold((f32::MAX, f32::MIN, f32::MAX, f32::MIN), |b, p| (b.0.min(p.0), b.1.max(p.0), b.2.min(p.1), b.3.max(p.1)))
+}
+
+/// Le lettere da trasformare di una riga: tutta la scrittura del pennino
+/// (anche le graffe e le parentesi alte, che la bella copia rifà), tranne la
+/// sottolineatura: una linea lunga e piatta con niente sotto (una linea di
+/// frazione ha sotto il denominatore, e va rifatta).
 fn letters(line: &[usize], strokes: &[Stroke], ph: &[Vec<(f32, f32)>], hh: f32) -> Vec<usize> {
-    line.iter()
-        .copied()
-        .filter(|&i| strokes.get(i).is_some_and(writable))
-        .filter(|&i| {
-            let (x0, x1, y0, y1) = ph[i].iter().fold((f32::MAX, f32::MIN, f32::MAX, f32::MIN), |b, p| (b.0.min(p.0), b.1.max(p.0), b.2.min(p.1), b.3.max(p.1)));
-            let (w, h) = (x1 - x0, y1 - y0);
-            !((w > 3.0 * hh && h < 0.35 * hh) || h > 2.4 * hh)
+    let ink: Vec<usize> = line.iter().copied().filter(|&i| strokes.get(i).is_some_and(writable) && !ph[i].is_empty()).collect();
+    let boxes: Vec<(f32, f32, f32, f32)> = ink.iter().map(|&i| bbox(&ph[i])).collect();
+    (0..ink.len())
+        .filter(|&a| {
+            let (x0, x1, y0, y1) = boxes[a];
+            let flat = x1 - x0 > 3.0 * hh && y1 - y0 < 0.35 * hh;
+            if !flat {
+                return true;
+            }
+            let y = (y0 + y1) / 2.0;
+            // qualcosa sotto, nella sua larghezza: è una frazione
+            boxes.iter().enumerate().any(|(b, &(bx0, bx1, by0, by1))| b != a && bx1 > x0 && bx0 < x1 && (by0 + by1) / 2.0 > y + 0.3 * hh)
         })
+        .map(|a| ink[a])
         .collect()
 }
 
@@ -203,7 +215,10 @@ pub fn apply(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom) -> 
         }
         // dove: a sinistra della riga, sulla sua riga di base, alto come la sua scrittura
         let x0 = letters.iter().flat_map(|&i| ph[i].iter().map(|p| p.0)).fold(f32::MAX, f32::min);
-        let (base, xh) = base_and_xheight(&letters, &ph, hh).unwrap_or_else(|| {
+        // la riga di base dalle lettere normali (non dalle graffe alte)
+        let body: Vec<usize> = letters.iter().copied().filter(|&i| bbox(&ph[i]).3 - bbox(&ph[i]).2 < 2.4 * hh).collect();
+        let body = if body.is_empty() { letters.clone() } else { body };
+        let (base, xh) = base_and_xheight(&body, &ph, hh).unwrap_or_else(|| {
             let b = letters.iter().flat_map(|&i| ph[i].iter().map(|p| p.1)).fold(f32::MIN, f32::max);
             (b, 0.6 * hh)
         });
@@ -400,5 +415,51 @@ mod tests {
         // la riga in bella non si rilegge: resta solo la seconda
         let again = pending(&out, &g);
         assert_eq!(again.len(), 1, "{again:?}");
+    }
+
+    fn line_stroke(pts: &[(f32, f32)]) -> Stroke {
+        let mut s = Stroke::new([20, 20, 20], 2.0);
+        for &(x, y) in pts {
+            s.points.push(PenEvent { x, y, pressure: 0.7, phase: PenPhase::Move });
+        }
+        s
+    }
+
+    #[test]
+    fn graffe_via_sottolineatura_resta() {
+        let g = PageGeom::new(View::default(), 21000.0, 29700.0);
+        let mut strokes = page()[..6].to_vec();
+        // una graffa alta a sinistra (due righe di sistema), una sottolineatura sotto
+        let brace: Vec<(f32, f32)> = (0..30).map(|t| {
+            let f = t as f32 / 29.0;
+            (1500.0 - (f * 6.28).sin().abs() * 200.0, 4800.0 + f * 3200.0)
+        }).collect();
+        strokes.push(line_stroke(&brace));
+        strokes.push(line_stroke(&[(1900.0, 6300.0), (4000.0, 6320.0), (6200.0, 6300.0)]));
+        let lines = pending(&strokes, &g);
+        assert_eq!(lines.len(), 1, "{lines:?}");
+        let texts: HashMap<u64, String> = [(lines[0].1, "$\\begin{cases} x = 1 \\\\ y = 2 \\end{cases}$".to_string())].into();
+        let (out, _) = apply(&strokes, &texts, &g).unwrap();
+        assert!(!out.iter().any(|o| same(o, &strokes[6])), "la graffa a mano resta");
+        assert!(out.iter().any(|o| same(o, &strokes[7])), "la sottolineatura sparisce");
+    }
+
+    #[test]
+    fn linea_di_frazione_rifatta() {
+        let g = PageGeom::new(View::default(), 21000.0, 29700.0);
+        let mut strokes = page()[..6].to_vec();
+        // la linea di frazione e il denominatore sotto
+        strokes.push(line_stroke(&[(1900.0, 6300.0), (4000.0, 6320.0), (6200.0, 6300.0)]));
+        let mut den = page()[..3].to_vec();
+        for s in den.iter_mut() {
+            for p in s.points.iter_mut() {
+                p.y += 1100.0;
+            }
+        }
+        strokes.extend(den);
+        let lines = pending(&strokes, &g);
+        let texts: HashMap<u64, String> = lines.iter().map(|(_, k)| (*k, "$\\frac{abc}{d}$".to_string())).collect();
+        let (out, _) = apply(&strokes, &texts, &g).unwrap();
+        assert!(!out.iter().any(|o| same(o, &strokes[6])), "la linea di frazione a mano resta");
     }
 }

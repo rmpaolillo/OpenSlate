@@ -5,7 +5,7 @@
 use super::App;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 type Done = anyhow::Result<HashMap<u64, String>>;
 
@@ -13,6 +13,11 @@ pub(super) struct InBellaUi {
     busy: bool,
     /// La risposta arrivata mentre la penna scriveva: si applica appena si alza.
     ready: Option<HashMap<u64, String>>,
+    /// Quanti tratti e punti c'erano l'ultima volta, e da quando: la penna
+    /// conta come appoggiata solo se scrive ancora (lo Slate a volte non
+    /// manda l'«alzata» dell'ultimo tratto).
+    seen: (usize, usize),
+    seen_at: Instant,
     tx: Sender<Done>,
     rx: Receiver<Done>,
 }
@@ -20,7 +25,7 @@ pub(super) struct InBellaUi {
 impl InBellaUi {
     pub fn new() -> Self {
         let (tx, rx) = channel();
-        Self { busy: false, ready: None, tx, rx }
+        Self { busy: false, ready: None, seen: (0, 0), seen_at: Instant::now(), tx, rx }
     }
 }
 
@@ -76,11 +81,18 @@ impl App {
                 Err(_) => {}
             }
         }
-        // a penna appoggiata non si tocca la pagina: si aspetta che si alzi
-        let pen_down = {
+        // mentre la penna scrive non si tocca la pagina: si aspetta che si
+        // alzi, o che si fermi (un secondo senza punti nuovi)
+        let (down, now) = {
             let s = self.hub.lock();
-            s.active_index().is_some() || s.mouse_highlighting()
+            let st = &s.drawing.strokes;
+            (s.active_index().is_some() || s.mouse_highlighting(), (st.len(), st.last().map_or(0, |l| l.points.len())))
         };
+        if now != self.inbella.seen {
+            self.inbella.seen = now;
+            self.inbella.seen_at = Instant::now();
+        }
+        let pen_down = down && self.inbella.seen_at.elapsed() < Duration::from_millis(1000);
         if self.inbella.ready.is_none() || pen_down {
             ctx.request_repaint_after(Duration::from_millis(300));
             return;
