@@ -86,7 +86,7 @@ Third-party material
 - KaTeX (src/web/vendor/katex), MIT. marked (src/web/vendor/marked.min.js), MIT.
 - DOMPurify 3.4.16 (src/web/vendor/purify.min.js), Cure53 and contributors, Apache-2.0 OR
   MPL-2.0 (src/web/vendor/LICENSE-dompurify). Unmodified.
-- Hershey fonts (src/handwrite/futural.jhf, cursive.jhf), from
+- Hershey fonts (src/handwrite/futural.jhf, cursive.jhf, greek.jhf, mathlow.jhf), from
   https://github.com/kamalmostafa/hershey-fonts. As their licence requires:
   - The Hershey Fonts were originally created by Dr. A. V. Hershey while working at the
     U. S. National Bureau of Standards.
@@ -97,6 +97,10 @@ Third-party material
   The fonts OpenSlate Corsivo and OpenSlate Stampatello (assets/fonts/OpenSlate*.ttf) are made
   from these glyphs by packaging/hand_fonts.py (strokes widened into outlines, accents composed);
   same licence and acknowledgements (assets/fonts/LICENSE-OpenSlateHand.txt).
+- Kalam Light, Copyright (c) 2014 Indian Type Foundry, SIL Open Font License 1.1
+  (src/handwrite/LICENSE-kalam.txt). Modified: packaging/stroke_font.py reduces each glyph to
+  single-line strokes (src/handwrite/naturale.txt, the handwriting of «Fair copy» on the
+  board). The modified version is not named Kalam.
 - assets/fonts/GlyphLess.ttf: an empty font (two glyphs with no outlines) made for OpenSlate with
   fontTools, for the invisible text layer of searchable PDFs (src/formats.rs). Public domain.
 - MP4 video export (src/video.rs): on Linux, when ffmpeg is not installed, OpenSlate downloads

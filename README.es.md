@@ -124,6 +124,12 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   Accesibilidad → Contenido leído), las voces de Windows, `espeak-ng` en Linux; o un servicio en
   línea que hable `/audio/speech` (OpenAI…), en `ai.toml` (`[speech]`). Lee en el idioma de la
   respuesta.
+- **Pasar a limpio.** Inicio → «Pasar a limpio»: la IA lee lo que escribiste en la pizarra,
+  fórmulas incluidas, y lo reescribe en el mismo lugar con una letra clara y la matemática compuesta
+  como en un cuaderno ordenado (fracciones en columna, exponentes, raíces, llaves de los sistemas,
+  sumatorios, integrales, límites). Es tinta de verdad, como la del lápiz: Deshacer devuelve tu
+  letra. Los dibujos, los resaltados, las marcas de la IA y las líneas que no se leen quedan como
+  están. Usa los agentes que leen las hojas (`[ocr]`).
 - **El chat escribe en la pizarra.** Pídele «revisa mis sumas y marca los errores»,
   «subraya los plazos» o «escribe el resultado junto a la línea 2»: lee la hoja de la pizarra línea
   a línea y palabra a palabra, y después resalta, subraya, rodea con un círculo, tacha, dibuja recuadros,
@@ -387,6 +393,7 @@ src/formats.rs, src/mdconv.rs                             export formats: search
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             respuestas en voz alta: voces del sistema (say, SAPI, espeak-ng) o un servicio en línea
+src/inbella.rs, src/mathhand.rs                           pasar a limpio: la IA lee las líneas y se reescriben con la matemática compuesta
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

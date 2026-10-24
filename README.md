@@ -126,6 +126,12 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   Accessibility → Spoken Content), the Windows voices, `espeak-ng` on Linux; or an online service
   that speaks `/audio/speech` (OpenAI…), in `ai.toml` (`[speech]`). It reads in the language of the
   answer.
+- **Fair copy.** Home → «Fair copy»: the AI reads what you wrote on the board, formulas included,
+  and rewrites it in the same place in clear handwriting, with the maths laid out as in a tidy
+  exercise book (fractions in columns, exponents, roots, braces of systems, sums, integrals,
+  limits). It is real ink like the pen's: Undo brings back your handwriting. Drawings,
+  highlighters, the AI's marks and lines that cannot be read stay as they are. It uses the agents
+  that read pages (`[ocr]`).
 - **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
   "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
   by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,
@@ -389,6 +395,7 @@ src/formats.rs, src/mdconv.rs                             export formats: search
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             answers read aloud: system voices (say, SAPI, espeak-ng) or an online service
+src/inbella.rs, src/mathhand.rs                           fair copy: the AI reads the lines, they are rewritten with the maths laid out
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

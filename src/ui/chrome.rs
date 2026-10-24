@@ -857,6 +857,9 @@ impl App {
             let glyph = if p.ruled() || p == super::paper::Paper::Bianco { ic::NOTEBOOK } else { ic::GRID_FOUR };
             v.push(c(glyph, &format!("Foglio: {}", i18n::tr(&p.label())), "", Action::Paper(p)));
         }
+        if !doc {
+            v.push(c(ic::MAGIC_WAND, "Trasforma la lavagna in bella", "", Action::InBella));
+        }
         if doc {
             v.push(c(ic::FILE_PDF, "Salva il documento firmato (nello stesso formato)", &cmd_key("Shift+S"), Action::Doc(DocAction::SaveSigned)));
             v.push(c(ic::X, "Chiudi il documento", &cmd_key("W"), Action::Doc(DocAction::Close)));

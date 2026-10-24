@@ -13,6 +13,7 @@ mod chat_lib;
 mod chrome;
 mod doc_view;
 mod embed;
+mod inbella_ui;
 mod library_view;
 mod options;
 mod paper;
@@ -208,6 +209,7 @@ pub fn run_app(
         chat_lib: Vec::new(),
         board_zoom: ZoomView::default(),
         docui: doc_view::DocUi::new(),
+        inbella: inbella_ui::InBellaUi::new(),
     };
     if web_now || app.settings.web_auto {
         app.start_web();
@@ -437,6 +439,8 @@ struct App {
     board_zoom: ZoomView,
     /// Documenti importati e firma.
     docui: doc_view::DocUi,
+    /// «Trasforma in bella» (la lettura dell'AI in corso).
+    inbella: inbella_ui::InBellaUi,
 }
 
 /// I formati d'uscita delle pagine (vedi `formats`).
@@ -526,6 +530,8 @@ enum Action {
     /// Rigatura del foglio.
     Paper(paper::Paper),
     ToggleMargin,
+    /// «Trasforma in bella»: la scrittura della lavagna diventa la sua bella copia.
+    InBella,
     /// Apre la finestra degli appunti.
     Appunti,
     /// Apre le impostazioni degli agenti AI.
@@ -1902,6 +1908,7 @@ impl App {
                 self.settings.save();
                 self.status = format!("Foglio: {}.", p.label());
             }
+            Action::InBella => self.inbella_now(),
             Action::ToggleMargin => {
                 self.settings.paper_margin = !self.settings.paper_margin;
                 self.settings.save();
@@ -2262,6 +2269,7 @@ impl eframe::App for App {
         self.embeds.set_wake(ctx);
         self.drain_events();
         self.voice_tick(ctx);
+        self.inbella_tick(ctx);
         self.chat_lib_requests(ctx);
         self.doc_tick(ctx);
         self.sync_chat_note();

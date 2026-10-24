@@ -147,6 +147,19 @@ impl App {
             });
             if big_ex(
                 ui,
+                ic::MAGIC_WAND,
+                "Trasforma\nin bella",
+                "L'AI legge quello che hai scritto, formule comprese, e al suo posto lo riscrive in bella: una scrittura chiara con la matematica impaginata (frazioni, esponenti, radici, sistemi). Annulla riporta la tua scrittura",
+                !doc,
+                false,
+                false,
+            )
+            .clicked()
+            {
+                actions.push(Action::InBella);
+            }
+            if big_ex(
+                ui,
                 ic::FLOPPY_DISK,
                 "Salva",
                 if doc { "Con un documento aperto: «Salva PDF» (scheda Documento)" } else { "Conserva la lavagna come pagina dell'archivio (Cmd+S)" },

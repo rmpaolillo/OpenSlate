@@ -125,6 +125,12 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   naturelles : Réglages Système → Accessibilité → Contenu énoncé), les voix de Windows, `espeak-ng`
   sous Linux ; ou un service en ligne qui parle `/audio/speech` (OpenAI…), dans `ai.toml`
   (`[speech]`). Il lit dans la langue de la réponse.
+- **Mettre au propre.** Accueil → « Mettre au propre » : l'IA lit ce que vous avez écrit sur le
+  tableau, formules comprises, et le réécrit au même endroit dans une écriture claire, avec les
+  maths mises en page comme dans un cahier soigné (fractions en colonne, exposants, racines,
+  accolades des systèmes, sommes, intégrales, limites). C'est de la vraie encre, comme celle du
+  stylet : Annuler ramène votre écriture. Les dessins, les surlignages, les marques de l'IA et les
+  lignes illisibles restent tels quels. Il utilise les agents qui lisent les feuilles (`[ocr]`).
 - **Le chat écrit sur le tableau.** Demandez-lui « vérifiez mes additions et marquez les erreurs »,
   « soulignez les échéances » ou « écrivez le résultat à côté de la ligne 2 » : il lit la page du tableau ligne
   par ligne et mot par mot, puis surligne, souligne, entoure, barre, dessine des cadres,
@@ -388,6 +394,7 @@ src/formats.rs, src/mdconv.rs                             export formats: search
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             réponses à voix haute : voix du système (say, SAPI, espeak-ng) ou un service en ligne
+src/inbella.rs, src/mathhand.rs                           mettre au propre : l'IA lit les lignes, réécrites avec les maths mises en page
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

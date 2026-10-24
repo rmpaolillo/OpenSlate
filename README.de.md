@@ -125,6 +125,13 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   Systemeinstellungen → Bedienungshilfen → Gesprochene Inhalte), die Windows-Stimmen, `espeak-ng`
   unter Linux; oder einen Online-Dienst, der `/audio/speech` spricht (OpenAI…), in `ai.toml`
   (`[speech]`). Er liest in der Sprache der Antwort.
+- **Ins Reine schreiben.** Start → «Ins Reine schreiben»: Die KI liest, was du auf die Tafel
+  geschrieben hast, Formeln inklusive, und schreibt es an derselben Stelle in klarer Handschrift
+  neu, die Mathematik gesetzt wie in einem ordentlichen Heft (Brüche untereinander, Exponenten,
+  Wurzeln, Klammern von Gleichungssystemen, Summen, Integrale, Grenzwerte). Es ist echte Tinte wie
+  die des Stifts: Widerrufen bringt deine Schrift zurück. Zeichnungen, Textmarker, die Zeichen der
+  KI und unleserliche Zeilen bleiben, wie sie sind. Es nutzt die Agenten, die Seiten lesen
+  (`[ocr]`).
 - **Der Chat schreibt auf die Tafel.** Bitte ihn: „prüf meine Rechnungen und markier die Fehler“,
   „unterstreich die Fristen“ oder „schreib das Ergebnis neben Zeile 2“: Er liest das Tafelblatt Zeile
   für Zeile und Wort für Wort, dann markiert, unterstreicht, umkreist, streicht durch, zeichnet Kästen,
@@ -388,6 +395,7 @@ src/formats.rs, src/mdconv.rs                             export formats: search
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             Antworten vorlesen: Systemstimmen (say, SAPI, espeak-ng) oder ein Online-Dienst
+src/inbella.rs, src/mathhand.rs                           ins Reine schreiben: die KI liest die Zeilen, neu geschrieben mit gesetzter Mathematik
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

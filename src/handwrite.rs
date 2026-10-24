@@ -14,17 +14,28 @@ use std::sync::OnceLock;
 
 const FUTURAL: &str = include_str!("handwrite/futural.jhf");
 const CURSIVE: &str = include_str!("handwrite/cursive.jhf");
+/// «Naturale»: un carattere a mano vero (Kalam), ridotto a linee da
+/// `packaging/stroke_font.py` (la scrittura di «Trasforma in bella»).
+const NATURALE: &str = include_str!("handwrite/naturale.txt");
+/// Lettere greche e simboli matematici di Hershey (per le formule riscritte).
+const GREEK: &str = include_str!("handwrite/greek.jhf");
+const MATHLOW: &str = include_str!("handwrite/mathlow.jhf");
 
 /// Altezza delle maiuscole nelle unità di Hershey (da -12 a 9).
 const CAP: f32 = 21.0;
 const CAP_TOP: f32 = -12.0;
 /// Da una riga all'altra (unità di Hershey).
 const LINE: f32 = 34.0;
+/// La riga di base (y di Hershey).
+const BASE_Y: f32 = 9.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Style {
     Stampatello,
     Corsivo,
+    /// Scrittura a mano naturale (da Kalam, SIL OFL): solo per «Trasforma in
+    /// bella» (l'AI scrive sul foglio in stampatello o corsivo).
+    Naturale,
 }
 
 impl Style {
@@ -91,10 +102,81 @@ fn parse(src: &str) -> HashMap<char, Glyph> {
 fn font(style: Style) -> &'static Font {
     static F: OnceLock<Font> = OnceLock::new();
     static C: OnceLock<Font> = OnceLock::new();
+    static N: OnceLock<Font> = OnceLock::new();
     match style {
         Style::Stampatello => F.get_or_init(|| Font { glyphs: parse(FUTURAL), x_top: -5.0, slant: 0.0 }),
         Style::Corsivo => C.get_or_init(|| Font { glyphs: parse(CURSIVE), x_top: 0.0, slant: 2.0 }),
+        Style::Naturale => N.get_or_init(|| {
+            let mut glyphs = parse_lines(NATURALE);
+            // dove comincia il corpo delle minuscole: la cima della «x»
+            let x_top = glyphs.get(&'x').map(|g| g.strokes.iter().flatten().map(|p| p.1).fold(f32::MAX, f32::min)).filter(|v| v.is_finite()).unwrap_or(-4.0);
+            // le minuscole di Kalam sono piccole: grande quanto lo stampatello
+            // (il corpo delle minuscole alto 14, come in futural), attorno alla riga di base
+            let k = (14.0 / (BASE_Y - x_top)).clamp(1.0, 1.5);
+            for g in glyphs.values_mut() {
+                g.left *= k;
+                g.right *= k;
+                for st in g.strokes.iter_mut() {
+                    for p in st.iter_mut() {
+                        *p = (p.0 * k, BASE_Y + (p.1 - BASE_Y) * k);
+                    }
+                }
+            }
+            // il «4» aperto e il «5» senza asta di Kalam, piccoli, sembrano un
+            // «9» e una «S»: in matematica vanno rifatti, chiari (stesse misure)
+            for (c, shape) in [
+                ('4', vec![vec![(0.62, 0.0), (0.0, 0.68), (1.0, 0.68)], vec![(0.78, 0.25), (0.72, 1.0)]]),
+                ('5', vec![vec![(0.95, 0.0), (0.22, 0.0), (0.12, 0.42), (0.45, 0.36), (0.8, 0.42), (0.98, 0.62), (0.9, 0.88), (0.55, 1.0), (0.15, 0.95), (0.0, 0.85)]]),
+            ] {
+                if let Some(g) = glyphs.get_mut(&c) {
+                    let pts = g.strokes.iter().flatten();
+                    let (x0, x1, y0, y1) = pts.fold((f32::MAX, f32::MIN, f32::MAX, f32::MIN), |b, p| (b.0.min(p.0), b.1.max(p.0), b.2.min(p.1), b.3.max(p.1)));
+                    if x0 < x1 && y0 < y1 {
+                        // la stessa pendenza della scrittura (un po' a destra in alto)
+                        let slant = 0.12 * (y1 - y0);
+                        g.strokes = shape
+                            .into_iter()
+                            .map(|st| st.into_iter().map(|(u, v): (f32, f32)| (x0 + u * (x1 - x0 - slant) + (1.0 - v) * slant, y0 + v * (y1 - y0))).collect())
+                            .collect();
+                    }
+                }
+            }
+            // l'«1» di Kalam è un'asta sola (si confonde con la «l»): il becco in alto
+            if let Some(one) = glyphs.get_mut(&'1') {
+                let top = one.strokes.iter().flatten().copied().min_by(|a, b| a.1.total_cmp(&b.1));
+                if let Some((x, y)) = top {
+                    one.strokes.push(vec![(x - 5.0, y + 5.5), (x, y)]);
+                }
+            }
+            Font { glyphs, x_top: BASE_Y + (x_top - BASE_Y) * k, slant: 0.8 }
+        }),
     }
+}
+
+/// Il formato di `packaging/stroke_font.py`: «U+0041<TAB>sinistra<TAB>destra<TAB>tratti».
+fn parse_lines(src: &str) -> HashMap<char, Glyph> {
+    let mut out = HashMap::new();
+    for l in src.lines().filter(|l| !l.starts_with('#') && !l.trim().is_empty()) {
+        let mut f = l.split('\t');
+        let (Some(code), Some(left), Some(right)) = (f.next(), f.next(), f.next()) else { continue };
+        let Some(c) = code.strip_prefix("U+").and_then(|h| u32::from_str_radix(h, 16).ok()).and_then(char::from_u32) else { continue };
+        let strokes: Vec<Vec<(f32, f32)>> = f
+            .next()
+            .unwrap_or("")
+            .split('|')
+            .map(|st| {
+                st.split_whitespace()
+                    .filter_map(|p| {
+                        let (x, y) = p.split_once(',')?;
+                        Some((x.parse().ok()?, y.parse().ok()?))
+                    })
+                    .collect::<Vec<(f32, f32)>>()
+            })
+            .filter(|st| !st.is_empty())
+            .collect();
+        out.insert(c, Glyph { left: left.parse().unwrap_or(0.0), right: right.parse().unwrap_or(0.0), strokes });
+    }
+    out
 }
 
 #[derive(Clone, Copy)]
@@ -259,6 +341,52 @@ fn glyph(f: &Font, c: char) -> Option<Glyph> {
     Some(g)
 }
 
+/// Un carattere per le formule: l'avanzamento e i tratti, con x da 0 e la
+/// riga di base a y = 0 (unità di Hershey, y verso il basso; le maiuscole
+/// arrivano a -21). Prova lo stile chiesto, poi le lettere greche e i
+/// simboli matematici di Hershey.
+pub struct CharGlyph {
+    pub adv: f32,
+    pub strokes: Vec<Vec<(f32, f32)>>,
+}
+
+pub fn char_glyph(style: Style, c: char) -> Option<CharGlyph> {
+    static GR: OnceLock<HashMap<char, Glyph>> = OnceLock::new();
+    static MA: OnceLock<HashMap<char, Glyph>> = OnceLock::new();
+    let norm = |g: &Glyph| CharGlyph {
+        adv: g.right - g.left,
+        strokes: g.strokes.iter().map(|s| s.iter().map(|&(x, y)| (x - g.left, y - BASE_Y)).collect()).collect(),
+    };
+    if let Some(g) = glyph(font(style), c) {
+        return Some(norm(&g));
+    }
+    const GREEK_MAP: [(char, char); 48] = [
+        ('α', 'a'), ('β', 'b'), ('χ', 'c'), ('δ', 'd'), ('ε', 'e'), ('φ', 'f'), ('γ', 'g'), ('η', 'h'), ('ι', 'i'), ('κ', 'k'),
+        ('λ', 'l'), ('μ', 'm'), ('ν', 'n'), ('ο', 'o'), ('π', 'p'), ('θ', 'q'), ('ρ', 'r'), ('σ', 's'), ('τ', 't'), ('υ', 'u'),
+        ('ω', 'w'), ('ξ', 'x'), ('ψ', 'y'), ('ζ', 'z'), ('Α', 'A'), ('Β', 'B'), ('Χ', 'C'), ('Δ', 'D'), ('Ε', 'E'), ('Φ', 'F'),
+        ('Γ', 'G'), ('Η', 'H'), ('Ι', 'I'), ('Κ', 'K'), ('Λ', 'L'), ('Μ', 'M'), ('Ν', 'N'), ('Ο', 'O'), ('Π', 'P'), ('Θ', 'Q'),
+        ('Ρ', 'R'), ('Σ', 'S'), ('Τ', 'T'), ('Υ', 'U'), ('Ω', 'W'), ('Ξ', 'X'), ('Ψ', 'Y'), ('Ζ', 'Z'),
+    ];
+    if let Some(&(_, k)) = GREEK_MAP.iter().find(|(g, _)| *g == c) {
+        let gr = GR.get_or_init(|| parse(GREEK));
+        return gr.get(&k).map(norm);
+    }
+    // i simboli di mathlow (nella posizione del carattere ASCII indicato)
+    const MATH_MAP: [(char, char); 16] = [
+        ('∓', '"'), ('≡', '@'), ('∝', '^'), ('∞', '_'), ('⊂', 'd'), ('∪', 'e'), ('⊃', 'f'), ('∩', 'g'), ('∈', 'h'),
+        ('∂', 'm'), ('∇', 'n'), ('∫', 'p'), ('∃', 'v'), ('∥', 'y'), ('⊥', 'z'), ('∠', '|'),
+    ];
+    if let Some(&(_, k)) = MATH_MAP.iter().find(|(g, _)| *g == c) {
+        let ma = MA.get_or_init(|| parse(MATHLOW));
+        return ma.get(&k).map(norm);
+    }
+    match c {
+        '∑' => char_glyph(style, 'Σ'),
+        '∏' => char_glyph(style, 'Π'),
+        _ => None,
+    }
+}
+
 /// Tutti i caratteri che so scrivere a mano, coi loro tratti (unità di
 /// Hershey: y verso il basso, la riga di base a 9, le maiuscole da -12):
 /// servono a fare i caratteri `.ttf` degli appunti
@@ -393,6 +521,18 @@ pub fn layout(text: &str, style: Style, cap: f32, aspect: f32, origin: (f32, f32
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn carattere_naturale() {
+        let l = layout("Bene! È giusto: x² + 1 = 0 ⇒ niente", Style::Naturale, 0.03, 0.7, (0.1, 0.2), 3.0, false);
+        assert!(l.missing.is_empty(), "{:?}", l.missing);
+        assert!(l.strokes.len() > 20);
+        // alta come le altre: le maiuscole più o meno «cap»
+        let h = l.bbox[3] - l.bbox[1];
+        assert!(h > 0.025 && h < 0.08, "{h}");
+        assert!(all_glyphs(Style::Naturale).len() > 150);
+    }
+
 
     /// I tratti di tutti i caratteri, per `packaging/hand_fonts.py`:
     /// HAND_OUT=cartella cargo test -- --ignored glifi_per_i_caratteri

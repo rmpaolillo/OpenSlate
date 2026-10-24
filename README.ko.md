@@ -123,6 +123,9 @@
   음성을 씁니다: macOS의 `say`(«프리미엄» 또는 «고급» 음성이 가장 자연스럽습니다: 시스템 설정 → 손쉬운 사용 → 읽기 및 말하기), Windows 음성,
   Linux의 `espeak-ng`; 또는 `ai.toml`(`[speech]`)에서 `/audio/speech`를 지원하는 온라인 서비스(OpenAI…)를 쓸 수 있습니다.
   답변의 언어로 읽습니다.
+- **깔끔하게 옮겨 쓰기.** 홈 → «깔끔하게 옮겨 쓰기»: AI가 보드에 쓴 내용을 수식까지 읽어서 같은 자리에 또렷한 손글씨로 다시 씁니다.
+  수식은 정돈된 공책처럼 조판됩니다(세로 분수, 지수, 근호, 연립방정식의 중괄호, 합, 적분, 극한). 펜과 같은 진짜 잉크이며, 실행 취소하면
+  원래 글씨로 돌아갑니다. 그림, 형광펜, AI의 표시, 읽을 수 없는 줄은 그대로 남습니다. 종이를 읽는 에이전트(`[ocr]`)를 씁니다.
 - **채팅이 보드에 씁니다.** "덧셈을 확인하고 틀린 곳을 표시해 줘", "마감일에 밑줄을 그어 줘",
   "2번째 줄 옆에 결과를 써 줘"라고 요청하면 보드 시트를 한 줄 한 줄, 한 단어 한 단어 읽은 다음
   강조 표시, 밑줄, 동그라미, 취소선, 상자, 화살표, 체크 표시와 X 표시를 하고, 손글씨로 씁니다
@@ -385,6 +388,7 @@ src/formats.rs, src/mdconv.rs                             export formats: search
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             답변 읽어 주기: 시스템 음성(say, SAPI, espeak-ng) 또는 온라인 서비스
+src/inbella.rs, src/mathhand.rs                           깔끔하게 옮겨 쓰기: AI가 줄을 읽고, 조판된 수식으로 다시 씀
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

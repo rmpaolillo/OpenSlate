@@ -124,6 +124,11 @@ Issues і pull requests вітаються: див. [CONTRIBUTING.md](CONTRIBUTI
   параметри → Доступність → Вимовлений вміст), голоси Windows, `espeak-ng` у Linux; або
   онлайн-сервіс, що підтримує `/audio/speech` (OpenAI…), в `ai.toml` (`[speech]`). Читає мовою
   відповіді.
+- **Переписати начисто.** Головна → «Переписати начисто»: ШІ читає написане на дошці, разом із
+  формулами, і переписує його на тому самому місці чітким почерком, з математикою, оформленою як в
+  охайному зошиті (дроби в стовпчик, степені, корені, дужки систем, суми, інтеграли, границі). Це
+  справжнє чорнило, як від пера: «Відмінити» повертає ваш почерк. Малюнки, виділення, позначки ШІ
+  та нерозбірливі рядки лишаються як є. Використовує агентів, що читають аркуші (`[ocr]`).
 - **Чат пише на дошці.** Попросіть його «перевір мої обчислення й познач помилки»,
   «підкресли дедлайни» або «напиши результат поруч із рядком 2»: він читає аркуш дошки рядок
   за рядком і слово за словом, а потім виділяє, підкреслює, обводить, закреслює, малює рамки,
@@ -387,6 +392,7 @@ src/formats.rs, src/mdconv.rs                             export formats: search
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             відповіді вголос: системні голоси (say, SAPI, espeak-ng) або онлайн-сервіс
+src/inbella.rs, src/mathhand.rs                           переписати начисто: ШІ читає рядки, їх переписано з оформленою математикою
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)
