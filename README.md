@@ -55,10 +55,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Your choice of AI**: local models (LM Studio, Ollama) or cloud providers; API keys never stored
   in plain text.
 - **Talk to the chat.** Dictate with the microphone: Whisper transcribes on your computer, offline.
-- **The tutor talks back.** Answers can be read aloud with the system voices, and a check as you
-  write marks mistakes on the page as soon as you pause.
-- **Neat handwriting**, if you want it: straight lines, smooth strokes and even words on screen and
-  in exports; your real strokes never change.
+- **The tutor talks back.** Answers can be read aloud with the system voices.
 - **Free and open source**, in nine languages, for macOS (main platform), Linux and Windows.
 
 ## Features
@@ -129,31 +126,6 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   Accessibility → Spoken Content), the Windows voices, `espeak-ng` on Linux; or an online service
   that speaks `/audio/speech` (OpenAI…), in `ai.toml` (`[speech]`). It reads in the language of the
   answer.
-- **Check as you write.** AI tab → «Check as you write»: when you stop writing for a few seconds (3
-  to 10, in the button's menu) the AI looks only at the new lines. If everything is right it stays
-  quiet (a small «all correct» line in the chat); if it finds a mistake it circles or underlines it
-  in red on the page, writes the correction if needed and explains it in one line, aloud too if the
-  voice is on. Its marks are ink you can undo from the chat; your lines are never checked twice.
-- **Neat handwriting.** Home → «Neat handwriting» (Off, Light, Medium, Strong): straightens the
-  lines, smooths the strokes, puts the words on the line and evens out height, slant and spacing,
-  live while you write (the new word settles when you lift the pen). It only changes how the page
-  looks and exports (board, library, PDF/PNG/SVG…): the strokes you wrote stay as they are, the AI
-  reads those, and turning it off brings them back. Never on documents and signatures; numbers and
-  formulas are left alone.
-- **Perfect shapes and the AI's handwriting.** In the «Neat handwriting» menu: **Perfect lines,
-  arrows and circles** (on by default) makes hand-drawn lines straight, arrowheads symmetric and
-  circles and ellipses round, the AI's too; writing is never touched and your real strokes are kept.
-  **How the AI writes on the page**: clean print (default), by hand (the same letters with the
-  irregularities of a hand) or natural handwriting (a real handwriting font, Kalam, reduced to
-  single lines so it stays pen strokes).
-- **Rewrite neatly.** Home → «Rewrite neatly»: the AI reads what you wrote, line by line and
-  formulas included, and the page shows it in clear handwriting with the maths laid out as in a tidy
-  exercise book: fractions in a column, small exponents and subscripts, roots with their sign, the
-  brace of a system, brackets as tall as their content, Greek letters, sums and integrals. With the
-  button for the whole page, or by itself at every pause («Also while I write»). Only the view and
-  the exports change: your strokes are kept (the AI reads those), hold **O** to see them, and a line
-  you write on again is read again. The reading uses the agent of «Page reading (OCR)» in
-  `ai.toml`.
 - **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
   "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
   by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,
@@ -417,8 +389,6 @@ src/formats.rs, src/mdconv.rs                             export formats: search
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             answers read aloud: system voices (say, SAPI, espeak-ng) or an online service
-src/beautify.rs, src/ui/nice.rs                           neat handwriting: straight lines and even words on screen and in exports, originals kept
-src/ui/live_check.rs                                      check as you write: after a pause the chat checks the new lines
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

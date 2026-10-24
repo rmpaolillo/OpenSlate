@@ -21,10 +21,7 @@ Non è un prodotto Wacom e non è collegata a Wacom.
   modificabile, JPEG/WebP leggeri, Xournal++, GIF, SVG o video MP4 della pagina che si scrive, LaTeX
   o Typst dalla trascrizione.
 - **Parli alla chat.** Detti col microfono: Whisper trascrive sul tuo computer, senza rete.
-- **Il tutor ti risponde a voce** con le voci del sistema e, se vuoi, ti controlla mentre scrivi:
-  alla prima pausa segna gli errori sul foglio.
-- **Bella scrittura**, se la vuoi: righe dritte, tratti lisci e parole regolari sullo schermo e
-  negli export; i tratti veri non cambiano.
+- **Il tutor ti risponde a voce** con le voci del sistema.
 - **L'AI che vuoi tu**: modelli locali (LM Studio, Ollama) o in cloud; le chiavi API mai in chiaro.
 - **Libera e open source**, in nove lingue, per macOS (piattaforma principale), Linux e Windows.
 
@@ -118,10 +115,6 @@ Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le
 | Compilare i moduli PDF | Con un modulo PDF allegato alla chat, chiedile «compila questo modulo con i miei dati»: legge i campi e li compila con PdfCraft. Un modulo stampato o scansionato senza campi li riceve prima (PdfCraft trova gli spazi da riempire e li chiama come le etichette accanto), oppure la chat scrive testo, crocette e data dove servono. Usa solo quello che le dici e chiede quello che manca. Non firma mai: la firma la metti tu con la penna, e i valori compilati restano nella copia firmata |
 | Parlare alla chat | Clic sul microfono accanto a Invia, oppure tieni premuto il tasto Alt (Opzione) di destra mentre parli: le parole finiscono nel riquadro del messaggio, da correggere e mandare. Le trascrive Whisper sul tuo computer con [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (sui Mac sulla scheda grafica), senza rete: la voce non esce dal computer. Il modello (547 MB) si scarica una volta sola, la prima, se sei d'accordo; in `ai.toml` (`[voice]`) si sceglie un modello più leggero o un servizio in rete (OpenAI, Groq, Mistral…), e `auto_send = true` manda il messaggio appena finisci di parlare. Scrive nella lingua che parli, qualunque sia la lingua dell'app (`language` in `[voice]` ne fissa una). Esc annulla. La prima volta macOS chiede il permesso per il microfono |
 | Il tutor che parla | Sotto ogni risposta **Ascolta** la legge ad alta voce (Esc la ferma); se la domanda l'hai dettata, la risposta torna a voce da sola. Usa le voci del sistema, senza rete: `say` su macOS (le voci «Premium» o «Migliorata» sono le più naturali: Impostazioni di Sistema → Accessibilità → Contenuto letto), le voci di Windows, `espeak-ng` su Linux; oppure un servizio in rete che parla `/audio/speech` (OpenAI…), in `ai.toml` (`[speech]`). Legge nella lingua della risposta |
-| Controllo mentre scrivi | Scheda AI → «Controllo mentre scrivi»: quando smetti di scrivere per qualche secondo (da 3 a 10, nel menu del pulsante) l'AI guarda solo le righe nuove. Se è tutto giusto tace (nella chat una riga piccola «tutto giusto»); se trova un errore lo cerchia o lo sottolinea in rosso sul foglio, scrive la correzione se serve e lo spiega in una riga, anche a voce se la voce è attiva. I suoi segni sono inchiostro che si annulla dalla chat; le tue righe non si ricontrollano |
-| Bella scrittura | Home → «Bella scrittura» (Spenta, Leggera, Media, Forte): raddrizza le righe, liscia i tratti, mette le parole sulla riga e rende simili altezza, inclinazione e spazi, in tempo reale mentre scrivi (la parola nuova si assesta quando alzi la penna). Cambia solo come la pagina si vede e si esporta (lavagna, archivio, PDF/PNG/SVG…): i tratti che hai scritto restano com'erano, l'AI legge quelli, e spegnendola tornano. Mai sui documenti e sulle firme; numeri e formule restano come sono |
-| Forme perfette e scrittura dell'AI | Nel menu di «Bella scrittura»: **Linee, frecce e cerchi perfetti** (acceso di serie) rifà dritte le linee, simmetriche le punte delle frecce e tondi i cerchi e le ellissi disegnati a mano, anche quelli dell'AI; la scrittura non si tocca, i tratti veri restano. **Come scrive l'AI sul foglio**: stampatello pulito (di serie), a mano (le stesse lettere con le irregolarità della mano) o scrittura naturale (un carattere a mano vero, Kalam, ridotto a linee singole da `packaging/stroke_font.py`, così resta tratto di penna) |
-| Riscrivi in bella | Home → «Riscrivi in bella»: l'AI legge quello che hai scritto, riga per riga e formule comprese, e la pagina lo mostra in una scrittura chiara con la matematica impaginata come su un quaderno ordinato: frazioni in colonna, esponenti e pedici piccoli, radici col loro segno, la graffa dei sistemi, parentesi alte quanto il contenuto, lettere greche, sommatorie e integrali. Col pulsante per tutta la pagina, o da sola a ogni pausa («Anche mentre scrivo»). Cambia solo come si vede e si esporta: i tuoi tratti restano (l'AI legge quelli), tenendo premuto **O** li vedi, e una riga su cui scrivi ancora si rilegge. Legge l'agente di «Lettura dei fogli (OCR)» in `ai.toml`; quello che ha letto si ricorda in `rewrite_cache.json` |
 | La chat scrive sulla lavagna | Chiedile «controlla i conti e segna gli errori», «sottolinea le scadenze», «scrivi il risultato accanto alla seconda riga»: legge il foglio riga per riga e parola per parola, poi evidenzia, sottolinea, cerchia, barra, fa riquadri, frecce, spunte e croci, e scrive a mano (stampatello o corsivo, coi caratteri di [Hershey](https://it.wikipedia.org/wiki/Hershey_fonts) a filo singolo: tratti veri). Se glielo chiedi sposta, ingrandisce, ricolora o cancella quello che c'è («il titolo più grande e blu», «sposta l'ultima riga più giù», «togli i miei evidenziatori»); da sola aggiunge soltanto, e per cancellare buona parte del foglio aspetta il tuo sì nella chat. Quello che fa è inchiostro come il tuo (si salva, si esporta, si cancella) e si toglie tutto con un clic nella chat |
 | La chat conosce l'archivio | «Trova la pagina dove ho scritto del bilancio di ottobre», «apri sulla lavagna gli appunti di ieri», «salva la lavagna come Riunione e dammi una pagina nuova», «esporta in un PDF le pagine di questa settimana»: cerca per titolo, data e testo delle trascrizioni, guarda una pagina, la apre sulla lavagna, salva la lavagna (aggiornando la pagina da cui viene), rinomina, esporta nella cartella dove esporti di solito (senza mai sovrascrivere), sposta nel cestino e riprende. Per il cestino aspetta sempre il tuo sì nella chat |
 | Server MCP | Altri server MCP (stdio) in `ai.toml`, come in Claude Desktop o DSH: `[[mcp]]` con `name`, `command`, `args`, `env` (valori come le chiavi: `env:`, `keychain:`, `dsh:`), `enabled`, `timeout`. I loro strumenti arrivano alla chat come `nome__strumento` |
@@ -257,13 +250,6 @@ chat_width = 0.55        # larghezza della chat (frazione della finestra)
 paper = bianco           # bianco | righe | righe10 | elem1 | elem2 | elem3 | quadretti5 | quadretti5m | quadretti4
                          # quadretti10 | millimetrata | cartesiano | puntinato | isometrica | pentagramma | cornell
 paper_margin = 1         # margini rossi a sinistra e a destra (solo fogli a righe)
-beautify = 0             # bella scrittura: 0 spenta | 1 leggera | 2 media | 3 forte (solo come si vede e si esporta)
-perfect_shapes = 1       # linee, frecce e cerchi fatti a mano: perfetti (solo come si vedono)
-ai_hand = pulita         # come scrive l'AI sul foglio: pulita | mano | naturale
-rewrite_show = 1         # riscrittura in bella: le righe lette dall'AI si vedono in bella
-rewrite_live = 0         # 1 = la riscrittura si fa da sola alla pausa (oltre che col pulsante)
-live_check = 0           # controllo mentre scrivi (scheda AI)
-live_check_pause = 4.0   # dopo quanti secondi senza scrivere parte il controllo
 save_dir =               # cartella proposta da «Salva con nome» (l'ultima scelta; vuoto = exports/)
 ```
 
@@ -344,10 +330,6 @@ src/mdconv.rs     gli appunti in LaTeX e Typst (e in testo semplice per i PDF ri
 src/video.rs      il video MP4 della pagina che si riscrive: AVFoundation (macOS, con src/swift/video_mp4.swift), Media Foundation (Windows), ffmpeg o OpenH264 di Cisco (Linux)
 src/voice.rs      la voce nella chat: il microfono (cpal) e chi trascrive, Whisper sul computer (whisper.cpp) o un servizio in rete (src/ui/voice_ui.rs: il pulsante e il tasto)
 src/speech.rs     le risposte lette ad alta voce: voci del sistema (say, SAPI, espeak-ng) o un servizio in rete
-src/beautify.rs   la bella scrittura: righe dritte, parole regolari, tratti lisciati (src/ui/nice.rs: sulla lavagna mentre scrivi)
-src/rewrite.rs    la riscrittura in bella: l'AI legge le righe, si ricordano, si disegnano al posto della scrittura (src/ui/rewrite_ui.rs: pulsante e pausa)
-src/mathhand.rs   testo e formule LaTeX scritti a mano e impaginati: frazioni, esponenti, radici, sistemi, matrici, parentesi alte
-src/ui/live_check.rs  il controllo mentre scrivi: dopo una pausa la chat guarda le righe nuove
 src/ui/sysdlg.rs  le finestre del sistema (rfd; su Linux GTK nel thread della finestra, come la chat)
 src/figures.rs    figure della trascrizione ridisegnate dai tratti veri della penna
 src/update.rs     controllo degli aggiornamenti (ultima release su GitHub)

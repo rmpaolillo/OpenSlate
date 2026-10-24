@@ -2201,15 +2201,6 @@ pub fn transcribe(png: Arc<Vec<u8>>) -> Result<Reply> {
     Ok(r)
 }
 
-/// Fa leggere un'immagine con una domanda precisa (la riscrittura in bella
-/// delle righe): gli agenti che leggono i fogli, sezione [ocr].
-pub fn read_image(png: Arc<Vec<u8>>, prompt: &str) -> Result<Reply> {
-    let mut cfg = AiConfig::load()?;
-    cfg.providers = cfg.ocr_chain().map_err(|e| anyhow!("{e}"))?;
-    let msgs = vec![Msg::new("user", prompt).with_image(png)];
-    complete(&cfg, Task::Ocr, &msgs)
-}
-
 /// Stato dei provider (per `OpenSlate ai` e la pagina della chat).
 pub fn describe(cfg: &AiConfig) -> Vec<(String, String)> {
     cfg.providers

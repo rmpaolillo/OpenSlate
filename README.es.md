@@ -53,10 +53,7 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
 - **La IA que tú elijas**: modelos locales (LM Studio, Ollama) o proveedores en la nube; las claves de API nunca se guardan
   en texto plano.
 - **Habla con el chat.** Dicta con el micrófono: Whisper transcribe en tu ordenador, sin conexión.
-- **El tutor te responde en voz alta** con las voces del sistema y, si quieres, te revisa mientras
-  escribes: en cuanto haces una pausa marca los errores en la hoja.
-- **Letra bonita**, si la quieres: renglones rectos, trazos suaves y palabras regulares en pantalla
-  y en las exportaciones; tus trazos reales no cambian.
+- **El tutor te responde en voz alta** con las voces del sistema.
 - **Libre y de código abierto**, en nueve idiomas, para macOS (plataforma principal), Linux y Windows.
 
 ## Funciones
@@ -127,32 +124,6 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   Accesibilidad → Contenido leído), las voces de Windows, `espeak-ng` en Linux; o un servicio en
   línea que hable `/audio/speech` (OpenAI…), en `ai.toml` (`[speech]`). Lee en el idioma de la
   respuesta.
-- **Revisión al escribir.** Pestaña IA → «Revisión al escribir»: cuando dejas de escribir unos
-  segundos (de 3 a 10, en el menú del botón) la IA mira solo las líneas nuevas. Si todo está bien no
-  dice nada (en el chat, una línea pequeña «todo correcto»); si encuentra un error lo rodea o lo
-  subraya en rojo en la hoja, escribe la corrección si hace falta y lo explica en una línea, también
-  en voz alta si la voz está activa. Sus marcas son tinta que se deshace desde el chat; tus líneas
-  no se revisan dos veces.
-- **Letra bonita.** Inicio → «Letra bonita» (Apagada, Ligera, Media, Fuerte): endereza los
-  renglones, suaviza los trazos, pone las palabras sobre la línea e iguala altura, inclinación y
-  espacios, en tiempo real mientras escribes (la palabra nueva se asienta al levantar el lápiz).
-  Solo cambia cómo se ve y se exporta la página (pizarra, archivo, PDF/PNG/SVG…): los trazos que
-  escribiste quedan como estaban, la IA lee esos, y al apagarla vuelven. Nunca en documentos ni
-  firmas; los números y las fórmulas no se tocan.
-- **Formas perfectas y la letra de la IA.** En el menú de «Letra bonita»: **Líneas, flechas y
-  círculos perfectos** (activado por defecto) endereza las líneas, hace simétricas las puntas de
-  flecha y redondos los círculos y elipses dibujados a mano, también los de la IA; la escritura no
-  se toca y tus trazos reales se conservan. **Cómo escribe la IA en la hoja**: imprenta limpia (por
-  defecto), a mano (las mismas letras con las irregularidades de la mano) o letra natural (una
-  fuente manuscrita real, Kalam, reducida a líneas simples para que siga siendo trazo de lápiz).
-- **Reescribir en limpio.** Inicio → «Reescribir en limpio»: la IA lee lo que escribiste, línea por
-  línea y fórmulas incluidas, y la página lo muestra con una letra clara y la matemática compuesta
-  como en un cuaderno ordenado: fracciones en columna, exponentes y subíndices pequeños, raíces con
-  su signo, la llave de los sistemas, paréntesis tan altos como su contenido, letras griegas,
-  sumatorias e integrales. Con el botón para toda la página, o sola en cada pausa («También mientras
-  escribo»). Solo cambia lo que se ve y se exporta: tus trazos se conservan (la IA lee esos), mantén
-  pulsada la **O** para verlos, y una línea en la que vuelves a escribir se vuelve a leer. Lee el
-  agente de «Lectura de páginas (OCR)» en `ai.toml`.
 - **El chat escribe en la pizarra.** Pídele «revisa mis sumas y marca los errores»,
   «subraya los plazos» o «escribe el resultado junto a la línea 2»: lee la hoja de la pizarra línea
   a línea y palabra a palabra, y después resalta, subraya, rodea con un círculo, tacha, dibuja recuadros,
@@ -416,8 +387,6 @@ src/formats.rs, src/mdconv.rs                             export formats: search
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             respuestas en voz alta: voces del sistema (say, SAPI, espeak-ng) o un servicio en línea
-src/beautify.rs, src/ui/nice.rs                           letra bonita: renglones rectos y palabras regulares en pantalla y al exportar, originales intactos
-src/ui/live_check.rs                                      revisión al escribir: tras una pausa el chat mira las líneas nuevas
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

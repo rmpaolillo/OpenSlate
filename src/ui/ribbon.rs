@@ -145,83 +145,6 @@ impl App {
                     actions.push(Action::ToggleMargin);
                 }
             });
-            let lv = self.settings.beautify;
-            let r = big_ex(
-                ui,
-                ic::MAGIC_WAND,
-                "Bella\nscrittura",
-                "Righe dritte, tratti lisci, parole regolari: solo come si vede ed esporta, i tratti veri restano (mai su documenti e firme)",
-                !doc,
-                lv > 0,
-                true,
-            );
-            egui::Popup::menu(&r).show(|ui| {
-                ui.set_min_width(250.0);
-                let levels = [
-                    (0u8, "Spenta", "La scrittura com'è"),
-                    (1, "Leggera", "Tratti lisci e righe quasi dritte"),
-                    (2, "Media", "Righe dritte, parole sulla riga, altezze simili"),
-                    (3, "Forte", "Come la media, più decisa (anche spazi e inclinazione)"),
-                ];
-                for (l, label, tip) in levels {
-                    let icon = if l == lv { ic::RADIO_BUTTON } else { ic::CIRCLE };
-                    if menu_item(ui, true, icon, label, "") {
-                        actions.push(Action::Beautify(l));
-                    }
-                    let t = Tokens::get(ui.ctx());
-                    ui.horizontal(|ui| {
-                        ui.add_space(26.0);
-                        ui.label(egui::RichText::new(i18n::tr(tip).into_owned()).font(regular(11.0)).color(t.text_dim));
-                    });
-                }
-                ui.separator();
-                let shapes = self.settings.perfect_shapes;
-                if menu_item(ui, true, check_icon(shapes), "Linee, frecce e cerchi perfetti", "") {
-                    actions.push(Action::PerfectShapes(!shapes));
-                }
-                ui.separator();
-                ui.add_space(2.0);
-                ui.label(egui::RichText::new(i18n::tr("Come scrive l'AI sul foglio").into_owned()).font(medium(11.0)).color(Tokens::get(ui.ctx()).text_dim));
-                let hand = self.settings.ai_hand;
-                for (m, label) in [(0u8, "Stampatello pulito"), (1, "A mano (con le irregolarità della mano)"), (2, "Scrittura naturale")] {
-                    let icon = if m == hand { ic::RADIO_BUTTON } else { ic::CIRCLE };
-                    if menu_item(ui, true, icon, label, "") {
-                        actions.push(Action::AiHand(m));
-                    }
-                }
-            });
-            let rw_on = self.settings.rewrite_show;
-            let r = big_ex(
-                ui,
-                ic::SCRIBBLE_LOOP,
-                "Riscrivi\nin bella",
-                "L'AI legge quello che hai scritto, formule comprese, e lo mostra in una scrittura chiara con la matematica impaginata (frazioni, esponenti, sistemi). La tua scrittura resta: tieni premuto O per vederla",
-                !doc,
-                rw_on && self.settings.rewrite_live,
-                true,
-            );
-            egui::Popup::menu(&r).show(|ui| {
-                ui.set_min_width(270.0);
-                if menu_item(ui, true, ic::SCRIBBLE_LOOP, "Riscrivi la pagina adesso", "") {
-                    actions.push(Action::Rewrite(false));
-                }
-                if menu_item(ui, true, ic::ARROWS_CLOCKWISE, "Rileggi tutte le righe", "") {
-                    actions.push(Action::Rewrite(true));
-                }
-                ui.separator();
-                let live = self.settings.rewrite_live;
-                if menu_item(ui, true, check_icon(live), "Anche mentre scrivo (alla pausa)", "") {
-                    actions.push(Action::RewriteLive(!live));
-                }
-                if menu_item(ui, true, check_icon(rw_on), "Mostra le righe in bella", "") {
-                    actions.push(Action::RewriteShow(!rw_on));
-                }
-                let t = Tokens::get(ui.ctx());
-                ui.horizontal(|ui| {
-                    ui.add_space(26.0);
-                    ui.label(egui::RichText::new(i18n::tr("Tieni premuto O per vedere la tua scrittura").into_owned()).font(regular(11.0)).color(t.text_dim));
-                });
-            });
             if big_ex(
                 ui,
                 ic::FLOPPY_DISK,
@@ -406,30 +329,6 @@ impl App {
             if big(ui, ic::CHECK_CIRCLE, "Controlla\nil foglio", "L'AI rilegge quello che hai scritto e segnala errori (ortografia, dati, calcoli, ragionamento) e punti poco chiari, con la correzione").clicked() {
                 actions.push(Action::ChatCheck);
             }
-            let on = self.settings.live_check;
-            let r = big_ex(
-                ui,
-                ic::SEAL_CHECK,
-                "Controllo\nmentre scrivi",
-                "Quando smetti di scrivere per qualche secondo l'AI guarda le righe nuove: se trova un errore lo segna sul foglio e lo spiega in una riga, altrimenti tace",
-                self.docui.doc.is_none(),
-                on,
-                true,
-            );
-            egui::Popup::menu(&r).show(|ui| {
-                ui.set_min_width(240.0);
-                if menu_item(ui, true, check_icon(on), "Controllo acceso", "") {
-                    actions.push(Action::LiveCheck(!on));
-                }
-                ui.separator();
-                let cur = self.settings.live_check_pause;
-                for (secs, label) in [(3.0f32, "Dopo 3 secondi di pausa"), (4.0, "Dopo 4 secondi di pausa"), (6.0, "Dopo 6 secondi di pausa"), (10.0, "Dopo 10 secondi di pausa")] {
-                    let icon = if (cur - secs).abs() < 0.05 { ic::RADIO_BUTTON } else { ic::CIRCLE };
-                    if menu_item(ui, true, icon, label, "") {
-                        actions.push(Action::LiveCheckPause(secs));
-                    }
-                }
-            });
             let doc_open = self.docui.doc.is_some();
             if big(
                 ui,

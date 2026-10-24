@@ -14,36 +14,6 @@ use crate::stroke::Rgb;
 use anyhow::{bail, Context, Result};
 use serde_json::Value;
 
-/// Come scrive l'AI sul foglio (`ai_hand` in settings.conf): 0 pulita
-/// (i caratteri di Hershey, di serie), 1 a mano (gli stessi, con le
-/// irregolarità della mano), 2 naturale (un carattere a mano vero, Kalam).
-static HAND: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
-
-pub fn set_hand(mode: u8) {
-    HAND.store(mode.min(2), std::sync::atomic::Ordering::Relaxed);
-}
-
-pub fn hand() -> u8 {
-    HAND.load(std::sync::atomic::Ordering::Relaxed)
-}
-
-/// Il nome del modo (per settings.conf).
-pub fn hand_code(mode: u8) -> &'static str {
-    match mode {
-        1 => "mano",
-        2 => "naturale",
-        _ => "pulita",
-    }
-}
-
-pub fn hand_parse(s: &str) -> u8 {
-    match s.trim() {
-        "mano" | "1" => 1,
-        "naturale" | "2" => 2,
-        _ => 0,
-    }
-}
-
 /// Un tratto da aggiungere.
 #[derive(Clone, Debug)]
 pub struct Mark {
@@ -320,25 +290,12 @@ pub fn build(c: &Ctx, m: &Value, n: usize) -> Result<(Vec<Mark>, String)> {
             // a mano: la matematica come sul quaderno, non il LaTeX
             let text_owned = to_hand(raw);
             let text = text_owned.as_str();
-            let mode = hand();
-            // lo stile chiesto dal modello; se non dice niente, quello scelto nelle impostazioni
-            let style = match m["stile"].as_str() {
-                Some(st) => Style::parse(st),
-                None if mode == 2 => Style::Naturale,
-                None => Style::Stampatello,
-            };
+            let style = Style::parse(m["stile"].as_str().unwrap_or("stampatello"));
             // di serie alto come la scrittura del foglio
             let cap = m["altezza"].as_f64().map(|v| v as f32 / if v > 1.0 { 1000.0 } else { 1.0 }).unwrap_or(h * 0.9).clamp(0.01, 0.12);
             let dove = m["dove"].as_str().unwrap_or("destra").trim().to_lowercase();
             let given = !m["riquadro"].is_null() && m["su"].is_null();
-            let nat = mode >= 1;
-            let lay = |origin: (f32, f32), max_w: f32, right: bool, cap: f32| {
-                if nat {
-                    handwrite::layout_natural(text, style, cap, c.aspect, origin, max_w.max(0.08), right)
-                } else {
-                    handwrite::layout(text, style, cap, c.aspect, origin, max_w.max(0.08), right)
-                }
-            };
+            let lay = |origin: (f32, f32), max_w: f32, right: bool, cap: f32| handwrite::layout(text, style, cap, c.aspect, origin, max_w.max(0.08), right);
             let mut note = String::new();
             let laid = match at {
                 // dentro un riquadro: va a capo, e rimpicciolisce finché ci sta

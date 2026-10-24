@@ -14,12 +14,9 @@ mod chrome;
 mod doc_view;
 mod embed;
 mod library_view;
-mod live_check;
 mod options;
-mod nice;
 mod paper;
 mod quit;
-mod rewrite_ui;
 mod savedlg;
 mod sysdlg;
 mod ribbon;
@@ -74,10 +71,6 @@ pub fn run_app(
     }
     let settings = Settings::load();
     crate::i18n::set_lang(crate::i18n::resolve(&settings.ui_lang));
-    crate::beautify::set_level(settings.beautify);
-    crate::beautify::set_shapes(settings.perfect_shapes);
-    crate::boardmarks::set_hand(settings.ai_hand);
-    crate::rewrite::set_showing(settings.rewrite_show);
     let thumb_size = settings.thumb_size;
     let hub = Hub::new(Scene::new(&settings));
     // la chat AI può mettere grafici sul foglio della lavagna
@@ -214,9 +207,6 @@ pub fn run_app(
         lui: library_view::LibUi::new(thumb_size),
         chat_lib: Vec::new(),
         board_zoom: ZoomView::default(),
-        nice: nice::NiceBoard::new(),
-        live: live_check::LiveCheck::new(),
-        rw: rewrite_ui::RewriteUi::new(),
         docui: doc_view::DocUi::new(),
     };
     if web_now || app.settings.web_auto {
@@ -293,35 +283,6 @@ async fn demo_strokes(hub: Arc<Hub>) {
                 .collect();
             draw(&hub, pts, [20, 40, 140]);
             tokio::time::sleep(Duration::from_millis(500)).await;
-        }
-        return;
-    }
-    // WACOM_DEMO_SCRITTURA=<id di una pagina dell'archivio>: la riscrive
-    // tratto per tratto, come dal pad (prova della bella scrittura)
-    if let Ok(id) = std::env::var("WACOM_DEMO_SCRITTURA") {
-        tokio::time::sleep(Duration::from_secs(4)).await;
-        let Some(d) = crate::library::Library::open().get(&id).map(|e| e.drawing.clone()) else { return };
-        hub.edit(|s| {
-            s.drawing.width = d.width;
-            s.drawing.height = d.height;
-        });
-        let mut n = 0usize;
-        for st in d.strokes.iter().filter(|s| !s.highlight && !s.points.is_empty()) {
-            hub.lock().pen.color = st.color;
-            for (i, p) in st.points.iter().enumerate() {
-                hub.pen_event(ev(p.x, p.y, if i == 0 { PenPhase::Down } else { PenPhase::Move }));
-                tokio::time::sleep(Duration::from_millis(6)).await;
-            }
-            let p = st.points.last().unwrap();
-            hub.pen_event(ev(p.x, p.y, PenPhase::Up));
-            tokio::time::sleep(Duration::from_millis(120)).await;
-            // WACOM_DEMO_PAUSA=<ogni quanti tratti>: una pausa, come chi rilegge
-            if let Some(k) = std::env::var("WACOM_DEMO_PAUSA").ok().and_then(|v| v.parse::<usize>().ok()) {
-                n += 1;
-                if k > 0 && n % k == 0 {
-                    tokio::time::sleep(Duration::from_secs(8)).await;
-                }
-            }
         }
         return;
     }
@@ -474,12 +435,6 @@ struct App {
     chat_lib: Vec<(crate::libagent::Req, crate::libagent::Reply)>,
     /// Zoom della lavagna.
     board_zoom: ZoomView,
-    /// La lavagna in bella scrittura (vedi `nice`).
-    nice: nice::NiceBoard,
-    /// Il controllo mentre scrivi.
-    live: live_check::LiveCheck,
-    /// La riscrittura in bella.
-    rw: rewrite_ui::RewriteUi,
     /// Documenti importati e firma.
     docui: doc_view::DocUi,
 }
@@ -571,20 +526,6 @@ enum Action {
     /// Rigatura del foglio.
     Paper(paper::Paper),
     ToggleMargin,
-    /// Bella scrittura: 0 spenta, 1 leggera, 2 media, 3 forte.
-    Beautify(u8),
-    /// Linee, frecce e cerchi perfetti (acceso/spento).
-    PerfectShapes(bool),
-    /// Come scrive l'AI sul foglio: 0 pulita, 1 a mano, 2 naturale.
-    AiHand(u8),
-    /// Riscrivi in bella le righe della lavagna (`true`: tutte di nuovo).
-    Rewrite(bool),
-    /// Riscrittura in bella: si vede / si fa da sola alla pausa.
-    RewriteShow(bool),
-    RewriteLive(bool),
-    /// Il controllo mentre scrivi: acceso/spento, e dopo quanti secondi.
-    LiveCheck(bool),
-    LiveCheckPause(f32),
     /// Apre la finestra degli appunti.
     Appunti,
     /// Apre le impostazioni degli agenti AI.
@@ -995,17 +936,9 @@ impl App {
         ("lavagna".into(), self.hub.lock().page())
     }
 
-    /// La lavagna come si vede (bella scrittura), per esportarla o copiarla.
-    fn board_page_nice(&self) -> (String, Page) {
-        if self.docui.doc.is_some() || self.docui.capture.is_some() {
-            return self.board_page();
-        }
-        ("lavagna".into(), self.hub.lock().page_nice())
-    }
-
     /// La lavagna da esportare, con la sua trascrizione se c'è.
     fn board_item(&self) -> crate::formats::Item {
-        let (title, page) = self.board_page_nice();
+        let (title, page) = self.board_page();
         let note = self.board_note().map(|n| std::path::Path::new(export::EXPORT_DIR).join(n));
         crate::formats::Item { title, page, note }
     }
@@ -1973,76 +1906,6 @@ impl App {
                 self.settings.paper_margin = !self.settings.paper_margin;
                 self.settings.save();
             }
-            Action::LiveCheck(on) => self.set_live_check(on),
-            Action::LiveCheckPause(secs) => {
-                self.settings.live_check_pause = secs;
-                self.settings.save();
-                if !self.settings.live_check {
-                    self.set_live_check(true);
-                }
-            }
-            Action::PerfectShapes(on) => {
-                self.settings.perfect_shapes = on;
-                self.settings.save();
-                crate::beautify::set_shapes(on);
-                self.nice.reset();
-                self.lui.viewer_nice = None;
-                self.lui.thumbs.clear();
-                self.status = if on {
-                    "Linee, frecce e cerchi perfetti: i tratti veri restano, spegnendo tornano come li hai disegnati.".into()
-                } else {
-                    "Linee, frecce e cerchi come li hai disegnati.".into()
-                };
-            }
-            Action::Rewrite(all) => self.rewrite_now(all),
-            Action::RewriteShow(on) => {
-                self.settings.rewrite_show = on;
-                self.settings.save();
-                crate::rewrite::set_showing(on);
-                self.rewrite_refresh();
-                self.status = if on { "Righe lette dall'AI riscritte in bella." } else { "Si vede la tua scrittura com'è." }.into();
-            }
-            Action::RewriteLive(on) => {
-                self.settings.rewrite_live = on;
-                if on {
-                    self.settings.rewrite_show = true;
-                    crate::rewrite::set_showing(true);
-                    self.rewrite_refresh();
-                }
-                self.settings.save();
-                self.status = if on {
-                    "Riscrittura in bella mentre scrivi: dopo qualche secondo di pausa l'AI legge le righe nuove."
-                } else {
-                    "Riscrittura in bella solo col pulsante."
-                }
-                .into();
-            }
-            Action::AiHand(m) => {
-                self.settings.ai_hand = m.min(2);
-                self.settings.save();
-                crate::boardmarks::set_hand(m);
-                self.status = match m {
-                    1 => "L'AI scrive sul foglio a mano, con le irregolarità della mano.",
-                    2 => "L'AI scrive sul foglio con una scrittura a mano naturale.",
-                    _ => "L'AI scrive sul foglio in stampatello pulito.",
-                }
-                .into();
-            }
-            Action::Beautify(l) => {
-                let l = l.min(3);
-                self.settings.beautify = l;
-                self.settings.save();
-                crate::beautify::set_level(l);
-                // si ridisegnano lavagna, visore e anteprime
-                self.nice.reset();
-                self.lui.viewer_nice = None;
-                self.lui.thumbs.clear();
-                self.status = if l == 0 {
-                    "Bella scrittura spenta: la scrittura si vede com'è.".into()
-                } else {
-                    i18n::tf(format!("Bella scrittura {}: i tratti veri restano, spegnendola tornano come li hai scritti.", i18n::tr(crate::beautify::level_name(l))))
-                };
-            }
             Action::ShowBoard => {
                 self.center = workspace::Center::Board;
                 if self.tab == chrome::Tab::Appunto {
@@ -2061,7 +1924,7 @@ impl App {
                 crate::platform::open(savedlg::start_dir(&self.settings));
             }
             Action::CopyImage => {
-                let (_, p) = self.board_page_nice();
+                let (_, p) = self.board_page();
                 self.copy_page(p);
             }
             Action::Paste => self.paste(),
@@ -2321,13 +2184,7 @@ impl App {
                 let scene = self.hub.lock();
                 let painter = ui.painter_at(rect);
                 let paper = Some((paper::Paper::from_code(&self.settings.paper), self.settings.paper_margin));
-                // la bella scrittura: solo sul foglio (non sui documenti né sulla firma da registrare)
-                // tenendo premuto O: la tua scrittura com'è (senza bella scrittura né riscrittura)
-                let original = ctx.input(|i| i.key_down(egui::Key::O) && i.modifiers.is_none()) && !ctx.egui_wants_keyboard_input();
-                let plain = original || scene.bg.as_ref().is_some_and(|b| !b.is_chart()) || self.docui.capture.is_some();
-                let pen_down = scene.active_index().is_some() || scene.mouse_highlighting();
-                let shown = if plain { std::borrow::Cow::Borrowed(&scene.drawing) } else { self.nice.get(&scene.drawing, scene.view, pen_down, ctx) };
-                let page = paint_page(&painter, rect, &shown, scene.view, bgtex, &mut self.board_zoom, paper);
+                let page = paint_page(&painter, rect, &scene.drawing, scene.view, bgtex, &mut self.board_zoom, paper);
                 self.docui.last_page = page;
                 self.docui.last_view = rect;
                 if rulers {
@@ -2405,8 +2262,6 @@ impl eframe::App for App {
         self.embeds.set_wake(ctx);
         self.drain_events();
         self.voice_tick(ctx);
-        self.live_check_tick(ctx);
-        self.rewrite_tick(ctx);
         self.chat_lib_requests(ctx);
         self.doc_tick(ctx);
         self.sync_chat_note();

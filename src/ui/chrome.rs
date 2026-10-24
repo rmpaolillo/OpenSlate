@@ -857,16 +857,6 @@ impl App {
             let glyph = if p.ruled() || p == super::paper::Paper::Bianco { ic::NOTEBOOK } else { ic::GRID_FOUR };
             v.push(c(glyph, &format!("Foglio: {}", i18n::tr(&p.label())), "", Action::Paper(p)));
         }
-        v.push(c(ic::SEAL_CHECK, if self.settings.live_check { "Spegni il controllo mentre scrivi" } else { "Accendi il controllo mentre scrivi" }, "", Action::LiveCheck(!self.settings.live_check)));
-        v.push(c(ic::MAGIC_WAND, if self.settings.perfect_shapes { "Linee, frecce e cerchi come disegnati" } else { "Linee, frecce e cerchi perfetti" }, "", Action::PerfectShapes(!self.settings.perfect_shapes)));
-        for (m, label) in [(0u8, "L'AI scrive in stampatello pulito"), (1, "L'AI scrive a mano"), (2, "L'AI scrive con una scrittura naturale")] {
-            v.push(c(ic::PEN_NIB, label, "", Action::AiHand(m)));
-        }
-        v.push(c(ic::SCRIBBLE_LOOP, "Riscrivi la pagina in bella", "", Action::Rewrite(false)));
-        v.push(c(ic::SCRIBBLE_LOOP, if self.settings.rewrite_live { "Riscrittura in bella: solo col pulsante" } else { "Riscrittura in bella anche mentre scrivo" }, "", Action::RewriteLive(!self.settings.rewrite_live)));
-        for l in 0..=3u8 {
-            v.push(c(ic::MAGIC_WAND, &format!("Bella scrittura: {}", i18n::tr(crate::beautify::level_name(l))), "", Action::Beautify(l)));
-        }
         if doc {
             v.push(c(ic::FILE_PDF, "Salva il documento firmato (nello stesso formato)", &cmd_key("Shift+S"), Action::Doc(DocAction::SaveSigned)));
             v.push(c(ic::X, "Chiudi il documento", &cmd_key("W"), Action::Doc(DocAction::Close)));

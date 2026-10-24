@@ -21,7 +21,6 @@ codecs/
 signatures/
 captures/
 ai_marks.txt
-rewrite_cache.json
 *.log
 /wacom-export-*.svg
 .env
@@ -40,3 +39,4 @@ updates/
 .openslate-update-*
 /build
 missing.txt
+rewrite_cache.json

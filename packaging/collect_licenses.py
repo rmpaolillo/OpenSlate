@@ -111,7 +111,6 @@ def main():
         ("marked (src/web/vendor)", "src/web/vendor/LICENSE-marked.md"),
         ("DOMPurify (src/web/vendor)", "src/web/vendor/LICENSE-dompurify"),
         ("Hershey fonts (src/handwrite)", "src/handwrite/LICENSE-hershey.txt"),
-        ("Kalam, single-line version (src/handwrite/naturale.txt)", "src/handwrite/LICENSE-kalam.txt"),
         ("OpenSlate Corsivo / Stampatello (assets/fonts)", "assets/fonts/LICENSE-OpenSlateHand.txt"),
         ("New Computer Modern, formula fonts (assets/fonts/typst)", "assets/fonts/typst/NOTICE-typst-assets.txt"),
     ]

@@ -133,11 +133,6 @@
   @keyframes shim { to { background-position: -200% 0; } }
   .spin { width: 10px; height: 10px; border: 2px solid var(--text-dim); border-top-color: transparent; border-radius: 50%; display: inline-block; animation: rot .8s linear infinite; flex-shrink: 0; }
   @keyframes rot { to { transform: rotate(360deg); } }
-  /* il controllo mentre scrivi: una riga piccola per la richiesta e per «tutto giusto» */
-  .msg.live { margin: 2px 0 6px; }
-  .msg.live .line { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); }
-  .msg.live .line .i { width: 13px; height: 13px; flex-shrink: 0; }
-  .msg.live.ok .line { color: var(--accent-text); }
   .msg.summary .body { background: var(--sum); border: 1px solid var(--sum-line); border-radius: 8px; padding: 6px 12px; font-size: 12.5px; }
   .msg.summary summary { cursor: pointer; color: var(--accent-text); }
   .cursor::after { content: "▍"; color: var(--accent); animation: blink 1s steps(2) infinite; }
@@ -711,11 +706,6 @@ function emptyEl() {
 }
 // «Controlla il foglio»: l'AI rilegge quello che è scritto, qualunque cosa sia
 const CHECK = T("Rileggi con attenzione quello che ho scritto nella pagina allegata e controllalo. Segnala con precisione gli errori (ortografia e grammatica, nomi, date e dati, calcoli, ragionamento) e i punti poco chiari: per ciascuno dimmi dov'è, perché non va e come correggerlo. Se è tutto a posto dimmelo in breve. Non riscrivere tutto se non serve.");
-// Il controllo mentre scrivi (l'app lo chiede dopo una pausa della penna)
-const LIVE_CHECK = "Controllo mentre scrivo: sul foglio della lavagna ho appena scritto {} (i nomi sono quelli di lavagna_leggi). Controlla solo quella parte: il resto l'hai già visto. Se è tutto giusto rispondi soltanto «OK», nient'altro. Se c'è un errore (ortografia, grammatica, calcolo, dato, ragionamento) segnalo sul foglio con lavagna_annota, in rosso: cerchia o sottolinea la parola sbagliata e, se serve, scrivi accanto la correzione, corta. Poi spiegalo in una riga sola, da tutor, senza elenchi.";
-const liveOk = (t) => /^\s*\**\s*(ok|okay|tutto (giusto|ok|a posto)|✓)\s*[.!]?\s*\**\s*$/i.test(t || "");
-// l'ultima domanda era dettata: anche le correzioni del controllo tornano a voce
-let talkMode = false;
 const toolIcon = (label) => /cerco|ricerca/i.test(label) ? "search" : /pagina|leggo la/i.test(label) ? "globe" : /appunto/i.test(label) ? "pen" : /iva/i.test(label) ? "check" : "tool";
 // Righe compatte: ragionamento, agenti saltati, strumenti (clic per i dettagli).
 // Le righe aperte restano aperte anche mentre il modello scrive (la riga si
@@ -775,14 +765,6 @@ function msgEl(m, i) {
     d.innerHTML = "<div class='body'><details><summary></summary><div class='md'></div></details></div>";
     d.querySelector("summary").textContent = "Conversazione compattata: riassunto di " + (m.n || "alcuni") + " messaggi" + (m.at ? " (" + m.at + ")" : "") + (m.by ? " · " + m.by : "");
     d.querySelector(".md").innerHTML = renderMd(m.content);
-    return d;
-  }
-  // il controllo mentre scrivi: la domanda e l'«OK» in una riga piccola
-  if (m.live && (m.role === "user" || liveOk(m.content))) {
-    d.className = "msg live" + (m.role === "user" ? "" : " ok");
-    d.innerHTML = "<div class='line'>" + ic(m.role === "user" ? "pen" : "check") + "<span></span></div>";
-    d.querySelector("span").textContent = m.role === "user" ? T("Controllo mentre scrivi: {}", m.live) : T("{}: tutto giusto", m.live);
-    if (m.role !== "user" && m.by) d.title = m.by;
     return d;
   }
   d.className = "msg " + m.role;
@@ -905,10 +887,10 @@ function refreshPage() {
     setTimeout(done, 10000);
   });
 }
-async function send(text, images, live) {
+async function send(text, images) {
   // la domanda è stata dettata: la risposta può tornare a voce
-  const dictated = live ? talkMode : micDictated;
-  if (!live) { micDictated = false; talkMode = dictated; }
+  const dictated = micDictated;
+  micDictated = false;
   busy = busy || new AbortController(); // intanto un altro Invio va in coda
   drawSend(); // il tasto Stop c'è già mentre si prende il foglio
   await refreshPage();
@@ -916,14 +898,11 @@ async function send(text, images, live) {
   if (busy.signal.aborted) { busy = null; drawSend(); if (!q.value.trim()) { q.value = text; grow(); } if (images && images.length && !pendingImgs.length) { pendingImgs = images; drawPasted(); } return; }
   const userMsg = { role: "user", content: text, at: Date.now() };
   if (images && images.length) userMsg.images = images;
-  if (live) userMsg.live = live;
   cur.messages.push(userMsg);
-  if (cur.title === "Nuova chat" && live) { cur.title = T("Controllo mentre scrivi"); drawBar(); }
   if (cur.title === "Nuova chat") { cur.title = (text || T("Immagine")).replace(/\s+/g, " ").slice(0, 60) + (text.length > 60 ? "…" : ""); drawBar(); }
   $("empty")?.remove();
   log.appendChild(msgEl(userMsg, cur.messages.length - 1));
   const m = { role: "assistant", content: "", think: "", by: "", tools: [], notes: [], at: Date.now() };
-  if (live) m.live = live;
   const d = document.createElement("div");
   d.className = "msg assistant";
   d.innerHTML = "<div class='who'><span class='av'>" + ic("sparkle") + "</span><span class='name'>…</span></div><div class='steps-slot'></div><div class='body cursor'></div>";
@@ -1001,7 +980,7 @@ async function send(text, images, live) {
       if (error) { const e = document.createElement("div"); e.className = "err"; e.textContent = "⚠ " + error; el.appendChild(e); }
       d.replaceWith(el);
       // il tutor che parla: l'app legge da sola se [speech] auto lo vuole
-      if (!error && window.ipc && !(live && liveOk(m.content))) toApp({ cmd: "speak", id: String(m.at), text: m.content, auto: true, dictated });
+      if (!error && window.ipc) toApp({ cmd: "speak", id: String(m.at), text: m.content, auto: true, dictated });
     } else {
       cur.messages.pop();
       d.remove(); log.lastElementChild?.remove();
@@ -1017,7 +996,6 @@ async function send(text, images, live) {
     markLast();
     log.scrollTop = log.scrollHeight;
     saveSoon(); drawSend(); drawMeter();
-    if (live) toApp({ cmd: "live_check", state: "done" });
     // messaggi in coda (scritti mentre l'AI rispondeva)
     if (queue.length && !error) { const next = queue.shift(); drawQueue(); setTimeout(() => send(next), 60); }
   }
@@ -1455,15 +1433,6 @@ window.wsChat = {
     if (cur && (cur.messages.length || cur.page)) await newChat(cur.project);
     await attachIncoming(false);
     q.value = CHECK; grow(); submit();
-  },
-  // il controllo mentre scrivi: le righe nuove (nomi di lavagna_leggi)
-  liveCheck: (o) => {
-    if (busy || !cur || micState !== "idle") { toApp({ cmd: "live_check", state: "busy" }); return; }
-    const lines = (o && o.lines) || [];
-    if (!lines.length) return;
-    const what = lines.length === 1 ? T("la riga {}", lines[0]) : T("le righe {}", lines.join(", "));
-    toApp({ cmd: "live_check", state: "started", n: o.n || 0 });
-    send(T(LIVE_CHECK, what), [], lines.join(", "));
   },
   dropHint: (on) => document.body.classList.toggle("drophint", !!on),
   voice: onVoice,

@@ -53,8 +53,7 @@ static UNDO: Mutex<Vec<Edit>> = Mutex::new(Vec::new());
 /// L'ultima lettura del foglio: i nomi (`r2p3`) che il modello ha visto.
 static LAST: Mutex<Option<crate::boardread::Reading>> = Mutex::new(None);
 
-/// Le impronte dei tratti messi dall'AI sul foglio: il controllo mentre
-/// scrivi non li prende per scrittura nuova, e toglierli o rifarli non
+/// Le impronte dei tratti messi dall'AI sul foglio: toglierli o rifarli non
 /// chiede la conferma dell'utente. Restano anche dopo un riavvio (file
 /// `ai_marks.txt` nella cartella dei dati).
 static AI_STROKES: Mutex<Option<Vec<u64>>> = Mutex::new(None);
@@ -186,7 +185,7 @@ pub fn definitions() -> Vec<Value> {
                     [x1, y1, x2, y2] o un punto [x, y] in 0–1000. freccia e linea: «da» e «a» (nomi o punti; con solo «a» o «su» la freccia arriva lì \
                     da in alto a destra). testo: «testo», «dove» rispetto a «su» (destra di serie, sotto, sopra, sinistra) oppure «riquadro» \
                     per scriverci dentro (va a capo), «altezza» delle maiuscole in 0–1000 (di serie come la scrittura del foglio), \
-                    «stile» stampatello, corsivo o naturale (di serie quello scelto dall'utente: non metterlo se non te lo chiede). Il testo è scritto a mano come sul quaderno: NON LaTeX né Markdown \
+                    «stile» stampatello (di serie) o corsivo. Il testo è scritto a mano come sul quaderno: NON LaTeX né Markdown \
                     (niente $, \\, ^, _, **): scrivi x², x₁, 1/2, √x, ⇒, →, ±, ≤, ≥, ≠, ≈, π, Δ, ✓ (il LaTeX viene comunque convertito). \
                     Righe brevi: per più righe un segno per riga, ognuno sotto il precedente; il risultato dice dove è finito ogni testo \
                     («occupa [x1, y1, x2, y2]»): il successivo va più in basso, senza toccare lo scritto. Facoltativi: «colore» (rosso di serie; l'evidenziatore usa il suo), \
@@ -207,7 +206,7 @@ pub fn definitions() -> Vec<Value> {
                                     "testo": { "type": "string" },
                                     "dove": { "type": "string", "enum": ["destra", "sotto", "sopra", "sinistra"] },
                                     "altezza": { "type": "number", "description": "Altezza delle maiuscole, 0–1000" },
-                                    "stile": { "type": "string", "enum": ["stampatello", "corsivo", "naturale"] },
+                                    "stile": { "type": "string", "enum": ["stampatello", "corsivo"] },
                                     "colore": { "type": "string", "description": "rosso, blu, verde, giallo, arancione, viola, rosa, nero, grigio o #rrggbb" },
                                     "spessore": { "type": "number" },
                                     "doppia": { "type": "boolean" }

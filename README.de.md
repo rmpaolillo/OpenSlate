@@ -53,10 +53,7 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
 - **Die KI deiner Wahl**: lokale Modelle (LM Studio, Ollama) oder Cloud-Anbieter; API-Schlüssel werden nie
   im Klartext gespeichert.
 - **Mit dem Chat sprechen.** Diktieren per Mikrofon: Whisper transkribiert auf deinem Computer, offline.
-- **Der Tutor antwortet laut** mit den Stimmen des Systems und prüft dich auf Wunsch beim Schreiben:
-  bei der ersten Pause markiert er Fehler auf dem Blatt.
-- **Schöne Schrift**, wenn du willst: gerade Zeilen, glatte Striche und gleichmäßige Wörter auf dem
-  Bildschirm und im Export; deine echten Striche bleiben unverändert.
+- **Der Tutor antwortet laut** mit den Stimmen des Systems.
 - **Frei und Open Source**, in neun Sprachen, für macOS (Hauptplattform), Linux und Windows.
 
 ## Funktionen
@@ -128,32 +125,6 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   Systemeinstellungen → Bedienungshilfen → Gesprochene Inhalte), die Windows-Stimmen, `espeak-ng`
   unter Linux; oder einen Online-Dienst, der `/audio/speech` spricht (OpenAI…), in `ai.toml`
   (`[speech]`). Er liest in der Sprache der Antwort.
-- **Prüfen beim Schreiben.** Reiter KI → «Prüfen beim Schreiben»: Wenn du ein paar Sekunden nicht
-  schreibst (3 bis 10, im Menü des Knopfs), schaut die KI nur die neuen Zeilen an. Ist alles
-  richtig, schweigt sie (im Chat eine kleine Zeile «alles richtig»); findet sie einen Fehler, kreist
-  sie ihn auf dem Blatt rot ein oder unterstreicht ihn, schreibt bei Bedarf die Korrektur und
-  erklärt ihn in einer Zeile, auch laut, wenn die Stimme an ist. Ihre Zeichen sind Tinte, die sich
-  im Chat rückgängig machen lässt; deine Zeilen werden nie zweimal geprüft.
-- **Schöne Schrift.** Start → «Schöne Schrift» (Aus, Leicht, Mittel, Stark): richtet die Zeilen
-  gerade, glättet die Striche, setzt die Wörter auf die Linie und gleicht Höhe, Neigung und Abstände
-  an, live beim Schreiben (das neue Wort rückt zurecht, wenn du den Stift hebst). Es ändert nur, wie
-  die Seite aussieht und exportiert wird (Tafel, Archiv, PDF/PNG/SVG…): deine geschriebenen Striche
-  bleiben, wie sie sind, die KI liest diese, und beim Ausschalten sind sie wieder da. Nie bei
-  Dokumenten und Unterschriften; Zahlen und Formeln bleiben unberührt.
-- **Perfekte Formen und die Schrift der KI.** Im Menü «Schöne Schrift»: **Perfekte Linien, Pfeile
-  und Kreise** (standardmäßig an) macht von Hand gezeichnete Linien gerade, Pfeilspitzen symmetrisch
-  und Kreise und Ellipsen rund, auch die der KI; die Schrift bleibt unberührt, deine echten Striche
-  bleiben erhalten. **Wie die KI auf das Blatt schreibt**: saubere Druckschrift (Standard), von Hand
-  (dieselben Buchstaben mit den Unregelmäßigkeiten einer Hand) oder natürliche Handschrift (eine
-  echte Handschrift, Kalam, auf einfache Linien reduziert, damit sie Stiftstriche bleibt).
-- **Sauber neu schreiben.** Start → «Sauber neu schreiben»: Die KI liest, was du geschrieben hast,
-  Zeile für Zeile und mit Formeln, und die Seite zeigt es in klarer Handschrift mit Mathematik wie
-  in einem ordentlichen Heft: Brüche untereinander, kleine Exponenten und Indizes, Wurzeln mit ihrem
-  Zeichen, die Klammer eines Gleichungssystems, Klammern so hoch wie ihr Inhalt, griechische
-  Buchstaben, Summen und Integrale. Mit dem Knopf für die ganze Seite oder von selbst in jeder Pause
-  («Auch beim Schreiben»). Nur Anzeige und Export ändern sich: deine Striche bleiben (die KI liest
-  diese), halte **O** gedrückt, um sie zu sehen, und eine Zeile, an der du weiterschreibst, wird neu
-  gelesen. Gelesen wird mit dem Agenten von «Seiten lesen (OCR)» in `ai.toml`.
 - **Der Chat schreibt auf die Tafel.** Bitte ihn: „prüf meine Rechnungen und markier die Fehler“,
   „unterstreich die Fristen“ oder „schreib das Ergebnis neben Zeile 2“: Er liest das Tafelblatt Zeile
   für Zeile und Wort für Wort, dann markiert, unterstreicht, umkreist, streicht durch, zeichnet Kästen,
@@ -417,8 +388,6 @@ src/formats.rs, src/mdconv.rs                             export formats: search
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             Antworten vorlesen: Systemstimmen (say, SAPI, espeak-ng) oder ein Online-Dienst
-src/beautify.rs, src/ui/nice.rs                           schöne Schrift: gerade Zeilen und gleichmäßige Wörter in Anzeige und Export, Originale bleiben
-src/ui/live_check.rs                                      Prüfen beim Schreiben: nach einer Pause schaut der Chat die neuen Zeilen an
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

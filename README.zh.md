@@ -49,8 +49,7 @@ Inkspace——这块手写板所依赖的应用，于是这台硬件眼看就要
 - 导出为你需要的格式：可搜索的 PDF、手写为可编辑墨迹的 Word、轻量的 JPEG/WebP、Xournal++、重现书写过程的 GIF、SVG 动画或 MP4 视频，以及由转写生成的 LaTeX 或 Typst。
 - 自由选择 AI：本地模型（LM Studio、Ollama）或云端服务商；API 密钥从不以明文保存。
 - 和聊天说话。用麦克风听写：Whisper 在你的电脑上离线转写。
-- 导师会朗读回答。使用系统语音朗读；如果你愿意，还能在你书写时检查：一停笔就在纸上标出错误。
-- 美化书写（可选）：屏幕上和导出时行变直、笔画平滑、字词整齐；你真实的笔画不会改变。
+- 导师会朗读回答。使用系统语音朗读。
 - 免费开源，支持九种语言，适用于 macOS（主要平台）、Linux 和 Windows。
 
 ## 功能
@@ -105,10 +104,6 @@ Inkspace——这块手写板所依赖的应用，于是这台硬件眼看就要
   中选择更小的模型或在线服务（OpenAI、Groq、Mistral…）。按 Esc 取消。第一次使用时，macOS 会请求麦克风权限。
   无论应用是什么语言，它都按你说的语言转写（可在 `[voice]` 的 `language` 中固定一种语言）。
 - 会说话的导师。每条回答下方的“朗读”会把它读出来（按 Esc 停止）；如果问题是你口述的，回答会自动用语音返回。它离线使用系统语音：macOS 上的 `say`（“优化音质”或“高级”语音最自然：系统设置 → 辅助功能 → 朗读内容）、Windows 语音、Linux 上的 `espeak-ng`；也可以在 `ai.toml`（`[speech]`）中使用支持 `/audio/speech` 的在线服务（OpenAI…）。按回答的语言朗读。
-- 书写时检查。AI 选项卡 → “书写时检查”：当你停笔几秒钟（3 到 10 秒，在按钮菜单中设置），AI 只查看新写的行。全部正确就保持安静（聊天中显示一行小字“全部正确”）；发现错误就在纸上用红色圈出或划线，必要时写上更正，并用一行解释，如果开启了语音也会读出来。它的标记是可以在聊天中撤销的墨迹；你写过的行不会被重复检查。
-- 美化书写。主页 → “美化书写”（关闭、轻度、中度、强度）：在你书写时实时把行拉直、让笔画平滑、让字词落在行上，并统一高度、倾斜和间距（抬笔后新词会就位）。它只改变页面的显示和导出（画板、档案、PDF/PNG/SVG…）：你写下的笔画保持原样，AI 读取的也是原始笔画，关闭后即可恢复。绝不用于文档和签名；数字和公式保持不变。
-- 完美图形与 AI 的字迹。在“美化书写”菜单中：“完美的直线、箭头和圆”（默认开启）会把手画的直线拉直、让箭头两翼对称、让圆和椭圆变圆，AI 画的也一样；文字不会被改动，真实笔画会保留。“AI 在纸上的书写方式”：工整印刷体（默认）、手写（同样的字母加上手写的不规则）或自然手写（真正的手写字体 Kalam，简化为单线，依然是笔画）。
-- 工整重写。主页 → “工整重写”：AI 逐行读取你写的内容（包括公式），页面用清晰的手写体显示，数学像整洁的作业本一样排版：分数上下排列、指数和下标变小、根号带符号、方程组带大括号、括号与内容等高、希腊字母、求和与积分。可以用按钮重写整页，也可以在每次停顿时自动进行（“书写时也重写”）。只改变显示和导出：你的笔画会保留（AI 读取的也是它们），按住 O 即可查看；继续书写的行会重新读取。读取使用 `ai.toml` 中「页面识别（OCR）」的智能体。
 - 聊天会在画板上书写。让它「检查我的算式并标出错误」「给截止日期划线」或「在第 2 行旁边写上结果」：
   它会逐行、逐词读取画板页面，然后进行高亮、下划线、圈注、删除线、画框、画箭头、打勾和打叉，
   并用手写体书写（印刷体或连笔体，由 [Hershey](https://en.wikipedia.org/wiki/Hershey_fonts) 单线字体的笔画构成）。
@@ -355,8 +350,6 @@ src/formats.rs, src/mdconv.rs                             export formats: search
 src/video.rs, src/swift/video_mp4.swift                  MP4 video: AVFoundation (macOS), Media Foundation (Windows), ffmpeg or Cisco's OpenH264 (Linux)
 src/voice.rs, src/ui/voice_ui.rs                         voice in the AI chat: microphone (cpal), Whisper on the computer (whisper.cpp) or an online service
 src/speech.rs                                             朗读回答：系统语音（say、SAPI、espeak-ng）或在线服务
-src/beautify.rs, src/ui/nice.rs                           美化书写：屏幕和导出中的直行与整齐字词，保留原始笔画
-src/ui/live_check.rs                                      书写时检查：停笔后聊天查看新写的行
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

@@ -78,21 +78,6 @@ pub struct Settings {
     pub paper: String,
     /// Margini rossi a sinistra e a destra nei fogli a righe.
     pub paper_margin: bool,
-    /// Bella scrittura sulla lavagna: 0 spenta, 1 leggera, 2 media, 3 forte
-    /// (solo come si vede e si esporta: i tratti originali restano).
-    pub beautify: u8,
-    /// Linee, frecce e cerchi fatti a mano: perfetti (solo come si vedono).
-    pub perfect_shapes: bool,
-    /// Come scrive l'AI sul foglio: 0 pulita, 1 a mano, 2 naturale.
-    pub ai_hand: u8,
-    /// Riscrittura in bella: si vede (le righe lette dall'AI riscritte)…
-    pub rewrite_show: bool,
-    /// …e si fa da sola alla pausa (oltre che col pulsante).
-    pub rewrite_live: bool,
-    /// Il controllo mentre scrivi: alla pausa l'AI guarda le righe nuove.
-    pub live_check: bool,
-    /// Dopo quanti secondi senza tratti nuovi parte il controllo.
-    pub live_check_pause: f32,
 }
 
 impl Default for Settings {
@@ -132,13 +117,6 @@ impl Default for Settings {
             update_auto: false,
             paper: "bianco".into(),
             paper_margin: true,
-            beautify: 0,
-            perfect_shapes: true,
-            ai_hand: 0,
-            rewrite_show: true,
-            rewrite_live: false,
-            live_check: false,
-            live_check_pause: 4.0,
         }
     }
 }
@@ -216,13 +194,6 @@ impl Settings {
             "chat_side" => self.chat_side = if v.trim() == "destra" { "destra".into() } else { "sinistra".into() },
             "paper" => self.paper = v.into(),
             "paper_margin" => self.paper_margin = b(v),
-            "beautify" => self.beautify = v.trim().parse::<u8>().unwrap_or(0).min(3),
-            "perfect_shapes" => self.perfect_shapes = b(v),
-            "ai_hand" => self.ai_hand = crate::boardmarks::hand_parse(v),
-            "rewrite_show" => self.rewrite_show = b(v),
-            "rewrite_live" => self.rewrite_live = b(v),
-            "live_check" => self.live_check = b(v),
-            "live_check_pause" => self.live_check_pause = v.trim().parse::<f32>().unwrap_or(self.live_check_pause).clamp(1.5, 30.0),
             "compact_ui" => self.compact_ui = b(v),
             "note_hand" => self.note_hand = crate::mdcraft::Hand::parse(v).key().into(),
             "chat_zoom" => self.chat_zoom = v.parse::<f32>().unwrap_or(self.chat_zoom).clamp(0.6, 2.5),
@@ -259,11 +230,6 @@ impl Settings {
              # vista compatta: niente barra dei menu e strumenti\ncompact_ui = {}\n\
              # scrittura degli appunti: vuoto (stampata), corsivo, stampatello (a mano)\nnote_hand = {}\n\
              # rigatura del foglio: bianco, righe, righe10, quadretti5, quadretti4, quadretti10; margini rossi (solo righe)\npaper = {}\npaper_margin = {}\n\
-             # bella scrittura sulla lavagna (solo come si vede e si esporta): 0 spenta, 1 leggera, 2 media, 3 forte\nbeautify = {}\n\
-             # linee, frecce e cerchi fatti a mano: perfetti (solo come si vedono)\nperfect_shapes = {}\n\
-             # come scrive l'AI sul foglio: pulita, mano (con le irregolarità della mano), naturale (carattere a mano vero)\nai_hand = {}\n\
-             # riscrittura in bella (l'AI legge le righe, si vedono in una scrittura chiara): si vede; si fa da sola alla pausa\nrewrite_show = {}\nrewrite_live = {}\n\
-             # controllo mentre scrivi: alla pausa (secondi) l'AI guarda le righe nuove\nlive_check = {}\nlive_check_pause = {:.1}\n\
              # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
              # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n\
              # aggiornamenti: avvisa quando c'è una versione nuova su GitHub; versione saltata; installa da solo senza chiedere\nupdate_check = {}\nupdate_skip = {}\nupdate_install_auto = {}\n",
@@ -295,13 +261,6 @@ impl Settings {
             self.note_hand,
             self.paper,
             b(self.paper_margin),
-            self.beautify,
-            b(self.perfect_shapes),
-            crate::boardmarks::hand_code(self.ai_hand),
-            b(self.rewrite_show),
-            b(self.rewrite_live),
-            b(self.live_check),
-            self.live_check_pause,
             self.save_dir,
             self.ui_lang,
             b(self.update_check),
