@@ -252,6 +252,7 @@ paper = bianco           # bianco | righe | righe10 | elem1 | elem2 | elem3 | qu
                          # quadretti10 | millimetrata | cartesiano | puntinato | isometrica | pentagramma | cornell
 paper_margin = 1         # margini rossi a sinistra e a destra (solo fogli a righe)
 fair_agent =             # bella copia: chi legge la scrittura (vuoto = gli agenti di «Lettura dei fogli»)
+fair_hand = 0            # bella copia con la tua mano (sperimentale: solo se c'è mano/graves.bin, che non si distribuisce)
 save_dir =               # cartella proposta da «Salva con nome» (l'ultima scelta; vuoto = exports/)
 ```
 

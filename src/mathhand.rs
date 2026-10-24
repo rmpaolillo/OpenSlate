@@ -68,6 +68,12 @@ const CAP: f32 = 21.0;
 
 /// Un carattere.
 fn glyph_box(style: Style, c: char) -> MBox {
+    // con «la tua mano»: il tuo segno della pagina di prova, se c'è
+    if crate::mano::active() {
+        if let Some(g) = crate::mano::glyph(c) {
+            return from_strokes(g.adv, g.strokes);
+        }
+    }
     if c == '−' {
         // il meno: largo come il più, all'altezza della sua stanghetta
         let plus = glyph_box(style, '+');
@@ -76,20 +82,66 @@ fn glyph_box(style: Style, c: char) -> MBox {
         return MBox { w, asc: -y, desc: 0.0, strokes: vec![vec![(w * 0.15, y), (w * 0.85, y)]] };
     }
     match char_glyph(style, c) {
-        Some(g) => {
-            let (mut asc, mut desc) = (0.0f32, 0.0f32);
-            for p in g.strokes.iter().flatten() {
-                asc = asc.max(-p.1);
-                desc = desc.max(p.1);
-            }
-            MBox { w: g.adv, asc, desc, strokes: g.strokes }
-        }
+        Some(g) => from_strokes(g.adv, g.strokes),
         None => MBox::empty(8.0),
     }
 }
 
+fn from_strokes(w: f32, strokes: Vec<Vec<(f32, f32)>>) -> MBox {
+    let (mut asc, mut desc) = (0.0f32, 0.0f32);
+    for p in strokes.iter().flatten() {
+        asc = asc.max(-p.1);
+        desc = desc.max(p.1);
+    }
+    MBox { w, asc, desc, strokes }
+}
+
+/// Testo con «la tua mano»: le parole che il modello ha già scritto, alte
+/// come il carattere chiaro (stesso corpo delle minuscole); le altre (con
+/// segni che il modello non sa) lettera per lettera.
+fn hand_text_box(style: Style, text: &str) -> MBox {
+    let words: Vec<&str> = text.split(' ').collect();
+    let inks: Vec<Option<crate::mano::WordInk>> = words.iter().map(|w| crate::mano::word(w)).collect();
+    let mut xs: Vec<f32> = inks.iter().flatten().map(|w| w.xh).collect();
+    xs.sort_by(f32::total_cmp);
+    // il corpo delle minuscole del carattere chiaro (la sua x)
+    let body = char_glyph(style, 'x').map_or(crate::mano::XH, |g| g.strokes.iter().flatten().map(|p| -p.1).fold(0.0f32, f32::max)).max(5.0);
+    let scale = xs.get(xs.len() / 2).map_or(1.0, |m| body / m);
+    let space = 0.6 * body;
+    let mut b = MBox::default();
+    let mut x = 0.0;
+    for (k, (w, ink)) in words.iter().zip(inks).enumerate() {
+        if k > 0 {
+            x += space;
+        }
+        if w.is_empty() {
+            continue;
+        }
+        let part = match ink {
+            Some(ink) => {
+                let st: Vec<Vec<(f32, f32)>> = ink.strokes.iter().map(|s| s.iter().map(|p| (p.0 * scale, p.1 * scale)).collect()).collect();
+                let wd = st.iter().flatten().map(|p| p.0).fold(0.0f32, f32::max);
+                from_strokes(wd, st)
+            }
+            None => plain_text_box(style, w),
+        };
+        let wd = part.w;
+        b.add(part, x, 0.0);
+        x += wd;
+    }
+    b.w = b.w.max(x);
+    b
+}
+
 /// Testo semplice (senza formule), su una riga.
 pub fn text_box(style: Style, text: &str) -> MBox {
+    if crate::mano::active() {
+        return hand_text_box(style, text);
+    }
+    plain_text_box(style, text)
+}
+
+fn plain_text_box(style: Style, text: &str) -> MBox {
     let mut b = MBox::default();
     let space = glyph_box(style, ' ').w.max(7.0);
     let mut x = 0.0;
@@ -978,6 +1030,23 @@ mod tests {
         let one = bx("$x + y = 3$");
         assert!(s.asc + s.desc > 1.8 * (one.asc + one.desc), "{:?}", (s.asc, s.desc));
         assert!(s.w > one.w);
+    }
+
+    #[test]
+    fn con_la_tua_mano_senza_dati() {
+        // senza parole scritte né segni: lettera per lettera, come prima
+        let t = "Risolvi: $x^2+2x+1=0$";
+        let a = bx(t);
+        let b = crate::mano::using(true, || bx(t));
+        assert!(b.w > 20.0 && !b.strokes.is_empty());
+        assert_eq!(a.strokes.len(), b.strokes.len());
+    }
+
+    #[test]
+    fn x_alta_come_il_corpo() {
+        // il corpo delle minuscole del carattere chiaro è quello di `mano::XH`
+        let g = glyph_box(Style::Naturale, 'x');
+        assert!((g.asc - crate::mano::XH).abs() < 3.0, "{}", g.asc);
     }
 
     #[test]

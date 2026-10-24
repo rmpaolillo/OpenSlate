@@ -2280,6 +2280,7 @@ impl eframe::App for App {
         self.drain_events();
         self.voice_tick(ctx);
         self.inbella_tick(ctx);
+        self.hand_window(ctx);
         self.chat_lib_requests(ctx);
         self.doc_tick(ctx);
         self.sync_chat_note();

@@ -45,6 +45,10 @@ pub(super) struct InBellaUi {
     /// Il numero della lettura in corso.
     gen: u64,
     shown_secs: u64,
+    /// La finestra della pagina di prova di «la tua mano» (sperimentale),
+    /// e il suo ultimo messaggio.
+    pub hand_page: bool,
+    hand_msg: String,
     tx: Sender<Done>,
     rx: Receiver<Done>,
 }
@@ -52,7 +56,7 @@ pub(super) struct InBellaUi {
 impl InBellaUi {
     pub fn new() -> Self {
         let (tx, rx) = channel();
-        Self { phase: Phase::Off, gen: 0, shown_secs: u64::MAX, tx, rx }
+        Self { phase: Phase::Off, gen: 0, shown_secs: u64::MAX, hand_page: false, hand_msg: String::new(), tx, rx }
     }
 
     pub fn active(&self) -> bool {
@@ -72,6 +76,10 @@ pub enum Fair {
     Reread,
     /// Chi legge (vuoto = gli agenti di «Lettura dei fogli»).
     Agent(String),
+    /// Scrive con «la tua mano» (true) o col carattere chiaro.
+    Hand(bool),
+    /// Apre la pagina di prova della tua mano.
+    HandPage,
 }
 
 impl App {
@@ -107,6 +115,14 @@ impl App {
                 self.settings.fair_agent = name;
                 self.settings.save();
             }
+            Fair::Hand(on) => {
+                self.settings.fair_hand = on;
+                self.settings.save();
+                if on {
+                    crate::mano::preload();
+                }
+            }
+            Fair::HandPage => self.inbella.hand_page = true,
         }
     }
 
@@ -138,13 +154,24 @@ impl App {
             return;
         }
         let agent = self.settings.fair_agent.clone();
+        let hand = self.settings.fair_hand && crate::mano::available();
         self.inbella.phase = Phase::Reading { rect, started: Instant::now(), agent: agent.clone() };
         self.inbella.shown_secs = u64::MAX;
         let (tx, gen) = (self.inbella.tx.clone(), self.inbella.gen);
         let _ = std::thread::Builder::new().name("bella-copia".into()).spawn(move || {
             // anche se la lettura si rompe, la risposta arriva (e il pulsante si sblocca)
-            let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| crate::inbella::recognize_region(&sub, w, h, view, rect, &agent)))
-                .unwrap_or_else(|_| Err(anyhow::anyhow!("errore interno nella lettura")));
+            let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let r = crate::inbella::recognize_region(&sub, w, h, view, rect, &agent);
+                // con la tua mano: le parole si scrivono qui (un secondo l'una)
+                if let (true, Ok((texts, _))) = (hand, &r) {
+                    let words: Vec<String> = texts.values().flat_map(|t| crate::mano::words_of(t)).collect();
+                    if let Err(e) = crate::mano::warm(&words) {
+                        tracing::warn!("la tua mano: {e:#}");
+                    }
+                }
+                r
+            }))
+            .unwrap_or_else(|_| Err(anyhow::anyhow!("errore interno nella lettura")));
             let _ = tx.send((gen, r));
         });
         self.fair_progress();
@@ -158,7 +185,7 @@ impl App {
         let g = crate::scene::PageGeom::new(s.view, pw, ph);
         let idx = crate::inbella::select(&s.drawing.strokes, &g, rect);
         let sub: Vec<Stroke> = idx.iter().map(|&i| s.drawing.strokes[i].clone()).collect();
-        let (new_sub, done) = crate::inbella::apply_region(&sub, texts, &g, rect[2])?;
+        let (new_sub, done) = crate::mano::using(self.settings.fair_hand, || crate::inbella::apply_region(&sub, texts, &g, rect[2]))?;
         let mut page: Vec<Stroke> = s.drawing.strokes.iter().enumerate().filter(|(i, _)| !idx.contains(i)).map(|(_, st)| st.clone()).collect();
         page.extend(new_sub.iter().cloned());
         Some((page, new_sub, done))
@@ -195,10 +222,16 @@ impl App {
     fn fair_progress(&mut self) {
         let Phase::Reading { started, agent, .. } = &self.inbella.phase else { return };
         let secs = started.elapsed().as_secs();
-        if secs == self.inbella.shown_secs {
+        let hand = crate::mano::progress();
+        let key = secs + hand.map_or(0, |(d, _)| (d as u64 + 1) << 32);
+        if key == self.inbella.shown_secs {
             return;
         }
-        self.inbella.shown_secs = secs;
+        self.inbella.shown_secs = key;
+        if let Some((d, n)) = hand {
+            self.status = crate::i18n::tf(format!("Bella copia: scrivo con la tua mano… {d}/{n} parole (Esc annulla)"));
+            return;
+        }
         let who = if agent.is_empty() { crate::i18n::tr("gli agenti di «Lettura dei fogli»").into_owned() } else { agent.clone() };
         self.status = crate::i18n::tf(format!("Bella copia: legge {who}… {secs} s (Esc annulla)"));
     }
@@ -335,6 +368,86 @@ impl App {
                 dashed(r.expand(4.0));
             }
             _ => {}
+        }
+    }
+}
+
+impl App {
+    /// La finestra della pagina di prova di «la tua mano»: le righe da
+    /// scrivere col pennino su una pagina vuota, e «Salva dalla pagina».
+    pub(super) fn hand_window(&mut self, ctx: &egui::Context) {
+        if !self.inbella.hand_page {
+            return;
+        }
+        use crate::i18n;
+        let mut open = true;
+        let mut save = false;
+        let msg = self.inbella.hand_msg.clone();
+        egui::Window::new(i18n::t("La tua mano (sperimentale)")).open(&mut open).collapsible(false).resizable(false).default_width(520.0).anchor(egui::Align2::RIGHT_TOP, egui::vec2(-16.0, 170.0)).show(ctx, |ui| {
+            ui.label(i18n::t("Su una pagina vuota scrivi col pennino queste righe, una sotto l'altra e ben staccate; i segni di una riga con un po' di spazio fra l'uno e l'altro. Poi «Salva dalla pagina»."));
+            ui.add_space(6.0);
+            egui::Frame::group(ui.style()).show(ui, |ui| {
+                for row in crate::mano::ROWS {
+                    ui.label(egui::RichText::new(row).size(18.0));
+                }
+            });
+            ui.add_space(6.0);
+            ui.label(i18n::t("La prima riga dà lo stile al testo; le altre sono i tuoi segni per le formule. Tutto resta nella cartella mano/ dei dati, solo su questo computer."));
+            let has = !crate::mano::prime_text().is_empty();
+            let n = crate::mano::glyph_count();
+            ui.weak(if has { i18n::tf(format!("Salvata: la frase e {n} segni.")) } else { i18n::tr("Non ancora salvata: per ora il testo è nello stile del modello.").into_owned() });
+            if !msg.is_empty() {
+                ui.label(&msg);
+            }
+            ui.horizontal(|ui| {
+                if ui.button(i18n::t("Salva dalla pagina")).clicked() {
+                    save = true;
+                }
+            });
+        });
+        if save {
+            self.inbella.hand_msg = self.hand_save();
+        }
+        if !open {
+            self.inbella.hand_page = false;
+            self.inbella.hand_msg.clear();
+        }
+    }
+
+    /// Legge la pagina di prova dalla pagina corrente e la salva.
+    fn hand_save(&mut self) -> String {
+        let strokes: Vec<Vec<(f32, f32)>> = {
+            let s = self.hub.lock();
+            let (pw, ph) = crate::scene::page_dims(&s.drawing);
+            let g = crate::scene::PageGeom::new(s.view, pw, ph);
+            let aspect = g.w / g.h;
+            s.drawing
+                .strokes
+                .iter()
+                .filter(|st| !st.highlight && st.points.len() > 1 && !crate::boardagent::is_ai_stroke(st))
+                .map(|st| {
+                    st.points
+                        .iter()
+                        .map(|q| {
+                            let (u, v) = g.unit(q.x, q.y);
+                            (u * aspect, v)
+                        })
+                        .collect()
+                })
+                .collect()
+        };
+        if strokes.is_empty() {
+            return crate::i18n::tr("La pagina è vuota: scrivi le righe col pennino, poi salva.").into_owned();
+        }
+        match crate::mano::calibrate(&strokes) {
+            Ok(c) => match crate::mano::save_calib(&c) {
+                Ok(()) => {
+                    crate::mano::preload();
+                    crate::i18n::tf(format!("✓ Salvata: la tua frase e {} segni. Da ora la bella copia «con la tua mano» li usa.", c.glyphs.len()))
+                }
+                Err(e) => format!("⚠ {e:#}"),
+            },
+            Err(e) => format!("⚠ {}", crate::i18n::tf(e)),
         }
     }
 }

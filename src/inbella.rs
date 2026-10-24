@@ -423,7 +423,7 @@ fn quantile(v: &mut [f32], q: f32) -> f32 {
 
 /// I fondi e le cime di un tratto: dove la penna, scendendo, torna a salire
 /// (e viceversa) di almeno `min`.
-fn turns(pts: &[(f32, f32)], min: f32) -> (Vec<f32>, Vec<f32>) {
+pub(crate) fn turns(pts: &[(f32, f32)], min: f32) -> (Vec<f32>, Vec<f32>) {
     let (mut bottoms, mut tops) = (Vec::new(), Vec::new());
     let Some(first) = pts.first() else { return (bottoms, tops) };
     let mut ext = first.1;
