@@ -176,6 +176,9 @@ impl App {
             if menu_item(ui, self.link != Link::Connecting, ic::BLUETOOTH, if on { "Collega di nuovo" } else { "Collega lo Slate" }, "") {
                 actions.push(Action::Connect);
             }
+            if menu_item(ui, on, ic::BLUETOOTH_SLASH, "Scollega il pad", "") {
+                actions.push(Action::Disconnect);
+            }
             let live = if self.live_on { (ic::STOP, "Ferma la diretta") } else { (ic::PLAY, "Avvia la diretta (quello che scrivi appare subito)") };
             if menu_item(ui, on, live.0, live.1, "") {
                 actions.push(Action::ToggleLive);
@@ -839,6 +842,7 @@ impl App {
             c(ic::FILE_PLUS, "Nuovo appunto", "", Action::NoteCmd("new".into())),
             c(ic::SPARKLE, "Impostazioni AI (agenti, chiavi, contesto)", "", Action::AiSettings),
             c(ic::BLUETOOTH, "Collega lo Slate", "", Action::Connect),
+            c(ic::BLUETOOTH_SLASH, "Scollega il pad", "", Action::Disconnect),
             c(ic::PLAY, "Diretta dal pad (avvia/ferma)", "", Action::ToggleLive),
             c(ic::DOWNLOAD_SIMPLE, "Scarica le pagine dal pad", "", Action::Sync),
             c(ic::BROADCAST, "Avvia la diretta web (TV, telefono)", "", Action::Web),

@@ -7,12 +7,22 @@
 use crate::protocol::{self, NordicBuffer, ProtoError, Reply};
 use anyhow::{anyhow, Context, Result};
 use btleplug::api::{Central, Characteristic, Manager as _, Peripheral as _, ScanFilter, WriteType};
-use btleplug::platform::{Adapter, Manager, Peripheral};
+use btleplug::platform::{Adapter, Manager, Peripheral, PeripheralId};
 use futures::StreamExt;
 use std::io::Write;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
+use tokio::time::timeout;
 use uuid::Uuid;
+
+/// Limiti di attesa: se il pad si è spento, btleplug a volte non risponde
+/// più (né ok né errore) e senza limite l'app resterebbe bloccata.
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+const GATT_TIMEOUT: Duration = Duration::from_secs(5);
+const WRITE_TIMEOUT: Duration = Duration::from_secs(3);
+const DISCONNECT_TIMEOUT: Duration = Duration::from_secs(3);
+
+const NO_ANSWER: &str = "Il pad non risponde (spento o fuori portata?)";
 
 /// Nomi tipici con cui gli SmartPad Wacom si annunciano.
 const NAME_HINTS: &[&str] = &["bamboo", "wacom", "slate", "folio", "spark", "smartpad"];
@@ -135,6 +145,15 @@ pub struct Pad {
     /// In questa connessione il pad ci ha già riconosciuti (registrazione o
     /// CONNECT riuscito): un secondo CONNECT risponderebbe INVALID_STATE.
     pub authorized: bool,
+    /// Task che smista le notifiche: va fermato quando il pad viene buttato,
+    /// così si chiude anche il flusso live (su macOS non finisce da solo).
+    reader: tokio::task::JoinHandle<()>,
+}
+
+impl Drop for Pad {
+    fn drop(&mut self) {
+        self.reader.abort();
+    }
 }
 
 /// Canale dei dati penna LIVE grezzi (consumato da un task dedicato).
@@ -214,10 +233,13 @@ impl Pad {
         let peripheral = found.peripheral;
         save_id(&found.id);
         tracing::info!("Connessione a «{}» (id {})…", found.name, found.id);
-        peripheral.connect().await.context("connect fallito")?;
-        peripheral
-            .discover_services()
+        timeout(CONNECT_TIMEOUT, peripheral.connect())
             .await
+            .map_err(|_| anyhow!(NO_ANSWER))?
+            .context("connect fallito")?;
+        timeout(GATT_TIMEOUT, peripheral.discover_services())
+            .await
+            .map_err(|_| anyhow!(NO_ANSWER))?
             .context("discover_services fallito")?;
 
         let find = |uuid: Uuid| -> Option<Characteristic> {
@@ -229,16 +251,19 @@ impl Pad {
             .ok_or_else(|| anyhow!("Caratteristica risposte (Nordic UART) assente"))?;
 
         // Le stesse caratteristiche che usa Tuhi.
-        peripheral.subscribe(&notify_char).await?;
+        timeout(GATT_TIMEOUT, peripheral.subscribe(&notify_char))
+            .await
+            .map_err(|_| anyhow!(NO_ANSWER))??;
         for (uuid, label) in [
             (protocol::WACOM_LIVE_PEN_DATA, "LIVE"),
             (protocol::WACOM_OFFLINE_PEN_DATA, "OFFLINE"),
             (protocol::SYSEVENT_CHRC, "SYSEVENT"),
         ] {
             match find(uuid) {
-                Some(c) => match peripheral.subscribe(&c).await {
-                    Ok(()) => tracing::info!("Sottoscritta {label}"),
-                    Err(e) => tracing::warn!("Subscribe {label} fallita: {e}"),
+                Some(c) => match timeout(GATT_TIMEOUT, peripheral.subscribe(&c)).await {
+                    Ok(Ok(())) => tracing::info!("Sottoscritta {label}"),
+                    Ok(Err(e)) => tracing::warn!("Subscribe {label} fallita: {e}"),
+                    Err(_) => anyhow::bail!(NO_ANSWER),
                 },
                 None => tracing::warn!("Caratteristica {label} assente"),
             }
@@ -263,8 +288,10 @@ impl Pad {
             let _ = writeln!(f, "# connessione {} {}", found.name, found.id);
         }
 
-        let mut stream = peripheral.notifications().await?;
-        tokio::spawn(async move {
+        let mut stream = timeout(GATT_TIMEOUT, peripheral.notifications())
+            .await
+            .map_err(|_| anyhow!(NO_ANSWER))??;
+        let reader = tokio::spawn(async move {
             while let Some(n) = stream.next().await {
                 if let Some(f) = reader_cap.as_mut() {
                     let hex: String = n.value.iter().map(|b| format!("{b:02x}")).collect();
@@ -295,6 +322,7 @@ impl Pad {
             capture,
             name: found.name,
             authorized: false,
+            reader,
         };
         Ok((pad, live_rx))
     }
@@ -307,10 +335,13 @@ impl Pad {
             let hex: String = f.iter().map(|b| format!("{b:02x}")).collect();
             let _ = writeln!(c, "TX {hex}");
         }
-        self.peripheral
-            .write(&self.write_char, &f, WriteType::WithoutResponse)
-            .await
-            .map_err(|e| ProtoError::Link(e.to_string()))
+        timeout(
+            WRITE_TIMEOUT,
+            self.peripheral.write(&self.write_char, &f, WriteType::WithoutResponse),
+        )
+        .await
+        .map_err(|_| ProtoError::Link(NO_ANSWER.into()))?
+        .map_err(|e| ProtoError::Link(e.to_string()))
     }
 
     /// Prossimo messaggio completo dal flusso Nordic. Intanto raccoglie i dati
@@ -386,8 +417,20 @@ impl Pad {
         self.last_offline
     }
 
+    /// Identificativo BLE, per riconoscere gli eventi dell'adapter.
+    pub fn id(&self) -> PeripheralId {
+        self.peripheral.id()
+    }
+
+    /// Chiude il collegamento. Se il pad si è già spento btleplug può non
+    /// rispondere mai: quindi si salta se non è connesso, e si attende poco.
     pub async fn disconnect(&self) {
-        let _ = self.peripheral.disconnect().await;
+        let connected = timeout(DISCONNECT_TIMEOUT, self.peripheral.is_connected())
+            .await
+            .map_or(false, |r| r.unwrap_or(false));
+        if connected && timeout(DISCONNECT_TIMEOUT, self.peripheral.disconnect()).await.is_err() {
+            tracing::warn!("disconnect: nessuna risposta dal pad");
+        }
     }
 }
 

@@ -453,6 +453,7 @@ use crate::formats::Kind as Fmt;
 enum Action {
     SetMode(Mode),
     Connect,
+    Disconnect,
     ToggleLive,
     Sync,
     Undo,
@@ -1592,6 +1593,9 @@ impl App {
             }
             Action::Connect => {
                 let _ = self.cmd_tx.send(UiCmd::Connect);
+            }
+            Action::Disconnect => {
+                let _ = self.cmd_tx.send(UiCmd::Disconnect);
             }
             Action::ToggleLive => {
                 let _ = self.cmd_tx.send(if self.live_on { UiCmd::StopLive } else { UiCmd::StartLive });

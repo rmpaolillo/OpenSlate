@@ -10,13 +10,17 @@ use crate::protocol::{mode, ProtoError};
 use crate::scene::Hub;
 use crate::stroke::Drawing;
 use anyhow::Result;
-use btleplug::platform::Adapter;
+use btleplug::api::{Central, CentralEvent, Manager as _};
+use btleplug::platform::{Adapter, Manager};
+use futures::stream::{BoxStream, StreamExt};
 use std::sync::Arc;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 /// Comandi dalla UI verso l'actor.
 pub enum UiCmd {
     Connect,
+    /// Chiude il collegamento col pad.
+    Disconnect,
     StartLive,
     StopLive,
     /// Scarica i disegni dalla memoria del pad.
@@ -102,33 +106,83 @@ pub async fn ble_actor(
     let mut pad: Option<Pad> = None;
 
     // Manager tenuto vivo per tutta la sessione (vedi nota in ble.rs).
-    let (_manager, adapter) = match Pad::manager_adapter().await {
+    let (manager, mut adapter) = match Pad::manager_adapter().await {
         Ok(x) => x,
         Err(e) => {
             err(&evt_tx, format!("Bluetooth non disponibile: {e}"));
             return;
         }
     };
+    let mut events = adapter_events(&adapter).await;
+    // Dopo una disconnessione l'adapter tiene in cache il pad vecchio, legato
+    // a canali ormai morti: alla connessione successiva se ne crea uno nuovo.
+    let mut stale_adapter = false;
 
-    while let Some(cmd) = cmd_rx.recv().await {
+    loop {
+        let cmd = tokio::select! {
+            c = cmd_rx.recv() => match c {
+                Some(c) => c,
+                None => break,
+            },
+            Some(ev) = events.next() => {
+                if let CentralEvent::DeviceDisconnected(id) = ev {
+                    if pad.as_ref().is_some_and(|p| p.id() == id) {
+                        tracing::info!("Pad disconnesso (evento dell'adapter)");
+                        LINK_GEN.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                        pad = None;
+                        stale_adapter = true;
+                        let _ = evt_tx.send(UiEvent::Link(Link::Off));
+                        let _ = evt_tx.send(UiEvent::Live(false));
+                        status(
+                            &evt_tx,
+                            "Il pad si è scollegato (spento o fuori portata). \
+                             Premi il suo pulsante e poi «Collega».",
+                        );
+                    }
+                }
+                continue;
+            }
+        };
         match cmd {
             UiCmd::Connect => {
                 LINK_GEN.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                 let _ = evt_tx.send(UiEvent::Link(Link::Connecting));
                 if let Some(p) = pad.take() {
                     p.disconnect().await;
+                    stale_adapter = true;
                 }
                 let _ = evt_tx.send(UiEvent::Live(false));
+                if stale_adapter {
+                    match fresh_adapter(&manager).await {
+                        Ok(a) => {
+                            adapter = a;
+                            events = adapter_events(&adapter).await;
+                            stale_adapter = false;
+                        }
+                        Err(e) => tracing::warn!("nuovo adapter Bluetooth: {e}"),
+                    }
+                }
                 match connect_flow(&adapter, scan_secs, name.as_deref(), &evt_tx, &hub).await {
                     Ok(p) => {
                         let _ = evt_tx.send(UiEvent::Link(if p.is_some() { Link::On } else { Link::Off }));
                         pad = p;
                     }
                     Err(e) => {
+                        stale_adapter = true;
                         let _ = evt_tx.send(UiEvent::Link(Link::Off));
                         err(&evt_tx, e.to_string());
                     }
                 }
+            }
+            UiCmd::Disconnect => {
+                LINK_GEN.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                if let Some(p) = pad.take() {
+                    p.disconnect().await;
+                    stale_adapter = true;
+                }
+                let _ = evt_tx.send(UiEvent::Link(Link::Off));
+                let _ = evt_tx.send(UiEvent::Live(false));
+                status(&evt_tx, "Pad scollegato.");
             }
             UiCmd::StartLive => match pad.as_mut() {
                 Some(p) => match device::set_mode(p, mode::LIVE).await {
@@ -214,6 +268,28 @@ pub async fn ble_actor(
             }
         }
     }
+}
+
+/// Eventi dell'adapter (per accorgersi quando il pad si spegne). Se non
+/// disponibili, un flusso vuoto: resta il resto del funzionamento.
+async fn adapter_events(adapter: &Adapter) -> futures::stream::Fuse<BoxStream<'static, CentralEvent>> {
+    match adapter.events().await {
+        Ok(s) => s.boxed().fuse(),
+        Err(e) => {
+            tracing::warn!("eventi Bluetooth non disponibili: {e}");
+            futures::stream::empty().boxed().fuse()
+        }
+    }
+}
+
+/// Un adapter nuovo (su macOS: un nuovo CBCentralManager, cache vuota).
+async fn fresh_adapter(manager: &Manager) -> Result<Adapter> {
+    manager
+        .adapters()
+        .await?
+        .into_iter()
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("Nessun adapter Bluetooth trovato"))
 }
 
 /// Copia di sicurezza dei byte grezzi, PRIMA di qualunque cancellazione.
