@@ -48,7 +48,7 @@ jobs:
   macos:
     name: macOS (arm64, Intel, universal)
     needs: version
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       VERSION: ${{ needs.version.outputs.version }}
       MACOSX_DEPLOYMENT_TARGET: '11.0'
