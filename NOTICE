@@ -65,6 +65,14 @@ Third-party material
   vendor/wordcraft-layout with a small change so inline pictures follow the character position
   (see vendor/README.md).
 
+- PdfCraft renderer (crates/render of https://github.com/storytold/pdfcraft), Copyright (c) 2026
+  ArtCraft Team and the PdfCraft contributors, MIT OR Apache-2.0: copied in vendor/pdfcraft-render
+  with a small change so it builds against the hayro of craft-libs (see vendor/README.md).
+
+- hayro-svg 0.7.0 (https://github.com/LaurenzV/hayro), Copyright (c) Laurenz Stampfl, MIT OR
+  Apache-2.0: copied in vendor/hayro-svg with a small change for the same hayro (see
+  vendor/README.md).
+
 - ArtCraft Launcher (https://github.com/storytold/craft-launcher), Copyright (c) 2026 ArtCraft
   Team, MIT OR Apache-2.0: the design of the in-app updates (src/selfupdate.rs: download,
   SHA256SUMS check, install in place, restart) and of the Developer ID signing and notarization

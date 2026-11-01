@@ -1,0 +1,29 @@
+# Copia di crates/render di PdfCraft (7d78f3e14474b978be014715e0cc64895d77025a, 0.17.0), con le dipendenze del workspace
+# scritte per esteso. Modifica di OpenSlate: vedi vendor/README.md.
+[package]
+name = "pdfcraft-render"
+description = "Page rendering (bootstrap: hayro) and document inspection for PdfCraft"
+version = "0.17.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+rust-version = "1.95"
+repository = "https://github.com/storytold/pdfcraft"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[dependencies]
+pdfcraft-cos = { git = "https://github.com/storytold/pdfcraft", rev = "7d78f3e14474b978be014715e0cc64895d77025a" }
+pdfcraft-fonts = { git = "https://github.com/storytold/pdfcraft", rev = "7d78f3e14474b978be014715e0cc64895d77025a" }
+hayro = "0.7.1"
+hayro-syntax = "0.7.2"
+skrifa = "0.44"
+lopdf = "0.45"
+kurbo = "0.13"
+thiserror = "2"
+log = "0.4"
+serde = { version = "1", features = ["derive", "rc"] }
+bytemuck = { version = "1" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.4", features = ["wasm_js"] }

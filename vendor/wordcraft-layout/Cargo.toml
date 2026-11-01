@@ -1,8 +1,8 @@
-# Copia di crates/layout di WordCraft (9130181a5fdaee2293e67756fd5458c601489f3c, 0.10.0), con le dipendenze del workspace
+# Copia di crates/layout di WordCraft (5cd53f184aab11def13b7fced18727159b9bc96a, 0.14.0), con le dipendenze del workspace
 # scritte per esteso. Modifica di OpenSlate: vedi vendor/README.md.
 [package]
 name = "wordcraft-layout"
-version = "0.10.0"
+version = "0.14.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"
@@ -13,11 +13,11 @@ description = "WordCraft layout: shaping, line breaking, tabs, lists, tables, pa
 unsafe_code = "forbid"
 
 [dependencies]
-wordcraft-geom = { git = "https://github.com/storytold/wordcraft", rev = "9130181a5fdaee2293e67756fd5458c601489f3c" }
-wordcraft-doc = { git = "https://github.com/storytold/wordcraft", rev = "9130181a5fdaee2293e67756fd5458c601489f3c" }
-wordcraft-fonts = { git = "https://github.com/storytold/wordcraft", rev = "9130181a5fdaee2293e67756fd5458c601489f3c" }
-wordcraft-proof = { git = "https://github.com/storytold/wordcraft", rev = "9130181a5fdaee2293e67756fd5458c601489f3c" }
-wordcraft-metafile = { git = "https://github.com/storytold/wordcraft", rev = "9130181a5fdaee2293e67756fd5458c601489f3c" }
+wordcraft-geom = { git = "https://github.com/storytold/wordcraft", rev = "5cd53f184aab11def13b7fced18727159b9bc96a", features = ["image"] }
+wordcraft-doc = { git = "https://github.com/storytold/wordcraft", rev = "5cd53f184aab11def13b7fced18727159b9bc96a" }
+wordcraft-fonts = { git = "https://github.com/storytold/wordcraft", rev = "5cd53f184aab11def13b7fced18727159b9bc96a" }
+wordcraft-proof = { git = "https://github.com/storytold/wordcraft", rev = "5cd53f184aab11def13b7fced18727159b9bc96a" }
+wordcraft-metafile = { git = "https://github.com/storytold/wordcraft", rev = "5cd53f184aab11def13b7fced18727159b9bc96a" }
 kurbo = { version = "0.13", features = ["serde"] }
 unicode-bidi = "0.3"
 unicode-linebreak = "0.1"

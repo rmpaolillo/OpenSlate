@@ -117,7 +117,7 @@ fn render(engine: &mut Engine, req: &Request) -> Result<Done> {
             let scale = req.px[0] as f32 / w.max(1e-3);
             // come sullo schermo del Mac (testo appena più pieno), come in WordCraft
             let opts = wordcraft_engine::render::RenderOptions { text_darkening: cfg!(target_os = "macos"), ..Default::default() };
-            let r = wordcraft_engine::render::render_area(&s.doc, page, x, y, w, h, scale, &opts);
+            let r = wordcraft_engine::render::render_area(&s.doc, page, wordcraft_geom::Rect::new(x, y, w, h), scale, &opts);
             ([r.width as usize, r.height as usize], r.pixels)
         }
         Engine::Pdf(p) => {

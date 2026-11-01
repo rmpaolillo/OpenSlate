@@ -16,7 +16,7 @@ Per-file attributions are in [NOTICE](NOTICE). The release packages also contain
 |---|---|---|---|
 | [Tuhi](https://github.com/tuhiproject/tuhi) | Peter Hutterer, Benjamin Tissoires and the Tuhi contributors | GPL-2.0-or-later | The Bluetooth protocol of the Wacom SmartPad family was translated from Tuhi's Python code. Without Tuhi's reverse engineering this project would not exist. |
 | [WordCraft](https://github.com/storytold/wordcraft) | ArtCraft Team and the WordCraft contributors | MIT OR Apache-2.0 | `wordcraft-engine` crate: opening, rendering and saving Word documents with the handwritten ink; its `wordcraft-mcp` MCP server runs in-process (headless) so the AI chat can read and edit the open Word document; its `wordcraft-layout` crate is copied in `vendor/` with a small change (inline pictures follow the character position, as in Word: see `vendor/README.md`). The Word-like look of the interface (colours, measurements, rulers) is adapted from its `ui-egui` crate. |
-| [PdfCraft](https://github.com/storytold/pdfcraft) | ArtCraft Team and the PdfCraft contributors | MIT OR Apache-2.0 | `pdfcraft-render` crate: crisp PDF page rendering at any zoom, page images and text extraction; `pdfcraft-automation` (its MCP server, in-process) and `pdfcraft-engine` let the AI chat read and edit the open PDF; its patched `lopdf` writes the signed PDFs and the photo pages; plus its patched `vello_common`. |
+| [PdfCraft](https://github.com/storytold/pdfcraft) | ArtCraft Team and the PdfCraft contributors | MIT OR Apache-2.0 | `pdfcraft-render` crate (copied in `vendor/` with a small change: see `vendor/README.md`): crisp PDF page rendering at any zoom, page images and text extraction; `pdfcraft-automation` (its MCP server, in-process) and `pdfcraft-engine` let the AI chat read and edit the open PDF; its patched `lopdf` writes the signed PDFs and the photo pages; plus its patched `vello_common`. |
 | [VectorCraft](https://github.com/storytold/vectorcraft) | ArtCraft Team and the VectorCraft contributors | MIT OR Apache-2.0 | `vectorcraft-engine` and `vectorcraft-render` crates (and `vectorcraft-mcp`, its MCP server run in-process for the AI chat's edits to SVG documents): opening SVG images as pages and saving them with the handwritten ink as vector paths; drawing and writing the board and library exports (PDF, SVG, PNG). |
 | [PhotoCraft](https://github.com/storytold/photocraft) | ArtCraft Team and the PhotoCraft contributors | MIT OR Apache-2.0 | `photocraft-codecs` (reading and writing PNG, JPEG, WebP, TIFF… with colour profile and metadata), `photocraft-paint` (the brush that draws the handwritten ink on photos) and `photocraft-automation` (its MCP server: the AI chat edits the photo open next to it). |
 | [Typst](https://github.com/typst/typst) | The Typst Project Developers | Apache-2.0 | `typst`, `typst-layout`, `typst-render`, `typst-assets` crates: the LaTeX formulas of Markdown files opened as documents are drawn by Typst in LaTeX style. `typst-render` and `typst-svg` are copied in `vendor/` with a one-line change each, to build against the Craft suite's `hayro` (see `vendor/README.md`). |
@@ -128,8 +128,8 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [biblatex](https://github.com/typst/biblatex) | 0.12.0 | MIT OR Apache-2.0 | Martin Haug |
 | [bincode](https://github.com/servo/bincode) | 1.3.3 | MIT | Ty Overby, Francesco Mazzoli, David Tolnay, Zoey Riordan |
 | [bindgen](https://github.com/rust-lang/rust-bindgen) | 0.72.1 | BSD-3-Clause | Jyun-Yan You, Emilio Cobos Álvarez, Nick Fitzgerald, The Servo project developers |
-| [bit-set](https://github.com/contain-rs/bit-set) | 0.10.0 | Apache-2.0 OR MIT | Alexis Beingessner |
 | [bit-set](https://github.com/contain-rs/bit-set) | 0.8.0 | Apache-2.0 OR MIT | Alexis Beingessner |
+| [bit-set](https://github.com/contain-rs/bit-set) | 0.10.0 | Apache-2.0 OR MIT | Alexis Beingessner |
 | [bit-vec](https://github.com/contain-rs/bit-vec) | 0.8.0 | Apache-2.0 OR MIT | Alexis Beingessner |
 | [bit-vec](https://github.com/contain-rs/bit-vec) | 0.9.1 | Apache-2.0 OR MIT | Alexis Beingessner |
 | [bit_field](https://github.com/phil-opp/rust-bit-field) | 0.10.3 | Apache-2.0 OR MIT | Philipp Oppermann |
@@ -216,12 +216,12 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [comemo](https://github.com/typst/comemo) | 0.5.1 | MIT OR Apache-2.0 | Laurenz |
 | [comemo-macros](https://github.com/typst/comemo) | 0.5.1 | MIT OR Apache-2.0 | Laurenz |
 | [concurrent-queue](https://github.com/smol-rs/concurrent-queue) | 2.5.0 | Apache-2.0 OR MIT | Stjepan Glavina, Taiki Endo, John Nunley |
-| [const-oid](https://github.com/RustCrypto/formats) | 0.10.2 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [const-oid](https://github.com/RustCrypto/formats/tree/master/const-oid) | 0.9.6 | Apache-2.0 OR MIT | RustCrypto Developers |
+| [const-oid](https://github.com/RustCrypto/formats) | 0.10.2 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [constant_time_eq](https://github.com/cesarb/constant_time_eq) | 0.4.2 | CC0-1.0 OR MIT-0 OR Apache-2.0 | Cesar Eduardo Barros |
 | [cookie](https://github.com/SergioBenitez/cookie-rs) | 0.18.2 | MIT OR Apache-2.0 | Sergio Benitez, Alex Crichton |
-| [core-foundation](https://github.com/servo/core-foundation-rs) | 0.10.1 | MIT OR Apache-2.0 | The Servo Project Developers |
 | [core-foundation](https://github.com/servo/core-foundation-rs) | 0.9.4 | MIT OR Apache-2.0 | The Servo Project Developers |
+| [core-foundation](https://github.com/servo/core-foundation-rs) | 0.10.1 | MIT OR Apache-2.0 | The Servo Project Developers |
 | [core-foundation-sys](https://github.com/servo/core-foundation-rs) | 0.8.7 | MIT OR Apache-2.0 | The Servo Project Developers |
 | [core-graphics](https://github.com/servo/core-foundation-rs) | 0.23.2 | MIT OR Apache-2.0 | The Servo Project Developers |
 | [core-graphics](https://github.com/servo/core-foundation-rs) | 0.25.0 | MIT OR Apache-2.0 | The Servo Project Developers |
@@ -237,9 +237,8 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [cpufeatures](https://github.com/RustCrypto/utils) | 0.2.17 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [cpufeatures](https://github.com/RustCrypto/utils) | 0.3.1 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [craft-docpath](https://github.com/storytold/craft-libs) | 0.1.0 | MIT OR Apache-2.0 | — |
+| [craft-jpeg](https://github.com/storytold/craft-libs) | 0.1.0 | MIT OR Apache-2.0 | — |
 | [craft-pdf](https://github.com/storytold/craft-libs) | 0.1.0 | MIT OR Apache-2.0 | — |
-| [craft-pdf](https://github.com/storytold/craft-libs) | 0.1.0 | MIT OR Apache-2.0 | — |
-| [craft-print](https://github.com/storytold/craft-libs) | 0.1.0 | MIT OR Apache-2.0 | — |
 | [craft-print](https://github.com/storytold/craft-libs) | 0.1.0 | MIT OR Apache-2.0 | — |
 | [craft-winprint-gdi](https://crates.io/crates/craft-winprint-gdi) | 0.1.0 | MIT OR Apache-2.0 | — |
 | [crc32fast](https://github.com/srijs/rust-crc32fast) | 1.5.2 | MIT OR Apache-2.0 | Sam Rijs, Alex Crichton |
@@ -535,8 +534,8 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [linebender_resource_handle](https://github.com/linebender/raw_resource_handle) | 0.1.1 | Apache-2.0 OR MIT | — |
 | [linesweeper](https://github.com/jneem/linesweeper) | 0.5.0 | MIT OR Apache-2.0 | Joe Neeman |
 | [linked-hash-map](https://github.com/contain-rs/linked-hash-map) | 0.5.6 | MIT OR Apache-2.0 | Stepan Koltsov, Andrew Paseltiner |
-| [linux-raw-sys](https://github.com/sunfishcode/linux-raw-sys) | 0.12.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | Dan Gohman |
 | [linux-raw-sys](https://github.com/sunfishcode/linux-raw-sys) | 0.4.15 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | Dan Gohman |
+| [linux-raw-sys](https://github.com/sunfishcode/linux-raw-sys) | 0.12.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | Dan Gohman |
 | [lipsum](https://github.com/mgeisler/lipsum/) | 0.9.1 | MIT | Martin Geisler |
 | [litemap](https://github.com/unicode-org/icu4x) | 0.8.3 | Unicode-3.0 | The ICU4X Project Developers |
 | [litrs](https://github.com/LukasKalbertodt/litrs) | 1.0.1 | MIT OR Apache-2.0 | Lukas Kalbertodt |
@@ -668,36 +667,36 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [pastey](https://github.com/as1100k/pastey) | 0.2.3 | MIT OR Apache-2.0 | Aditya Kumar, David Tolnay |
 | [pbkdf2](https://github.com/RustCrypto/password-hashes) | 0.13.0 | MIT OR Apache-2.0 | RustCrypto Developers |
 | [pdf-writer](https://github.com/typst/pdf-writer) | 0.15.0 | MIT OR Apache-2.0 | Laurenz, Martin Haug |
-| [pdfcraft-a11y](https://github.com/storytold/pdfcraft) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-annot](https://crates.io/crates/pdfcraft-annot) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-audit](https://github.com/storytold/pdfcraft) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-automation](https://crates.io/crates/pdfcraft-automation) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-compare](https://github.com/storytold/pdfcraft) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-content](https://crates.io/crates/pdfcraft-content) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-cos](https://crates.io/crates/pdfcraft-cos) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-create](https://crates.io/crates/pdfcraft-create) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-crypt](https://github.com/storytold/pdfcraft) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-edit](https://crates.io/crates/pdfcraft-edit) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-engine](https://crates.io/crates/pdfcraft-engine) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-export](https://github.com/storytold/pdfcraft) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-filters](https://github.com/storytold/pdfcraft) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-fonts](https://crates.io/crates/pdfcraft-fonts) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-forms](https://crates.io/crates/pdfcraft-forms) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-geom](https://crates.io/crates/pdfcraft-geom) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-js](https://github.com/storytold/pdfcraft) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-measure](https://crates.io/crates/pdfcraft-measure) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-model](https://crates.io/crates/pdfcraft-model) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-ocr](https://github.com/storytold/pdfcraft) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-optimize](https://github.com/storytold/pdfcraft) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-organize](https://crates.io/crates/pdfcraft-organize) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-platform](https://crates.io/crates/pdfcraft-platform) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-preflight](https://github.com/storytold/pdfcraft) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-print](https://crates.io/crates/pdfcraft-print) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-redact](https://crates.io/crates/pdfcraft-redact) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-render](https://crates.io/crates/pdfcraft-render) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-sign](https://github.com/storytold/pdfcraft) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-xfa](https://github.com/storytold/pdfcraft) | 0.12.0 | MIT OR Apache-2.0 | — |
-| [pdfcraft-xfdf](https://crates.io/crates/pdfcraft-xfdf) | 0.12.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-a11y](https://github.com/storytold/pdfcraft) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-annot](https://crates.io/crates/pdfcraft-annot) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-audit](https://github.com/storytold/pdfcraft) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-automation](https://crates.io/crates/pdfcraft-automation) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-compare](https://github.com/storytold/pdfcraft) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-content](https://crates.io/crates/pdfcraft-content) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-cos](https://crates.io/crates/pdfcraft-cos) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-create](https://crates.io/crates/pdfcraft-create) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-crypt](https://github.com/storytold/pdfcraft) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-edit](https://crates.io/crates/pdfcraft-edit) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-engine](https://crates.io/crates/pdfcraft-engine) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-export](https://github.com/storytold/pdfcraft) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-filters](https://github.com/storytold/pdfcraft) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-fonts](https://crates.io/crates/pdfcraft-fonts) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-forms](https://crates.io/crates/pdfcraft-forms) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-geom](https://crates.io/crates/pdfcraft-geom) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-js](https://github.com/storytold/pdfcraft) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-measure](https://crates.io/crates/pdfcraft-measure) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-model](https://crates.io/crates/pdfcraft-model) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-ocr](https://github.com/storytold/pdfcraft) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-optimize](https://github.com/storytold/pdfcraft) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-organize](https://crates.io/crates/pdfcraft-organize) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-platform](https://crates.io/crates/pdfcraft-platform) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-preflight](https://github.com/storytold/pdfcraft) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-print](https://crates.io/crates/pdfcraft-print) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-redact](https://crates.io/crates/pdfcraft-redact) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-render](https://crates.io/crates/pdfcraft-render) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-sign](https://github.com/storytold/pdfcraft) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-xfa](https://github.com/storytold/pdfcraft) | 0.17.0 | MIT OR Apache-2.0 | — |
+| [pdfcraft-xfdf](https://crates.io/crates/pdfcraft-xfdf) | 0.17.0 | MIT OR Apache-2.0 | — |
 | [pem](https://github.com/jcreekmore/pem-rs.git) | 3.0.6 | MIT | Jonathan Creekmore |
 | [pem-rfc7468](https://github.com/RustCrypto/formats/tree/master/pem-rfc7468) | 0.7.0 | Apache-2.0 OR MIT | RustCrypto Developers |
 | [pem-rfc7468](https://github.com/RustCrypto/formats) | 1.0.0 | Apache-2.0 OR MIT | RustCrypto Developers |
@@ -712,27 +711,27 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [phf_macros](https://github.com/rust-phf/rust-phf) | 0.14.0 | MIT | Steven Fackler |
 | [phf_shared](https://github.com/rust-phf/rust-phf) | 0.13.1 | MIT | Steven Fackler |
 | [phf_shared](https://github.com/rust-phf/rust-phf) | 0.14.0 | MIT | Steven Fackler |
-| [photocraft-affinity](https://crates.io/crates/photocraft-affinity) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-algo](https://crates.io/crates/photocraft-algo) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-automation](https://crates.io/crates/photocraft-automation) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-cms](https://crates.io/crates/photocraft-cms) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-codecs](https://crates.io/crates/photocraft-codecs) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-color](https://crates.io/crates/photocraft-color) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-compose](https://crates.io/crates/photocraft-compose) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-doc](https://crates.io/crates/photocraft-doc) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-engine](https://crates.io/crates/photocraft-engine) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-format](https://crates.io/crates/photocraft-format) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-geom](https://crates.io/crates/photocraft-geom) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-io](https://crates.io/crates/photocraft-io) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-ipp](https://crates.io/crates/photocraft-ipp) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-ops](https://crates.io/crates/photocraft-ops) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-paint](https://crates.io/crates/photocraft-paint) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-plugins](https://crates.io/crates/photocraft-plugins) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-psd](https://crates.io/crates/photocraft-psd) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-raster](https://crates.io/crates/photocraft-raster) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-raw](https://crates.io/crates/photocraft-raw) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-text](https://crates.io/crates/photocraft-text) | 0.13.0 | MIT OR Apache-2.0 | — |
-| [photocraft-vector](https://crates.io/crates/photocraft-vector) | 0.13.0 | MIT OR Apache-2.0 | — |
+| [photocraft-affinity](https://crates.io/crates/photocraft-affinity) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-algo](https://crates.io/crates/photocraft-algo) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-automation](https://crates.io/crates/photocraft-automation) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-cms](https://crates.io/crates/photocraft-cms) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-codecs](https://crates.io/crates/photocraft-codecs) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-color](https://crates.io/crates/photocraft-color) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-compose](https://crates.io/crates/photocraft-compose) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-doc](https://crates.io/crates/photocraft-doc) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-engine](https://crates.io/crates/photocraft-engine) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-format](https://crates.io/crates/photocraft-format) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-geom](https://crates.io/crates/photocraft-geom) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-io](https://crates.io/crates/photocraft-io) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-ipp](https://crates.io/crates/photocraft-ipp) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-ops](https://crates.io/crates/photocraft-ops) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-paint](https://crates.io/crates/photocraft-paint) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-plugins](https://crates.io/crates/photocraft-plugins) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-psd](https://crates.io/crates/photocraft-psd) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-raster](https://crates.io/crates/photocraft-raster) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-raw](https://crates.io/crates/photocraft-raw) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-text](https://crates.io/crates/photocraft-text) | 0.19.0 | MIT OR Apache-2.0 | — |
+| [photocraft-vector](https://crates.io/crates/photocraft-vector) | 0.19.0 | MIT OR Apache-2.0 | — |
 | [pic-scale](https://github.com/awxkee/pic-scale) | 0.7.12 | BSD-3-Clause OR Apache-2.0 | Radzivon Bartoshyk |
 | [pico-args](https://github.com/RazrFalcon/pico-args) | 0.5.0 | MIT | Yevhenii Reizner |
 | [pin-project](https://github.com/taiki-e/pin-project) | 1.1.13 | Apache-2.0 OR MIT | — |
@@ -788,11 +787,11 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [r-efi](https://github.com/r-efi/r-efi) | 5.3.0 | MIT OR Apache-2.0 OR LGPL-2.1-or-later | — |
 | [r-efi](https://github.com/r-efi/r-efi) | 6.0.0 | MIT OR Apache-2.0 OR LGPL-2.1-or-later | — |
 | [radium](https://github.com/bitvecto-rs/radium) | 0.7.0 | MIT | Nika Layzell, myrrlyn |
-| [rand](https://github.com/rust-random/rand) | 0.10.3 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers |
 | [rand](https://github.com/rust-random/rand) | 0.8.8 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers |
+| [rand](https://github.com/rust-random/rand) | 0.10.3 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers |
 | [rand_chacha](https://github.com/rust-random/rand) | 0.3.1 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers, The CryptoCorrosion Contributors |
-| [rand_core](https://github.com/rust-random/rand_core) | 0.10.1 | MIT OR Apache-2.0 | The Rand Project Developers |
 | [rand_core](https://github.com/rust-random/rand) | 0.6.4 | MIT OR Apache-2.0 | The Rand Project Developers, The Rust Project Developers |
+| [rand_core](https://github.com/rust-random/rand_core) | 0.10.1 | MIT OR Apache-2.0 | The Rand Project Developers |
 | [rand_pcg](https://github.com/rust-random/rngs) | 0.10.2 | MIT OR Apache-2.0 | The Rand Project Developers |
 | [range-alloc](https://github.com/gfx-rs/range-alloc) | 0.1.5 | MIT OR Apache-2.0 | the gfx-rs Developers |
 | [rangemap](https://github.com/jeffparsons/rangemap) | 1.8.0 | MIT OR Apache-2.0 | Jeff Parsons |
@@ -842,6 +841,7 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [rten-gemm](https://github.com/robertknight/rten) | 0.26.0 | MIT OR Apache-2.0 | Robert Knight |
 | [rten-imageproc](https://github.com/robertknight/rten) | 0.26.0 | MIT OR Apache-2.0 | Robert Knight |
 | [rten-model-file](https://github.com/robertknight/rten) | 0.26.0 | MIT OR Apache-2.0 | Robert Knight |
+| [rten-onnx](https://github.com/robertknight/rten) | 0.26.0 | MIT OR Apache-2.0 | Robert Knight |
 | [rten-parallel](https://github.com/robertknight/rten) | 0.26.0 | MIT OR Apache-2.0 | Robert Knight |
 | [rten-shape-inference](https://github.com/robertknight/rten) | 0.26.0 | MIT OR Apache-2.0 | Robert Knight |
 | [rten-simd](https://github.com/robertknight/rten) | 0.26.0 | MIT OR Apache-2.0 | Robert Knight |
@@ -1070,28 +1070,28 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [utf8parse](https://github.com/alacritty/vte) | 0.2.2 | Apache-2.0 OR MIT | Joe Wilm, Christian Duerr |
 | [uuid](https://github.com/uuid-rs/uuid) | 1.28.0 | Apache-2.0 OR MIT | Ashley Mannix, Dylan DPC, Hunar Roop Kahlon |
 | [valuable](https://github.com/tokio-rs/valuable) | 0.1.1 | MIT | — |
-| [vectorcraft-affinity](https://crates.io/crates/vectorcraft-affinity) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-brush](https://crates.io/crates/vectorcraft-brush) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-cad](https://crates.io/crates/vectorcraft-cad) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-color](https://crates.io/crates/vectorcraft-color) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-doc](https://crates.io/crates/vectorcraft-doc) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-effects](https://crates.io/crates/vectorcraft-effects) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-engine](https://crates.io/crates/vectorcraft-engine) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-eps](https://crates.io/crates/vectorcraft-eps) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-format](https://crates.io/crates/vectorcraft-format) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-geom](https://crates.io/crates/vectorcraft-geom) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-mcp](https://crates.io/crates/vectorcraft-mcp) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-metafile](https://crates.io/crates/vectorcraft-metafile) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-pathops](https://crates.io/crates/vectorcraft-pathops) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-pdf](https://crates.io/crates/vectorcraft-pdf) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-plugins](https://crates.io/crates/vectorcraft-plugins) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-render](https://crates.io/crates/vectorcraft-render) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-scriptcheck](https://crates.io/crates/vectorcraft-scriptcheck) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-svg](https://crates.io/crates/vectorcraft-svg) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-text](https://crates.io/crates/vectorcraft-text) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-three-d](https://crates.io/crates/vectorcraft-three-d) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-tools](https://crates.io/crates/vectorcraft-tools) | 0.15.0 | MIT OR Apache-2.0 | — |
-| [vectorcraft-trace](https://crates.io/crates/vectorcraft-trace) | 0.15.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-affinity](https://crates.io/crates/vectorcraft-affinity) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-brush](https://crates.io/crates/vectorcraft-brush) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-cad](https://crates.io/crates/vectorcraft-cad) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-color](https://crates.io/crates/vectorcraft-color) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-doc](https://crates.io/crates/vectorcraft-doc) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-effects](https://crates.io/crates/vectorcraft-effects) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-engine](https://crates.io/crates/vectorcraft-engine) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-eps](https://crates.io/crates/vectorcraft-eps) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-format](https://crates.io/crates/vectorcraft-format) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-geom](https://crates.io/crates/vectorcraft-geom) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-mcp](https://crates.io/crates/vectorcraft-mcp) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-metafile](https://crates.io/crates/vectorcraft-metafile) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-pathops](https://crates.io/crates/vectorcraft-pathops) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-pdf](https://crates.io/crates/vectorcraft-pdf) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-plugins](https://crates.io/crates/vectorcraft-plugins) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-render](https://crates.io/crates/vectorcraft-render) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-scriptcheck](https://crates.io/crates/vectorcraft-scriptcheck) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-svg](https://crates.io/crates/vectorcraft-svg) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-text](https://crates.io/crates/vectorcraft-text) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-three-d](https://crates.io/crates/vectorcraft-three-d) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-tools](https://crates.io/crates/vectorcraft-tools) | 0.20.0 | MIT OR Apache-2.0 | — |
+| [vectorcraft-trace](https://crates.io/crates/vectorcraft-trace) | 0.20.0 | MIT OR Apache-2.0 | — |
 | [vello_common](https://github.com/linebender/vello) | 0.0.8 | Apache-2.0 OR MIT | — |
 | [vello_common](https://github.com/linebender/vello) | 0.0.9 | Apache-2.0 OR MIT | — |
 | [vello_common](https://github.com/linebender/vello) | 0.1.0 | Apache-2.0 OR MIT | — |
@@ -1232,20 +1232,20 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [winx](https://github.com/sunfishcode/winx) | 0.36.4 | Apache-2.0 WITH LLVM-exception | Jakub Konka, Dan Gohman |
 | [wit-bindgen](https://github.com/bytecodealliance/wit-bindgen) | 0.57.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | Alex Crichton |
 | [wnaf](https://github.com/RustCrypto/elliptic-curves) | 0.14.1 | Apache-2.0 OR MIT | RustCrypto Developers |
-| [wordcraft-control-key](https://crates.io/crates/wordcraft-control-key) | 0.10.0 | MIT OR Apache-2.0 | — |
-| [wordcraft-doc](https://crates.io/crates/wordcraft-doc) | 0.10.0 | MIT OR Apache-2.0 | — |
-| [wordcraft-docbin](https://crates.io/crates/wordcraft-docbin) | 0.10.0 | MIT OR Apache-2.0 | — |
-| [wordcraft-docx](https://crates.io/crates/wordcraft-docx) | 0.10.0 | MIT OR Apache-2.0 | — |
-| [wordcraft-engine](https://crates.io/crates/wordcraft-engine) | 0.10.0 | MIT OR Apache-2.0 | — |
-| [wordcraft-fonts](https://crates.io/crates/wordcraft-fonts) | 0.10.0 | MIT OR Apache-2.0 | — |
-| [wordcraft-formats](https://crates.io/crates/wordcraft-formats) | 0.10.0 | MIT OR Apache-2.0 | — |
-| [wordcraft-geom](https://crates.io/crates/wordcraft-geom) | 0.10.0 | MIT OR Apache-2.0 | — |
-| [wordcraft-layout](https://github.com/storytold/wordcraft) | 0.10.0 | MIT OR Apache-2.0 | — |
-| [wordcraft-mcp](https://crates.io/crates/wordcraft-mcp) | 0.10.0 | MIT OR Apache-2.0 | — |
-| [wordcraft-metafile](https://crates.io/crates/wordcraft-metafile) | 0.10.0 | MIT OR Apache-2.0 | — |
-| [wordcraft-pdf](https://crates.io/crates/wordcraft-pdf) | 0.10.0 | MIT OR Apache-2.0 | — |
-| [wordcraft-proof](https://crates.io/crates/wordcraft-proof) | 0.10.0 | MIT OR Apache-2.0 | — |
-| [wordcraft-render](https://crates.io/crates/wordcraft-render) | 0.10.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-control-key](https://crates.io/crates/wordcraft-control-key) | 0.14.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-doc](https://crates.io/crates/wordcraft-doc) | 0.14.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-docbin](https://crates.io/crates/wordcraft-docbin) | 0.14.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-docx](https://crates.io/crates/wordcraft-docx) | 0.14.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-engine](https://crates.io/crates/wordcraft-engine) | 0.14.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-fonts](https://crates.io/crates/wordcraft-fonts) | 0.14.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-formats](https://crates.io/crates/wordcraft-formats) | 0.14.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-geom](https://crates.io/crates/wordcraft-geom) | 0.14.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-layout](https://github.com/storytold/wordcraft) | 0.14.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-mcp](https://crates.io/crates/wordcraft-mcp) | 0.14.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-metafile](https://crates.io/crates/wordcraft-metafile) | 0.14.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-pdf](https://crates.io/crates/wordcraft-pdf) | 0.14.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-proof](https://crates.io/crates/wordcraft-proof) | 0.14.0 | MIT OR Apache-2.0 | — |
+| [wordcraft-render](https://crates.io/crates/wordcraft-render) | 0.14.0 | MIT OR Apache-2.0 | — |
 | [write-fonts](https://github.com/googlefonts/fontations) | 0.48.1 | MIT OR Apache-2.0 | — |
 | [write16](https://github.com/hsivonen/write16) | 1.0.0 | Apache-2.0 OR MIT | — |
 | [writeable](https://github.com/unicode-org/icu4x) | 0.6.4 | Unicode-3.0 | The ICU4X Project Developers |
@@ -1295,6 +1295,7 @@ crate's own manifest; see the crate's repository for the full licence text.
 | [zune-inflate](https://crates.io/crates/zune-inflate) | 0.2.54 | MIT OR Apache-2.0 OR Zlib | — |
 | [zune-jpeg](https://github.com/etemesi254/zune-image/tree/dev/crates/zune-jpeg) | 0.4.21 | MIT OR Apache-2.0 OR Zlib | caleb |
 | [zune-jpeg](https://github.com/etemesi254/zune-image/tree/dev/crates/zune-jpeg) | 0.5.15 | MIT OR Apache-2.0 OR Zlib | caleb |
+| [zune-jpegxl](https://github.com/etemesi254/zune-image/tree/dev/crates/zune-jpegxl) | 0.5.2 | MIT OR Apache-2.0 OR Zlib | caleb |
 | [zvariant](https://github.com/z-galaxy/zbus/) | 5.15.1 | MIT | Zeeshan Ali Khan |
 | [zvariant_derive](https://github.com/z-galaxy/zbus/) | 5.15.1 | MIT | Zeeshan Ali Khan |
 | [zvariant_utils](https://github.com/z-galaxy/zbus/) | 4.2.0 | MIT | Zeeshan Ali Khan, turbocooler |

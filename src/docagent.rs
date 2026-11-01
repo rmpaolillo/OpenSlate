@@ -352,7 +352,8 @@ fn allowed(kind: Kind, name: &str) -> bool {
                 | "content_list" | "content_update" | "content_delete" | "object_list" | "object_move" | "comment_list" | "comment_edit"
                 | "comment_delete" | "comment_reply" | "link_list" | "link_add" | "page_insert_blank" | "page_delete" | "page_rotate"
                 | "page_move" | "page_duplicate" | "page_number" | "doc_watermark" | "doc_background" | "edit_undo" | "edit_redo"
-                | "command_list" | "command_run" | "command_batch"
+                // niente comandi generici (command_*): da lì si arriva a tutti i comandi di PdfCraft,
+                // anche a quelli che qui non si offrono (JavaScript, password, firma digitale…)
                 // i moduli: leggere e compilare i campi, crearli nei moduli stampati, scrivere dove non ce ne sono
                 | "form_fields" | "form_fill" | "form_reset" | "form_detect_fields" | "fill_sign_add"
         ),
@@ -1208,6 +1209,15 @@ mod e2e {
             let pngs = crate::docimport::render_pages(&firmato, &Path::new(&o).join("modulo"), 1200).unwrap();
             std::fs::copy(&pngs[0], format!("{o}/modulo.png")).unwrap();
         }
+    }
+
+    #[test]
+    fn pdf_senza_comandi_generici() {
+        for n in ["command_list", "command_run", "command_batch"] {
+            assert!(!allowed(Kind::Pdf, n), "{n}");
+            assert!(allowed(Kind::Photo, n), "{n}");
+        }
+        assert!(allowed(Kind::Pdf, "text_edit"));
     }
 
     fn import(src: &Path) -> DocRef {
