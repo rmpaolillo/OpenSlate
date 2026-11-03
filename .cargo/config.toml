@@ -9,3 +9,7 @@ GGML_AVX2 = "ON"
 GGML_FMA = "ON"
 GGML_F16C = "ON"
 GGML_BMI2 = "ON"
+
+# I dati di lingua di WordCraft (sillabazione e dizionari, dalla 0.15 in craft-i18n): li legge
+# craft-proof durante la compilazione. Copia fissa in vendor/craft-i18n (vedi vendor/README.md).
+CRAFT_I18N_DIR = { value = "vendor/craft-i18n", relative = true }

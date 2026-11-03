@@ -69,6 +69,15 @@ Third-party material
   ArtCraft Team and the PdfCraft contributors, MIT OR Apache-2.0: copied in vendor/pdfcraft-render
   with a small change so it builds against the hayro of craft-libs (see vendor/README.md).
 
+- Language data of craft-i18n (https://github.com/storytold/craft-i18n, language-data/), copied
+  unmodified in vendor/craft-i18n and embedded by WordCraft's proofing (craft-proof): the Moby
+  Hyphenator II word list (Grady Ward, public domain), US English hyphenation patterns
+  (DesignCraft contributors, CC0-1.0), SCOWL dictionaries (Kevin Atkinson, SCOWL licence, with
+  Geoff Kuenning's Ispell affix files, BSD), hyph-utf8 TeX hyphenation patterns for German,
+  Italian and Polish (MIT) and Portuguese (BSD-3-Clause), and WordCraft's word lists (MIT OR
+  Apache-2.0). Authors and licences of every file: vendor/craft-i18n/ATTRIBUTION.md; licence
+  texts beside the files.
+
 - hayro-svg 0.7.0 (https://github.com/LaurenzV/hayro), Copyright (c) Laurenz Stampfl, MIT OR
   Apache-2.0: copied in vendor/hayro-svg with a small change for the same hayro (see
   vendor/README.md).
