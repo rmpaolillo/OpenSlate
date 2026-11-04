@@ -1,8 +1,8 @@
-# Copia di crates/layout di WordCraft (b47079fc791595fd84bb499d64dcd3f0624ef35a, 0.15.0), con le dipendenze del workspace
+# Copia di crates/layout di WordCraft (08afab50b6a1ed19f9af55bb9f74d18f5e17bfa0, 0.15.1), con le dipendenze del workspace
 # scritte per esteso. Modifica di OpenSlate: vedi vendor/README.md.
 [package]
 name = "wordcraft-layout"
-version = "0.15.0"
+version = "0.15.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"
@@ -13,11 +13,11 @@ description = "WordCraft layout: shaping, line breaking, tabs, lists, tables, pa
 unsafe_code = "forbid"
 
 [dependencies]
-wordcraft-geom = { git = "https://github.com/storytold/wordcraft", rev = "b47079fc791595fd84bb499d64dcd3f0624ef35a", features = ["image"] }
-wordcraft-doc = { git = "https://github.com/storytold/wordcraft", rev = "b47079fc791595fd84bb499d64dcd3f0624ef35a" }
-wordcraft-fonts = { git = "https://github.com/storytold/wordcraft", rev = "b47079fc791595fd84bb499d64dcd3f0624ef35a" }
-wordcraft-proof = { package = "craft-proof", git = "https://github.com/storytold/craft-libs", rev = "89fa1559e94378ecef85cd7e4681400f4df053e0", version = "=0.1.0" }
-wordcraft-metafile = { git = "https://github.com/storytold/wordcraft", rev = "b47079fc791595fd84bb499d64dcd3f0624ef35a" }
+wordcraft-geom = { git = "https://github.com/storytold/wordcraft", rev = "08afab50b6a1ed19f9af55bb9f74d18f5e17bfa0", features = ["image"] }
+wordcraft-doc = { git = "https://github.com/storytold/wordcraft", rev = "08afab50b6a1ed19f9af55bb9f74d18f5e17bfa0" }
+wordcraft-fonts = { git = "https://github.com/storytold/wordcraft", rev = "08afab50b6a1ed19f9af55bb9f74d18f5e17bfa0" }
+wordcraft-proof = { package = "craft-proof", git = "https://github.com/storytold/craft-libs", rev = "01315d9c92b5b0e69082d35ca56099461a1efd45", version = "=0.1.0" }
+wordcraft-metafile = { git = "https://github.com/storytold/wordcraft", rev = "08afab50b6a1ed19f9af55bb9f74d18f5e17bfa0" }
 kurbo = { version = "0.13", features = ["serde"] }
 unicode-bidi = "0.3"
 unicode-linebreak = "0.1"

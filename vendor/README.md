@@ -20,7 +20,7 @@ Da crates.io, con una sola modifica in `src/glyph.rs`: la versione di hayro dell
 ha in più il modo `GlyphDrawMode::Clip`, che non disegna niente e qui si tratta come `Invisible`.
 Serve solo a far compilare `typst-svg` (vedi sopra): OpenSlate non esporta immagini PDF con Typst.
 
-## pdfcraft-render (PdfCraft 3936f93, 0.18.0, MIT OR Apache-2.0)
+## pdfcraft-render (PdfCraft 8bb0528, 0.18.1, MIT OR Apache-2.0)
 
 `crates/render` di https://github.com/storytold/pdfcraft, con le dipendenze del workspace scritte
 per esteso e due modifiche in `src/raster.rs`: tolto il caso `InterpreterWarning::ColorFallback` e
@@ -31,7 +31,7 @@ VectorCraft (per l'API degli inchiostri), che però non ha questo avviso di PdfC
 OpenSlate non riceve l'avviso «colore sostituito» su una pagina PDF e non ha il tetto di lavoro per
 pagina sulle immagini JBIG2 (aggiunto in PdfCraft 0.18); il disegno è quello di craft-libs. Da togliere quando PdfCraft e craft-libs useranno lo stesso hayro.
 
-## craft-i18n (dati di lingua, 059cbf9, Apache-2.0 / MIT e licenze dei singoli file)
+## craft-i18n (dati di lingua, 9d6d54d, Apache-2.0 / MIT e licenze dei singoli file)
 
 `language-data/` di https://github.com/storytold/craft-i18n, senza modifiche: solo i file che
 craft-proof (il controllo ortografico e la sillabazione di WordCraft) include durante la
@@ -43,7 +43,7 @@ andrebbero a capo in un altro punto). Autori e licenze di ogni file: `ATTRIBUTIO
 pattern inglesi di pubblico dominio, SCOWL, pattern TeX MIT o BSD-3-Clause). Quando si aggiorna
 WordCraft: ricopiare i file alla revisione di `craft-i18n.rev` del suo repository.
 
-## wordcraft-layout (WordCraft b47079f, 0.15.0, MIT OR Apache-2.0)
+## wordcraft-layout (WordCraft 08afab5, 0.15.1, MIT OR Apache-2.0)
 
 `crates/layout` di https://github.com/storytold/wordcraft, con le dipendenze del workspace
 scritte per esteso in `Cargo.toml` e due modifiche (`src/para/lines.rs`, `src/display/lines.rs`): un'immagine

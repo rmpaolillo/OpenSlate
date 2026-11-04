@@ -265,9 +265,9 @@ u*b anemia anaemia
 u*b anemic anaemic
 u*b anesthesia anaesthesia
 u*b anesthetic anaesthetic
-*** encyclopedia encyclopaedia
 # Both everywhere: "judgment" is also British legal usage, and American dictionaries list
-# "judgement" as a variant.
+# "judgement" as a variant; SCOWL size 60 has only "encyclopedia".
+*** encyclopedia encyclopaedia
 *** judgment judgement
 *** judgmental judgemental
 **b archeology archaeology

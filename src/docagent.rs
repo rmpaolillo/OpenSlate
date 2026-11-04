@@ -666,11 +666,12 @@ fn edit_file(doc: &DocRef, bytes: &[u8]) -> Result<u64> {
 /// appunti delle app Craft sono loro, non quelli del sistema.)
 fn command_outside_document(id: &str) -> bool {
     const PREFIXES: [&str; 4] = ["file.", "app.", "help.", "document.open"];
-    const WORDS: [&str; 25] = [
+    const WORDS: [&str; 26] = [
         "export", "import", "print", "plugin", "plugins", "script", "scripts", "macro", "macros", "preferences", "settings", "recent",
         "clipboard", "template", "templates", "mailings", "install", "website", "save", "browser", "url", "email", "share",
-        // i pacchetti di lingua dell'app (proof.packs, proof.removePack…)
-        "pack", "packs",
+        // i pacchetti di lingua dell'app (proof.packs, proof.removePack…) e la lingua predefinita
+        // salvata per i documenti nuovi (review.language.preferred)
+        "pack", "packs", "preferred",
     ];
     // un preset si può usare, non creare, cambiare o cancellare (sono dell'app)
     const PRESET_CHANGES: [&str; 10] = ["new", "delete", "rename", "edit", "move", "reset", "update", "migrate", "manager", "define"];
@@ -1215,10 +1216,11 @@ mod e2e {
 
     #[test]
     fn pacchetti_di_lingua_bloccati() {
-        for c in ["proof.packs", "proof.removePack", "proof.installPack"] {
+        for c in ["proof.packs", "proof.removePack", "proof.installPack", "review.language.preferred"] {
             assert!(command_outside_document(c), "{c}");
         }
         assert!(!command_outside_document("proof.spelling"));
+        assert!(!command_outside_document("review.language"));
     }
 
     #[test]
