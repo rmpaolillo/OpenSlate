@@ -659,19 +659,23 @@ fn edit_file(doc: &DocRef, bytes: &[u8]) -> Result<u64> {
 
 /// Un comando delle app Craft che esce dal documento: apre, salva o esporta file,
 /// stampa, tocca le preferenze dell'app o ne cambia i preset, i plugin, gli
-/// script e le macro, la stampa unione, il sito web.
+/// script e le macro (anche le Azioni), le scorciatoie da tastiera, i
+/// pacchetti di lingua, la stampa unione, il sito web.
 /// Le app aggiungono comandi a ogni versione: si guarda ogni parola del nome
 /// (anche dentro il camelCase: `layer.quickExportAsPng`, `tools.recordMacro`),
 /// non un elenco di comandi. (Copia e incolla restano: dentro OpenSlate gli
 /// appunti delle app Craft sono loro, non quelli del sistema.)
 fn command_outside_document(id: &str) -> bool {
-    const PREFIXES: [&str; 4] = ["file.", "app.", "help.", "document.open"];
-    const WORDS: [&str; 26] = [
+    // le Azioni (macro) delle app: eseguirle farebbe passare passi che il filtro non vede
+    const PREFIXES: [&str; 6] = ["file.", "app.", "help.", "document.open", "actions.", "action."];
+    const WORDS: [&str; 31] = [
         "export", "import", "print", "plugin", "plugins", "script", "scripts", "macro", "macros", "preferences", "settings", "recent",
         "clipboard", "template", "templates", "mailings", "install", "website", "save", "browser", "url", "email", "share",
         // i pacchetti di lingua dell'app (proof.packs, proof.removePack…) e la lingua predefinita
         // salvata per i documenti nuovi (review.language.preferred)
         "pack", "packs", "preferred",
+        // scorciatoie da tastiera e barra multifunzione dell'app
+        "keyboard", "shortcut", "shortcuts", "customize", "ribbon",
     ];
     // un preset si può usare, non creare, cambiare o cancellare (sono dell'app)
     const PRESET_CHANGES: [&str; 10] = ["new", "delete", "rename", "edit", "move", "reset", "update", "migrate", "manager", "define"];
@@ -1211,6 +1215,20 @@ mod e2e {
         if let Ok(o) = std::env::var("E2E_OUT") {
             let pngs = crate::docimport::render_pages(&firmato, &Path::new(&o).join("modulo"), 1200).unwrap();
             std::fs::copy(&pngs[0], format!("{o}/modulo.png")).unwrap();
+        }
+    }
+
+    #[test]
+    fn azioni_e_tastiera_bloccate() {
+        for c in [
+            "actions.play", "actions.record", "actions.insert", "actions.load", "actions.newSet", "action.batch",
+            "tools.customizeKeyboard", "tools.customizeRibbon", "edit.keyboardShortcuts", "shortcutSet.read",
+        ] {
+            assert!(command_outside_document(c), "{c}");
+        }
+        // restano i comandi sul documento con parole simili
+        for c in ["equation.structureActions", "type.openType.fractions", "type.fractionalWidths"] {
+            assert!(!command_outside_document(c), "{c}");
         }
     }
 
