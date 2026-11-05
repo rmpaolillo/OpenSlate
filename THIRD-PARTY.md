@@ -51,7 +51,7 @@ Per-file attributions are in [NOTICE](NOTICE). The release packages also contain
 - **All systems**: the system's Chinese/Japanese/Korean font (PingFang, Hiragino, Apple SD Gothic Neo, Microsoft YaHei, Yu Gothic, Malgun Gothic, Noto Sans CJK…) when the interface is in one of those languages.
 - **All systems**: the microphone through the system's audio (CoreAudio on macOS, WASAPI on Windows, ALSA on Linux) for the voice in the AI chat, only while dictating.
 - **Linux**: BlueZ (via D-Bus), GTK 3 (also for the system dialogs), WebKitGTK. For the MP4 video export: `ffmpeg` if installed, otherwise the [OpenH264](https://www.openh264.org) library downloaded from Cisco on first use, with the user's consent (not bundled; checked against its SHA-256). *OpenH264 Video Codec provided by Cisco Systems, Inc.* ([licence](https://www.openh264.org/BINARY_LICENSE.txt)).
-- **Windows**: WinRT Bluetooth, WebView2, Media Foundation (the MP4 video export).
+- **Windows**: WinRT Bluetooth, WebView2, Media Foundation (the MP4 video export). The Windows package also carries the Microsoft Visual C++ runtime DLLs the program needs (`vcruntime140.dll`, `vcruntime140_1.dll`…), redistributed beside the program as Microsoft's Visual Studio licence allows, so it starts on PCs without the Visual C++ Redistributable.
 
 ## Rust crates
 

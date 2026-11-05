@@ -315,12 +315,35 @@ jobs:
           PYTHONUTF8: "1"
         run: python packaging/collect_licenses.py build/THIRD-PARTY-LICENSES.txt
 
+      # Il runtime di Visual C++ (vcruntime140.dll, vcruntime140_1.dll, msvcp140.dll…) accanto
+      # all'exe, come Microsoft permette ("app-local"): molti PC non lo hanno installato e senza
+      # l'app non parte ("VCRUNTIME140_1.dll non è stato trovato"). Si copiano le DLL che l'exe
+      # importa davvero, dalla cartella dei file ridistribuibili di Visual Studio.
+      - name: Visual C++ runtime
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $dumpbin = & $vswhere -latest -products * -find "VC\Tools\MSVC\**\bin\Hostx64\x64\dumpbin.exe" | Select-Object -First 1
+          $crt = & $vswhere -latest -products * -find "VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT" | Sort-Object | Select-Object -Last 1
+          if (-not $dumpbin -or -not $crt) { throw "dumpbin o la cartella del runtime non trovati" }
+          Write-Host "runtime da: $crt"
+          $deps = & $dumpbin /nologo /dependents target/release/openslate.exe |
+            ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^(vcruntime|msvcp|concrt|vccorlib)\d.*\.dll$' }
+          Write-Host "DLL del runtime importate: $($deps -join ', ')"
+          New-Item -ItemType Directory -Force -Path build/vcrt | Out-Null
+          foreach ($dll in $deps) {
+            $src = Join-Path $crt $dll
+            if (-not (Test-Path $src)) { throw "$dll non è fra i file ridistribuibili in $crt" }
+            Copy-Item $src build/vcrt/
+          }
+
       - name: zip
         shell: pwsh
         run: |
           $d = "openslate-$env:VERSION-windows-x86_64"
           New-Item -ItemType Directory -Force -Path "build/$d", dist | Out-Null
           Copy-Item target/release/openslate.exe, README.md, LICENSE, NOTICE, THIRD-PARTY.md, build/THIRD-PARTY-LICENSES.txt, assets/icon/openslate.ico "build/$d/"
+          Get-ChildItem build/vcrt -Filter *.dll | Copy-Item -Destination "build/$d/"
           Compress-Archive -Path "build/$d" -DestinationPath "dist/$d.zip"
 
       - uses: actions/upload-artifact@v5

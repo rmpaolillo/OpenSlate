@@ -133,6 +133,10 @@ Third-party material
   from huggingface.co/ggerganov/whisper.cpp the first time the user dictates, with their consent,
   and kept only if its SHA-1 matches the one published by whisper.cpp.
 
+- Windows package: the Microsoft Visual C++ runtime DLLs (vcruntime140.dll, vcruntime140_1.dll
+  and, if the program needs it, msvcp140.dll), Copyright (c) Microsoft Corporation, redistributed
+  unmodified beside openslate.exe under the Visual Studio licence terms for Redistributable Code.
+
 The full licence texts of all components are in THIRD-PARTY-LICENSES.txt in the release
 packages (packaging/collect_licenses.py).
 
