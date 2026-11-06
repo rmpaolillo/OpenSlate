@@ -20,7 +20,7 @@ Da crates.io, con una sola modifica in `src/glyph.rs`: la versione di hayro dell
 ha in più il modo `GlyphDrawMode::Clip`, che non disegna niente e qui si tratta come `Invisible`.
 Serve solo a far compilare `typst-svg` (vedi sopra): OpenSlate non esporta immagini PDF con Typst.
 
-## pdfcraft-render (PdfCraft 8bb0528, 0.18.1, MIT OR Apache-2.0)
+## pdfcraft-render (PdfCraft 7faa4f3, 0.18.2, MIT OR Apache-2.0)
 
 `crates/render` di https://github.com/storytold/pdfcraft, con le dipendenze del workspace scritte
 per esteso e due modifiche in `src/raster.rs`: tolto il caso `InterpreterWarning::ColorFallback` e
@@ -42,15 +42,3 @@ da craft-i18n, e senza diventa solo inglese e senza sillabazione (le righe dei d
 andrebbero a capo in un altro punto). Autori e licenze di ogni file: `ATTRIBUTION.md` (Moby e
 pattern inglesi di pubblico dominio, SCOWL, pattern TeX MIT o BSD-3-Clause). Quando si aggiorna
 WordCraft: ricopiare i file alla revisione di `craft-i18n.rev` del suo repository.
-
-## wordcraft-layout (WordCraft 08afab5, 0.15.1, MIT OR Apache-2.0)
-
-`crates/layout` di https://github.com/storytold/wordcraft, con le dipendenze del workspace
-scritte per esteso in `Cargo.toml` e due modifiche (`src/para/lines.rs`, `src/display/lines.rs`): un'immagine
-nel testo segue la «posizione» del carattere (alzata o abbassata), come in Word. Così le formule
-dei Markdown, che sono immagini disegnate da Typst, stanno sulla riga di base del testo anche
-quando scendono sotto (f(x), y, le frazioni…). Senza la modifica WordCraft appoggia sempre
-l'immagine sulla riga e la formula sale.
-
-Le immagini senza posizione (tutte quelle dei documenti Word normali) restano come prima. La
-modifica è adatta a essere proposta a WordCraft.

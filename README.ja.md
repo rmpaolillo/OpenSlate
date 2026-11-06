@@ -353,7 +353,7 @@ src/charts.rs, src/typstworld.rs, src/typst-pkg/          chat charts (Typst + L
 src/docagent.rs, src/boardagent.rs, src/mcpclient.rs      chat edits documents (Craft MCP servers), notes and the board sheet; external MCP servers
 src/boardread.rs, src/boardmarks.rs, src/handwrite.rs     the chat reads the board (lines, words) and marks it; handwriting from Hershey fonts
 src/libagent.rs, src/ui/chat_lib.rs                       the chat on the page library (search, open, save, rename, export, trash)
-vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
+vendor/                                                   copies of libraries with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
@@ -416,7 +416,7 @@ OpenSlate は、以下のプロジェクトとその作者なしには存在し�
 - ArtCraft Team とコントリビューターによる **Craft スイート**（MIT OR Apache-2.0）。インターフェースを除いた
   ライブラリとして使用しています。
   - **[WordCraft](https://github.com/storytold/wordcraft)**: Word 文書（および Markdown）をインク付きで開き、レイアウトし、保存します。
-    Word 風のインターフェースはその egui UI を元にしています。レイアウト用のクレートは小さな変更を加えて `vendor/` にコピーしています。
+    Word 風のインターフェースはその egui UI を元にしています。
   - **[PdfCraft](https://github.com/storytold/pdfcraft)**: PDF のページをどのズーム倍率でも鮮明に描画し、
     テキストを抽出し、署名済みのコピーを保存します。
   - **[VectorCraft](https://github.com/storytold/vectorcraft)**: SVG 画像をインク付きで開いて保存し、

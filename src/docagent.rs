@@ -668,7 +668,7 @@ fn edit_file(doc: &DocRef, bytes: &[u8]) -> Result<u64> {
 fn command_outside_document(id: &str) -> bool {
     // le Azioni (macro) delle app: eseguirle farebbe passare passi che il filtro non vede
     const PREFIXES: [&str; 6] = ["file.", "app.", "help.", "document.open", "actions.", "action."];
-    const WORDS: [&str; 31] = [
+    const WORDS: [&str; 33] = [
         "export", "import", "print", "plugin", "plugins", "script", "scripts", "macro", "macros", "preferences", "settings", "recent",
         "clipboard", "template", "templates", "mailings", "install", "website", "save", "browser", "url", "email", "share",
         // i pacchetti di lingua dell'app (proof.packs, proof.removePack…) e la lingua predefinita
@@ -676,6 +676,8 @@ fn command_outside_document(id: &str) -> bool {
         "pack", "packs", "preferred",
         // scorciatoie da tastiera e barra multifunzione dell'app
         "keyboard", "shortcut", "shortcuts", "customize", "ribbon",
+        // lavori su intere cartelle di file (addon.document.batchTraceFolder)
+        "folder", "folders",
     ];
     // un preset si può usare, non creare, cambiare o cancellare (sono dell'app)
     const PRESET_CHANGES: [&str; 10] = ["new", "delete", "rename", "edit", "move", "reset", "update", "migrate", "manager", "define"];
@@ -1223,11 +1225,12 @@ mod e2e {
         for c in [
             "actions.play", "actions.record", "actions.insert", "actions.load", "actions.newSet", "action.batch",
             "tools.customizeKeyboard", "tools.customizeRibbon", "edit.keyboardShortcuts", "shortcutSet.read",
+            "addon.document.batchTraceFolder",
         ] {
             assert!(command_outside_document(c), "{c}");
         }
         // restano i comandi sul documento con parole simili
-        for c in ["equation.structureActions", "type.openType.fractions", "type.fractionalWidths"] {
+        for c in ["equation.structureActions", "type.openType.fractions", "type.fractionalWidths", "command.batch"] {
             assert!(!command_outside_document(c), "{c}");
         }
     }

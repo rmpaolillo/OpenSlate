@@ -355,7 +355,7 @@ src/handwrite.rs  testo a mano coi caratteri di Hershey a filo singolo (src/hand
 src/libagent.rs   la chat sull'archivio: cerca (anche nelle trascrizioni), guarda, apri, salva, rinomina, esporta, cestino
 src/ui/chat_lib.rs le richieste della chat all'archivio, fatte dall'interfaccia
 src/mcpclient.rs  server MCP esterni da ai.toml ([[mcp]], trasporto stdio)
-vendor/           copie di librerie di Typst e WordCraft con piccole modifiche (vendor/README.md)
+vendor/           copie di librerie con piccole modifiche (vendor/README.md)
 src/rasign.rs     foto (PNG, JPEG…): pagine e firma con le librerie di PhotoCraft
 src/vecsign.rs    SVG: pagine e firma col motore di VectorCraft
 src/i18n.rs       lingue: il testo italiano è la chiave, tabelle in src/i18n/<codice>.json
@@ -397,7 +397,6 @@ Test: `cargo test`.
 - La suite Craft (© ArtCraft Team e contributori, MIT OR Apache-2.0), usata come librerie a una
   versione fissa (vedi `Cargo.toml`), senza le loro interfacce:
   - [WordCraft](https://github.com/storytold/wordcraft): apre, impagina e salva i Word (e i Markdown) con l'inchiostro;
-    la sua impaginazione è copiata in `vendor/` con una piccola modifica;
   - [PdfCraft](https://github.com/storytold/pdfcraft): pagine PDF nitide a ogni zoom, testo, copia firmata;
   - [VectorCraft](https://github.com/storytold/vectorcraft): SVG con l'inchiostro ed export della lavagna e dell'archivio (PDF, SVG, PNG);
   - [PhotoCraft](https://github.com/storytold/photocraft): foto (PNG, JPEG, WebP, TIFF…) con profilo colore e misure, e l'inchiostro dipinto sopra;

@@ -405,7 +405,7 @@ src/charts.rs, src/typstworld.rs, src/typst-pkg/          chat charts (Typst + L
 src/docagent.rs, src/boardagent.rs, src/mcpclient.rs      chat edits documents (Craft MCP servers), notes and the board sheet; external MCP servers
 src/boardread.rs, src/boardmarks.rs, src/handwrite.rs     the chat reads the board (lines, words) and marks it; handwriting from Hershey fonts
 src/libagent.rs, src/ui/chat_lib.rs                       the chat on the page library (search, open, save, rename, export, trash)
-vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
+vendor/                                                   copies of libraries with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
@@ -471,7 +471,6 @@ OpenSlate no existiría sin estos proyectos y sus autores:
   bibliotecas sin sus interfaces:
   - **[WordCraft](https://github.com/storytold/wordcraft)**: abre, compone y guarda documentos
     Word (y Markdown) con la tinta; la interfaz al estilo de Word está adaptada de su UI en egui;
-    su crate de maquetación está copiado en `vendor/` con un pequeño cambio;
   - **[PdfCraft](https://github.com/storytold/pdfcraft)**: renderiza las páginas PDF nítidas con cualquier zoom,
     extrae su texto y guarda la copia firmada;
   - **[VectorCraft](https://github.com/storytold/vectorcraft)**: abre y guarda imágenes SVG con

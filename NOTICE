@@ -60,11 +60,6 @@ Third-party material
   mitex crate converts LaTeX formulas to Typst; the Typst definitions of its package are
   bundled unmodified in src/typst-pkg/mitex-specs/ (licence there).
 
-- WordCraft layout (crates/layout of https://github.com/storytold/wordcraft), Copyright (c) 2026
-  ArtCraft Team and the WordCraft contributors, MIT OR Apache-2.0: copied in
-  vendor/wordcraft-layout with a small change so inline pictures follow the character position
-  (see vendor/README.md).
-
 - PdfCraft renderer (crates/render of https://github.com/storytold/pdfcraft), Copyright (c) 2026
   ArtCraft Team and the PdfCraft contributors, MIT OR Apache-2.0: copied in vendor/pdfcraft-render
   with a small change so it builds against the hayro of craft-libs (see vendor/README.md).

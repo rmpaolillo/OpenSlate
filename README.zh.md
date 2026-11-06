@@ -345,7 +345,7 @@ src/charts.rs, src/typstworld.rs, src/typst-pkg/          chat charts (Typst + L
 src/docagent.rs, src/boardagent.rs, src/mcpclient.rs      chat edits documents (Craft MCP servers), notes and the board sheet; external MCP servers
 src/boardread.rs, src/boardmarks.rs, src/handwrite.rs     the chat reads the board (lines, words) and marks it; handwriting from Hershey fonts
 src/libagent.rs, src/ui/chat_lib.rs                       the chat on the page library (search, open, save, rename, export, trash)
-vendor/                                                   copies of Typst and WordCraft crates with small changes (see vendor/README.md)
+vendor/                                                   copies of libraries with small changes (see vendor/README.md)
 src/i18n.rs, src/i18n/*.json, src/web/i18n.js             interface languages (Italian text is the key)
 src/platform.rs                                           OS differences (data folder, open files)
 src/formats.rs, src/mdconv.rs                             export formats: searchable PDF, Word ink, Xournal++, animations, LaTeX and Typst
@@ -406,7 +406,7 @@ Developer ID Application 证书（Apple Developer Program，按年付费）。�
   SmartPad 系列的蓝牙协议是根据他们的逆向工程成果移植而来的。
 - Craft 套件，由 ArtCraft Team 及贡献者开发（MIT OR Apache-2.0），作为库使用，不含其界面：
   - [WordCraft](https://github.com/storytold/wordcraft)：打开、排版并保存带墨迹的 Word 文档（以及 Markdown）；
-    类似 Word 的界面改编自它的 egui UI；它的排版 crate 经少量修改后复制在 `vendor/` 中；
+    类似 Word 的界面改编自它的 egui UI；
   - [PdfCraft](https://github.com/storytold/pdfcraft)：在任何缩放比例下清晰渲染 PDF 页面，
     提取其文字并保存签名后的副本；
   - [VectorCraft](https://github.com/storytold/vectorcraft)：打开并保存带墨迹的 SVG 图片，
