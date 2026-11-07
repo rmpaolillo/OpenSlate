@@ -683,9 +683,15 @@ fn command_outside_document(id: &str) -> bool {
     const PRESET_CHANGES: [&str; 10] = ["new", "delete", "rename", "edit", "move", "reset", "update", "migrate", "manager", "define"];
     // una selezione salvata resta nel documento
     const INSIDE: [&str; 2] = ["select.save", "select.saveselection"];
+    // comandi precisi che leggono file senza il controllo della cartella: PhotoCraft
+    // copia nella foto i file collegati leggendo il percorso salvato nella foto stessa
+    const OUTSIDE: [&str; 1] = ["layer.smartobjects.embedalllinked"];
     let lower = id.trim().to_ascii_lowercase();
     if INSIDE.contains(&lower.as_str()) {
         return false;
+    }
+    if OUTSIDE.contains(&lower.as_str()) {
+        return true;
     }
     if PREFIXES.iter().any(|p| lower.starts_with(p)) {
         return true;
@@ -1225,12 +1231,12 @@ mod e2e {
         for c in [
             "actions.play", "actions.record", "actions.insert", "actions.load", "actions.newSet", "action.batch",
             "tools.customizeKeyboard", "tools.customizeRibbon", "edit.keyboardShortcuts", "shortcutSet.read",
-            "addon.document.batchTraceFolder",
+            "addon.document.batchTraceFolder", "layer.smartObjects.embedAllLinked",
         ] {
             assert!(command_outside_document(c), "{c}");
         }
         // restano i comandi sul documento con parole simili
-        for c in ["equation.structureActions", "type.openType.fractions", "type.fractionalWidths", "command.batch"] {
+        for c in ["equation.structureActions", "type.openType.fractions", "type.fractionalWidths", "command.batch", "layer.layerMask.linked"] {
             assert!(!command_outside_document(c), "{c}");
         }
     }

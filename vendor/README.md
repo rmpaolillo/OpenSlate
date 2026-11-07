@@ -20,7 +20,7 @@ Da crates.io, con una sola modifica in `src/glyph.rs`: la versione di hayro dell
 ha in più il modo `GlyphDrawMode::Clip`, che non disegna niente e qui si tratta come `Invisible`.
 Serve solo a far compilare `typst-svg` (vedi sopra): OpenSlate non esporta immagini PDF con Typst.
 
-## pdfcraft-render (PdfCraft 7faa4f3, 0.18.2, MIT OR Apache-2.0)
+## pdfcraft-render (PdfCraft 8c57279, 0.19.0, MIT OR Apache-2.0)
 
 `crates/render` di https://github.com/storytold/pdfcraft, con le dipendenze del workspace scritte
 per esteso e due modifiche in `src/raster.rs`: tolto il caso `InterpreterWarning::ColorFallback` e
@@ -31,7 +31,7 @@ VectorCraft (per l'API degli inchiostri), che però non ha questo avviso di PdfC
 OpenSlate non riceve l'avviso «colore sostituito» su una pagina PDF e non ha il tetto di lavoro per
 pagina sulle immagini JBIG2 (aggiunto in PdfCraft 0.18); il disegno è quello di craft-libs. Da togliere quando PdfCraft e craft-libs useranno lo stesso hayro.
 
-## craft-i18n (dati di lingua, 9d6d54d, Apache-2.0 / MIT e licenze dei singoli file)
+## craft-i18n (dati di lingua, 1e51542, Apache-2.0 / MIT e licenze dei singoli file)
 
 `language-data/` di https://github.com/storytold/craft-i18n, senza modifiche: solo i file che
 craft-proof (il controllo ortografico e la sillabazione di WordCraft) include durante la
