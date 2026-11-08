@@ -279,6 +279,27 @@ pub fn compact_from_json(body: &[u8]) -> Value {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn qr_per_il_telefono() {
+        let list: Vec<crate::aisync::SyncProvider> = (0..6)
+            .map(|i| crate::aisync::SyncProvider {
+                name: format!("Servizio {i}"),
+                url: format!("https://api.esempio{i}.com/v1"),
+                model: "un-modello-abbastanza-lungo-8b".into(),
+                key: "sk-0123456789abcdef0123456789abcdef0123456789abcdef".into(),
+                vision: true,
+                enabled: true,
+                no_temperature: false,
+                max_tokens: None,
+                timeout_s: 180,
+            })
+            .collect();
+        // anche con sei servizi e le chiavi il QR si disegna
+        let svg = qr_svg(&crate::aisync::encode(&list)).unwrap();
+        assert!(svg.starts_with("<?xml") || svg.contains("<svg"));
+    }
+
     use super::*;
 
     #[test]
@@ -288,4 +309,47 @@ mod tests {
         assert_eq!(shown_key("env:A | sk-segreta"), HIDDEN);
         assert_eq!(keychain_name("Mac Studio · MTPLX"), "WACOM_AI_MAC_STUDIO_MTPLX_KEY");
     }
+}
+
+/// Il QR code (SVG) di un testo.
+fn qr_svg(text: &str) -> Result<String, String> {
+    let code = qrcode::QrCode::with_error_correction_level(text.as_bytes(), qrcode::EcLevel::L).map_err(|e| format!("QR: {e}"))?;
+    Ok(code.render::<qrcode::render::svg::Color>().min_dimensions(360, 360).quiet_zone(true).build())
+}
+
+/// Il QR code con i servizi AI per l'app sul telefono (`POST
+/// /api/config/phone`, solo dal Mac): le chiavi sono quelle vere (dal
+/// Portachiavi, dalle variabili d'ambiente…), «localhost» diventa l'indirizzo
+/// del Mac sulla rete di casa. Vedi `aisync`.
+pub fn phone_qr() -> Value {
+    let cfg = match AiConfig::load() {
+        Ok(c) => c,
+        Err(e) => return json!({ "ok": false, "error": e.to_string() }),
+    };
+    let ip = crate::web::lan_ip();
+    let list: Vec<crate::aisync::SyncProvider> = cfg
+        .providers
+        .iter()
+        .map(|p| crate::aisync::SyncProvider {
+            name: p.name.clone(),
+            url: crate::aisync::for_phone(&p.url, ip),
+            model: if p.model.trim().is_empty() { p.vision_model.clone() } else { p.model.clone() },
+            key: ai::resolve_key(&p.key).unwrap_or_default(),
+            vision: p.vision,
+            enabled: p.enabled,
+            no_temperature: p.no_temperature,
+            max_tokens: p.max_tokens,
+            timeout_s: p.timeout_s as u32,
+        })
+        .collect();
+    if list.is_empty() {
+        return json!({ "ok": false, "error": "nessun agente da passare al telefono" });
+    }
+    let svg = match qr_svg(&crate::aisync::encode(&list)) {
+        Ok(svg) => svg,
+        Err(e) => return json!({ "ok": false, "error": e }),
+    };
+    let without_key: Vec<&str> =
+        list.iter().filter(|p| p.key.is_empty() && p.url.starts_with("https://")).map(|p| p.name.as_str()).collect();
+    json!({ "ok": true, "svg": svg, "names": list.iter().map(|p| &p.name).collect::<Vec<_>>(), "without_key": without_key })
 }

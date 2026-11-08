@@ -169,7 +169,7 @@ pub fn read(strokes: &[Stroke], g: &PageGeom, bg: Option<&PageBg>) -> Reading {
     let ink: Vec<usize> = (0..n).filter(|&i| ub[i].is_some() && !strokes[i].highlight).collect();
     // il disegno a mano (assi e scritte attorno)
     let ink_boxes: Vec<Option<[f32; 4]>> = (0..n).map(|i| if ink.contains(&i) { ub[i] } else { None }).collect();
-    let drawing = crate::boardagent::find_drawing(&ink_boxes).map(|(b, m)| Group {
+    let drawing = find_drawing(&ink_boxes).map(|(b, m)| Group {
         id: "d1".into(),
         kind: Kind::Drawing,
         bbox: b,
@@ -429,7 +429,72 @@ fn labelled_pixmap(page: &crate::scene::Page, r: &Reading, side: u32) -> anyhow:
     Ok(pm)
 }
 
-#[cfg(test)]
+/// La zona del disegno a mano: i tratti lunghi (assi, linee) che si toccano,
+/// il gruppo più grande, più le scritte corte attorno (etichette, tacche).
+/// Ritorna la zona e gli indici dei tratti che ne fanno parte.
+pub fn find_drawing(boxes: &[Option<[f32; 4]>]) -> Option<([f32; 4], Vec<usize>)> {
+    const LONG: f32 = 0.12;
+    let long: Vec<usize> = (0..boxes.len()).filter(|&i| boxes[i].is_some_and(|b| b[2] - b[0] > LONG || b[3] - b[1] > LONG)).collect();
+    if long.is_empty() {
+        return None;
+    }
+    // gruppi di tratti lunghi che si toccano (con un po' di margine)
+    let near = |a: [f32; 4], b: [f32; 4]| a[0] - 0.03 <= b[2] && b[0] - 0.03 <= a[2] && a[1] - 0.03 <= b[3] && b[1] - 0.03 <= a[3];
+    let mut groups: Vec<([f32; 4], Vec<usize>)> = Vec::new();
+    for &i in &long {
+        let b = boxes[i].unwrap();
+        let hits: Vec<usize> = (0..groups.len()).filter(|&g| near(groups[g].0, b)).collect();
+        let mut g = (b, vec![i]);
+        for &h in hits.iter().rev() {
+            let (gb, gi) = groups.remove(h);
+            g.0 = union(g.0, gb);
+            g.1.extend(gi);
+        }
+        groups.push(g);
+    }
+    // un disegno da sostituire ha gli assi: almeno una riga lunga orizzontale
+    // e una verticale (così parole in corsivo o sottolineature non si toccano)
+    let axes = |members: &[usize]| {
+        let horiz = members.iter().any(|&i| boxes[i].is_some_and(|b| b[2] - b[0] > LONG && (b[3] - b[1]) < (b[2] - b[0]) * 0.25));
+        let vert = members.iter().any(|&i| boxes[i].is_some_and(|b| b[3] - b[1] > LONG && (b[2] - b[0]) < (b[3] - b[1]) * 0.25));
+        horiz && vert
+    };
+    let (mut zone, mut members) = groups.into_iter().filter(|g| axes(&g.1)).max_by(|a, b| {
+        let area = |r: [f32; 4]| (r[2] - r[0]) * (r[3] - r[1]);
+        area(a.0).total_cmp(&area(b.0))
+    })?;
+    // le scritte corte dentro o appena fuori (etichette degli assi, dei
+    // punti): a parole intere (tratti vicini fra loro), e solo le parole che
+    // stanno tutte nella zona; una parola che esce («Giusto?» accanto al
+    // disegno) resta com'è, tutta
+    let pad = 0.06;
+    let outer = [zone[0] - pad, zone[1] - pad, zone[2] + pad, zone[3] + pad];
+    let short: Vec<usize> =
+        (0..boxes.len()).filter(|&i| !members.contains(&i) && boxes[i].is_some_and(|b| b[2] - b[0] <= LONG && b[3] - b[1] <= LONG)).collect();
+    let close = |a: [f32; 4], b: [f32; 4]| a[0] - 0.012 <= b[2] && b[0] - 0.012 <= a[2] && a[1] - 0.008 <= b[3] && b[1] - 0.008 <= a[3];
+    let mut words: Vec<([f32; 4], Vec<usize>)> = Vec::new();
+    for &i in &short {
+        let b = boxes[i].unwrap();
+        let hits: Vec<usize> = (0..words.len()).filter(|&w| close(words[w].0, b)).collect();
+        let mut w = (b, vec![i]);
+        for &h in hits.iter().rev() {
+            let (wb, wi) = words.remove(h);
+            w.0 = union(w.0, wb);
+            w.1.extend(wi);
+        }
+        words.push(w);
+    }
+    for (wb, wi) in words {
+        if wb[0] >= outer[0] && wb[2] <= outer[2] && wb[1] >= outer[1] && wb[3] <= outer[3] {
+            members.extend(wi);
+            zone = union(zone, wb);
+        }
+    }
+    Some((zone, members))
+}
+
+// i test usano la lavagna della desktop: non nelle app per telefono (mobile/core)
+#[cfg(all(test, not(openslate_mobile)))]
 pub mod tests {
     use super::*;
     use crate::scene::Scene;

@@ -46,15 +46,31 @@
   .addbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   input[type=range] { flex: 1; }
   @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } }
+  #qrbox { position: fixed; inset: 0; z-index: 10; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.45); }
+  #qrbox.on { display: flex; }
+  #qrbox .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; max-width: 440px; text-align: center; }
+  #qrbox .qr { background: #fff; padding: 8px; border-radius: 6px; display: inline-block; margin: 10px 0; }
+  #qrbox .qr svg { width: 340px; height: 340px; display: block; }
+  #qrbox .warn { color: var(--warn); font-size: 12px; }
 </style>
 </head>
 <body>
 <header>
   <h1>Impostazioni AI</h1>
   <span id="msg"></span>
+  <button id="phone" title="Le impostazioni salvate, con le chiavi, sull'app OpenSlate del telefono">Collega il telefono</button>
   <button id="back">Torna alla chat</button>
   <button id="save" class="primary">Salva</button>
 </header>
+<div id="qrbox"><div class="panel">
+  <b>Collega il telefono</b>
+  <div class="sub">Nell'app OpenSlate del telefono: Impostazioni → Impostazioni AI → «Importa dal computer», poi inquadra il QR.</div>
+  <div class="qr" id="qrimg"></div>
+  <div id="qrnames" class="hint"></div>
+  <p class="warn">Il QR contiene le chiavi API: non fotografarlo e non condividerlo.</p>
+  <p class="hint" id="qrsec"></p>
+  <button id="qrclose">Chiudi</button>
+</div></div>
 <main>
   <h2>Agenti</h2>
   <p class="sub">Qualsiasi servizio con API <b>in formato OpenAI</b> (LM Studio, MTPLX, Ollama, DeepSeek, Gemini, Claude, OpenRouter…).
@@ -370,6 +386,26 @@ function toApp(m) { try { window.ipc && window.ipc.postMessage(JSON.stringify(m)
 if (embedded) $("back").textContent = "Chiudi";
 $("back").onclick = () => { if (embedded) toApp({ cmd: "close_settings" }); else location.href = "chat" + location.search; };
 addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); $("save").click(); } });
+// --- il QR per il telefono: le impostazioni salvate, per un minuto ---
+let qrTimer = null;
+function closeQr() { clearInterval(qrTimer); $("qrbox").classList.remove("on"); $("qrimg").innerHTML = ""; }
+$("qrclose").onclick = closeQr;
+$("phone").onclick = async () => {
+  if ($("msg").textContent === T("Modifiche non salvate")) { setMsg(T("Salva prima: il QR usa le impostazioni salvate"), "err"); return; }
+  const j = await (await fetch("api/config/phone", { method: "POST", body: "{}" })).json();
+  if (!j.ok) { setMsg("⚠ " + j.error, "err"); return; }
+  $("qrimg").innerHTML = j.svg;
+  let names = j.names.join(", ");
+  if (j.without_key.length) names += " — " + T("senza chiave: {}").replace("{}", j.without_key.join(", "));
+  $("qrnames").textContent = names;
+  let left = 60;
+  const sec = () => { $("qrsec").textContent = T("Si chiude da solo fra {} s.").replace("{}", left); };
+  sec();
+  $("qrbox").classList.add("on");
+  clearInterval(qrTimer);
+  qrTimer = setInterval(() => { left--; sec(); if (left <= 0) closeQr(); }, 1000);
+};
+addEventListener("keydown", (e) => { if (e.key === "Escape") closeQr(); });
 load();
 </script>
 </body>

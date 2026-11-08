@@ -146,7 +146,8 @@ fn save_like(s: &mut Session, src: &Path, dst: &Path) -> Result<()> {
     Ok(())
 }
 
-#[cfg(test)]
+// i test usano parti della desktop: non nelle app per telefono (mobile/core)
+#[cfg(all(test, not(openslate_mobile)))]
 mod tests {
     use super::*;
 

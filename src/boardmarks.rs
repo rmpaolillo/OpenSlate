@@ -603,7 +603,73 @@ fn curve(a: (f32, f32), b: (f32, f32), bend: f32, rng: &mut Rng) -> Vec<(f32, f3
         .collect()
 }
 
-#[cfg(test)]
+const MARKS: &str = "evidenzia, sottolinea, barra, cerchia, riquadro, freccia, linea, spunta, croce, testo";
+
+/// Gli strumenti `lavagna_leggi` e `lavagna_annota` (formato OpenAI), per la
+/// chat della desktop (`boardagent`) e dell'app Android.
+pub fn tool_definitions() -> Vec<Value> {
+    use serde_json::json;
+    vec![
+        json!({
+            "type": "function",
+            "function": {
+                "name": "lavagna_leggi",
+                "description": "Legge il foglio della lavagna (scritto a mano col pennino, accanto alla chat): righe dall'alto e parole da sinistra, \
+                    ognuna con un nome (r1, r2…; r2p3 = terza parola della seconda riga) e il riquadro [x1, y1, x2, y2] in 0–1000; \
+                    il disegno a mano (d1), gli evidenziatori (e1…), il grafico. Restituisce anche l'immagine del foglio con i nomi scritti \
+                    accanto alle righe e un riquadro per parola. Chiamalo prima di annotare il foglio.",
+                "parameters": { "type": "object", "properties": {} }
+            }
+        }),
+        json!({
+            "type": "function",
+            "function": {
+                "name": "lavagna_annota",
+                "description": format!("Scrive e disegna sul foglio della lavagna, a mano (tratti come quelli del pennino, annullabili dalla chat). \
+                    «segni» è la lista dei segni, fatti tutti insieme. Ogni segno: tipo ({MARKS}); dove: «su» un nome di lavagna_leggi \
+                    (\"r2p3\", \"r2\", \"r2p1-p4\" da una parola all'altra, [\"r1p2\", \"r3p1\"] più pezzi, \"tutto\") oppure «riquadro» \
+                    [x1, y1, x2, y2] o un punto [x, y] in 0–1000. freccia e linea: «da» e «a» (nomi o punti; con solo «a» o «su» la freccia arriva lì \
+                    da in alto a destra). testo: «testo», «dove» rispetto a «su» (destra di serie, sotto, sopra, sinistra) oppure «riquadro» \
+                    per scriverci dentro (va a capo), «altezza» delle maiuscole in 0–1000 (di serie come la scrittura del foglio), \
+                    «stile» stampatello (di serie) o corsivo. Il testo è scritto a mano come sul quaderno: NON LaTeX né Markdown \
+                    (niente $, \\, ^, _, **): scrivi x², x₁, 1/2, √x, ⇒, →, ±, ≤, ≥, ≠, ≈, π, Δ, ✓ (il LaTeX viene comunque convertito). \
+                    Righe brevi: per più righe un segno per riga, ognuno sotto il precedente; il risultato dice dove è finito ogni testo \
+                    («occupa [x1, y1, x2, y2]»): il successivo va più in basso, senza toccare lo scritto. Facoltativi: «colore» (rosso di serie; l'evidenziatore usa il suo), \
+                    «spessore», «doppia» per la sottolineatura."),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "segni": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "tipo": { "type": "string", "enum": ["evidenzia", "sottolinea", "barra", "cerchia", "riquadro", "freccia", "linea", "spunta", "croce", "testo"] },
+                                    "su": { "description": "Nome di lavagna_leggi (r2p3, r2, r2p1-p4, d1, tutto) o lista di nomi" },
+                                    "riquadro": { "type": "array", "items": { "type": "number" }, "description": "[x1, y1, x2, y2] o [x, y] in 0–1000" },
+                                    "da": { "description": "freccia/linea: da dove (nome o [x, y])" },
+                                    "a": { "description": "freccia/linea: dove arriva (nome o [x, y])" },
+                                    "testo": { "type": "string" },
+                                    "dove": { "type": "string", "enum": ["destra", "sotto", "sopra", "sinistra"] },
+                                    "altezza": { "type": "number", "description": "Altezza delle maiuscole, 0–1000" },
+                                    "stile": { "type": "string", "enum": ["stampatello", "corsivo"] },
+                                    "colore": { "type": "string", "description": "rosso, blu, verde, giallo, arancione, viola, rosa, nero, grigio o #rrggbb" },
+                                    "spessore": { "type": "number" },
+                                    "doppia": { "type": "boolean" }
+                                },
+                                "required": ["tipo"]
+                            }
+                        }
+                    },
+                    "required": ["segni"]
+                }
+            }
+        }),
+    ]
+}
+
+// i test usano la lavagna della desktop: non nelle app per telefono (mobile/core)
+#[cfg(all(test, not(openslate_mobile)))]
 mod tests {
     use super::*;
 

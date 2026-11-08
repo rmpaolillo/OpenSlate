@@ -99,13 +99,7 @@ pub struct DocSummary {
     pub created: String,
 }
 
-/// Dove sta l'immagine della pagina dentro la pagina del pad (0..1): la pagina
-/// del documento viene adattata mantenendo le proporzioni, centrata.
-pub fn fit_rect(doc_w: f32, doc_h: f32, pad_w: f32, pad_h: f32) -> [f32; 4] {
-    let s = (pad_w / doc_w).min(pad_h / doc_h);
-    let (w, h) = (doc_w * s / pad_w, doc_h * s / pad_h);
-    [(1.0 - w) / 2.0, (1.0 - h) / 2.0, w, h]
-}
+pub use crate::pagegeom::fit_rect;
 
 fn safe_id(stem: &str) -> String {
     let s: String = stem

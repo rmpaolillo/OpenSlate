@@ -48,6 +48,8 @@ serde = { version = "1", features = ["derive"] }
 base64 = "0.22"
 # Impronte SHA-256 dei file scaricati dall'aggiornamento
 sha2 = "0.10"
+# Il QR code con le impostazioni AI per l'app sul telefono (src/aisync.rs)
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 # Configurazione dei provider AI (ai.toml)
 toml = "0.8"
 # Immagine negli appunti (Copia immagine → incolla in una chat AI)
@@ -271,3 +273,7 @@ assets = [
 # Il disegno dei PDF adattato al hayro di craft-libs: vedi vendor/README.md
 [patch."https://github.com/storytold/pdfcraft"]
 pdfcraft-render = { path = "vendor/pdfcraft-render" }
+
+# `openslate_mobile`: impostato da mobile/core (app Android e iOS), che include alcuni file di src/
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(openslate_mobile)"] }

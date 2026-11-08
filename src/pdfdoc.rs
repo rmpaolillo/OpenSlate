@@ -260,7 +260,8 @@ pub fn write_overlay(src: &Path, dst: &Path, per_page: &[Vec<OverlayStroke>]) ->
     Ok(())
 }
 
-#[cfg(test)]
+// i test usano l'esportazione della desktop: non nelle app per telefono (mobile/core)
+#[cfg(all(test, not(openslate_mobile)))]
 mod tests {
     use super::*;
 

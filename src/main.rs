@@ -7,6 +7,7 @@
 mod actor;
 mod ai;
 mod aiconfig;
+mod aisync;
 mod ble;
 mod charts;
 mod boardagent;
@@ -51,6 +52,9 @@ mod tools;
 mod ui;
 mod update;
 mod rasign;
+mod pagegeom;
+mod pagerender;
+mod rigatura;
 mod vecsign;
 #[cfg(test)]
 mod demo;

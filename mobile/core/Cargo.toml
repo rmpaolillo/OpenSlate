@@ -1,0 +1,61 @@
+[package]
+name = "openslate-mobile"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "OpenSlate per telefoni e tablet (Android e iOS): il cuore Rust, con gli stessi file della desktop"
+publish = false
+
+[lib]
+name = "openslate_mobile"
+# cdylib per Android, staticlib per iOS
+crate-type = ["cdylib", "staticlib", "lib"]
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "uniffi-bindgen.rs"
+required-features = ["cli"]
+
+[features]
+cli = ["uniffi/cli"]
+
+[dependencies]
+uniffi = "0.32"
+uuid = "1"
+thiserror = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+tracing = "0.1"
+getrandom = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+flate2 = "1"
+ureq = { version = "2", features = ["json"] }
+anyhow = "1"
+tiny-skia = "0.11"
+# i PDF firmati: lo stesso lopdf della desktop (quello di PdfCraft, vedi [patch])
+lopdf = { version = "0.45", default-features = false }
+# Word, foto e SVG firmati con le librerie della suite Craft (MIT OR Apache-2.0,
+# © ArtCraft Team), le stesse versioni della desktop
+wordcraft-engine = { git = "https://github.com/storytold/wordcraft", rev = "02a802cbafe45b5c8fecc00490c8f6b78c5ba251" }
+photocraft-codecs = { git = "https://github.com/storytold/photocraft", rev = "efb7ebd0c0dab1fc108ee4642aa47c22694271a8" }
+photocraft-paint = { git = "https://github.com/storytold/photocraft", rev = "efb7ebd0c0dab1fc108ee4642aa47c22694271a8" }
+photocraft-raster = { git = "https://github.com/storytold/photocraft", rev = "efb7ebd0c0dab1fc108ee4642aa47c22694271a8" }
+photocraft-color = { git = "https://github.com/storytold/photocraft", rev = "efb7ebd0c0dab1fc108ee4642aa47c22694271a8" }
+photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "efb7ebd0c0dab1fc108ee4642aa47c22694271a8" }
+vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "654749c16eb20b6d3182a96defb66e11d1a9649a" }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+# una sola unità per libreria: più piccola (i motori Craft sono grandi)
+codegen-units = 1
+
+# come la desktop: krilla e hayro-* da craft-libs, hayro-jbig2 e lopdf da PdfCraft
+[patch.crates-io]
+krilla = { git = "https://github.com/storytold/craft-libs", rev = "9be9a63782298ab59cd9b7a42ee9cba4f42a5ccb" }
+hayro-interpret = { git = "https://github.com/storytold/craft-libs", rev = "9be9a63782298ab59cd9b7a42ee9cba4f42a5ccb" }
+hayro-syntax = { git = "https://github.com/storytold/craft-libs", rev = "9be9a63782298ab59cd9b7a42ee9cba4f42a5ccb" }
+hayro-jbig2 = { git = "https://github.com/storytold/pdfcraft", rev = "8c572792d6760bdc903d6f9a032e3e38e8f71cb8" }
+lopdf = { git = "https://github.com/storytold/pdfcraft", rev = "8c572792d6760bdc903d6f9a032e3e38e8f71cb8" }

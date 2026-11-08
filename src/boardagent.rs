@@ -16,6 +16,7 @@
 
 use crate::scene::{Hub, PageBg};
 use crate::stroke::{strokes_sig, Stroke};
+pub use crate::boardread::find_drawing;
 use anyhow::{bail, Context, Result};
 use serde_json::{json, Value};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -160,65 +161,10 @@ pub fn gate(sig: u64, given: Option<&str>) -> Gate {
     }
 }
 
-const MARKS: &str = "evidenzia, sottolinea, barra, cerchia, riquadro, freccia, linea, spunta, croce, testo";
-
 pub fn definitions() -> Vec<Value> {
-    vec![
-        json!({
-            "type": "function",
-            "function": {
-                "name": "lavagna_leggi",
-                "description": "Legge il foglio della lavagna (scritto a mano col pennino, accanto alla chat): righe dall'alto e parole da sinistra, \
-                    ognuna con un nome (r1, r2…; r2p3 = terza parola della seconda riga) e il riquadro [x1, y1, x2, y2] in 0–1000; \
-                    il disegno a mano (d1), gli evidenziatori (e1…), il grafico. Restituisce anche l'immagine del foglio con i nomi scritti \
-                    accanto alle righe e un riquadro per parola. Chiamalo prima di annotare il foglio.",
-                "parameters": { "type": "object", "properties": {} }
-            }
-        }),
-        json!({
-            "type": "function",
-            "function": {
-                "name": "lavagna_annota",
-                "description": format!("Scrive e disegna sul foglio della lavagna, a mano (tratti come quelli del pennino, annullabili dalla chat). \
-                    «segni» è la lista dei segni, fatti tutti insieme. Ogni segno: tipo ({MARKS}); dove: «su» un nome di lavagna_leggi \
-                    (\"r2p3\", \"r2\", \"r2p1-p4\" da una parola all'altra, [\"r1p2\", \"r3p1\"] più pezzi, \"tutto\") oppure «riquadro» \
-                    [x1, y1, x2, y2] o un punto [x, y] in 0–1000. freccia e linea: «da» e «a» (nomi o punti; con solo «a» o «su» la freccia arriva lì \
-                    da in alto a destra). testo: «testo», «dove» rispetto a «su» (destra di serie, sotto, sopra, sinistra) oppure «riquadro» \
-                    per scriverci dentro (va a capo), «altezza» delle maiuscole in 0–1000 (di serie come la scrittura del foglio), \
-                    «stile» stampatello (di serie) o corsivo. Il testo è scritto a mano come sul quaderno: NON LaTeX né Markdown \
-                    (niente $, \\, ^, _, **): scrivi x², x₁, 1/2, √x, ⇒, →, ±, ≤, ≥, ≠, ≈, π, Δ, ✓ (il LaTeX viene comunque convertito). \
-                    Righe brevi: per più righe un segno per riga, ognuno sotto il precedente; il risultato dice dove è finito ogni testo \
-                    («occupa [x1, y1, x2, y2]»): il successivo va più in basso, senza toccare lo scritto. Facoltativi: «colore» (rosso di serie; l'evidenziatore usa il suo), \
-                    «spessore», «doppia» per la sottolineatura."),
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "segni": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "tipo": { "type": "string", "enum": ["evidenzia", "sottolinea", "barra", "cerchia", "riquadro", "freccia", "linea", "spunta", "croce", "testo"] },
-                                    "su": { "description": "Nome di lavagna_leggi (r2p3, r2, r2p1-p4, d1, tutto) o lista di nomi" },
-                                    "riquadro": { "type": "array", "items": { "type": "number" }, "description": "[x1, y1, x2, y2] o [x, y] in 0–1000" },
-                                    "da": { "description": "freccia/linea: da dove (nome o [x, y])" },
-                                    "a": { "description": "freccia/linea: dove arriva (nome o [x, y])" },
-                                    "testo": { "type": "string" },
-                                    "dove": { "type": "string", "enum": ["destra", "sotto", "sopra", "sinistra"] },
-                                    "altezza": { "type": "number", "description": "Altezza delle maiuscole, 0–1000" },
-                                    "stile": { "type": "string", "enum": ["stampatello", "corsivo"] },
-                                    "colore": { "type": "string", "description": "rosso, blu, verde, giallo, arancione, viola, rosa, nero, grigio o #rrggbb" },
-                                    "spessore": { "type": "number" },
-                                    "doppia": { "type": "boolean" }
-                                },
-                                "required": ["tipo"]
-                            }
-                        }
-                    },
-                    "required": ["segni"]
-                }
-            }
-        }),
+    // leggi e annota stanno in `boardmarks` (le usa anche l'app Android)
+    let mut v = crate::boardmarks::tool_definitions();
+    v.extend([
         json!({
             "type": "function",
             "function": {
@@ -279,7 +225,8 @@ pub fn definitions() -> Vec<Value> {
             }
         }
     }),
-    ]
+    ]);
+    v
 }
 
 pub fn system_note() -> String {
@@ -306,70 +253,6 @@ fn bbox(pts: &[(f32, f32)]) -> Option<[f32; 4]> {
 
 fn union(a: [f32; 4], b: [f32; 4]) -> [f32; 4] {
     [a[0].min(b[0]), a[1].min(b[1]), a[2].max(b[2]), a[3].max(b[3])]
-}
-
-/// La zona del disegno a mano: i tratti lunghi (assi, linee) che si toccano,
-/// il gruppo più grande, più le scritte corte attorno (etichette, tacche).
-/// Ritorna la zona e gli indici dei tratti che ne fanno parte.
-pub fn find_drawing(boxes: &[Option<[f32; 4]>]) -> Option<([f32; 4], Vec<usize>)> {
-    const LONG: f32 = 0.12;
-    let long: Vec<usize> = (0..boxes.len()).filter(|&i| boxes[i].is_some_and(|b| b[2] - b[0] > LONG || b[3] - b[1] > LONG)).collect();
-    if long.is_empty() {
-        return None;
-    }
-    // gruppi di tratti lunghi che si toccano (con un po' di margine)
-    let near = |a: [f32; 4], b: [f32; 4]| a[0] - 0.03 <= b[2] && b[0] - 0.03 <= a[2] && a[1] - 0.03 <= b[3] && b[1] - 0.03 <= a[3];
-    let mut groups: Vec<([f32; 4], Vec<usize>)> = Vec::new();
-    for &i in &long {
-        let b = boxes[i].unwrap();
-        let hits: Vec<usize> = (0..groups.len()).filter(|&g| near(groups[g].0, b)).collect();
-        let mut g = (b, vec![i]);
-        for &h in hits.iter().rev() {
-            let (gb, gi) = groups.remove(h);
-            g.0 = union(g.0, gb);
-            g.1.extend(gi);
-        }
-        groups.push(g);
-    }
-    // un disegno da sostituire ha gli assi: almeno una riga lunga orizzontale
-    // e una verticale (così parole in corsivo o sottolineature non si toccano)
-    let axes = |members: &[usize]| {
-        let horiz = members.iter().any(|&i| boxes[i].is_some_and(|b| b[2] - b[0] > LONG && (b[3] - b[1]) < (b[2] - b[0]) * 0.25));
-        let vert = members.iter().any(|&i| boxes[i].is_some_and(|b| b[3] - b[1] > LONG && (b[2] - b[0]) < (b[3] - b[1]) * 0.25));
-        horiz && vert
-    };
-    let (mut zone, mut members) = groups.into_iter().filter(|g| axes(&g.1)).max_by(|a, b| {
-        let area = |r: [f32; 4]| (r[2] - r[0]) * (r[3] - r[1]);
-        area(a.0).total_cmp(&area(b.0))
-    })?;
-    // le scritte corte dentro o appena fuori (etichette degli assi, dei
-    // punti): a parole intere (tratti vicini fra loro), e solo le parole che
-    // stanno tutte nella zona; una parola che esce («Giusto?» accanto al
-    // disegno) resta com'è, tutta
-    let pad = 0.06;
-    let outer = [zone[0] - pad, zone[1] - pad, zone[2] + pad, zone[3] + pad];
-    let short: Vec<usize> =
-        (0..boxes.len()).filter(|&i| !members.contains(&i) && boxes[i].is_some_and(|b| b[2] - b[0] <= LONG && b[3] - b[1] <= LONG)).collect();
-    let close = |a: [f32; 4], b: [f32; 4]| a[0] - 0.012 <= b[2] && b[0] - 0.012 <= a[2] && a[1] - 0.008 <= b[3] && b[1] - 0.008 <= a[3];
-    let mut words: Vec<([f32; 4], Vec<usize>)> = Vec::new();
-    for &i in &short {
-        let b = boxes[i].unwrap();
-        let hits: Vec<usize> = (0..words.len()).filter(|&w| close(words[w].0, b)).collect();
-        let mut w = (b, vec![i]);
-        for &h in hits.iter().rev() {
-            let (wb, wi) = words.remove(h);
-            w.0 = union(w.0, wb);
-            w.1.extend(wi);
-        }
-        words.push(w);
-    }
-    for (wb, wi) in words {
-        if wb[0] >= outer[0] && wb[2] <= outer[2] && wb[1] >= outer[1] && wb[3] <= outer[3] {
-            members.extend(wi);
-            zone = union(zone, wb);
-        }
-    }
-    Some((zone, members))
 }
 
 /// Il grafico (proporzioni `aspect` = larghezza/altezza in unità della

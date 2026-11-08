@@ -277,10 +277,11 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
         }
         let json_reply = |v: serde_json::Value| v.to_string();
         return match path {
-            "/api/config" | "/api/config/test" | "/api/config/models" | "/api/compact" => {
+            "/api/config" | "/api/config/test" | "/api/config/models" | "/api/config/phone" | "/api/compact" => {
                 let path = path.to_string();
                 let out = tokio::task::spawn_blocking(move || match path.as_str() {
                     "/api/config" => crate::aiconfig::save_from_json(&body),
+                    "/api/config/phone" => crate::aiconfig::phone_qr(),
                     "/api/config/test" => crate::aiconfig::test_from_json(&body),
                     "/api/config/models" => crate::aiconfig::models_from_json(&body),
                     _ => crate::aiconfig::compact_from_json(&body),
