@@ -180,6 +180,17 @@ pub fn export_page(page: Page, quarter: u32, kind: ExportKind, note: Option<Stri
     std::fs::write(out, bytes).map_err(err)
 }
 
+/// L'immagine da copiare negli appunti, come «Copia immagine» della desktop:
+/// ritagliata attorno alla scrittura (margine 3%), lato lungo 1600 px, PNG.
+#[uniffi::export]
+pub fn copy_png(page: Page, quarter: u32) -> Result<Vec<u8>, StoreError> {
+    let p = crate::pagerender::crop_to_content(&to_desktop(&page, quarter), 0.03);
+    if p.strokes.is_empty() {
+        return Err(err("pagina vuota"));
+    }
+    crate::pagerender::page_to_png(&p, 1600).map_err(err)
+}
+
 /// La pagina al momento `t` (0..1) della scrittura, per i fotogrammi del
 /// video: gli stessi tempi della GIF e del video della desktop. I tratti
 /// tornano in unità del pad (la si disegna come una pagina qualsiasi).
@@ -266,6 +277,16 @@ mod tests {
         // senza trascrizione: Word solo inchiostro, LaTeX no
         export_page(page(), 0, ExportKind::Word, None, "bianco".into(), tmp("solo.docx")).unwrap();
         assert!(export_page(page(), 0, ExportKind::Latex, None, "bianco".into(), tmp("x.tex")).is_err());
+    }
+
+    #[test]
+    fn copia_ritagliata() {
+        let png = copy_png(page(), 1).unwrap();
+        let img = tiny_skia::Pixmap::decode_png(&png).unwrap();
+        // la scrittura occupa una striscia: l'immagine non è più un foglio intero
+        assert_eq!(img.width().max(img.height()), 1600);
+        let (w, h) = (img.width() as f32, img.height() as f32);
+        assert!(w / h < 0.6 || h / w < 0.6, "{w}×{h}");
     }
 
     #[test]

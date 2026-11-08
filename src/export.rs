@@ -30,50 +30,7 @@ pub fn new_path(prefix: &str, ext: &str) -> PathBuf {
 // PNG
 // ---------------------------------------------------------------------------
 
-/// Ritaglia la pagina attorno a ciò che è scritto, con un margine (frazione
-/// del lato lungo). Lo spessore dei tratti resta proporzionato alla scrittura.
-/// Utile per incollare in una chat di AI: la scrittura risulta più grande.
-pub fn crop_to_content(page: &Page, margin: f32) -> Page {
-    use crate::scene::PageStroke;
-    let (mut u0, mut v0, mut u1, mut v1) = (f32::MAX, f32::MAX, f32::MIN, f32::MIN);
-    for st in &page.strokes {
-        for &(u, v) in &st.pts {
-            u0 = u0.min(u);
-            v0 = v0.min(v);
-            u1 = u1.max(u);
-            v1 = v1.max(v);
-        }
-    }
-    if u0 > u1 {
-        return Page { w: page.w, h: page.h, strokes: Vec::new(), bg: page.bg.clone() };
-    }
-    // margine uguale in orizzontale e verticale, in unità della pagina
-    let m = margin * page.w.max(page.h);
-    let (mu, mv) = (m / page.w, m / page.h);
-    let (u0, v0) = ((u0 - mu).max(0.0), (v0 - mv).max(0.0));
-    let (u1, v1) = ((u1 + mu).min(1.0), (v1 + mv).min(1.0));
-    let (du, dv) = ((u1 - u0).max(1e-4), (v1 - v0).max(1e-4));
-    let (w, h) = (page.w * du, page.h * dv);
-    Page {
-        w,
-        h,
-        strokes: page
-            .strokes
-            .iter()
-            .map(|st| PageStroke {
-                color: st.color,
-                // stesso spessore rispetto alla scrittura
-                width: st.width * page.h / h,
-                pts: st.pts.iter().map(|&(u, v)| ((u - u0) / du, (v - v0) / dv)).collect(),
-                highlight: st.highlight,
-            })
-            .collect(),
-        bg: page.bg.as_ref().map(|b| crate::scene::PageBg {
-            rect: [(b.rect[0] - u0) / du, (b.rect[1] - v0) / dv, b.rect[2] / du, b.rect[3] / dv],
-            ..b.clone()
-        }),
-    }
-}
+pub use crate::pagerender::crop_to_content;
 
 // ---------------------------------------------------------------------------
 // Salvataggio

@@ -8,6 +8,7 @@ import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
 import uniffi.openslate_mobile.ExportKind
 import uniffi.openslate_mobile.Page
+import uniffi.openslate_mobile.copyPng
 import uniffi.openslate_mobile.exportExt
 import uniffi.openslate_mobile.exportPage
 import java.io.File
@@ -78,13 +79,14 @@ object Export {
 
     /**
      * La pagina negli appunti, come immagine PNG (incollabile in chat, mail,
-     * documenti). Il file sta in una cartella sua, così una condivisione
+     * documenti), senza il bianco attorno alla scrittura (come la desktop). Il file sta in una cartella sua, così una condivisione
      * successiva non lo cancella mentre è ancora negli appunti.
      */
     fun copy(ctx: Context, page: Page, quarter: Int) {
         val dir = File(ctx.cacheDir, "clip").apply { deleteRecursively(); mkdirs() }
         val f = File(dir, fileName(page, "png"))
-        f.writeBytes(pngBytes(page, quarter, PNG_LONG))
+        // come «Copia immagine» della desktop: ritagliata attorno alla scrittura
+        f.writeBytes(copyPng(page, quarter.toUInt()))
         val uri = FileProvider.getUriForFile(ctx, ctx.packageName + ".files", f)
         val cm = ctx.getSystemService(android.content.ClipboardManager::class.java)
         cm.setPrimaryClip(android.content.ClipData.newUri(ctx.contentResolver, f.nameWithoutExtension, uri))

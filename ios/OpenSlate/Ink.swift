@@ -172,7 +172,9 @@ enum Export {
 
     /// La pagina negli appunti, come immagine (incollabile in Messaggi, Mail, Note…).
     static func copy(_ page: Page, quarter: Int) {
-        UIPasteboard.general.setData(pngData(page, quarter: quarter, long: 2400), forPasteboardType: "public.png")
+        // come «Copia immagine» della desktop: ritagliata attorno alla scrittura
+        guard let png = try? copyPng(page: page, quarter: UInt32(quarter)) else { return }
+        UIPasteboard.general.setData(png, forPasteboardType: "public.png")
     }
 
     static func png(_ page: Page, quarter: Int) throws -> URL {
