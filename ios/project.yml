@@ -11,6 +11,17 @@ settings:
     DEVELOPMENT_TEAM: ""
     ENABLE_USER_SCRIPT_SANDBOXING: NO
 targets:
+  # Il cuore Rust (mobile/core) in un bersaglio a sé, compilato PRIMA
+  # dell'app: Xcode copia le intestazioni dell'XCFramework all'inizio, quindi
+  # uno script dentro l'app arriverebbe tardi dopo una modifica al cuore.
+  RustCore:
+    type: ""
+    platform: iOS
+    legacy:
+      toolPath: /bin/sh
+      arguments: "$(SRCROOT)/build-rust.sh"
+      workingDirectory: $(SRCROOT)
+      passSettings: true
   OpenSlate:
     type: application
     platform: iOS
@@ -19,6 +30,7 @@ targets:
       - path: Generated/swift/openslate_mobile.swift
         optional: true
     dependencies:
+      - target: RustCore
       - framework: Generated/OpenSlateCore.xcframework
         embed: false
       - sdk: Security.framework
@@ -26,10 +38,6 @@ targets:
       - sdk: CoreBluetooth.framework
       - sdk: PDFKit.framework
       - sdk: VisionKit.framework
-    preBuildScripts:
-      - name: "Cuore Rust (mobile/core)"
-        script: '"$SRCROOT/build-rust.sh"'
-        basedOnDependencyAnalysis: false
     info:
       path: OpenSlate/Info.plist
       properties:
@@ -39,8 +47,9 @@ targets:
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
-        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown]
+        UIRequiresFullScreen: true
         UIBackgroundModes: [bluetooth-central]
         NSBluetoothAlwaysUsageDescription: "OpenSlate si collega al tuo Bamboo Slate via Bluetooth. / OpenSlate connects to your Bamboo Slate over Bluetooth."
         NSCameraUsageDescription: "Per inquadrare il QR delle impostazioni AI della desktop. / To scan the AI settings QR code from the desktop app."

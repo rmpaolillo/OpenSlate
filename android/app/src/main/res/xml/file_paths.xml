@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <!-- Solo le esportazioni da condividere, nient'altro dell'app. -->
+    <!-- Solo le esportazioni da condividere o copiare, nient'altro dell'app. -->
     <cache-path name="share" path="share/" />
+    <cache-path name="clip" path="clip/" />
 </paths>

@@ -142,4 +142,22 @@
     <string name="import_confirm">These services (with their keys) will be saved on this phone, encrypted:</string>
     <string name="import_ok">Import</string>
     <string name="import_done">Imported: %1$d services.</string>
+    <string name="copy_board">Copy to clipboard</string>
+    <string name="copied">Board copied to the clipboard.</string>
+    <string name="more_formats">More formats…</string>
+    <string name="fmt_svg">SVG (vector image)</string>
+    <string name="fmt_jpeg">JPEG (light, for sending)</string>
+    <string name="fmt_webp">WebP (light, for sending)</string>
+    <string name="fmt_word">Word, with editable ink</string>
+    <string name="fmt_xournal">Xournal++ (.xopp)</string>
+    <string name="fmt_gif">Animated GIF: the writing redraws itself</string>
+    <string name="fmt_svg_anim">Animated SVG: the writing redraws itself</string>
+    <string name="fmt_video">MP4 video: the writing redraws itself</string>
+    <string name="fmt_latex">LaTeX from the transcription (.tex)</string>
+    <string name="fmt_typst">Typst from the transcription (.typ)</string>
+    <string name="save_to">Save to a folder</string>
+    <string name="export_saved">Saved.</string>
+    <string name="exporting">Exporting…</string>
+    <string name="export_failed">Export failed: %1$s</string>
+    <string name="empty_page">save the page first</string>
 </resources>

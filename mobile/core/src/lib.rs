@@ -11,6 +11,12 @@
 
 #[path = "../../../src/aisync.rs"]
 pub mod aisync;
+#[path = "../../../src/craftexport.rs"]
+pub mod craftexport;
+#[path = "../../../src/mdconv.rs"]
+pub mod mdconv;
+#[path = "../../../src/pageanim.rs"]
+pub mod pageanim;
 #[path = "../../../src/boardmarks.rs"]
 pub mod boardmarks;
 #[path = "../../../src/boardread.rs"]
@@ -71,6 +77,7 @@ pub mod mdcraft {
 mod ai;
 mod board;
 mod docs;
+mod formats;
 mod pages;
 mod paper;
 mod session;
@@ -78,6 +85,7 @@ mod tutor;
 
 pub use ai::*;
 pub use board::*;
+pub use formats::*;
 pub use docs::*;
 pub use pages::*;
 pub use paper::*;

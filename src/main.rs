@@ -60,6 +60,7 @@ mod vecsign;
 mod demo;
 mod fonts;
 mod formats;
+mod pageanim;
 mod mdconv;
 mod video;
 mod voice;

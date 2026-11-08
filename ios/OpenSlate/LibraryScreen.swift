@@ -73,6 +73,7 @@ struct PageViewer: View {
     @State private var newTitle = ""
     @State private var deleting = false
     @State private var note: NoteItem?
+    @State private var choosingMore = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -94,6 +95,7 @@ struct PageViewer: View {
                 Menu {
                     Button { if let p = page { shareURL = try? Export.pdf(p, quarter: app.quarter) } } label: { Label(L("Condividi PDF", "Share as PDF"), systemImage: "doc.richtext") }
                     Button { if let p = page { shareURL = try? Export.png(p, quarter: app.quarter) } } label: { Label(L("Condividi immagine", "Share as image"), systemImage: "photo") }
+                    Button { choosingMore = true } label: { Label(L("Altri formati…", "More formats…"), systemImage: "ellipsis.rectangle") }
                     Button { newTitle = page?.title ?? ""; renaming = true } label: { Label(L("Rinomina", "Rename"), systemImage: "pencil") }
                     Button(role: .destructive) { deleting = true } label: { Label(L("Elimina", "Delete"), systemImage: "trash") }
                 } label: { Image(systemName: "ellipsis.circle") }
@@ -102,6 +104,11 @@ struct PageViewer: View {
         .onAppear { page = try? libraryLoad(dir: app.libDir, id: id) }
         .sheet(item: $shareURL) { url in ShareSheet(items: [url]) }
         .sheet(item: $note) { n in NoteScreen(item: n) }
+        .sheet(isPresented: $choosingMore) {
+            MoreFormatsSheet { kind in
+                if let p = page { app.exportMore(p, kind: kind, fromBoard: false) { url in shareURL = url } }
+            }
+        }
         .alert(L("Rinomina", "Rename"), isPresented: $renaming) {
             TextField(L("Titolo", "Title"), text: $newTitle)
             Button("OK") {

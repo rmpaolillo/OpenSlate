@@ -17,6 +17,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -332,16 +337,25 @@ fun AiSettingsScreen(store: AiStore, onBack: () -> Unit) {
             TextButton(onClick = onBack) { Text("← " + stringResource(R.string.back)) }
             Text(stringResource(R.string.ai_settings), style = MaterialTheme.typography.titleLarge)
         }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { adding = true }) { Text(stringResource(R.string.add_service)) }
+        // uno sotto l'altro, a tutta larghezza: affiancati il secondo non si legge
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = {
                 scan.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
                     setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
                     setPrompt(ctx.getString(R.string.scan_prompt))
                     setBeepEnabled(false)
-                    setOrientationLocked(false)
+                    setOrientationLocked(true)
                 })
-            }) { Text(stringResource(R.string.import_qr)) }
+            }, Modifier.fillMaxWidth()) {
+                Icon(androidx.compose.material.icons.Icons.Filled.QrCodeScanner, null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.import_qr))
+            }
+            Button(onClick = { adding = true }, Modifier.fillMaxWidth()) {
+                Icon(androidx.compose.material.icons.Icons.Filled.Add, null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.add_service))
+            }
         }
         Text(stringResource(R.string.ai_settings_hint), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall)
         if (testResult.isNotEmpty()) Text(testResult, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.primary)

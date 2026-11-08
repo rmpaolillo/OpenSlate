@@ -78,6 +78,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import uniffi.openslate_mobile.ExportKind
+import uniffi.openslate_mobile.exportMime
+import uniffi.openslate_mobile.exportNeedsNote
 import uniffi.openslate_mobile.PadInfo
 import uniffi.openslate_mobile.Page
 import uniffi.openslate_mobile.PageStroke
@@ -284,6 +287,20 @@ class MainActivity : ComponentActivity(), LinkListener {
     /** Lavoro AI in corso (trascrizione): il testo da mostrare. */
     private var busy by mutableStateOf<String?>(null)
     val libDir: String by lazy { File(filesDir, "library").path }
+    /** La pagina per cui si sceglie uno degli «Altri formati» (null = finestra chiusa). */
+    private var moreFor by mutableStateOf<Page?>(null)
+    private var moreFromBoard = false
+    /** Il file esportato che l'utente sta salvando in una cartella. */
+    private var pendingSave: File? = null
+    private val saveExport = registerForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { uri ->
+        val f = pendingSave
+        pendingSave = null
+        if (uri != null && f != null) {
+            runCatching { contentResolver.openOutputStream(uri)!!.use { out -> f.inputStream().use { it.copyTo(out) } } }
+                .onSuccess { toast(getString(R.string.export_saved)) }
+                .onFailure { toast(getString(R.string.save_failed, it.message ?: "")) }
+        }
+    }
     private val rawDir by lazy { File(filesDir, "pad-raw") }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -346,6 +363,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                                 },
                             )
                         }
+                        moreFor?.let { p -> MoreFormatsDialog(onDismiss = { moreFor = null }) { kind, save -> moreFor = null; exportMore(p, kind, save) } }
                         busy?.let { BusyOverlay(it) }
                     }
                     // le quattro parti dell'app, sempre a portata (non nelle schermate di dettaglio)
@@ -392,6 +410,12 @@ class MainActivity : ComponentActivity(), LinkListener {
      * nota, salvata accanto alla pagina come `<id>.md`.
      */
     private fun transcribePage(page: Page, back: Screen) {
+        val title = page.title.ifBlank { page.created.take(16) }
+        transcribeText(page, back) { text -> screen = Screen.Note(page.id, title, text, back) }
+    }
+
+    /** Trascrive la pagina e salva la nota accanto (`<id>.md`); poi `done`. */
+    private fun transcribeText(page: Page, back: Screen, done: (String) -> Unit) {
         if (aiStore.services().none { it.enabled }) {
             toast(getString(R.string.ai_none))
             screen = Screen.AiSettings(back)
@@ -399,13 +423,56 @@ class MainActivity : ComponentActivity(), LinkListener {
         }
         busy = getString(R.string.transcribing)
         val png = Export.pngBytes(page, quarter)
-        val title = page.title.ifBlank { page.created.take(16) }
         transcribe(this, aiStore, png, onStatus = { busy = getString(R.string.transcribing) + "\n" + it }) { r ->
             busy = null
             r.onSuccess { text ->
                 runCatching { File(libDir, "${page.id}.md").writeText(text) }
-                screen = Screen.Note(page.id, title, text, back)
+                done(text)
             }.onFailure { toast(getString(R.string.ai_failed, it.message ?: "")) }
+        }
+    }
+
+    /** Apre la scelta degli «Altri formati» per la lavagna o una pagina dell'archivio. */
+    fun chooseMore(page: Page, fromBoard: Boolean) {
+        moreFromBoard = fromBoard
+        moreFor = page
+    }
+
+    /**
+     * Esporta in uno degli «Altri formati» e condivide (o salva in una
+     * cartella). LaTeX e Typst vengono dalla trascrizione: se manca, prima si
+     * trascrive la pagina (come «Trascrivi» della desktop).
+     */
+    private fun exportMore(start: Page, kind: ExportKind, save: Boolean) {
+        var page = start
+        if (moreFromBoard && (exportNeedsNote(kind) || kind == ExportKind.WORD) && (board.id.isEmpty() || board.dirty)) {
+            // la nota sta accanto alla pagina: prima la si salva
+            if (saveBoard()) page = board.toPage(padSize.width, padSize.height)
+        }
+        val note = page.id.takeIf { it.isNotEmpty() }?.let { noteOf(it) }
+        if (exportNeedsNote(kind) && note == null) {
+            if (page.id.isEmpty()) { toast(getString(R.string.export_failed, getString(R.string.empty_page))); return }
+            val p = page
+            transcribeText(p, screen) { text -> runExport(p, kind, text, save) }
+            return
+        }
+        runExport(page, kind, note, save)
+    }
+
+    private fun runExport(page: Page, kind: ExportKind, note: String?, save: Boolean) {
+        busy = getString(R.string.exporting)
+        kotlin.concurrent.thread(name = "export") {
+            val r = runCatching { Export.more(this, page, quarter, kind, note, paperCode) }
+            runOnUiThread {
+                busy = null
+                r.onSuccess { f ->
+                    if (save) { pendingSave = f; saveExport.launch(f.name) }
+                    else Export.share(this, f, exportMime(kind))
+                }.onFailure {
+                    Log.e("OpenSlate", "esportazione", it)
+                    toast(getString(R.string.export_failed, it.message ?: ""))
+                }
+            }
         }
     }
 
@@ -628,6 +695,9 @@ class MainActivity : ComponentActivity(), LinkListener {
                 IconButton(onClick = { board.redo() }, enabled = board.model.canRedo()) {
                     Icon(Icons.AutoMirrored.Filled.Redo, stringResource(R.string.redo))
                 }
+                IconButton(onClick = { copyPage(board.toPage(padSize.width, padSize.height)) }, enabled = !empty && d == null) {
+                    Icon(Icons.Filled.ContentCopy, stringResource(R.string.copy_board))
+                }
                 Box {
                     IconButton(onClick = { pageMenu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more)) }
                     DropdownMenu(expanded = pageMenu, onDismissRequest = { pageMenu = false }) {
@@ -651,6 +721,10 @@ class MainActivity : ComponentActivity(), LinkListener {
                             enabled = !empty, onClick = { pageMenu = false; sharePage(board.toPage(padSize.width, padSize.height), pdf = true) })
                         DropdownMenuItem(text = { Text(stringResource(R.string.share_image)) }, leadingIcon = { Icon(Icons.Filled.Image, null) },
                             enabled = !empty, onClick = { pageMenu = false; sharePage(board.toPage(padSize.width, padSize.height), pdf = false) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.copy_board)) }, leadingIcon = { Icon(Icons.Filled.ContentCopy, null) },
+                            enabled = !empty && d == null, onClick = { pageMenu = false; copyPage(board.toPage(padSize.width, padSize.height)) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.more_formats)) }, leadingIcon = { Icon(Icons.Filled.MoreHoriz, null) },
+                            enabled = !empty && d == null, onClick = { pageMenu = false; chooseMore(board.toPage(padSize.width, padSize.height), fromBoard = true) })
                         HorizontalDivider()
                         MenuHeader(stringResource(R.string.grp_document))
                         DropdownMenuItem(text = { Text(stringResource(R.string.open_pdf)) }, leadingIcon = { Icon(Icons.Filled.FileOpen, null) },
@@ -889,6 +963,19 @@ class MainActivity : ComponentActivity(), LinkListener {
         return if (id != 0) stringResource(id) else code
     }
 
+    /** La lavagna com'è adesso negli appunti, come immagine. */
+    fun copyPage(page: Page) {
+        runCatching { Export.copy(this, page, quarter) }
+            .onSuccess {
+                // da Android 13 il sistema mostra già la sua conferma
+                if (android.os.Build.VERSION.SDK_INT < 33) toast(getString(R.string.copied))
+            }
+            .onFailure {
+                Log.e("OpenSlate", "copia", it)
+                toast(it.message ?: "")
+            }
+    }
+
     fun sharePage(page: Page, pdf: Boolean) {
         runCatching {
             if (pdf) Export.share(this, Export.pdf(this, page, quarter), "application/pdf")
@@ -936,7 +1023,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         onOpenOnBoard: (Page) -> Unit,
     ) {
         BackHandler(onBack = onBack)
-        PageViewer(page, quarter, dir, onBack, onChanged, onOpenOnBoard, ::sharePage, onNote = {
+        PageViewer(page, quarter, dir, onBack, onChanged, onOpenOnBoard, ::sharePage, onMore = { chooseMore(it, fromBoard = false) }, onNote = {
             val title = page.title.ifBlank { page.created.take(16) }
             val note = noteOf(page.id)
             if (note != null) screen = Screen.Note(page.id, title, note, Screen.Viewer(page))

@@ -152,6 +152,7 @@ struct BoardScreen: View {
     @State private var choosingPaper = false
     @State private var importing = false
     @State private var shareURL: URL?
+    @State private var choosingMore = false
     @State private var note: NoteItem?
 
     var body: some View {
@@ -171,7 +172,19 @@ struct BoardScreen: View {
         .sheet(isPresented: $choosingPaper) { PaperPicker() }
         .fileImporter(isPresented: $importing, allowedContentTypes: docTypes) { r in if case .success(let url) = r { app.openDocument(url) } }
         .sheet(item: $shareURL) { url in ShareSheet(items: [url]) }
+        .sheet(isPresented: $choosingMore) {
+            MoreFormatsSheet { kind in
+                let page = board.toPage(Float(app.padSize.width), Float(app.padSize.height))
+                app.exportMore(page, kind: kind, fromBoard: true) { url in shareURL = url }
+            }
+        }
         .sheet(item: $note) { n in NoteScreen(item: n) }
+    }
+
+    /// La lavagna com'è adesso negli appunti, come immagine.
+    private func copyBoard() {
+        Export.copy(board.toPage(Float(app.padSize.width), Float(app.padSize.height)), quarter: app.quarter)
+        app.show(L("Lavagna copiata negli appunti.", "Board copied to the clipboard."))
     }
 
     private var docTypes: [UTType] {
@@ -198,6 +211,7 @@ struct BoardScreen: View {
                 .font(.headline).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
             Button { board.undo() } label: { Image(systemName: "arrow.uturn.backward") }.disabled(!board.model.canUndo())
             Button { board.redo() } label: { Image(systemName: "arrow.uturn.forward") }.disabled(!board.model.canRedo())
+            Button { copyBoard() } label: { Image(systemName: "doc.on.doc") }.disabled(board.isEmpty || app.doc != nil)
             Menu {
                 Section(L("Pagina", "Page")) {
                     Button { app.saveBoardIfNeeded(); board.newPage() } label: { Label(L("Nuova pagina", "New page"), systemImage: "doc.badge.plus") }.disabled(app.doc != nil)
@@ -212,6 +226,8 @@ struct BoardScreen: View {
                 Section(L("Condividi", "Share")) {
                     Button { shareURL = try? Export.pdf(board.toPage(Float(app.padSize.width), Float(app.padSize.height)), quarter: app.quarter) } label: { Label(L("Condividi PDF", "Share as PDF"), systemImage: "doc.richtext") }.disabled(board.isEmpty)
                     Button { shareURL = try? Export.png(board.toPage(Float(app.padSize.width), Float(app.padSize.height)), quarter: app.quarter) } label: { Label(L("Condividi immagine", "Share as image"), systemImage: "photo") }.disabled(board.isEmpty)
+                    Button { copyBoard() } label: { Label(L("Copia negli appunti", "Copy to clipboard"), systemImage: "doc.on.doc") }.disabled(board.isEmpty || app.doc != nil)
+                    Button { choosingMore = true } label: { Label(L("Altri formati…", "More formats…"), systemImage: "ellipsis.rectangle") }.disabled(board.isEmpty || app.doc != nil)
                 }
                 Section(L("Documento", "Document")) {
                     Button { importing = true } label: { Label(L("Apri un documento da firmare…", "Open a document to sign…"), systemImage: "signature") }

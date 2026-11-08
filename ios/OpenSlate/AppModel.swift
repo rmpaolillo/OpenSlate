@@ -396,6 +396,7 @@ func aiMessage(_ e: Error) -> String {
         case .Cancelled: return L("interrotto", "stopped")
         }
     }
+    if let s = e as? StoreError, case .Io(let reason) = s { return reason }
     return e.localizedDescription
 }
 

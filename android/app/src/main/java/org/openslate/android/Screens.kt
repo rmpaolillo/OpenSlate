@@ -291,6 +291,7 @@ fun PageViewer(
     onChanged: (Page?) -> Unit,
     onOpenOnBoard: (Page) -> Unit,
     share: (Page, Boolean) -> Unit,
+    onMore: (Page) -> Unit,
     onNote: () -> Unit,
 ) {
     var renaming by remember { mutableStateOf(false) }
@@ -311,6 +312,7 @@ fun PageViewer(
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.share_pdf)) }, onClick = { menu = false; share(page, true) })
                     DropdownMenuItem(text = { Text(stringResource(R.string.share_image)) }, onClick = { menu = false; share(page, false) })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.more_formats)) }, onClick = { menu = false; onMore(page) })
                     DropdownMenuItem(text = { Text(stringResource(R.string.rename)) }, onClick = { menu = false; renaming = true })
                     DropdownMenuItem(text = { Text(stringResource(R.string.delete)) }, onClick = { menu = false; deleting = true })
                 }

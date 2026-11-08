@@ -134,7 +134,7 @@ enum Export {
         return CGSize(width: CGFloat(rw) * k, height: CGFloat(rh) * k)
     }
 
-    private static func fileName(_ page: Page, _ ext: String) -> String {
+    static func fileName(_ page: Page, _ ext: String) -> String {
         let bad = CharacterSet(charactersIn: "\\/:*?\"<>|\n\r\t")
         let t = page.title.trimmingCharacters(in: .whitespaces).components(separatedBy: bad).joined(separator: "_")
         return (t.isEmpty ? "OpenSlate-" + (page.id.isEmpty ? "pagina" : page.id) : String(t.prefix(80))) + "." + ext
@@ -168,6 +168,11 @@ enum Export {
             ctx.fill(CGRect(origin: .zero, size: s))
             Ink.draw(ctx.cgContext, page.strokes, padW: page.width, padH: page.height, quarter: quarter, w: s.width, h: s.height)
         }
+    }
+
+    /// La pagina negli appunti, come immagine (incollabile in Messaggi, Mail, Note…).
+    static func copy(_ page: Page, quarter: Int) {
+        UIPasteboard.general.setData(pngData(page, quarter: quarter, long: 2400), forPasteboardType: "public.png")
     }
 
     static func png(_ page: Page, quarter: Int) throws -> URL {

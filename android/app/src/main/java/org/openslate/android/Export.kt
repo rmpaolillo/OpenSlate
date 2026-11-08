@@ -6,7 +6,10 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
+import uniffi.openslate_mobile.ExportKind
 import uniffi.openslate_mobile.Page
+import uniffi.openslate_mobile.exportExt
+import uniffi.openslate_mobile.exportPage
 import java.io.File
 
 /**
@@ -71,6 +74,32 @@ object Export {
         bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
         bmp.recycle()
         return out.toByteArray()
+    }
+
+    /**
+     * La pagina negli appunti, come immagine PNG (incollabile in chat, mail,
+     * documenti). Il file sta in una cartella sua, così una condivisione
+     * successiva non lo cancella mentre è ancora negli appunti.
+     */
+    fun copy(ctx: Context, page: Page, quarter: Int) {
+        val dir = File(ctx.cacheDir, "clip").apply { deleteRecursively(); mkdirs() }
+        val f = File(dir, fileName(page, "png"))
+        f.writeBytes(pngBytes(page, quarter, PNG_LONG))
+        val uri = FileProvider.getUriForFile(ctx, ctx.packageName + ".files", f)
+        val cm = ctx.getSystemService(android.content.ClipboardManager::class.java)
+        cm.setPrimaryClip(android.content.ClipData.newUri(ctx.contentResolver, f.nameWithoutExtension, uri))
+    }
+
+    /**
+     * Uno degli «Altri formati» (come la desktop). Il video lo codifica
+     * Android ([Mp4]); gli altri li scrive il cuore Rust, con gli stessi file
+     * della desktop. `note` è la trascrizione, se c'è.
+     */
+    fun more(ctx: Context, page: Page, quarter: Int, kind: ExportKind, note: String?, paper: String): File {
+        val f = File(shareDir(ctx), fileName(page, exportExt(kind)))
+        if (kind == ExportKind.VIDEO) Mp4.write(page, quarter, f)
+        else exportPage(page, quarter.toUInt(), kind, note, paper, f.path)
+        return f
     }
 
     fun share(ctx: Context, file: File, mime: String) {

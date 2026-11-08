@@ -30,6 +30,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 base64 = "0.22"
 flate2 = "1"
+gif = "0.14"
+color_quant = "1.1"
 ureq = { version = "2", features = ["json"] }
 anyhow = "1"
 tiny-skia = "0.11"
@@ -44,6 +46,7 @@ photocraft-raster = { git = "https://github.com/storytold/photocraft", rev = "ef
 photocraft-color = { git = "https://github.com/storytold/photocraft", rev = "efb7ebd0c0dab1fc108ee4642aa47c22694271a8" }
 photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "efb7ebd0c0dab1fc108ee4642aa47c22694271a8" }
 vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "654749c16eb20b6d3182a96defb66e11d1a9649a" }
+vectorcraft-render = { git = "https://github.com/storytold/vectorcraft", rev = "654749c16eb20b6d3182a96defb66e11d1a9649a" }
 
 [profile.release]
 opt-level = "s"

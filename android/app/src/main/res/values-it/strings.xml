@@ -139,4 +139,22 @@
     <string name="import_confirm">Questi servizi (con le loro chiavi) verranno salvati su questo telefono, cifrati:</string>
     <string name="import_ok">Importa</string>
     <string name="import_done">Importati: %1$d servizi.</string>
+    <string name="copy_board">Copia negli appunti</string>
+    <string name="copied">Lavagna copiata negli appunti.</string>
+    <string name="more_formats">Altri formati…</string>
+    <string name="fmt_svg">SVG (immagine vettoriale)</string>
+    <string name="fmt_jpeg">JPEG (leggero, da mandare)</string>
+    <string name="fmt_webp">WebP (leggero, da mandare)</string>
+    <string name="fmt_word">Word, con l\'inchiostro modificabile</string>
+    <string name="fmt_xournal">Xournal++ (.xopp)</string>
+    <string name="fmt_gif">GIF animata: la scrittura che si rifà</string>
+    <string name="fmt_svg_anim">SVG animato: la scrittura che si rifà</string>
+    <string name="fmt_video">Video MP4: la scrittura che si rifà</string>
+    <string name="fmt_latex">LaTeX dalla trascrizione (.tex)</string>
+    <string name="fmt_typst">Typst dalla trascrizione (.typ)</string>
+    <string name="save_to">Salva in una cartella</string>
+    <string name="export_saved">Salvato.</string>
+    <string name="exporting">Esportazione…</string>
+    <string name="export_failed">Esportazione non riuscita: %1$s</string>
+    <string name="empty_page">prima salva la pagina</string>
 </resources>
