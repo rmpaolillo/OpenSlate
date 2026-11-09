@@ -1255,5 +1255,8 @@
  "⚠ salvataggio {}: {e}": "⚠ {} の保存: {e}",
  "⚠ testo del documento: {e} (nella chat va solo l'immagine della pagina)": "⚠ ドキュメントのテキスト: {e} (チャットにはページの画像のみ送信されます)",
  "⚠ {} (recuperate {} pagine già scaricate)": "⚠ {}（ダウンロード済みのページ {} 枚を復元）",
- "＋ Nuovo appunto": "＋ 新規ノート"
+ "＋ Nuovo appunto": "＋ 新規ノート",
+ "Tratto naturale": "自然な筆跡",
+ "lo spessore segue la pressione della penna, punte affusolate": "太さが筆圧に応じて変わり、端が細くなる",
+ "spento: spessore sempre uguale, come un pennarello": "オフ：太さは常に同じ（サインペンのよう）"
 }

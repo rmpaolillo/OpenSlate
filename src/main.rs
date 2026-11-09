@@ -53,6 +53,7 @@ mod ui;
 mod update;
 mod rasign;
 mod pagegeom;
+mod inkshape;
 mod pagerender;
 mod rigatura;
 mod vecsign;

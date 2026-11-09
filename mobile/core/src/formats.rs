@@ -100,6 +100,7 @@ pub(crate) fn to_desktop(page: &Page, quarter: u32) -> DPage {
         color: crate::board::hex_to_rgb(&s.color).unwrap_or([20, 20, 20]),
         width: s.width,
         pts: s.points.iter().map(|p| g.unit(p.x, p.y)).collect(),
+        pr: crate::inkshape::page_pressure(s.points.iter().map(|p| p.pressure), s.highlight),
         highlight: s.highlight,
     };
     let strokes = page.strokes.iter().filter(|s| s.highlight).chain(page.strokes.iter().filter(|s| !s.highlight)).filter(|s| !s.points.is_empty()).map(conv).collect();
@@ -215,7 +216,8 @@ pub fn anim_page_at(page: Page, quarter: u32, t: f32) -> Page {
                     .enumerate()
                     .map(|(i, &(u, v))| {
                         let (x, y) = g.pad(u, v);
-                        PenPoint { x, y, pressure: 1.0, phase: if i == 0 { Phase::Down } else if i + 1 == n { Phase::Up } else { Phase::Move } }
+                        let pressure = s.pr.get(i).copied().unwrap_or(1.0);
+                        PenPoint { x, y, pressure, phase: if i == 0 { Phase::Down } else if i + 1 == n { Phase::Up } else { Phase::Move } }
                     })
                     .collect(),
             }

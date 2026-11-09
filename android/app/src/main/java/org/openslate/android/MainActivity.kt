@@ -79,6 +79,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import uniffi.openslate_mobile.ExportKind
+import uniffi.openslate_mobile.setNaturalInk
 import uniffi.openslate_mobile.exportMime
 import uniffi.openslate_mobile.exportNeedsNote
 import uniffi.openslate_mobile.PadInfo
@@ -237,6 +238,7 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var paperCode by mutableStateOf("bianco")
     private var paperMargin by mutableStateOf(true)
     private var zigzag by mutableStateOf(false)
+    private var naturalInk by mutableStateOf(true)
     private var choosingPaper by mutableStateOf(false)
 
     /** Dimensioni del foglio (area attiva del pad), ricordate per i fogli nuovi. */
@@ -258,6 +260,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         paperCode = prefs.getString("paper", paperCode)!!
         paperMargin = prefs.getBoolean("paper_margin", paperMargin)
         zigzag = prefs.getBoolean("zigzag", zigzag)
+        naturalInk = prefs.getBoolean("natural_ink", naturalInk)
         applyTools()
     }
 
@@ -269,12 +272,15 @@ class MainActivity : ComponentActivity(), LinkListener {
         m.setPen(penColor, penWidth)
         m.setHighlighter(hlColor, hlWidth)
         m.setZigzag(zigzag)
+        setNaturalInk(naturalInk)
+        Ink.naturalInk = naturalInk
         prefs.edit()
             .putString("tool", if (tool == Tool.HIGHLIGHTER) "highlighter" else "pen")
             .putString("pen_color", penColor).putFloat("pen_width", penWidth)
             .putString("hl_color", hlColor).putFloat("hl_width", hlWidth)
             .putString("paper", paperCode).putBoolean("paper_margin", paperMargin)
             .putBoolean("zigzag", zigzag)
+            .putBoolean("natural_ink", naturalInk)
             .apply()
     }
 
@@ -875,6 +881,15 @@ class MainActivity : ComponentActivity(), LinkListener {
                 prefs.edit().putInt("quarter", quarter).apply()
             }
             SettingsHeader(stringResource(R.string.grp_writing))
+            Row(Modifier.fillMaxWidth().clickable { naturalInk = !naturalInk; applyTools() }.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Draw, null)
+                Column(Modifier.weight(1f).padding(start = 16.dp)) {
+                    Text(stringResource(R.string.natural_ink))
+                    Text(stringResource(R.string.natural_ink_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = naturalInk, onCheckedChange = { naturalInk = it; applyTools() })
+            }
             Row(Modifier.fillMaxWidth().clickable { zigzag = !zigzag; applyTools() }.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Gesture, null)

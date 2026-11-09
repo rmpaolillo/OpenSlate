@@ -291,6 +291,7 @@ mod tests {
                 color: [0, 0, 0],
                 width: 2.0,
                 pts: vec![(0.1, 0.1), (0.9, 0.1)],
+                pr: vec![],
                 highlight: false,
             }],
             ..Default::default()

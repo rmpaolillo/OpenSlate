@@ -1094,6 +1094,7 @@ mod tests {
                     color: [30, 60, 160],
                     width: 2.0,
                     pts: st.into_iter().map(|(x, y)| (0.04 + x * s / aspect, v + y * s)).collect(),
+                    pr: vec![],
                     highlight: false,
                 });
             }

@@ -25,6 +25,8 @@ pub mod boardread;
 pub mod handwrite;
 #[path = "../../../src/pagegeom.rs"]
 pub mod pagegeom;
+#[path = "../../../src/inkshape.rs"]
+pub mod inkshape;
 #[path = "../../../src/rasign.rs"]
 pub mod rasign;
 #[path = "../../../src/vecsign.rs"]
@@ -78,6 +80,7 @@ mod ai;
 mod board;
 mod docs;
 mod formats;
+mod ink;
 mod pages;
 mod paper;
 mod session;
@@ -86,6 +89,7 @@ mod tutor;
 pub use ai::*;
 pub use board::*;
 pub use formats::*;
+pub use ink::*;
 pub use docs::*;
 pub use pages::*;
 pub use paper::*;

@@ -133,7 +133,7 @@ mod tests {
         Page {
             w: 21_000.0,
             h: 29_700.0,
-            strokes: strokes.into_iter().map(|pts| PageStroke { color: [0, 0, 0], width: 2.0, pts, highlight: false }).collect(),
+            strokes: strokes.into_iter().map(|pts| PageStroke { color: [0, 0, 0], width: 2.0, pts, pr: vec![], highlight: false }).collect(),
             bg: None,
         }
     }

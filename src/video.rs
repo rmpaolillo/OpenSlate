@@ -592,7 +592,7 @@ mod tests {
         let strokes = (0..12)
             .map(|k| {
                 let v = 0.1 + k as f32 * 0.06;
-                PageStroke { color: [20, 20, 40], width: 2.0, pts: vec![(0.1, v), (0.5, v + 0.02), (0.8, v)], highlight: false }
+                PageStroke { color: [20, 20, 40], width: 2.0, pts: vec![(0.1, v), (0.5, v + 0.02), (0.8, v)], pr: vec![], highlight: false }
             })
             .collect();
         Page { w: 21000.0, h: 29700.0, strokes, bg: None }

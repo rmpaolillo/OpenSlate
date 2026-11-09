@@ -60,6 +60,24 @@ fn render(page: &Page, long_side: u32) -> anyhow::Result<tiny_skia::Pixmap> {
             paint.blend_mode = tiny_skia::BlendMode::Multiply;
         }
         let sw = stroke_width(st.width, h);
+        // tratto naturale: il contorno con lo spessore della pressione, pieno
+        if !st.pr.is_empty() {
+            let pts: Vec<(f32, f32)> = st.pts.iter().map(|&(u, v)| (u * w, v * h)).collect();
+            let o = crate::inkshape::outline(&pts, &st.pr, sw);
+            let mut pb = PathBuilder::new();
+            for (j, &(x, y)) in o.iter().enumerate() {
+                if j == 0 {
+                    pb.move_to(x, y);
+                } else {
+                    pb.line_to(x, y);
+                }
+            }
+            pb.close();
+            if let Some(path) = pb.finish() {
+                pm.fill_path(&path, &paint, FillRule::Winding, Transform::identity(), None);
+            }
+            continue;
+        }
         if st.pts.len() == 1 {
             let (u, v) = st.pts[0];
             if let Some(c) = PathBuilder::from_circle(u * w, v * h, sw * 0.5) {
@@ -123,6 +141,7 @@ pub fn crop_to_content(page: &Page, margin: f32) -> Page {
                 // stesso spessore rispetto alla scrittura
                 width: st.width * page.h / h,
                 pts: st.pts.iter().map(|&(u, v)| ((u - u0) / du, (v - v0) / dv)).collect(),
+                pr: st.pr.clone(),
                 highlight: st.highlight,
             })
             .collect(),

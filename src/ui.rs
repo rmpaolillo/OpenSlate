@@ -73,6 +73,7 @@ pub fn run_app(
     }
     let settings = Settings::load();
     crate::i18n::set_lang(crate::i18n::resolve(&settings.ui_lang));
+    crate::inkshape::set_natural(settings.natural_ink);
     let thumb_size = settings.thumb_size;
     let hub = Hub::new(Scene::new(&settings));
     // la chat AI può mettere grafici sul foglio della lavagna
@@ -646,9 +647,65 @@ fn paint_page(
             continue;
         }
         let pts: Vec<egui::Pos2> = s.points.iter().map(|p| map(p.x, p.y)).collect();
+        if !s.highlight && crate::inkshape::natural() {
+            let pr: Vec<f32> = s.points.iter().map(|p| p.pressure).collect();
+            if crate::inkshape::is_varied(&pr) {
+                natural_stroke(&clip, &pts, &pr, width, col);
+                continue;
+            }
+        }
         clip.add(egui::Shape::line(pts, egui::Stroke::new(width, col)));
     }
     page
+}
+
+/// Il tratto naturale sullo schermo: l'interno a triangoli (lati e punte di
+/// `inkshape`), il bordo con una linea sottile che lo rende morbido.
+fn natural_stroke(painter: &egui::Painter, pts: &[egui::Pos2], pr: &[f32], width: f32, col: egui::Color32) {
+    let xy: Vec<(f32, f32)> = pts.iter().map(|p| (p.x, p.y)).collect();
+    let rb = crate::inkshape::ribbon(&xy, &crate::inkshape::radii(&xy, pr, width));
+    if rb.center.is_empty() {
+        return;
+    }
+    let p = |q: (f32, f32)| egui::pos2(q.0, q.1);
+    let mut mesh = egui::Mesh::default();
+    let mut v = |m: &mut egui::Mesh, q: (f32, f32)| {
+        m.colored_vertex(p(q), col);
+        m.vertices.len() as u32 - 1
+    };
+    // una punta: ventaglio attorno al centro lungo l'arco
+    let fan = |m: &mut egui::Mesh, v: &mut dyn FnMut(&mut egui::Mesh, (f32, f32)) -> u32, c: (f32, f32), arc: &[(f32, f32)]| {
+        let ci = v(m, c);
+        let ids: Vec<u32> = arc.iter().map(|&q| v(m, q)).collect();
+        for w in ids.windows(2) {
+            m.add_triangle(ci, w[0], w[1]);
+        }
+    };
+    let n = rb.center.len();
+    if n == 1 {
+        let mut arc = vec![rb.left[0]];
+        arc.extend_from_slice(&rb.end_cap);
+        arc.push(rb.left[0]);
+        fan(&mut mesh, &mut v, rb.center[0], &arc);
+    } else {
+        let l: Vec<u32> = rb.left.iter().map(|&q| v(&mut mesh, q)).collect();
+        let r: Vec<u32> = rb.right.iter().map(|&q| v(&mut mesh, q)).collect();
+        for i in 0..n - 1 {
+            mesh.add_triangle(l[i], l[i + 1], r[i + 1]);
+            mesh.add_triangle(l[i], r[i + 1], r[i]);
+        }
+        let mut end = vec![rb.left[n - 1]];
+        end.extend_from_slice(&rb.end_cap);
+        end.push(rb.right[n - 1]);
+        fan(&mut mesh, &mut v, rb.center[n - 1], &end);
+        let mut start = vec![rb.right[0]];
+        start.extend_from_slice(&rb.start_cap);
+        start.push(rb.left[0]);
+        fan(&mut mesh, &mut v, rb.center[0], &start);
+    }
+    painter.add(egui::Shape::mesh(mesh));
+    let outline: Vec<egui::Pos2> = rb.outline().into_iter().map(p).collect();
+    painter.add(egui::Shape::closed_line(outline, egui::Stroke::new(0.8, col)));
 }
 
 /// Colore trasparente per l'evidenziatore sullo schermo: sul bianco dà il

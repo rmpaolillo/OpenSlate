@@ -1255,5 +1255,8 @@
  "⚠ salvataggio {}: {e}": "⚠ {} 저장: {e}",
  "⚠ testo del documento: {e} (nella chat va solo l'immagine della pagina)": "⚠ 문서 텍스트: {e} (채팅에는 페이지 이미지만 전송됨)",
  "⚠ {} (recuperate {} pagine già scaricate)": "⚠ {} (이미 내려받은 페이지 {}장 복구)",
- "＋ Nuovo appunto": "＋ 새 노트"
+ "＋ Nuovo appunto": "＋ 새 노트",
+ "Tratto naturale": "자연스러운 획",
+ "lo spessore segue la pressione della penna, punte affusolate": "굵기가 펜 압력을 따르고 끝이 가늘어짐",
+ "spento: spessore sempre uguale, come un pennarello": "끔: 항상 같은 굵기, 사인펜처럼"
 }

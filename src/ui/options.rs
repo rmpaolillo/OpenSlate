@@ -143,6 +143,10 @@ impl App {
             s.zigzag = n.zigzag;
             s.longpress = n.longpress_toggle;
         });
+        if n.natural_ink != crate::inkshape::natural() {
+            crate::inkshape::set_natural(n.natural_ink);
+            self.lui.thumbs.clear();
+        }
         if old_view != self.hub.lock().view {
             self.lui.thumbs.clear();
         }
@@ -323,6 +327,12 @@ fn prefs_page(ui: &mut egui::Ui, p: &mut Prefs, ai: &mut bool) {
                 ui.vertical(|ui| {
                     ui.checkbox(&mut d.longpress_toggle, i18n::t("punta ferma 1,5 s = penna ↔ evidenziatore"));
                     hint(ui, "se scrivi guardando la carta lascialo spento: una pausa col pennino appoggiato cambierebbe strumento senza che te ne accorga");
+                });
+            });
+            row(ui, "Tratto naturale", |ui| {
+                ui.vertical(|ui| {
+                    ui.checkbox(&mut d.natural_ink, i18n::t("lo spessore segue la pressione della penna, punte affusolate"));
+                    hint(ui, "spento: spessore sempre uguale, come un pennarello");
                 });
             });
             row(ui, "Zig-zag", |ui| {

@@ -157,4 +157,6 @@
     <string name="exporting">Esportazione…</string>
     <string name="export_failed">Esportazione non riuscita: %1$s</string>
     <string name="empty_page">prima salva la pagina</string>
+    <string name="natural_ink">Tratto naturale</string>
+    <string name="natural_ink_hint">Lo spessore segue la pressione della penna e le punte si affusolano, come l\'inchiostro vero. Spento: spessore sempre uguale, come un pennarello.</string>
 </resources>

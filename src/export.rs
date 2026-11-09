@@ -65,8 +65,8 @@ mod tests {
             w: 21000.0,
             h: 29700.0,
             strokes: vec![
-                PageStroke { color: [255, 0, 0], width: 2.0, pts: vec![(0.1, 0.1), (0.5, 0.5)], highlight: false },
-                PageStroke { color: [0, 0, 0], width: 2.0, pts: vec![(0.7, 0.7)], highlight: false },
+                PageStroke { color: [255, 0, 0], width: 2.0, pts: vec![(0.1, 0.1), (0.5, 0.5)], pr: vec![], highlight: false },
+                PageStroke { color: [0, 0, 0], width: 2.0, pts: vec![(0.7, 0.7)], pr: vec![], highlight: false },
             ],
         }
     }
@@ -106,7 +106,7 @@ mod bench {
         let page = Page {
             w: 21000.0,
             h: 29700.0,
-            strokes: vec![PageStroke { color: [255, 235, 90], width: 16.0, pts: (0..50).map(|i| (0.1 + i as f32 * 0.01, 0.2)).collect(), highlight: true }],
+            strokes: vec![PageStroke { color: [255, 235, 90], width: 16.0, pts: (0..50).map(|i| (0.1 + i as f32 * 0.01, 0.2)).collect(), pr: vec![], highlight: true }],
             bg: Some(PageBg { png: std::sync::Arc::new(png), rect: [0.0, 0.0, 1.0, 1.0], key: "x".into() }),
         };
         let t = std::time::Instant::now();

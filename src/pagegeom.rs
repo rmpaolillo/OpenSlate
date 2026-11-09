@@ -98,6 +98,9 @@ pub struct PageStroke {
     pub color: Rgb,
     pub width: f32,
     pub pts: Vec<(f32, f32)>,
+    /// Pressione di ogni punto, per il tratto naturale (`inkshape`). Vuota:
+    /// spessore uniforme.
+    pub pr: Vec<f32>,
     /// Evidenziatore (le pagine li mettono prima dell'inchiostro).
     pub highlight: bool,
 }
@@ -151,6 +154,7 @@ impl Page {
                     color: s.color,
                     width: s.width,
                     pts: s.points.iter().map(|p| g.unit(p.x, p.y)).collect(),
+                    pr: crate::inkshape::page_pressure(s.points.iter().map(|p| p.pressure), s.highlight),
                     highlight: s.highlight,
                 })
                 .collect(),

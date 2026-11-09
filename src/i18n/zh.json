@@ -1255,5 +1255,8 @@
  "⚠ salvataggio {}: {e}": "⚠ 保存 {}：{e}",
  "⚠ testo del documento: {e} (nella chat va solo l'immagine della pagina)": "⚠ 文档文字：{e}（聊天中只发送页面图片）",
  "⚠ {} (recuperate {} pagine già scaricate)": "⚠ {}（已恢复 {} 页已下载的页面）",
- "＋ Nuovo appunto": "＋ 新笔记"
+ "＋ Nuovo appunto": "＋ 新笔记",
+ "Tratto naturale": "自然笔触",
+ "lo spessore segue la pressione della penna, punte affusolate": "粗细随笔压变化，两端渐细",
+ "spento: spessore sempre uguale, come un pennarello": "关闭：粗细始终相同，像记号笔"
 }

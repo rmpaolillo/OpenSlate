@@ -18,6 +18,8 @@ pub struct Settings {
     pub pen_color: Rgb,
     /// Gesto zig-zag = cancella.
     pub zigzag: bool,
+    /// Tratto naturale: lo spessore segue la pressione, punte affusolate.
+    pub natural_ink: bool,
     /// Evidenziatore: colore (chiaro: sta sotto l'inchiostro) e spessore.
     pub highlight_color: Rgb,
     pub highlight_width: f32,
@@ -96,6 +98,7 @@ impl Default for Settings {
             pen_width: 2.0,
             pen_color: [20, 20, 20],
             zigzag: false,
+            natural_ink: true,
             highlight_color: [255, 235, 90],
             highlight_width: 16.0,
             longpress_toggle: false,
@@ -179,6 +182,7 @@ impl Settings {
             // Vecchia chiave: ignorata (lo zig-zag automatico ora è spento di serie).
             "zigzag" => {}
             "zigzag_auto" => self.zigzag = b(v),
+            "natural_ink" => self.natural_ink = b(v),
             "highlight_color" => self.highlight_color = hex_to_color(v).unwrap_or(self.highlight_color),
             "highlight_width" => self.highlight_width = v.parse().unwrap_or(self.highlight_width),
             // la chiave vecchia («longpress_toggle», acceso di serie) non vale più:
@@ -228,6 +232,7 @@ impl Settings {
              rot = {}\nflip_x = {}\nflip_y = {}\n\
              pen_width = {}\npen_color = {}\n\
              # zig-zag automatico = cancella (anche senza Gomma); attenzione alle firme\nzigzag_auto = {}\n\
+             # tratto naturale: lo spessore segue la pressione della penna, punte affusolate\nnatural_ink = {}\n\
              # evidenziatore; tocco lungo (punta ferma 1,5 s) = penna/evidenziatore, spento di serie\n\
              highlight_color = {}\nhighlight_width = {}\nlongpress_tool = {}\n\
              # diretta web\nweb_port = {}\nweb_auto = {}\n\
@@ -254,6 +259,7 @@ impl Settings {
             self.pen_width,
             color_to_hex(self.pen_color),
             b(self.zigzag),
+            b(self.natural_ink),
             color_to_hex(self.highlight_color),
             self.highlight_width,
             b(self.longpress_toggle),

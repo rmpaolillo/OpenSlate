@@ -1255,5 +1255,8 @@
  "⚠ salvataggio {}: {e}": "⚠ збереження {}: {e}",
  "⚠ testo del documento: {e} (nella chat va solo l'immagine della pagina)": "⚠ текст документа: {e} (у чат надсилається лише зображення сторінки)",
  "⚠ {} (recuperate {} pagine già scaricate)": "⚠ {} (відновлено {} уже завантажених сторінок)",
- "＋ Nuovo appunto": "＋ Нова нотатка"
+ "＋ Nuovo appunto": "＋ Нова нотатка",
+ "Tratto naturale": "Природний штрих",
+ "lo spessore segue la pressione della penna, punte affusolate": "товщина залежить від натиску пера, загострені кінці",
+ "spento: spessore sempre uguale, come un pennarello": "вимкнено: завжди однакова товщина, як у фломастера"
 }

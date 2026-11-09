@@ -1255,5 +1255,8 @@
  "⚠ salvataggio {}: {e}": "⚠ Speichern {}: {e}",
  "⚠ testo del documento: {e} (nella chat va solo l'immagine della pagina)": "⚠ Dokumenttext: {e} (in den Chat geht nur das Bild der Seite)",
  "⚠ {} (recuperate {} pagine già scaricate)": "⚠ {} ({} bereits geladene Seiten wiederhergestellt)",
- "＋ Nuovo appunto": "＋ Neue Notiz"
+ "＋ Nuovo appunto": "＋ Neue Notiz",
+ "Tratto naturale": "Natürlicher Strich",
+ "lo spessore segue la pressione della penna, punte affusolate": "die Strichstärke folgt dem Stiftdruck, spitz zulaufende Enden",
+ "spento: spessore sempre uguale, come un pennarello": "aus: immer gleiche Stärke, wie ein Filzstift"
 }

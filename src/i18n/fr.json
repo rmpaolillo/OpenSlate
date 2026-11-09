@@ -1255,5 +1255,8 @@
  "⚠ salvataggio {}: {e}": "⚠ enregistrement {} : {e}",
  "⚠ testo del documento: {e} (nella chat va solo l'immagine della pagina)": "⚠ texte du document : {e} (seule l'image de la page va dans le chat)",
  "⚠ {} (recuperate {} pagine già scaricate)": "⚠ {} ({} pages déjà téléchargées récupérées)",
- "＋ Nuovo appunto": "＋ Nouvelle note"
+ "＋ Nuovo appunto": "＋ Nouvelle note",
+ "Tratto naturale": "Trait naturel",
+ "lo spessore segue la pressione della penna, punte affusolate": "l'épaisseur suit la pression du stylet, extrémités effilées",
+ "spento: spessore sempre uguale, come un pennarello": "désactivé : toujours la même épaisseur, comme un feutre"
 }

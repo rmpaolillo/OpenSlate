@@ -197,6 +197,7 @@ final class AppModel: ObservableObject, LinkListener {
     @AppStorage("paper") var paperCode = "bianco"
     @AppStorage("paper_margin") var paperMargin = true
     @AppStorage("zigzag") var zigzag = false
+    @AppStorage("natural_ink") var naturalInk = true
 
     let libDir: String
     private let rawDir: URL
@@ -234,6 +235,8 @@ final class AppModel: ObservableObject, LinkListener {
         m.setPen(color: penColor, width: Float(penWidth))
         m.setHighlighter(color: hlColor, width: Float(hlWidth))
         m.setZigzag(on: zigzag)
+        setNaturalInk(on: naturalInk)
+        Ink.natural = naturalInk
         objectWillChange.send()
     }
 

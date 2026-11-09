@@ -446,13 +446,13 @@ mod tests {
             (0..n)
                 .map(|k| {
                     let u = 0.1 + k as f32 * 0.05;
-                    PageStroke { color: [20, 20, 40], width: 2.0, pts: vec![(u, v), (u + 0.02, v + 0.02), (u + 0.04, v)], highlight: false }
+                    PageStroke { color: [20, 20, 40], width: 2.0, pts: vec![(u, v), (u + 0.02, v + 0.02), (u + 0.04, v)], pr: vec![], highlight: false }
                 })
                 .collect()
         };
         let mut strokes = line(0.10, 6);
         strokes.extend(line(0.20, 4));
-        strokes.push(PageStroke { color: [250, 210, 60], width: 9.0, pts: vec![(0.1, 0.21), (0.3, 0.21)], highlight: true });
+        strokes.push(PageStroke { color: [250, 210, 60], width: 9.0, pts: vec![(0.1, 0.21), (0.3, 0.21)], pr: vec![], highlight: true });
         Page { w: 21000.0, h: 29700.0, strokes, bg: None }
     }
 

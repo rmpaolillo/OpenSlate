@@ -160,4 +160,6 @@
     <string name="exporting">Exporting…</string>
     <string name="export_failed">Export failed: %1$s</string>
     <string name="empty_page">save the page first</string>
+    <string name="natural_ink">Natural stroke</string>
+    <string name="natural_ink_hint">The thickness follows the pen pressure and the ends taper, like real ink. Off: always the same thickness, like a felt-tip marker.</string>
 </resources>

@@ -60,19 +60,54 @@ enum Ink {
                     for p in pts.dropFirst() { c.addLine(to: map(p)) }
                     c.strokePath()
                 } else {
-                    for i in 1..<pts.count {
-                        let a = pts[i - 1], b = pts[i]
-                        let pressure = b.phase == .up ? a.pressure : b.pressure
-                        c.setLineWidth(base * CGFloat(0.4 + 0.8 * pressure))
+                    // tratto naturale: il contorno (dal cuore Rust, come la desktop), pieno
+                    let o = outline(s, widthPad: Float(base / k))
+                    if o.count >= 6 {
                         c.beginPath()
-                        c.move(to: map(a))
-                        c.addLine(to: map(b))
+                        c.move(to: map(PenPoint(x: o[0], y: o[1], pressure: 0, phase: .move)))
+                        var j = 2
+                        while j + 1 < o.count {
+                            c.addLine(to: map(PenPoint(x: o[j], y: o[j + 1], pressure: 0, phase: .move)))
+                            j += 2
+                        }
+                        c.closePath()
+                        c.fillPath()
+                    } else {
+                        c.setLineWidth(base)
+                        c.beginPath()
+                        c.move(to: map(pts[0]))
+                        for p in pts.dropFirst() { c.addLine(to: map(p)) }
                         c.strokePath()
                     }
                 }
             }
         }
         c.restoreGState()
+    }
+
+    /// Tratto naturale acceso (di serie): lo imposta AppModel dalle preferenze.
+    static var natural = true
+
+    private struct Key: Hashable {
+        let n: Int, x0: Float, y0: Float, x1: Float, y1: Float, w: Float, natural: Bool
+    }
+    private static var cache: [Key: [Float]] = [:]
+    private static let lock = NSLock()
+
+    /// Il contorno del tratto naturale in unità del pad (vuoto: spessore fisso).
+    /// In cache: i tratti finiti non cambiano, la lavagna si ridisegna spesso.
+    static func outline(_ s: PageStroke, widthPad: Float) -> [Float] {
+        guard !s.highlight, s.points.count >= 2, let a = s.points.first, let b = s.points.last else { return [] }
+        let key = Key(n: s.points.count, x0: a.x, y0: a.y, x1: b.x, y1: b.y, w: widthPad, natural: natural)
+        lock.lock()
+        if let o = cache[key] { lock.unlock(); return o }
+        lock.unlock()
+        let o = natural ? inkOutline(points: s.points, width: widthPad, highlight: false) : []
+        lock.lock()
+        if cache.count > 4000 { cache.removeAll() }
+        cache[key] = o
+        lock.unlock()
+        return o
     }
 
     /// La rigatura (geometria da `src/rigatura.rs`, colori di `src/ui/paper.rs`).

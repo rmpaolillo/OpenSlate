@@ -1255,5 +1255,8 @@
  "⚠ salvataggio {}: {e}": "⚠ guardado de {}: {e}",
  "⚠ testo del documento: {e} (nella chat va solo l'immagine della pagina)": "⚠ texto del documento: {e} (al chat solo va la imagen de la página)",
  "⚠ {} (recuperate {} pagine già scaricate)": "⚠ {} (recuperadas {} páginas ya descargadas)",
- "＋ Nuovo appunto": "＋ Nueva nota"
+ "＋ Nuovo appunto": "＋ Nueva nota",
+ "Tratto naturale": "Trazo natural",
+ "lo spessore segue la pressione della penna, punte affusolate": "el grosor sigue la presión del lápiz, puntas afiladas",
+ "spento: spessore sempre uguale, come un pennarello": "apagado: siempre el mismo grosor, como un rotulador"
 }

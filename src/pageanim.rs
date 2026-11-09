@@ -58,7 +58,16 @@ pub fn xournal(page: &Page, paper: &str) -> Result<Vec<u8>> {
             pts.push((pts[0].0 + 0.01, pts[0].1));
         }
         let coords: Vec<String> = pts.iter().map(|(a, b)| format!("{a:.2} {b:.2}")).collect();
-        let _ = writeln!(x, "<stroke tool=\"{tool}\" color=\"{color}\" width=\"{width:.2}\">{}</stroke>", coords.join(" "));
+        // tratto naturale: dopo lo spessore nominale, quello di ogni segmento
+        // (formato di Xournal: un valore per segmento)
+        let mut widths = format!("{width:.2}");
+        if !st.pr.is_empty() && st.pr.len() == pts.len() && pts.len() > 1 {
+            let r = crate::inkshape::radii(&pts, &st.pr, width);
+            for k in r.windows(2) {
+                let _ = write!(widths, " {:.2}", k[0] + k[1]);
+            }
+        }
+        let _ = writeln!(x, "<stroke tool=\"{tool}\" color=\"{color}\" width=\"{widths}\">{}</stroke>", coords.join(" "));
     }
     x.push_str("</layer>\n</page>\n</xournal>\n");
     let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
@@ -87,7 +96,13 @@ fn partial(s: &PageStroke, t: f32, a: f32) -> PageStroke {
         acc += d;
         pts.push(w[1]);
     }
-    PageStroke { pts, ..s.clone() }
+    // la pressione segue i punti (l'ultimo, interpolato, prende quella del suo segmento)
+    let pr = if s.pr.len() == s.pts.len() {
+        (0..pts.len()).map(|i| s.pr[i.min(s.pr.len() - 1)]).collect()
+    } else {
+        Vec::new()
+    };
+    PageStroke { pts, pr, ..s.clone() }
 }
 
 fn stroke_len(s: &PageStroke, a: f32) -> f32 {

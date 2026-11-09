@@ -184,8 +184,14 @@ struct SettingsScreen: View {
                     Button { app.quarter = (app.quarter + 1) % 4; app.applyTools() } label: { LabeledContent(L("Ruota", "Rotate"), value: "\(app.quarter * 90)°") }
                 }
                 Section {
-                    Toggle(L("Lo zig-zag cancella", "Zig-zag erases"), isOn: Binding(get: { app.zigzag }, set: { app.zigzag = $0; app.applyTools() }))
+                    Toggle(L("Tratto naturale", "Natural stroke"), isOn: Binding(get: { app.naturalInk }, set: { app.naturalInk = $0; app.applyTools() }))
                 } header: { Text(L("Scrittura", "Writing")) } footer: {
+                    Text(L("Lo spessore segue la pressione della penna e le punte si affusolano, come l'inchiostro vero. Spento: spessore sempre uguale, come un pennarello.",
+                           "The thickness follows the pen pressure and the ends taper, like real ink. Off: always the same thickness, like a felt-tip marker."))
+                }
+                Section {
+                    Toggle(L("Lo zig-zag cancella", "Zig-zag erases"), isOn: Binding(get: { app.zigzag }, set: { app.zigzag = $0; app.applyTools() }))
+                } footer: {
                     Text(L("Uno zig-zag sopra lo scritto lo cancella (spento di serie: le firme sono spesso zig-zag).",
                            "A zig-zag over the writing erases it (off by default: signatures are often zig-zags)."))
                 }

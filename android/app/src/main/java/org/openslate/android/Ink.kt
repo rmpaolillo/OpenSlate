@@ -2,8 +2,9 @@ package org.openslate.android
 
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Path
 import uniffi.openslate_mobile.PageStroke
-import uniffi.openslate_mobile.Phase
+import uniffi.openslate_mobile.inkOutline
 
 /** Inchiostro e spessore predefiniti (come la desktop). */
 const val INK = "#141414"
@@ -54,16 +55,51 @@ object Ink {
                     c.drawPoint(mx(pts[0].x, pts[0].y), my(pts[0].x, pts[0].y), paint)
                     continue
                 }
-                for (i in 1 until pts.size) {
-                    val a = pts[i - 1]
-                    val b = pts[i]
-                    val pressure = if (b.phase == Phase.UP || s.highlight) a.pressure else b.pressure
-                    paint.strokeWidth = if (s.highlight) base else base * (0.4f + 0.8f * pressure)
-                    c.drawLine(mx(a.x, a.y), my(a.x, a.y), mx(b.x, b.y), my(b.x, b.y), paint)
+                // tratto naturale: il contorno (dal cuore Rust, come la desktop), pieno
+                val o = outline(s, base / k)
+                if (o.isNotEmpty()) {
+                    val path = Path()
+                    path.moveTo(mx(o[0], o[1]), my(o[0], o[1]))
+                    var j = 2
+                    while (j + 1 < o.size) {
+                        path.lineTo(mx(o[j], o[j + 1]), my(o[j], o[j + 1]))
+                        j += 2
+                    }
+                    path.close()
+                    paint.style = Paint.Style.FILL
+                    c.drawPath(path, paint)
+                    paint.style = Paint.Style.STROKE
+                    continue
                 }
+                paint.strokeWidth = base
+                val path = Path()
+                path.moveTo(mx(pts[0].x, pts[0].y), my(pts[0].x, pts[0].y))
+                for (i in 1 until pts.size) path.lineTo(mx(pts[i].x, pts[i].y), my(pts[i].x, pts[i].y))
+                c.drawPath(path, paint)
             }
         }
     }
+
+    /** Contorni già calcolati: i tratti finiti non cambiano, la lavagna si ridisegna spesso. */
+    private data class Key(val n: Int, val x0: Float, val y0: Float, val x1: Float, val y1: Float, val w: Float, val natural: Boolean)
+    private val cache = object : LinkedHashMap<Key, FloatArray>(256, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Key, FloatArray>) = size > 4000
+    }
+
+    /** Il contorno del tratto naturale in unità del pad (vuoto: si disegna a spessore fisso). */
+    private fun outline(s: PageStroke, widthPad: Float): FloatArray {
+        if (s.highlight || s.points.size < 2) return FloatArray(0)
+        val a = s.points.first()
+        val b = s.points.last()
+        val key = Key(s.points.size, a.x, a.y, b.x, b.y, widthPad, naturalInk)
+        synchronized(cache) { cache[key]?.let { return it } }
+        val o = if (naturalInk) inkOutline(s.points, widthPad, false).toFloatArray() else FloatArray(0)
+        synchronized(cache) { cache[key] = o }
+        return o
+    }
+
+    /** Tratto naturale acceso (di serie). Lo imposta MainActivity dalle preferenze. */
+    @Volatile var naturalInk = true
 
     private fun parseColor(hex: String): Int =
         runCatching { android.graphics.Color.parseColor(hex) }.getOrDefault(0xFF141414.toInt())

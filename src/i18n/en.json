@@ -1255,5 +1255,8 @@
  "⚠ salvataggio {}: {e}": "⚠ saving {}: {e}",
  "⚠ testo del documento: {e} (nella chat va solo l'immagine della pagina)": "⚠ document text: {e} (only the page image goes to the chat)",
  "⚠ {} (recuperate {} pagine già scaricate)": "⚠ {} ({} pages already downloaded were recovered)",
- "＋ Nuovo appunto": "＋ New note"
+ "＋ Nuovo appunto": "＋ New note",
+ "Tratto naturale": "Natural stroke",
+ "lo spessore segue la pressione della penna, punte affusolate": "the thickness follows the pen pressure, tapered ends",
+ "spento: spessore sempre uguale, come un pennarello": "off: always the same thickness, like a felt-tip marker"
 }

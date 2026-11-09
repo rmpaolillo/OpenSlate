@@ -66,6 +66,20 @@ fn document(pages: &[&Page]) -> Result<(Session, Vec<[f64; 4]>)> {
             run(&mut s, "select.none", json!({}))?;
             let color = format!("#{:02x}{:02x}{:02x}", st.color[0], st.color[1], st.color[2]);
             let weight = crate::export::stroke_width(st.width, bh as f32) as f64;
+            // tratto naturale: il contorno pieno, con lo spessore della pressione
+            if !st.pr.is_empty() {
+                let pts: Vec<(f32, f32)> = st.pts.iter().map(|&(u, v)| ((bx + u as f64 * bw) as f32, (by + v as f64 * bh) as f32)).collect();
+                let o = crate::inkshape::outline(&pts, &st.pr, weight as f32);
+                if o.len() >= 3 {
+                    run(&mut s, "paint.setFill", json!({ "color": color }))?;
+                    run(&mut s, "paint.setStroke", json!({ "none": true }))?;
+                    s.paint.blend = vectorcraft_engine::doc::color::BlendMode::Normal;
+                    s.paint.opacity = 1.0;
+                    let anchors: Vec<serde_json::Value> = o.iter().map(|&(x, y)| json!({ "x": x, "y": y })).collect();
+                    run(&mut s, "path.create", json!({ "anchors": anchors, "closed": true }))?;
+                    continue;
+                }
+            }
             run(&mut s, "paint.setFill", json!({ "none": true }))?;
             run(&mut s, "paint.setStroke", json!({ "color": color }))?;
             run(&mut s, "stroke.set", json!({ "weight": weight, "cap": "round", "join": "round" }))?;
@@ -142,9 +156,9 @@ mod tests {
             w: 21000.0,
             h: 29700.0,
             strokes: vec![
-                PageStroke { color: [255, 0, 0], width: 2.0, pts: vec![(0.1, 0.1), (0.5, 0.5), (0.9, 0.2)], highlight: false },
-                PageStroke { color: [0, 0, 0], width: 2.0, pts: vec![(0.7, 0.7)], highlight: false },
-                PageStroke { color: [255, 235, 90], width: 16.0, pts: vec![(0.1, 0.8), (0.9, 0.8)], highlight: true },
+                PageStroke { color: [255, 0, 0], width: 2.0, pts: vec![(0.1, 0.1), (0.5, 0.5), (0.9, 0.2)], pr: vec![], highlight: false },
+                PageStroke { color: [0, 0, 0], width: 2.0, pts: vec![(0.7, 0.7)], pr: vec![], highlight: false },
+                PageStroke { color: [255, 235, 90], width: 16.0, pts: vec![(0.1, 0.8), (0.9, 0.8)], pr: vec![], highlight: true },
             ],
             bg: bg.then(|| PageBg { png: std::sync::Arc::new(png), rect: [0.1, 0.1, 0.8, 0.8], key: "x".into() }),
         }
@@ -188,7 +202,7 @@ mod bench {
             w: 21000.0,
             h: 29700.0,
             strokes: (0..300)
-                .map(|k| PageStroke { color: [0, 0, 0], width: 2.0, pts: (0..120).map(|i| (0.05 + i as f32 * 0.007, 0.03 + k as f32 * 0.003)).collect(), highlight: false })
+                .map(|k| PageStroke { color: [0, 0, 0], width: 2.0, pts: (0..120).map(|i| (0.05 + i as f32 * 0.007, 0.03 + k as f32 * 0.003)).collect(), pr: vec![], highlight: false })
                 .collect(),
             bg: None,
         };
