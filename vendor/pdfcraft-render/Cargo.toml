@@ -1,9 +1,9 @@
-# Copia di crates/render di PdfCraft (8c572792d6760bdc903d6f9a032e3e38e8f71cb8, 0.19.0), con le dipendenze del workspace
+# Copia di crates/render di PdfCraft (2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed, 0.20.0), con le dipendenze del workspace
 # scritte per esteso. Modifica di OpenSlate: vedi vendor/README.md.
 [package]
 name = "pdfcraft-render"
 description = "Page rendering (bootstrap: hayro) and document inspection for PdfCraft"
-version = "0.19.0"
+version = "0.20.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"
@@ -13,8 +13,9 @@ repository = "https://github.com/storytold/pdfcraft"
 unsafe_code = "forbid"
 
 [dependencies]
-pdfcraft-cos = { git = "https://github.com/storytold/pdfcraft", rev = "8c572792d6760bdc903d6f9a032e3e38e8f71cb8" }
-pdfcraft-fonts = { git = "https://github.com/storytold/pdfcraft", rev = "8c572792d6760bdc903d6f9a032e3e38e8f71cb8" }
+pdfcraft-cos = { git = "https://github.com/storytold/pdfcraft", rev = "2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed" }
+pdfcraft-fonts = { git = "https://github.com/storytold/pdfcraft", rev = "2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed" }
+pdfcraft-geom = { git = "https://github.com/storytold/pdfcraft", rev = "2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed" }
 hayro = "0.7.1"
 hayro-syntax = "0.7.2"
 skrifa = "0.44"
@@ -24,6 +25,7 @@ thiserror = "2"
 log = "0.4"
 serde = { version = "1", features = ["derive", "rc"] }
 bytemuck = { version = "1" }
+unicode-bidi = "0.3"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.4", features = ["wasm_js"] }

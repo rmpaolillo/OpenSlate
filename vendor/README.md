@@ -20,16 +20,24 @@ Da crates.io, con una sola modifica in `src/glyph.rs`: la versione di hayro dell
 ha in più il modo `GlyphDrawMode::Clip`, che non disegna niente e qui si tratta come `Invisible`.
 Serve solo a far compilare `typst-svg` (vedi sopra): OpenSlate non esporta immagini PDF con Typst.
 
-## pdfcraft-render (PdfCraft 8c57279, 0.19.0, MIT OR Apache-2.0)
+## pdfcraft-render (PdfCraft 2ad7717, 0.20.0, MIT OR Apache-2.0)
 
 `crates/render` di https://github.com/storytold/pdfcraft, con le dipendenze del workspace scritte
-per esteso e due modifiche in `src/raster.rs`: tolto il caso `InterpreterWarning::ColorFallback` e
-il limite `jbig2_work` passato a hayro (impostazione che il hayro di craft-libs non ha).
+per esteso e qualche modifica dove PdfCraft usa cose che il hayro di craft-libs non ha (segnate
+con «OpenSlate:»):
+- `src/raster.rs`: tolti i casi `InterpreterWarning::ColorFallback` e `Type3WidthsMissing`, e il
+  limite `jbig2_work` passato a hayro;
+- `src/inspect/core.rs`: niente `rebuilt_unlinked_update` (l'avviso sui file con un aggiornamento
+  senza `/Prev`);
+- `src/text/device.rs`: niente `vertical_glyph_width`, si usa la larghezza normale del glifo.
 
-Motivo: nella stessa app può entrare un solo `hayro-interpret`. Lo vuole quello di craft-libs
-VectorCraft (per l'API degli inchiostri), che però non ha questo avviso di PdfCraft. Effetto:
-OpenSlate non riceve l'avviso «colore sostituito» su una pagina PDF e non ha il tetto di lavoro per
-pagina sulle immagini JBIG2 (aggiunto in PdfCraft 0.18); il disegno è quello di craft-libs. Da togliere quando PdfCraft e craft-libs useranno lo stesso hayro.
+Motivo: nella stessa app può entrare un solo `hayro-interpret`: quello di craft-libs (1b34eba, lo
+stesso di PhotoCraft e WordCraft; VectorCraft lo vuole per l'API degli inchiostri), mentre PdfCraft
+ne ha uno suo più avanti. Effetto: OpenSlate non riceve gli avvisi «colore sostituito», «larghezze
+Type 3 mancanti» e «aggiornamento senza /Prev» su un PDF, non ha il tetto di lavoro per pagina
+sulle immagini JBIG2 e il testo estratto dai caratteri verticali (giapponese, cinese) può avere
+riquadri meno precisi; il disegno è quello di craft-libs. Da togliere quando PdfCraft e
+craft-libs useranno lo stesso hayro.
 
 ## craft-i18n (dati di lingua, 1e51542, Apache-2.0 / MIT e licenze dei singoli file)
 

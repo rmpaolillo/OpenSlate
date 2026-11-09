@@ -667,9 +667,13 @@ fn edit_file(doc: &DocRef, bytes: &[u8]) -> Result<u64> {
 /// appunti delle app Craft sono loro, non quelli del sistema.)
 fn command_outside_document(id: &str) -> bool {
     // le Azioni (macro) delle app: eseguirle farebbe passare passi che il filtro non vede
-    const PREFIXES: [&str; 6] = ["file.", "app.", "help.", "document.open", "actions.", "action."];
-    const WORDS: [&str; 33] = [
+    const PREFIXES: [&str; 7] = ["file.", "app.", "help.", "document.open", "actions.", "action.", "actionset."];
+    const WORDS: [&str; 36] = [
         "export", "import", "print", "plugin", "plugins", "script", "scripts", "macro", "macros", "preferences", "settings", "recent",
+        // le preferenze dell'app (prefs.set, prefs.reset di PhotoCraft e VectorCraft)
+        "prefs", "pref",
+        // il dizionario personale dell'app (review.addToDictionary, text.spelling.dictionary)
+        "dictionary",
         "clipboard", "template", "templates", "mailings", "install", "website", "save", "browser", "url", "email", "share",
         // i pacchetti di lingua dell'app (proof.packs, proof.removePack…) e la lingua predefinita
         // salvata per i documenti nuovi (review.language.preferred)
@@ -683,9 +687,17 @@ fn command_outside_document(id: &str) -> bool {
     const PRESET_CHANGES: [&str; 10] = ["new", "delete", "rename", "edit", "move", "reset", "update", "migrate", "manager", "define"];
     // una selezione salvata resta nel documento
     const INSIDE: [&str; 2] = ["select.save", "select.saveselection"];
-    // comandi precisi che leggono file senza il controllo della cartella: PhotoCraft
-    // copia nella foto i file collegati leggendo il percorso salvato nella foto stessa
-    const OUTSIDE: [&str; 1] = ["layer.smartobjects.embedalllinked"];
+    // comandi precisi che escono dal documento senza parole che lo dicano: PhotoCraft
+    // copia nella foto i file collegati leggendo il percorso salvato nella foto stessa;
+    // il dizionario personale dell'app (VectorCraft 0.23); un documento nuovo dalla
+    // storia: la chat finirebbe a lavorare (e salvare) su un altro documento
+    const OUTSIDE: [&str; 5] = [
+        "layer.smartobjects.embedalllinked",
+        "text.spelling.addword",
+        "text.spelling.removeword",
+        "edit.newdocumentfromstate",
+        "history.newdocument",
+    ];
     let lower = id.trim().to_ascii_lowercase();
     if INSIDE.contains(&lower.as_str()) {
         return false;
@@ -1232,11 +1244,14 @@ mod e2e {
             "actions.play", "actions.record", "actions.insert", "actions.load", "actions.newSet", "action.batch",
             "tools.customizeKeyboard", "tools.customizeRibbon", "edit.keyboardShortcuts", "shortcutSet.read",
             "addon.document.batchTraceFolder", "layer.smartObjects.embedAllLinked",
+            "prefs.set", "prefs.reset", "prefs.get", "review.addToDictionary", "text.spelling.addWord",
+            "text.spelling.removeWord", "text.spelling.dictionary", "edit.newDocumentFromState", "history.newDocument",
+            "actionSet.read",
         ] {
             assert!(command_outside_document(c), "{c}");
         }
         // restano i comandi sul documento con parole simili
-        for c in ["equation.structureActions", "type.openType.fractions", "type.fractionalWidths", "command.batch", "layer.layerMask.linked"] {
+        for c in ["equation.structureActions", "type.openType.fractions", "type.fractionalWidths", "command.batch", "layer.layerMask.linked", "text.spelling.check", "type.compositeFonts.set", "svgFilter.apply"] {
             assert!(!command_outside_document(c), "{c}");
         }
     }
