@@ -24,6 +24,10 @@ futures = "0.3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "signal", "net", "io-util"] }
 
 # GUI nativa (eframe re-esporta egui come eframe::egui)
+# Attenzione (Windows): nel Cargo.lock gpu-allocator deve usare `windows` 0.62.2 come
+# wgpu-hal. Con thread-priority (PdfCraft) e btleplug, che vogliono la 0.61, `cargo update`
+# può spostarlo sulla 0.61 e wgpu-hal non compila più su Windows (due crate `windows`).
+# Se succede: nel blocco di gpu-allocator del Cargo.lock rimettere "windows 0.62.2".
 eframe = "0.36"
 # Icone per i pulsanti (font Phosphor)
 egui-phosphor = "0.14"
