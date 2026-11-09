@@ -159,4 +159,10 @@
     <string name="empty_page">prima salva la pagina</string>
     <string name="natural_ink">Tratto naturale</string>
     <string name="natural_ink_hint">Lo spessore segue la pressione della penna e le punte si affusolano, come l\'inchiostro vero. Spento: spessore sempre uguale, come un pennarello.</string>
+    <string name="dictate">Detta</string>
+    <string name="dictation_listening">Ti ascolto… parla pure</string>
+    <string name="dictation_no_permission">Per dettare, consenti a OpenSlate di usare il microfono.</string>
+    <string name="dictation_network">Su questo telefono la dettatura vuole internet (manca il riconoscimento sul telefono).</string>
+    <string name="dictation_failed">La dettatura non è andata. Riprova.</string>
+    <string name="dictation_missing">Su questo telefono manca un servizio di riconoscimento vocale (per esempio l\'app Google): installane uno per dettare.</string>
 </resources>

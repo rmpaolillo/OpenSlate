@@ -15,8 +15,17 @@
 
     <!-- Solo per i servizi AI scelti dall'utente (cloud o il Mac di casa). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- dettatura nella chat (solo quando tocchi il microfono) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+
+    <!-- il servizio di riconoscimento vocale del sistema (Android 11+: va dichiarato) -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 
     <application
         android:allowBackup="false"

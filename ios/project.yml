@@ -53,6 +53,8 @@ targets:
         UIBackgroundModes: [bluetooth-central]
         NSBluetoothAlwaysUsageDescription: "OpenSlate si collega al tuo Bamboo Slate via Bluetooth. / OpenSlate connects to your Bamboo Slate over Bluetooth."
         NSCameraUsageDescription: "Per inquadrare il QR delle impostazioni AI della desktop. / To scan the AI settings QR code from the desktop app."
+        NSMicrophoneUsageDescription: "Per dettare i messaggi alla chat AI, solo quando tocchi il microfono. / To dictate messages to the AI chat, only when you tap the microphone."
+        NSSpeechRecognitionUsageDescription: "Per trasformare in testo i messaggi che detti alla chat AI (sul telefono, quando la lingua lo permette). / To turn the messages you dictate to the AI chat into text (on the device when the language allows it)."
         NSLocalNetworkUsageDescription: "Per usare l'AI sul tuo computer (LM Studio, Ollama). / To use the AI on your computer (LM Studio, Ollama)."
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true

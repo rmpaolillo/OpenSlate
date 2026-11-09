@@ -1,5 +1,32 @@
 package org.openslate.android
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AddComment
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.core.content.ContextCompat
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -198,8 +225,11 @@ fun ChatScreen(
         ActionRow {
             TextButton(onClick = onBack) { Text("← " + stringResource(R.string.back)) }
             Text(stringResource(R.string.chat), style = MaterialTheme.typography.titleLarge)
-            OutlinedButton(onClick = { chat.clear() }, enabled = !chat.running && chat.msgs.isNotEmpty()) { Text(stringResource(R.string.new_chat)) }
-            OutlinedButton(onClick = onSettings) { Text(stringResource(R.string.ai_settings)) }
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = { chat.clear() }, enabled = !chat.running && chat.msgs.isNotEmpty()) {
+                Icon(Icons.Filled.AddComment, stringResource(R.string.new_chat))
+            }
+            IconButton(onClick = onSettings) { Icon(Icons.Filled.Tune, stringResource(R.string.ai_settings)) }
         }
         if (noServices) {
             Text(
@@ -217,24 +247,122 @@ fun ChatScreen(
         if (chat.status.isNotEmpty()) {
             Text(chat.status, Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = attach && hasPage, onCheckedChange = { attach = it }, enabled = hasPage)
-            Text(stringResource(R.string.attach_page), style = MaterialTheme.typography.bodyMedium)
+        ChatInput(
+            input = input,
+            onInput = { input = it },
+            attach = attach && hasPage,
+            onAttach = { attach = it },
+            hasPage = hasPage,
+            running = chat.running,
+            onSend = {
+                send(input.trim(), if (attach && hasPage) page() else null)
+                input = ""
+            },
+            onStop = { chat.stop() },
+        )
+    }
+}
+
+/**
+ * La casella del messaggio: si allarga col testo, il foglio da allegare, il
+ * microfono per dettare e il tasto per mandare (o fermare l'AI).
+ */
+@Composable
+private fun ChatInput(
+    input: String,
+    onInput: (String) -> Unit,
+    attach: Boolean,
+    onAttach: (Boolean) -> Unit,
+    hasPage: Boolean,
+    running: Boolean,
+    onSend: () -> Unit,
+    onStop: () -> Unit,
+) {
+    val ctx = LocalContext.current
+    // quello che c'era prima di dettare: il parlato si aggiunge in fondo
+    var base by remember { mutableStateOf("") }
+    val current by rememberUpdatedState(input)
+    val setInput by rememberUpdatedState(onInput)
+    val dictation = remember {
+        Dictation(ctx) { text, _ ->
+            setInput(if (base.isBlank()) text.replaceFirstChar { it.uppercase() } else base.trimEnd() + " " + text)
         }
-        Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                input, { input = it },
-                Modifier.weight(1f),
-                placeholder = { Text(stringResource(R.string.chat_placeholder)) },
-                maxLines = 6,
-            )
-            if (chat.running) {
-                Button(onClick = { chat.stop() }) { Text(stringResource(R.string.stop)) }
-            } else {
-                Button(onClick = {
-                    send(input, if (attach && hasPage) page() else null)
-                    input = ""
-                }, enabled = input.isNotBlank()) { Text(stringResource(R.string.send)) }
+    }
+    DisposableEffect(Unit) { onDispose { dictation.release() } }
+    val startDictation = {
+        base = current
+        dictation.start()
+    }
+    val askMic = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        if (ok) startDictation() else dictation.error = ctx.getString(R.string.dictation_no_permission)
+    }
+    val inApp = remember { dictation.available() }
+    val systemDictation = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        dictation.result(r.data)?.let { t -> setInput(if (current.isBlank()) t.replaceFirstChar { it.uppercase() } else current.trimEnd() + " " + t) }
+    }
+    Surface(tonalElevation = 2.dp, shadowElevation = 4.dp) {
+        Column(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = attach,
+                    onClick = { onAttach(!attach) },
+                    enabled = hasPage,
+                    label = { Text(stringResource(R.string.attach_page)) },
+                    leadingIcon = { Icon(if (attach) Icons.Filled.Check else Icons.Filled.AttachFile, null, Modifier.size(18.dp)) },
+                )
+            }
+            dictation.error?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextField(
+                    value = input,
+                    onValueChange = onInput,
+                    modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                    placeholder = { Text(stringResource(if (dictation.listening) R.string.dictation_listening else R.string.chat_placeholder)) },
+                    minLines = 1,
+                    maxLines = 6,
+                    shape = RoundedCornerShape(26.dp),
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                    colors = TextFieldDefaults.colors(
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                    ),
+                    trailingIcon = {
+                            IconButton(onClick = {
+                                if (!inApp) {
+                                    try {
+                                        systemDictation.launch(dictation.systemIntent())
+                                    } catch (_: android.content.ActivityNotFoundException) {
+                                        dictation.error = ctx.getString(R.string.dictation_missing)
+                                    }
+                                } else if (dictation.listening) dictation.stop()
+                                else if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) startDictation()
+                                else askMic.launch(Manifest.permission.RECORD_AUDIO)
+                            }) {
+                                Icon(
+                                    if (dictation.listening) Icons.Filled.Mic else Icons.Outlined.Mic,
+                                    stringResource(R.string.dictate),
+                                    Modifier.scale(1f + 0.25f * dictation.level),
+                                    tint = if (dictation.listening) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                    },
+                )
+                if (running) {
+                    FilledIconButton(onClick = onStop, Modifier.size(52.dp)) {
+                        Icon(Icons.Filled.Stop, stringResource(R.string.stop))
+                    }
+                } else {
+                    FilledIconButton(
+                        onClick = { if (dictation.listening) dictation.stop(); onSend() },
+                        modifier = Modifier.size(52.dp),
+                        enabled = input.isNotBlank(),
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Send, stringResource(R.string.send))
+                    }
+                }
             }
         }
     }

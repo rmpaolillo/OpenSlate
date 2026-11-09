@@ -162,4 +162,10 @@
     <string name="empty_page">save the page first</string>
     <string name="natural_ink">Natural stroke</string>
     <string name="natural_ink_hint">The thickness follows the pen pressure and the ends taper, like real ink. Off: always the same thickness, like a felt-tip marker.</string>
+    <string name="dictate">Dictate</string>
+    <string name="dictation_listening">Listening… speak now</string>
+    <string name="dictation_no_permission">To dictate, allow OpenSlate to use the microphone.</string>
+    <string name="dictation_network">Dictation needs the internet on this phone (no on-device recognition).</string>
+    <string name="dictation_failed">Dictation didn\'t work. Try again.</string>
+    <string name="dictation_missing">This phone has no speech recognition service (for example the Google app). Install one to dictate.</string>
 </resources>

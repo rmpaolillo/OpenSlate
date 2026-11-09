@@ -189,6 +189,9 @@ struct ChatScreen: View {
     @ObservedObject var chat: ChatState
     @State private var input = ""
     @State private var attach = true
+    @StateObject private var dictation = Dictation()
+    /// quello che c'era prima di dettare: il parlato si aggiunge in fondo
+    @State private var base = ""
 
     var body: some View {
         NavigationStack {
@@ -215,25 +218,84 @@ struct ChatScreen: View {
                 if !chat.status.isEmpty {
                     Text(chat.status).font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal)
                 }
-                Toggle(L("Allega il foglio", "Attach the page"), isOn: $attach).disabled(app.board.isEmpty).padding(.horizontal)
-                HStack(alignment: .bottom) {
-                    TextField(L("Scrivi un messaggio", "Write a message"), text: $input, axis: .vertical)
-                        .lineLimit(1...6).textFieldStyle(.roundedBorder)
-                    if chat.running {
-                        Button(L("Ferma", "Stop")) { chat.stop() }.buttonStyle(.bordered)
-                    } else {
-                        Button(L("Invia", "Send")) {
-                            let png = attach && !app.board.isEmpty ? Export.pngData(app.board.toPage(Float(app.padSize.width), Float(app.padSize.height)), quarter: app.quarter) : nil
-                            chat.send(input, page: png, store: app.ai, board: app.board.model, view: app.view) { app.board.reload() }
-                            input = ""
-                        }.buttonStyle(.borderedProminent).disabled(input.trimmingCharacters(in: .whitespaces).isEmpty)
-                    }
-                }.padding()
+                inputBar
             }
             .navigationTitle(L("Chat", "Chat"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { Button(L("Nuova chat", "New chat")) { chat.clear() }.disabled(chat.running || chat.msgs.isEmpty) }
+            .toolbar {
+                Button { chat.clear() } label: { Image(systemName: "square.and.pencil") }
+                    .accessibilityLabel(L("Nuova chat", "New chat"))
+                    .disabled(chat.running || chat.msgs.isEmpty)
+            }
         }
+        .onDisappear { dictation.stop() }
+    }
+
+    /// La casella del messaggio: si allarga col testo, il foglio da allegare,
+    /// il microfono per dettare e il tasto per mandare (o fermare l'AI).
+    private var inputBar: some View {
+        let canAttach = !app.board.isEmpty
+        let empty = input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return VStack(alignment: .leading, spacing: 6) {
+            Button { attach.toggle() } label: {
+                Label(L("Allega il foglio", "Attach the page"), systemImage: attach && canAttach ? "checkmark" : "paperclip")
+                    .font(.subheadline)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(attach && canAttach ? Color.accentColor.opacity(0.15) : Color.clear, in: Capsule())
+                    .overlay(Capsule().stroke(Color.secondary.opacity(0.4)))
+            }
+            .buttonStyle(.plain)
+            .disabled(!canAttach)
+            .opacity(canAttach ? 1 : 0.5)
+            if let e = dictation.error {
+                Text(e).font(.caption).foregroundStyle(.red)
+            }
+            HStack(alignment: .bottom, spacing: 8) {
+                HStack(alignment: .bottom, spacing: 4) {
+                    TextField(dictation.listening ? L("Ti ascolto… parla pure", "Listening… speak now") : L("Scrivi un messaggio", "Write a message"),
+                              text: $input, axis: .vertical)
+                        .lineLimit(1...6)
+                        .textInputAutocapitalization(.sentences)
+                        .padding(.vertical, 12)
+                        .padding(.leading, 16)
+                    Button {
+                        base = input
+                        dictation.toggle { said in
+                            input = base.trimmingCharacters(in: .whitespaces).isEmpty ? said : base.trimmingCharacters(in: .whitespaces) + " " + said
+                        }
+                    } label: {
+                        Image(systemName: dictation.listening ? "mic.fill" : "mic")
+                            .font(.title3)
+                            .foregroundStyle(dictation.listening ? Color.red : Color.secondary)
+                            .scaleEffect(1 + 0.25 * dictation.level)
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel(L("Detta", "Dictate"))
+                }
+                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 24))
+                if chat.running {
+                    Button { chat.stop() } label: {
+                        Image(systemName: "stop.fill").font(.title3).frame(width: 48, height: 48)
+                            .background(Color.accentColor, in: Circle()).foregroundStyle(.white)
+                    }
+                    .accessibilityLabel(L("Ferma", "Stop"))
+                } else {
+                    Button {
+                        dictation.stop()
+                        let png = attach && canAttach ? Export.pngData(app.board.toPage(Float(app.padSize.width), Float(app.padSize.height)), quarter: app.quarter) : nil
+                        chat.send(input.trimmingCharacters(in: .whitespacesAndNewlines), page: png, store: app.ai, board: app.board.model, view: app.view) { app.board.reload() }
+                        input = ""
+                    } label: {
+                        Image(systemName: "arrow.up").font(.title3.bold()).frame(width: 48, height: 48)
+                            .background(empty ? Color.secondary.opacity(0.3) : Color.accentColor, in: Circle()).foregroundStyle(.white)
+                    }
+                    .disabled(empty)
+                    .accessibilityLabel(L("Invia", "Send"))
+                }
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(.bar)
     }
 }
 
