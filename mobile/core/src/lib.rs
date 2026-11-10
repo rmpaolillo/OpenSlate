@@ -45,6 +45,14 @@ pub mod live;
 pub mod protocol;
 #[path = "../../../src/rigatura.rs"]
 pub mod rigatura;
+#[path = "../../../src/righe.rs"]
+pub mod righe;
+#[path = "../../../src/inbella.rs"]
+pub mod inbella;
+#[path = "../../../src/mathhand.rs"]
+pub mod mathhand;
+#[path = "../../../src/shapes.rs"]
+pub mod shapes;
 #[path = "../../../src/stroke.rs"]
 pub mod stroke;
 
@@ -76,11 +84,63 @@ pub mod mdcraft {
     pub fn place(_: &mut Session, _: &[Piece]) {}
 }
 
+/// Al posto di `campioni` della desktop: sul telefono la bella copia si fa
+/// sempre col carattere chiaro (la scrittura addestrata sta sul computer).
+pub mod campioni {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    pub enum Style {
+        Corsivo,
+        Stampatello,
+    }
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    pub enum Mode {
+        Chiaro,
+        Scrittura(Style),
+        Mano,
+    }
+    pub fn mode() -> Mode {
+        Mode::Chiaro
+    }
+    pub fn glyph(_: char) -> Option<(f32, Vec<Vec<(f32, f32)>>)> {
+        None
+    }
+    pub fn text_box(_: &str) -> Option<(f32, Vec<Vec<(f32, f32)>>)> {
+        None
+    }
+}
+/// Al posto di `mano` della desktop (la rete della scrittura a mano: non sul telefono).
+pub mod mano {
+    pub const XH: f32 = 14.0;
+    pub struct WordInk {
+        pub strokes: Vec<Vec<(f32, f32)>>,
+        pub xh: f32,
+    }
+    pub fn word(_: &str) -> Option<WordInk> {
+        None
+    }
+}
+/// Al posto di `boardagent` della desktop: sul telefono i segni dell'AI non
+/// si distinguono dal resto.
+pub mod boardagent {
+    pub fn is_ai_stroke(_: &crate::stroke::Stroke) -> bool {
+        false
+    }
+}
+pub mod web {
+    /// Scrittura sicura: file temporaneo e poi rinomina.
+    pub fn write_atomic(p: &std::path::Path, data: &[u8]) -> std::io::Result<()> {
+        let tmp = p.with_extension("tmp");
+        std::fs::write(&tmp, data)?;
+        std::fs::rename(&tmp, p)
+    }
+}
+
 mod ai;
 mod board;
 mod docs;
 mod formats;
 mod ink;
+mod neat;
 mod pages;
 mod paper;
 mod session;
@@ -90,6 +150,7 @@ pub use ai::*;
 pub use board::*;
 pub use formats::*;
 pub use ink::*;
+pub use neat::*;
 pub use docs::*;
 pub use pages::*;
 pub use paper::*;

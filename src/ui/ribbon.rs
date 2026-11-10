@@ -162,6 +162,24 @@ impl App {
             {
                 actions.push(Action::Fair(super::inbella_ui::Fair::Toggle));
             }
+            let rows = crate::rigatura::writing_rows(cur, 21.0, 29.7) != crate::rigatura::Rows::Unsupported;
+            if big_ex(
+                ui,
+                ic::ROWS,
+                "Disponi\nsulle righe",
+                if rows {
+                    "Scegli una zona col mouse: la scrittura (a mano o in bella) va sulle righe del foglio, dritta, allineata a sinistra e una riga dopo l'altra. Prima vedi l'anteprima, poi accetti o rifiuti"
+                } else {
+                    "Scegli prima un foglio a righe o a quadretti (Foglio)"
+                },
+                !doc && rows,
+                false,
+                false,
+            )
+            .clicked()
+            {
+                actions.push(Action::Fair(super::inbella_ui::Fair::Arrange));
+            }
             if big_ex(
                 ui,
                 ic::FLOPPY_DISK,
@@ -180,9 +198,13 @@ impl App {
 
     /// La barra durante la bella copia: zona, chi legge, accetta o rifiuta.
     fn ribbon_fair(&self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
-        use super::inbella_ui::{Fair, Phase};
+        use super::inbella_ui::{Fair, Job, Phase};
         let fair = |a: Fair| Action::Fair(a);
         let phase = &self.inbella.phase;
+        if self.inbella.job == Job::Righe {
+            self.ribbon_righe(ui, actions);
+            return;
+        }
         group(ui, "Bella copia", |ui| {
             match phase {
                 Phase::Select { .. } => {
@@ -247,9 +269,73 @@ impl App {
                     actions.push(fair(Fair::Train));
                 }
             });
+            // subito sulle righe del foglio
+            let on = self.settings.fair_on_rules;
+            let rows = crate::rigatura::writing_rows(crate::rigatura::Paper::from_code(&self.settings.paper), 21.0, 29.7) != crate::rigatura::Rows::Unsupported;
+            if big_ex(
+                ui,
+                ic::ROWS,
+                "Sulle righe\ndel foglio",
+                if rows { "La bella copia va subito sulle righe del foglio, dritta e allineata a sinistra" } else { "Scegli prima un foglio a righe o a quadretti (Foglio)" },
+                rows && !matches!(phase, Phase::Reading { .. }),
+                on && rows,
+                false,
+            )
+            .clicked()
+            {
+                actions.push(fair(Fair::OnRules(!on)));
+            }
+            if on && rows {
+                self.every_column(ui, actions);
+            }
             let (label, tip) = if matches!(phase, Phase::Preview { .. }) { ("Rifiuta".to_string(), "Lascia il foglio com'era (Esc)") } else { (crate::i18n::tc("cancel", "Annulla").to_string(), "Torna al foglio (Esc)") };
             if big(ui, ic::X_CIRCLE, &label, tip).clicked() {
                 actions.push(fair(Fair::Reject));
+            }
+        });
+    }
+
+    /// La barra durante «Disponi sulle righe»: zona, quadretti per riga,
+    /// accetta o rifiuta.
+    fn ribbon_righe(&self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
+        use super::inbella_ui::{Fair, Phase};
+        let fair = |a: Fair| Action::Fair(a);
+        let phase = &self.inbella.phase;
+        group(ui, "Sulle righe", |ui| {
+            match phase {
+                Phase::Preview { .. } => {
+                    if big(ui, ic::CHECK_CIRCLE, "Accetta", "Mette la scrittura sulle righe (Invio); Annulla la riporta com'era").clicked() {
+                        actions.push(fair(Fair::Accept));
+                    }
+                }
+                _ => {
+                    if big(ui, ic::SELECTION_ALL, "Tutta\nla pagina", "Mette sulle righe la scrittura di tutta la pagina (oppure trascina un riquadro sul foglio)").clicked() {
+                        actions.push(fair(Fair::All));
+                    }
+                }
+            }
+            self.every_column(ui, actions);
+            let (label, tip) = if matches!(phase, Phase::Preview { .. }) { ("Rifiuta".to_string(), "Lascia il foglio com'era (Esc)") } else { (crate::i18n::tc("cancel", "Annulla").to_string(), "Torna al foglio (Esc)") };
+            if big(ui, ic::X_CIRCLE, &label, tip).clicked() {
+                actions.push(fair(Fair::Reject));
+            }
+        });
+    }
+
+    /// Sui quadretti: una riga ogni 1, 2 o 3 quadretti.
+    fn every_column(&self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
+        use super::inbella_ui::Fair;
+        let paper = crate::rigatura::Paper::from_code(&self.settings.paper);
+        if !matches!(crate::rigatura::writing_rows(paper, 21.0, 29.7), crate::rigatura::Rows::Grid { .. }) {
+            return;
+        }
+        let cur = self.inbella.every;
+        column(ui, |ui| {
+            for (n, label) in [(1, "1 quadretto per riga"), (2, "2 quadretti per riga"), (3, "3 quadretti per riga")] {
+                let tip = if cur.is_none() { "Quanti quadretti occupa ogni riga di scrittura (proposto: quello in cui ci sta la tua)" } else { "Quanti quadretti occupa ogni riga di scrittura" };
+                if small_ex(ui, if cur == Some(n) { ic::RADIO_BUTTON } else { ic::CIRCLE }, label, tip, true, cur == Some(n)).clicked() {
+                    actions.push(Action::Fair(Fair::Every(n)));
+                }
             }
         });
     }

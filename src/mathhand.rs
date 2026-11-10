@@ -999,7 +999,7 @@ fn prime() -> MBox {
     MBox { w: 4.0, asc: 22.0, desc: 0.0, strokes: vec![vec![(3.0, -22.0), (1.5, -15.0)]] }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(openslate_mobile)))]
 mod tests {
     use super::*;
 

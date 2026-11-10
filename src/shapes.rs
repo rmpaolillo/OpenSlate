@@ -1638,7 +1638,7 @@ fn wrap(mut d: f32) -> f32 {
     d
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(openslate_mobile)))]
 mod tests {
     use super::*;
 

@@ -80,6 +80,19 @@ fun ActionRow(content: @Composable RowScope.() -> Unit) {
 /** Rigatura da mostrare sotto i tratti. */
 data class PaperSpec(val code: String, val margin: Boolean)
 
+/**
+ * Scelta di una zona col dito (bella copia, «Disponi sulle righe»): il
+ * riquadro mentre lo si trascina (u0, v0, u1, v1 in frazioni della pagina
+ * vista; null = niente) e quello scelto quando si alza il dito.
+ */
+class ZoneSelect(val onDrag: (FloatArray?) -> Unit, val onZone: (FloatArray) -> Unit)
+
+/**
+ * Sopra il foglio: il riquadro che si sta trascinando, oppure l'anteprima (la
+ * zona velata, le righe del foglio e sopra i tratti di come sarà la pagina).
+ */
+class SheetOverlay(val rect: FloatArray?, val veil: FloatArray? = null, val preview: List<PageStroke>? = null)
+
 /** Gomma col dito: segmento a→b in unità del pad, raggio `tol`, altezza del foglio visto `pageH`. */
 interface FingerEraser {
     fun erase(ax: Float, ay: Float, bx: Float, by: Float, tol: Float, pageH: Float)
@@ -102,6 +115,9 @@ fun Sheet(
     eraser: FingerEraser? = null,
     /** La pagina di un documento sotto i tratti, e dove sta (u, v, larghezza, altezza in 0..1). */
     background: Pair<androidx.compose.ui.graphics.ImageBitmap, List<Float>>? = null,
+    /** Un dito sceglie una zona (invece di spostare il foglio). */
+    zone: ZoneSelect? = null,
+    overlay: SheetOverlay? = null,
 ) {
     var zoom by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -133,6 +149,14 @@ fun Sheet(
     val labelNotes = stringResource(R.string.lbl_notes)
     val labelSummary = stringResource(R.string.lbl_summary)
     val currentEraser by rememberUpdatedState(eraser)
+    val currentZone by rememberUpdatedState(zone)
+    /** Punto dello schermo → frazioni della pagina vista (0..1). */
+    fun toUnit(p: Offset): Offset {
+        val (k, ox, oy) = fit(canvasSize)
+        val u = ((p.x - offset.x) / zoom - ox) / (rw * k)
+        val v = ((p.y - offset.y) / zoom - oy) / (rh * k)
+        return Offset(u.coerceIn(0f, 1f), v.coerceIn(0f, 1f))
+    }
     Canvas(
         Modifier
             .fillMaxSize()
@@ -152,6 +176,8 @@ fun Sheet(
                     var last = first.position
                     var fingers = 1
                     var erased = false
+                    val zoneStart = currentZone?.let { toUnit(first.position) }
+                    var zoneRect: FloatArray? = null
                     while (true) {
                         val ev = awaitPointerEvent()
                         val down = ev.changes.filter { it.pressed }
@@ -172,7 +198,13 @@ fun Sheet(
                         } else {
                             val p = down[0].position
                             val er = currentEraser
-                            if (er != null) {
+                            val zs = currentZone
+                            if (zs != null && zoneStart != null) {
+                                val b = toUnit(p)
+                                zoneRect = floatArrayOf(min(zoneStart.x, b.x), min(zoneStart.y, b.y), maxOf(zoneStart.x, b.x), maxOf(zoneStart.y, b.y))
+                                zs.onDrag(zoneRect)
+                                down[0].consume()
+                            } else if (er != null) {
                                 val a = toPad(last)
                                 val b = toPad(p)
                                 val (k, _, _) = fit(canvasSize)
@@ -187,6 +219,10 @@ fun Sheet(
                         }
                     }
                     if (erased) currentEraser?.end()
+                    currentZone?.let { zs ->
+                        val r = zoneRect
+                        if (r != null && r[2] - r[0] > 0.01f && r[3] - r[1] > 0.01f) zs.onZone(r) else zs.onDrag(null)
+                    }
                 }
             },
     ) {
@@ -230,6 +266,40 @@ fun Sheet(
                     }
                     drawIntoCanvas { Ink.draw(it.nativeCanvas, strokes, padW, padH, quarter, pw, ph) }
                 }
+            }
+        }
+        // la zona scelta, o l'anteprima sotto un velo
+        overlay?.let { o ->
+            val accent = Color(0xFF2868DC)
+            fun screen(r: FloatArray) = androidx.compose.ui.geometry.Rect(
+                offset.x + (ox + r[0] * pw) * zoom, offset.y + (oy + r[1] * ph) * zoom,
+                offset.x + (ox + r[2] * pw) * zoom, offset.y + (oy + r[3] * ph) * zoom,
+            )
+            val dash = androidx.compose.ui.graphics.drawscope.Stroke(
+                width = 1.5f * density,
+                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6f * density, 4f * density)),
+            )
+            o.veil?.let { v ->
+                val r = screen(v)
+                drawRect(Color.White.copy(alpha = 0.88f), r.topLeft, r.size)
+                drawIntoCanvas {
+                    val c = it.nativeCanvas
+                    c.save()
+                    c.clipRect(r.left, r.top, r.right, r.bottom)
+                    if (marks.isNotEmpty()) {
+                        PaperDraw.draw(c, marks, PaperDraw.kind(paper!!.code), offset.x + ox * zoom, offset.y + oy * zoom, pw * zoom / (rw / 1000f), density) { t -> t }
+                    }
+                    c.translate(offset.x + ox * zoom, offset.y + oy * zoom)
+                    c.scale(zoom, zoom)
+                    o.preview?.let { Ink.draw(c, it, padW, padH, quarter, pw, ph) }
+                    c.restore()
+                }
+                drawRect(accent, r.topLeft, r.size, style = dash)
+            }
+            o.rect?.let { z ->
+                val r = screen(z)
+                drawRect(accent.copy(alpha = 0.09f), r.topLeft, r.size)
+                drawRect(accent, r.topLeft, r.size, style = dash)
             }
         }
     }

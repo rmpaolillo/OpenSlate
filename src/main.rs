@@ -56,6 +56,7 @@ mod pagegeom;
 mod inkshape;
 mod pagerender;
 mod rigatura;
+mod righe;
 mod vecsign;
 #[cfg(test)]
 mod demo;

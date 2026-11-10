@@ -198,6 +198,12 @@ final class AppModel: ObservableObject, LinkListener {
     @AppStorage("paper_margin") var paperMargin = true
     @AppStorage("zigzag") var zigzag = false
     @AppStorage("natural_ink") var naturalInk = true
+    /// La bella copia va subito sulle righe del foglio.
+    @AppStorage("fair_on_rules") var fairOnRules = false
+    /// Bella copia o «Disponi sulle righe» in corso (nil = no).
+    @Published var zoneJob: ZoneJob?
+    /// Il numero del lavoro in corso: le risposte di uno annullato non contano.
+    var neatGen = 0
 
     let libDir: String
     private let rawDir: URL
@@ -209,6 +215,9 @@ final class AppModel: ObservableObject, LinkListener {
         libDir = docsDir.appendingPathComponent("library", isDirectory: true).path
         rawDir = support.appendingPathComponent("pad-raw", isDirectory: true)
         try? FileManager.default.createDirectory(atPath: libDir, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
+        // le impronte dei tratti già in bella
+        neatSetDir(dir: support.path)
         link.listener = self
         let w = UserDefaults.standard.double(forKey: "pad_w"), h = UserDefaults.standard.double(forKey: "pad_h")
         if w > 0 && h > 0 { setPadSize(Float(w), Float(h)) }

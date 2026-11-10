@@ -10,9 +10,14 @@
 //! 3. L'anteprima: la zona si vela e sopra si vede la bella copia. Invio la
 //!    accetta (un passo solo da annullare), Esc la rifiuta, «Rileggi» la rifà.
 //!
-//! Ogni riga resta al suo posto e alla sua altezza, e non va oltre il bordo
+//! Ogni riga resta alla sua altezza (le righe di un blocco cominciano dallo
+//! stesso bordo, i trattini di un elenco in colonna), e non va oltre il bordo
 //! destro della zona (non finisce sulla colonna accanto). Vedi
-//! `crate::inbella`.
+//! `crate::inbella`. Con «Sulle righe del foglio» la bella copia va poi
+//! sulle righe della carta (`crate::righe`).
+//!
+//! «Disponi sulle righe» usa la stessa zona e la stessa anteprima, senza AI:
+//! la scrittura (a mano o in bella) si posa sulle righe del foglio.
 
 use super::App;
 use eframe::egui;
@@ -35,13 +40,34 @@ pub(super) enum Phase {
     Select { from: Option<(f32, f32)>, to: (f32, f32) },
     /// L'AI legge la zona.
     Reading { rect: [f32; 4], started: Instant, agent: String },
-    /// L'anteprima, da accettare o rifiutare: i tratti nuovi della zona e
-    /// quello che ha letto l'AI (per rifarla sul foglio com'è al momento).
-    Preview { rect: [f32; 4], texts: HashMap<u64, String>, shown: Vec<Stroke>, done: crate::inbella::Done, by: String, secs: u64 },
+    /// L'anteprima, da accettare o rifiutare: la pagina com'è dopo, dove è
+    /// cambiata (il velo) e quello che ha letto l'AI (per rifarla sul foglio
+    /// com'è al momento).
+    Preview { rect: [f32; 4], texts: HashMap<u64, String>, page: Vec<Stroke>, veil: [f32; 4], by: String, secs: u64 },
+}
+
+/// Che lavoro si fa sulla zona.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) enum Job {
+    /// La bella copia (l'AI legge).
+    #[default]
+    Fair,
+    /// La scrittura sulle righe del foglio.
+    Righe,
+}
+
+/// La pagina dopo il lavoro: tutti i tratti, dove è cambiata, cosa dire.
+struct Outcome {
+    page: Vec<Stroke>,
+    veil: [f32; 4],
+    msg: String,
 }
 
 pub(super) struct InBellaUi {
     pub phase: Phase,
+    pub job: Job,
+    /// Sui quadretti: una riga ogni quanti quadretti (`None` = proposto).
+    pub every: Option<u32>,
     /// Il numero della lettura in corso.
     gen: u64,
     shown_secs: u64,
@@ -52,7 +78,7 @@ pub(super) struct InBellaUi {
 impl InBellaUi {
     pub fn new() -> Self {
         let (tx, rx) = channel();
-        Self { phase: Phase::Off, gen: 0, shown_secs: u64::MAX, tx, rx }
+        Self { phase: Phase::Off, job: Job::Fair, every: None, gen: 0, shown_secs: u64::MAX, tx, rx }
     }
 
     pub fn active(&self) -> bool {
@@ -76,20 +102,50 @@ pub enum Fair {
     Style(String),
     /// Apre l'addestramento della tua scrittura.
     Train,
+    /// «Disponi sulle righe»: comincia (si sceglie la zona) o smette.
+    Arrange,
+    /// La bella copia va subito sulle righe del foglio (sì/no).
+    OnRules(bool),
+    /// Sui quadretti: una riga ogni N quadretti.
+    Every(u32),
 }
 
 impl App {
     pub(super) fn fair_action(&mut self, a: Fair) {
         match a {
-            Fair::Toggle => {
+            Fair::Toggle | Fair::Arrange => {
+                let job = if a == Fair::Arrange { Job::Righe } else { Job::Fair };
                 if self.inbella.active() {
-                    self.fair_stop("Bella copia annullata.");
-                } else if self.docui.doc.is_some() || self.docui.capture.is_some() || self.hub.lock().bg.as_ref().is_some_and(|b| !b.is_chart()) {
-                    self.status = "«Trasforma in bella» è per la lavagna, non per i documenti.".into();
-                } else {
-                    self.inbella.phase = Phase::Select { from: None, to: (0.0, 0.0) };
-                    self.status = "Trascina un riquadro attorno a quello che vuoi in bella (o «Tutta la pagina»). Esc annulla.".into();
+                    let other = self.inbella.job != job;
+                    self.fair_stop(if self.inbella.job == Job::Righe { "«Disponi sulle righe» annullato." } else { "Bella copia annullata." });
+                    if !other {
+                        return;
+                    }
                 }
+                if self.docui.doc.is_some() || self.docui.capture.is_some() || self.hub.lock().bg.as_ref().is_some_and(|b| !b.is_chart()) {
+                    self.status = if job == Job::Righe { "«Disponi sulle righe» è per la lavagna, non per i documenti." } else { "«Trasforma in bella» è per la lavagna, non per i documenti." }.into();
+                } else if job == Job::Righe && !self.paper_has_rows() {
+                    self.status = "Per disporre la scrittura sulle righe scegli prima un foglio a righe o a quadretti (Home › Foglio).".into();
+                } else {
+                    self.inbella.job = job;
+                    self.inbella.every = None;
+                    self.inbella.phase = Phase::Select { from: None, to: (0.0, 0.0) };
+                    self.status = if job == Job::Righe {
+                        "Trascina un riquadro attorno alla scrittura da mettere sulle righe (o «Tutta la pagina»). Esc annulla."
+                    } else {
+                        "Trascina un riquadro attorno a quello che vuoi in bella (o «Tutta la pagina»). Esc annulla."
+                    }
+                    .into();
+                }
+            }
+            Fair::OnRules(on) => {
+                self.settings.fair_on_rules = on;
+                self.settings.save();
+                self.fair_refresh();
+            }
+            Fair::Every(n) => {
+                self.inbella.every = Some(n.clamp(1, 3));
+                self.fair_refresh();
             }
             Fair::All => {
                 if matches!(self.inbella.phase, Phase::Select { .. }) {
@@ -97,13 +153,16 @@ impl App {
                 }
             }
             Fair::Accept => self.fair_accept(),
-            Fair::Reject => match self.inbella.phase {
-                Phase::Preview { .. } => self.fair_stop("Bella copia scartata: il foglio è com'era."),
-                Phase::Off => {}
-                _ => self.fair_stop("Bella copia annullata."),
+            Fair::Reject => match (&self.inbella.phase, self.inbella.job) {
+                (Phase::Off, _) => {}
+                (Phase::Preview { .. }, Job::Fair) => self.fair_stop("Bella copia scartata: il foglio è com'era."),
+                (Phase::Preview { .. }, Job::Righe) => self.fair_stop("Scrittura lasciata com'era."),
+                (_, Job::Fair) => self.fair_stop("Bella copia annullata."),
+                (_, Job::Righe) => self.fair_stop("«Disponi sulle righe» annullato."),
             },
             Fair::Reread => {
-                if let Phase::Preview { rect, .. } = self.inbella.phase {
+                if let (Phase::Preview { rect, .. }, Job::Fair) = (&self.inbella.phase, self.inbella.job) {
+                    let rect = *rect;
                     self.fair_read(rect);
                 }
             }
@@ -144,6 +203,16 @@ impl App {
             return;
         }
         self.inbella.gen += 1;
+        if self.inbella.job == Job::Righe {
+            // niente da leggere: subito, sulla pagina com'è
+            if self.inbella.every.is_none() {
+                let s = self.hub.lock();
+                let zone = (rect != [0.0, 0.0, 1.0, 1.0]).then_some(rect);
+                self.inbella.every = crate::righe::suggest_every(&s.drawing.strokes, &g, zone, crate::rigatura::Paper::from_code(&self.settings.paper));
+            }
+            self.fair_preview(rect, HashMap::new(), String::new(), 0);
+            return;
+        }
         if crate::inbella::pending(&sub, &g).is_empty() {
             // niente da leggere: solo i disegni, subito
             self.fair_preview(rect, HashMap::new(), String::new(), 0);
@@ -173,44 +242,92 @@ impl App {
         self.fair_progress();
     }
 
-    /// La bella copia della zona sul foglio com'è adesso: i tratti fuori
-    /// dalla zona (com'erano) e quelli nuovi della zona.
-    fn fair_compute(&self, rect: [f32; 4], texts: &HashMap<u64, String>) -> Option<(Vec<Stroke>, Vec<Stroke>, crate::inbella::Done)> {
+    /// Il foglio ha righe su cui scrivere (non è bianco né un pentagramma)?
+    fn paper_has_rows(&self) -> bool {
+        let p = crate::rigatura::Paper::from_code(&self.settings.paper);
+        crate::rigatura::writing_rows(p, 21.0, 29.7) != crate::rigatura::Rows::Unsupported
+    }
+
+    fn sheet(&self) -> crate::righe::Sheet {
+        crate::righe::Sheet { paper: crate::rigatura::Paper::from_code(&self.settings.paper), margin: self.settings.paper_margin, every: self.inbella.every }
+    }
+
+    /// Il lavoro sulla zona, sul foglio com'è adesso: la pagina dopo, dove è
+    /// cambiata e cosa dire. `Err` = niente da fare (col perché).
+    fn fair_compute(&self, rect: [f32; 4], texts: &HashMap<u64, String>) -> Result<Outcome, String> {
         let s = self.hub.lock();
         let (pw, ph) = crate::scene::page_dims(&s.drawing);
         let g = crate::scene::PageGeom::new(s.view, pw, ph);
+        let whole = rect == [0.0, 0.0, 1.0, 1.0];
+        let zone = (!whole).then_some(rect);
+        if self.inbella.job == Job::Righe {
+            return match crate::righe::arrange(&s.drawing.strokes, &g, zone, self.sheet()) {
+                Ok(a) => {
+                    let veil = if whole { [0.0, 0.0, 1.0, 1.0] } else { crate::boardread::union(rect, a.area) };
+                    let msg = righe_status(&a);
+                    Ok(Outcome { page: a.strokes, veil, msg })
+                }
+                Err(e) => Err(righe_problem(e)),
+            };
+        }
         let idx = crate::inbella::select(&s.drawing.strokes, &g, rect);
         let sub: Vec<Stroke> = idx.iter().map(|&i| s.drawing.strokes[i].clone()).collect();
-        let (new_sub, done) = crate::campioni::using(crate::campioni::Mode::parse(&self.settings.fair_style), || crate::inbella::apply_region(&sub, texts, &g, rect[2]))?;
+        let Some((new_sub, done)) = crate::campioni::using(crate::campioni::Mode::parse(&self.settings.fair_style), || crate::inbella::apply_region(&sub, texts, &g, rect[2])) else {
+            return Err("Non ho trovato niente da mettere in bella in questa zona (disegni non riconosciuti o scrittura che non si legge). Trascina un altro riquadro, o Esc.".into());
+        };
         let mut page: Vec<Stroke> = s.drawing.strokes.iter().enumerate().filter(|(i, _)| !idx.contains(i)).map(|(_, st)| st.clone()).collect();
-        page.extend(new_sub.iter().cloned());
-        Some((page, new_sub, done))
+        let first = page.len();
+        page.extend(new_sub);
+        let mut msg = inbella_status(done);
+        let mut veil = rect;
+        if self.settings.fair_on_rules && self.paper_has_rows() {
+            let movable: Vec<usize> = (first..page.len()).collect();
+            match crate::righe::arrange_only(&page, &g, &movable, zone, self.sheet()) {
+                Ok(a) => {
+                    veil = if whole { rect } else { crate::boardread::union(rect, a.area) };
+                    page = a.strokes;
+                }
+                Err(e) => msg = format!("{msg} {}", crate::i18n::tf(format!("(Sulle righe no: {})", crate::i18n::tr(&righe_problem(e))))),
+            }
+        }
+        Ok(Outcome { page, veil, msg })
+    }
+
+    /// L'anteprima di nuovo (cambiata un'opzione), con quello già letto.
+    fn fair_refresh(&mut self) {
+        if let Phase::Preview { rect, texts, by, secs, .. } = &self.inbella.phase {
+            let (rect, texts, by, secs) = (*rect, texts.clone(), by.clone(), *secs);
+            self.fair_preview(rect, texts, by, secs);
+        }
     }
 
     fn fair_preview(&mut self, rect: [f32; 4], texts: HashMap<u64, String>, by: String, secs: u64) {
         match self.fair_compute(rect, &texts) {
-            Some((_, shown, done)) => {
-                self.inbella.phase = Phase::Preview { rect, texts, shown, done, by, secs };
-                self.status = "Anteprima della bella copia: Invio accetta, Esc rifiuta, «Rileggi» la rifà.".into();
+            Ok(o) => {
+                self.inbella.phase = Phase::Preview { rect, texts, page: o.page, veil: o.veil, by, secs };
+                self.status = match self.inbella.job {
+                    Job::Fair => "Anteprima della bella copia: Invio accetta, Esc rifiuta, «Rileggi» la rifà.".into(),
+                    Job::Righe => crate::i18n::tf(format!("Anteprima: {} Invio accetta, Esc rifiuta.", crate::i18n::tr(&o.msg))),
+                };
             }
-            None => {
+            Err(why) => {
                 self.inbella.phase = Phase::Select { from: None, to: (0.0, 0.0) };
-                self.status = "Non ho trovato niente da mettere in bella in questa zona (disegni non riconosciuti o scrittura che non si legge). Trascina un altro riquadro, o Esc.".into();
+                self.status = why;
             }
         }
     }
 
     fn fair_accept(&mut self) {
         let Phase::Preview { rect, texts, by, secs, .. } = std::mem::take(&mut self.inbella.phase) else { return };
-        let Some((page, _, done)) = self.fair_compute(rect, &texts) else {
-            self.status = "Il foglio è cambiato e la bella copia non vale più: rifalla.".into();
+        let Ok(Outcome { page, msg, .. }) = self.fair_compute(rect, &texts) else {
+            self.status = "Il foglio è cambiato e il lavoro non vale più: rifallo.".into();
             return;
         };
         self.hub.edit(|s| {
             let bg = s.bg.clone();
             s.replace_page(page, bg);
         });
-        let msg = inbella_status(done);
+        let msg = crate::i18n::tf(msg);
         self.status = if by.is_empty() { msg } else { format!("{msg} {}", crate::i18n::tf(format!("Ha letto {by} in {secs} s."))) };
     }
 
@@ -321,6 +438,7 @@ impl App {
     /// Sopra il foglio: il riquadro che si sta trascinando, la zona in
     /// lettura, l'anteprima (la zona velata e sopra la bella copia).
     pub(super) fn fair_paint(&self, painter: &egui::Painter, page: egui::Rect, g: &crate::scene::PageGeom) {
+        let paper = crate::rigatura::Paper::from_code(&self.settings.paper);
         let accent = egui::Color32::from_rgb(40, 110, 220);
         let to_screen = |r: [f32; 4]| egui::Rect::from_min_max(egui::pos2(page.left() + r[0] * page.width(), page.top() + r[1] * page.height()), egui::pos2(page.left() + r[2] * page.width(), page.top() + r[3] * page.height()));
         let dashed = |r: egui::Rect| {
@@ -341,11 +459,14 @@ impl App {
                 painter.rect_filled(r, 0.0, egui::Color32::from_rgba_unmultiplied(40, 110, 220, 18));
                 dashed(r);
             }
-            Phase::Preview { rect, shown, .. } => {
-                let r = to_screen(*rect);
-                // la tua scrittura appena visibile sotto, la bella copia sopra
-                painter.rect_filled(r.expand(4.0), 0.0, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 225));
-                for s in shown {
+            Phase::Preview { page: after, veil, .. } => {
+                let r = to_screen(*veil).expand(4.0).intersect(page);
+                // la scrittura di prima appena visibile sotto, le righe del
+                // foglio, e sopra la pagina com'è dopo
+                painter.rect_filled(r, 0.0, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 225));
+                let clip = painter.with_clip_rect(r);
+                super::paper::paint(&clip, page, (g.w / 1000.0, g.h / 1000.0), paper, self.settings.paper_margin);
+                for s in after {
                     if s.points.len() < 2 {
                         continue;
                     }
@@ -359,9 +480,9 @@ impl App {
                         .collect();
                     let width = (s.width * page.height() / 800.0).clamp(0.8, 160.0);
                     let col = if s.highlight { egui::Color32::from_rgba_unmultiplied(s.color[0], s.color[1], s.color[2], 120) } else { egui::Color32::from_rgb(s.color[0], s.color[1], s.color[2]) };
-                    painter.add(egui::Shape::line(pts, egui::Stroke::new(width, col)));
+                    clip.add(egui::Shape::line(pts, egui::Stroke::new(width, col)));
                 }
-                dashed(r.expand(4.0));
+                dashed(r);
             }
             _ => {}
         }
@@ -376,5 +497,28 @@ fn inbella_status(d: crate::inbella::Done) -> String {
         crate::i18n::tf(format!("{l} righe trasformate in bella: Annulla riporta la tua scrittura."))
     } else {
         crate::i18n::tf(format!("{f} forme rifatte perfette: Annulla riporta i tuoi tratti."))
+    }
+}
+
+/// Com'è andata «Disponi sulle righe».
+fn righe_status(a: &crate::righe::Arranged) -> String {
+    let n = a.lines;
+    let mut m = crate::i18n::tf(format!("{n} righe sulle righe del foglio."));
+    if let Some(e) = a.every {
+        m = format!("{m} {}", crate::i18n::tf(format!("Una riga ogni {e} quadretti.")));
+    }
+    if a.shrunk > 0 {
+        let k = a.shrunk;
+        m = format!("{m} {}", crate::i18n::tf(format!("{k} rimpicciolite perché più alte della riga.")));
+    }
+    m
+}
+
+fn righe_problem(p: crate::righe::Problem) -> String {
+    use crate::righe::Problem;
+    match p {
+        Problem::Nothing => "Nella zona non c'è scrittura da mettere sulle righe: trascina un altro riquadro, o Esc.".into(),
+        Problem::Unsupported => "Per disporre la scrittura sulle righe scegli prima un foglio a righe o a quadretti (Home › Foglio).".into(),
+        Problem::NoRoom { fit, total } => crate::i18n::tf(format!("Non c'è posto per tutte le righe ({fit} su {total}): scegli una zona più grande o meno quadretti per riga.")),
     }
 }

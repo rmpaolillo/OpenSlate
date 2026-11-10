@@ -185,6 +185,7 @@ struct SettingsScreen: View {
                 }
                 Section {
                     Toggle(L("Tratto naturale", "Natural stroke"), isOn: Binding(get: { app.naturalInk }, set: { app.naturalInk = $0; app.applyTools() }))
+                    Toggle(L("Bella copia sulle righe del foglio", "Fair copy on the page lines"), isOn: Binding(get: { app.fairOnRules }, set: { app.fairOnRules = $0 }))
                 } header: { Text(L("Scrittura", "Writing")) } footer: {
                     Text(L("Lo spessore segue la pressione della penna e le punte si affusolano, come l'inchiostro vero. Spento: spessore sempre uguale, come un pennarello.",
                            "The thickness follows the pen pressure and the ends taper, like real ink. Off: always the same thickness, like a felt-tip marker."))

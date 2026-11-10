@@ -87,6 +87,18 @@ import uniffi.openslate_mobile.Page
 import uniffi.openslate_mobile.PageStroke
 import uniffi.openslate_mobile.PenPoint
 import uniffi.openslate_mobile.BoardModel
+import uniffi.openslate_mobile.AiEvent
+import uniffi.openslate_mobile.AiListener
+import uniffi.openslate_mobile.BoardPreview
+import uniffi.openslate_mobile.FairJob
+import uniffi.openslate_mobile.SheetSpec
+import uniffi.openslate_mobile.Zone
+import uniffi.openslate_mobile.boardArrange
+import uniffi.openslate_mobile.boardSuggestEvery
+import uniffi.openslate_mobile.neatSetDir
+import uniffi.openslate_mobile.paperHasRows
+import uniffi.openslate_mobile.paperIsGrid
+import androidx.compose.material3.CircularProgressIndicator
 import uniffi.openslate_mobile.BoardView
 import uniffi.openslate_mobile.DrawOp
 import uniffi.openslate_mobile.Tool
@@ -239,7 +251,13 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var paperMargin by mutableStateOf(true)
     private var zigzag by mutableStateOf(false)
     private var naturalInk by mutableStateOf(true)
+    /** La bella copia va subito sulle righe del foglio. */
+    private var fairOnRules by mutableStateOf(false)
     private var choosingPaper by mutableStateOf(false)
+    /** Bella copia o «Disponi sulle righe» in corso (null = no). */
+    private var zoneJob by mutableStateOf<ZoneJob?>(null)
+    /** Il numero del lavoro in corso: le risposte di uno annullato non contano. */
+    private var neatGen = 0
 
     /** Dimensioni del foglio (area attiva del pad), ricordate per i fogli nuovi. */
     private fun setPadSize(w: Float, h: Float) {
@@ -261,6 +279,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         paperMargin = prefs.getBoolean("paper_margin", paperMargin)
         zigzag = prefs.getBoolean("zigzag", zigzag)
         naturalInk = prefs.getBoolean("natural_ink", naturalInk)
+        fairOnRules = prefs.getBoolean("fair_on_rules", fairOnRules)
         applyTools()
     }
 
@@ -281,6 +300,7 @@ class MainActivity : ComponentActivity(), LinkListener {
             .putString("paper", paperCode).putBoolean("paper_margin", paperMargin)
             .putBoolean("zigzag", zigzag)
             .putBoolean("natural_ink", naturalInk)
+            .putBoolean("fair_on_rules", fairOnRules)
             .apply()
     }
 
@@ -312,6 +332,7 @@ class MainActivity : ComponentActivity(), LinkListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         link = SlateLink(this, this)
+        neatSetDir(filesDir.path)
         quarter = prefs.getInt("quarter", 1) // lo Slate si usa in verticale
         loadTools()
         prefs.getString("doc_dir", null)?.let { path ->
@@ -722,6 +743,12 @@ class MainActivity : ComponentActivity(), LinkListener {
                                 if (board.id.isNotEmpty()) transcribePage(board.toPage(padSize.width, padSize.height), Screen.Board)
                             })
                         HorizontalDivider()
+                        MenuHeader(stringResource(R.string.grp_writing))
+                        DropdownMenuItem(text = { Text(stringResource(R.string.neat_fair)) }, leadingIcon = { Icon(Icons.Filled.AutoFixHigh, null) },
+                            enabled = !empty && d == null, onClick = { pageMenu = false; startNeat(NeatKind.FAIR) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.neat_rules)) }, leadingIcon = { Icon(Icons.Filled.FormatAlignLeft, null) },
+                            enabled = !empty && d == null && paperHasRows(paperCode), onClick = { pageMenu = false; startNeat(NeatKind.RULES) })
+                        HorizontalDivider()
                         MenuHeader(stringResource(R.string.grp_share))
                         DropdownMenuItem(text = { Text(stringResource(R.string.share_pdf)) }, leadingIcon = { Icon(Icons.Filled.PictureAsPdf, null) },
                             enabled = !empty, onClick = { pageMenu = false; sharePage(board.toPage(padSize.width, padSize.height), pdf = true) })
@@ -769,11 +796,192 @@ class MainActivity : ComponentActivity(), LinkListener {
                     paper = if (d == null) PaperSpec(paperCode, paperMargin) else null,
                     eraser = if (eraserOn) board.eraser else null,
                     background = d?.image?.let { it to d.rect(view()) },
+                    zone = zoneJob?.takeIf { it.phase == NeatPhase.SELECT }?.let {
+                        ZoneSelect(onDrag = { r -> zoneJob = zoneJob?.copy(drag = r) }, onZone = { r -> neatZone(r) })
+                    },
+                    overlay = zoneJob?.let { j ->
+                        val p = j.preview
+                        if (j.phase == NeatPhase.PREVIEW && p != null) SheetOverlay(null, p.veil.floats(), p.strokes)
+                        else SheetOverlay(j.drag ?: j.zone?.floats())
+                    },
                 )
             }
-            ToolBar()
+            if (zoneJob != null) NeatBar() else ToolBar()
         }
+        if (zoneJob != null) BackHandler { neatCancel() }
         if (choosingPaper) PaperDialog()
+    }
+
+    // ------------------------------------------- bella copia, sulle righe
+
+    private fun sheetSpec(every: UInt?) = SheetSpec(paperCode, paperMargin, every)
+
+    /** Comincia la bella copia o «Disponi sulle righe»: si sceglie la zona. */
+    private fun startNeat(kind: NeatKind) {
+        if (kind == NeatKind.FAIR && aiStore.services().none { it.enabled }) {
+            toast(getString(R.string.ai_none))
+            screen = Screen.AiSettings(Screen.Board)
+            return
+        }
+        if (kind == NeatKind.RULES && !paperHasRows(paperCode)) {
+            toast(getString(R.string.neat_unsupported))
+            return
+        }
+        neatGen++
+        eraserOn = false
+        applyTools()
+        zoneJob = ZoneJob(kind, note = getString(R.string.neat_hint))
+    }
+
+    private fun neatCancel() {
+        neatGen++
+        zoneJob = null
+    }
+
+    /** Il lavoro su un pezzo di pagina, in un thread; poi l'anteprima (o il perché no). */
+    private fun neatRun(job: ZoneJob, work: () -> BoardPreview) {
+        val gen = ++neatGen
+        zoneJob = job.copy(phase = NeatPhase.WORKING, drag = null)
+        kotlin.concurrent.thread(name = "neat") {
+            val r = runCatching(work)
+            runOnUiThread {
+                if (gen != neatGen) return@runOnUiThread
+                val cur = zoneJob ?: return@runOnUiThread
+                r.onSuccess { p ->
+                    zoneJob = cur.copy(phase = NeatPhase.PREVIEW, preview = p, every = p.every ?: cur.every, note = neatDoneText(this, cur.kind, p))
+                }.onFailure { e ->
+                    val why = neatErrorText(this, e)
+                    if (why == null) { zoneJob = null; return@onFailure }
+                    toast(why)
+                    // si sceglie un'altra zona
+                    zoneJob = cur.copy(phase = NeatPhase.SELECT, preview = null, zone = null, fair = null, note = why)
+                }
+            }
+        }
+    }
+
+    /** La zona scelta (null = tutta la pagina): si legge o si dispone. */
+    private fun neatZone(r: FloatArray?) {
+        val job = zoneJob ?: return
+        val zone = r?.let { Zone(it[0], it[1], it[2], it[3]) }
+        val model = board.model
+        val v = view()
+        when (job.kind) {
+            NeatKind.RULES -> {
+                val every = job.every ?: if (paperIsGrid(paperCode)) boardSuggestEvery(model, v, zone, paperCode) else null
+                val spec = sheetSpec(every)
+                neatRun(job.copy(zone = zone, every = every, note = getString(R.string.neat_working))) { boardArrange(model, v, zone, spec, false) }
+            }
+            NeatKind.FAIR -> {
+                val fj = FairJob(model, v, zone)
+                val providers = aiStore.providers()
+                val onRules = fairOnRules && paperHasRows(paperCode)
+                val spec = sheetSpec(job.every)
+                val gen = neatGen + 1
+                val listener = object : AiListener {
+                    override fun onEvent(event: AiEvent): Boolean {
+                        val msg = when (event) {
+                            is AiEvent.Trying -> getString(R.string.ai_trying, event.provider, event.model)
+                            is AiEvent.Skipped -> getString(R.string.ai_skipped, event.provider, event.why)
+                            else -> null
+                        }
+                        if (msg != null) runOnUiThread { if (gen == neatGen) zoneJob = zoneJob?.copy(note = msg) }
+                        return gen == neatGen
+                    }
+                }
+                neatRun(job.copy(zone = zone, fair = fj, note = getString(R.string.neat_reading))) {
+                    if (fj.needsAi()) fj.read(providers, listener)
+                    fj.preview(onRules, spec)
+                }
+            }
+        }
+    }
+
+    /** L'anteprima di nuovo, cambiata un'opzione (quadretti per riga, sulle righe). */
+    private fun neatRefresh(job: ZoneJob) {
+        val model = board.model
+        val v = view()
+        val spec = sheetSpec(job.every)
+        when (job.kind) {
+            NeatKind.RULES -> neatRun(job) { boardArrange(model, v, job.zone, spec, false) }
+            NeatKind.FAIR -> {
+                val fj = job.fair ?: return
+                val onRules = fairOnRules && paperHasRows(paperCode)
+                neatRun(job) { fj.preview(onRules, spec) }
+            }
+        }
+    }
+
+    /** Accetta: il lavoro rifatto sul foglio com'è adesso, con una voce di annullamento. */
+    private fun neatAccept() {
+        val job = zoneJob ?: return
+        val r = runCatching {
+            when (job.kind) {
+                NeatKind.RULES -> boardArrange(board.model, view(), job.zone, sheetSpec(job.every), true)
+                NeatKind.FAIR -> job.fair!!.commit(fairOnRules && paperHasRows(paperCode), sheetSpec(job.every))
+            }
+        }
+        neatGen++
+        zoneJob = null
+        board.reload()
+        r.onSuccess { toast(getString(R.string.neat_applied)) }
+            .onFailure { e -> neatErrorText(this, e)?.let { toast(it) } }
+    }
+
+    /** La barra durante la bella copia o «Disponi sulle righe», al posto degli strumenti. */
+    @Composable
+    private fun NeatBar() {
+        val job = zoneJob ?: return
+        val grid = paperIsGrid(paperCode) && (job.kind == NeatKind.RULES || fairOnRules)
+        Surface(tonalElevation = 2.dp) {
+            Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+                Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (job.phase == NeatPhase.WORKING) {
+                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(
+                        stringResource(if (job.kind == NeatKind.FAIR) R.string.neat_title_fair else R.string.neat_title_rules),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                }
+                Text(job.note, Modifier.padding(horizontal = 12.dp, vertical = 2.dp), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3)
+                ActionRow {
+                    when (job.phase) {
+                        NeatPhase.SELECT -> AssistChip(onClick = { neatZone(null) }, label = { Text(stringResource(R.string.neat_whole_page)) },
+                            leadingIcon = { Icon(Icons.Filled.SelectAll, null) })
+                        NeatPhase.PREVIEW -> {
+                            Button(onClick = { neatAccept() }) { Text(stringResource(R.string.neat_accept)) }
+                            if (job.kind == NeatKind.FAIR) {
+                                OutlinedButton(onClick = { zoneJob = job.copy(fair = null); neatZone(job.zone?.floats()) }) { Text(stringResource(R.string.neat_reread)) }
+                            }
+                        }
+                        NeatPhase.WORKING -> {}
+                    }
+                    if (job.kind == NeatKind.FAIR && paperHasRows(paperCode) && job.phase != NeatPhase.WORKING) {
+                        FilterChip(selected = fairOnRules, onClick = {
+                            fairOnRules = !fairOnRules
+                            applyTools()
+                            if (job.phase == NeatPhase.PREVIEW) neatRefresh(job)
+                        }, label = { Text(stringResource(R.string.neat_on_rules)) }, leadingIcon = { Icon(Icons.Filled.FormatAlignLeft, null) })
+                    }
+                    if (grid && job.phase != NeatPhase.WORKING) {
+                        Text(stringResource(R.string.neat_squares), style = MaterialTheme.typography.labelMedium)
+                        for (n in 1u..3u) {
+                            FilterChip(selected = job.every == n, onClick = {
+                                val j = job.copy(every = n)
+                                zoneJob = j
+                                if (j.phase == NeatPhase.PREVIEW) neatRefresh(j)
+                            }, label = { Text(n.toString()) })
+                        }
+                    }
+                    TextButton(onClick = { neatCancel() }) {
+                        Text(stringResource(if (job.phase == NeatPhase.PREVIEW) R.string.neat_reject else R.string.cancel))
+                    }
+                }
+            }
+        }
     }
 
     @Composable
@@ -889,6 +1097,15 @@ class MainActivity : ComponentActivity(), LinkListener {
                     Text(stringResource(R.string.natural_ink_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Switch(checked = naturalInk, onCheckedChange = { naturalInk = it; applyTools() })
+            }
+            Row(Modifier.fillMaxWidth().clickable { fairOnRules = !fairOnRules; applyTools() }.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.FormatAlignLeft, null)
+                Column(Modifier.weight(1f).padding(start = 16.dp)) {
+                    Text(stringResource(R.string.fair_on_rules))
+                    Text(stringResource(R.string.fair_on_rules_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = fairOnRules, onCheckedChange = { fairOnRules = it; applyTools() })
             }
             Row(Modifier.fillMaxWidth().clickable { zigzag = !zigzag; applyTools() }.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically) {

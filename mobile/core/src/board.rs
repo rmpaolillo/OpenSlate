@@ -256,6 +256,12 @@ impl BoardModel {
         (s.strokes.clone(), s.pen.1, s.highlighter.0)
     }
 
+    /// Tutta la pagina nuova (bella copia, «Disponi sulle righe»), con una
+    /// sola voce di annullamento.
+    pub(crate) fn replace_all(&self, strokes: Vec<Stroke>) {
+        self.inner.lock().unwrap().replace(strokes);
+    }
+
     /// Per il tutor: tratti in più, con una sola voce di annullamento.
     pub(crate) fn add_strokes(&self, add: Vec<Stroke>) {
         if add.is_empty() {

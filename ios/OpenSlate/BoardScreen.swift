@@ -13,6 +13,15 @@ final class SheetUIView: UIView {
     var erasing = false
     var onErase: ((CGPoint, CGPoint, Float, Float) -> Void)?
     var onEraseEnd: (() -> Void)?
+    /// Un dito sceglie una zona (bella copia, «Disponi sulle righe»).
+    var selecting = false
+    var onZoneDrag: (([Float]?) -> Void)?
+    var onZone: (([Float]) -> Void)?
+    /// Il riquadro scelto o trascinato; l'anteprima: la zona velata e i tratti di dopo.
+    var zoneRect: [Float]? { didSet { setNeedsDisplay() } }
+    var veil: [Float]? { didSet { setNeedsDisplay() } }
+    var preview: [PageStroke]? { didSet { setNeedsDisplay() } }
+    private var zoneStart: CGPoint?
 
     private var zoom: CGFloat = 1
     private var offset = CGPoint.zero
@@ -57,6 +66,13 @@ final class SheetUIView: UIView {
         }
     }
 
+    /// Punto dello schermo → frazioni della pagina vista (0..1).
+    private func toUnit(_ p: CGPoint) -> CGPoint {
+        let (_, ox, oy, pw, ph) = fit()
+        let u = ((p.x - offset.x) / zoom - ox) / pw, v = ((p.y - offset.y) / zoom - oy) / ph
+        return CGPoint(x: min(max(u, 0), 1), y: min(max(v, 0), 1))
+    }
+
     @objc private func onDouble() {
         zoom = 1
         offset = .zero
@@ -76,6 +92,21 @@ final class SheetUIView: UIView {
     @objc private func onPan(_ g: UIPanGestureRecognizer) {
         let p = g.location(in: self)
         if g.state == .began { lastPan = p; erased = false }
+        if selecting {
+            if g.state == .began && g.numberOfTouches == 1 { zoneStart = toUnit(p) }
+            if let a = zoneStart {
+                let b = toUnit(p)
+                let r = [Float(min(a.x, b.x)), Float(min(a.y, b.y)), Float(max(a.x, b.x)), Float(max(a.y, b.y))]
+                if g.state == .ended || g.state == .cancelled {
+                    zoneStart = nil
+                    if r[2] - r[0] > 0.01 && r[3] - r[1] > 0.01 { onZone?(r) } else { onZoneDrag?(nil) }
+                } else {
+                    onZoneDrag?(r)
+                }
+            }
+            lastPan = p
+            return
+        }
         if erasing && g.numberOfTouches == 1 {
             let (k, _, _, _, _) = fit()
             let (_, rh) = Ink.rotated(padW, padH, quarter)
@@ -119,6 +150,41 @@ final class SheetUIView: UIView {
         }
         Ink.draw(c, strokes, padW: padW, padH: padH, quarter: quarter, w: pw, h: ph)
         c.restoreGState()
+        // la zona scelta, o l'anteprima sotto un velo
+        let accent = UIColor(red: 0.16, green: 0.41, blue: 0.86, alpha: 1)
+        func screen(_ r: [Float]) -> CGRect {
+            CGRect(x: offset.x + (ox + CGFloat(r[0]) * pw) * zoom, y: offset.y + (oy + CGFloat(r[1]) * ph) * zoom,
+                   width: CGFloat(r[2] - r[0]) * pw * zoom, height: CGFloat(r[3] - r[1]) * ph * zoom)
+        }
+        func dashed(_ r: CGRect) {
+            c.saveGState()
+            c.setStrokeColor(accent.cgColor)
+            c.setLineWidth(1.5)
+            c.setLineDash(phase: 0, lengths: [6, 4])
+            c.stroke(r)
+            c.restoreGState()
+        }
+        if let v = veil, v.count == 4 {
+            let r = screen(v)
+            c.saveGState()
+            c.clip(to: r)
+            c.setFillColor(UIColor.white.withAlphaComponent(0.88).cgColor)
+            c.fill(r)
+            if let (code, _) = paper, code != "bianco", let kind = paperKinds().first(where: { $0.code == code }) {
+                Ink.drawPaper(c, marks, kind: kind, left: offset.x + ox * zoom, top: offset.y + oy * zoom, pxPerCm: pw * zoom / CGFloat(rw / 1000))
+            }
+            c.translateBy(x: offset.x + ox * zoom, y: offset.y + oy * zoom)
+            c.scaleBy(x: zoom, y: zoom)
+            if let p = preview { Ink.draw(c, p, padW: padW, padH: padH, quarter: quarter, w: pw, h: ph) }
+            c.restoreGState()
+            dashed(r)
+        }
+        if let z = zoneRect, z.count == 4 {
+            let r = screen(z)
+            c.setFillColor(accent.withAlphaComponent(0.09).cgColor)
+            c.fill(r)
+            dashed(r)
+        }
     }
 }
 
@@ -130,6 +196,12 @@ struct Sheet: UIViewRepresentable {
     var paper: (String, Bool)?
     var background: (UIImage, [Float])?
     var eraser: Board?
+    /// Scelta della zona col dito: mentre si trascina, quando si alza il dito.
+    var onZoneDrag: (([Float]?) -> Void)?
+    var onZone: (([Float]) -> Void)?
+    var zoneRect: [Float]?
+    var veil: [Float]?
+    var preview: [PageStroke]?
 
     func makeUIView(context: Context) -> SheetUIView { SheetUIView() }
 
@@ -142,6 +214,12 @@ struct Sheet: UIViewRepresentable {
         v.erasing = eraser != nil
         v.onErase = eraser.map { b in { a, c, tol, h in b.erase(a, c, tol: tol, pageH: h) } }
         v.onEraseEnd = eraser.map { b in { b.eraseEnd() } }
+        v.selecting = onZone != nil
+        v.onZoneDrag = onZoneDrag
+        v.onZone = onZone
+        v.zoneRect = zoneRect
+        v.veil = veil
+        v.preview = preview
         v.strokes = strokes
     }
 }
@@ -166,8 +244,13 @@ struct BoardScreen: View {
             Sheet(strokes: board.strokes, padW: Float(app.padSize.width), padH: Float(app.padSize.height), quarter: app.quarter, version: board.version,
                   paper: d == nil ? (app.paperCode, app.paperMargin) : nil,
                   background: d?.image.map { ($0, d!.rect(app.view)) },
-                  eraser: app.eraserOn ? board : nil)
-            ToolBar(board: board, choosingPaper: $choosingPaper)
+                  eraser: app.eraserOn ? board : nil,
+                  onZoneDrag: app.zoneJob?.phase == .select ? { r in app.zoneJob?.drag = r } : nil,
+                  onZone: app.zoneJob?.phase == .select ? { r in app.neatZone(r) } : nil,
+                  zoneRect: app.zoneJob.flatMap { $0.phase == .preview ? nil : ($0.drag ?? $0.zone?.floats) },
+                  veil: app.zoneJob.flatMap { $0.phase == .preview ? $0.preview?.veil.floats : nil },
+                  preview: app.zoneJob?.preview?.strokes)
+            if app.zoneJob != nil { NeatBar() } else { ToolBar(board: board, choosingPaper: $choosingPaper) }
         }
         .sheet(isPresented: $choosingPaper) { PaperPicker() }
         .fileImporter(isPresented: $importing, allowedContentTypes: docTypes) { r in if case .success(let url) = r { app.openDocument(url) } }
@@ -222,6 +305,12 @@ struct BoardScreen: View {
                         let page = board.toPage(Float(app.padSize.width), Float(app.padSize.height))
                         app.transcribe(page) { text in note = NoteItem(id: page.id, title: page.title.isEmpty ? String(page.created.prefix(16)) : page.title, text: text) }
                     } label: { Label(L("Trascrivi in nota", "Transcribe to a note"), systemImage: "text.viewfinder") }.disabled(board.isEmpty || app.doc != nil)
+                }
+                Section(L("Scrittura", "Writing")) {
+                    Button { app.startNeat(.fair) } label: { Label(L("Trasforma in bella…", "Fair copy…"), systemImage: "wand.and.stars") }
+                        .disabled(board.isEmpty || app.doc != nil)
+                    Button { app.startNeat(.rules) } label: { Label(L("Disponi sulle righe", "Arrange on lines"), systemImage: "text.alignleft") }
+                        .disabled(board.isEmpty || app.doc != nil || !paperHasRows(paper: app.paperCode))
                 }
                 Section(L("Condividi", "Share")) {
                     Button { shareURL = try? Export.pdf(board.toPage(Float(app.padSize.width), Float(app.padSize.height)), quarter: app.quarter) } label: { Label(L("Condividi PDF", "Share as PDF"), systemImage: "doc.richtext") }.disabled(board.isEmpty)

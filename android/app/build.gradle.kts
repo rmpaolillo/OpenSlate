@@ -55,11 +55,9 @@ val buildRust = tasks.register<Exec>("buildRust") {
     commandLine("sh", "build-rust.sh")
     inputs.dir(rootProject.file("../mobile/core/src"))
     inputs.file(rootProject.file("../mobile/core/Cargo.toml"))
-    inputs.files(
-        rootProject.file("../src/protocol.rs"),
-        rootProject.file("../src/live.rs"),
-        rootProject.file("../src/stroke.rs"),
-    )
+    // il core include molti file della desktop (`#[path]` in mobile/core/src/lib.rs):
+    // una modifica a uno qualsiasi deve ricompilarlo
+    inputs.dir(rootProject.file("../src"))
     outputs.dir(rustOut)
 }
 tasks.named("preBuild") { dependsOn(buildRust) }

@@ -731,6 +731,13 @@ pub fn ai_transcribe(providers: Vec<AiProvider>, png: Vec<u8>, listener: Arc<dyn
     Ok(r)
 }
 
+/// Un'immagine e una domanda, per chi legge le immagini (la bella copia):
+/// la risposta così com'è.
+pub(crate) fn read_image(providers: &[AiProvider], prompt: &str, png: Vec<u8>, l: &dyn AiListener) -> Result<AiReply, AiError> {
+    let msgs = vec![ChatMsg { role: "user".into(), text: prompt.into(), image: Some(png) }];
+    run(providers, Task::Ocr, &msgs, None, l)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

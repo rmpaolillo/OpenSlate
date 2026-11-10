@@ -154,6 +154,84 @@ const MARGIN_CM: f32 = 2.5;
 const RULED_TOP_CM: f32 = 2.0;
 const RULED_BOTTOM_CM: f32 = 1.2;
 
+/// Una riga su cui scrivere (cm dall'alto): la base, quanto può salire la
+/// scrittura sopra la base e scendere sotto, e la fascia delle minuscole
+/// (elementari).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Row {
+    pub base: f32,
+    pub up: f32,
+    pub down: f32,
+    pub xh: Option<f32>,
+}
+
+/// Le righe di un foglio per «Disponi sulle righe».
+#[derive(Clone, Debug, PartialEq)]
+pub enum Rows {
+    /// Righe fisse (fogli a righe, elementari, Cornell).
+    Fixed(Vec<Row>),
+    /// Una griglia di lato `cell` (cm): le righe si fanno ogni N quadretti.
+    Grid { cell: f32 },
+    /// Carta bianca, pentagramma: niente righe su cui scrivere.
+    Unsupported,
+}
+
+/// Le righe su cui si scrive, su un foglio di `w` × `h` cm.
+pub fn writing_rows(paper: Paper, w: f32, h: f32) -> Rows {
+    let _ = w;
+    let ruled = |p: f32| -> Vec<Row> { seq(RULED_TOP_CM, h - RULED_BOTTOM_CM + 1e-3, p).into_iter().map(|y| Row { base: y, up: 0.85 * p, down: 0.5 * p, xh: None }).collect() };
+    // le elementari: la base sulla linea sotto la fascia delle minuscole
+    let bands = |base: f32, xh: f32, up: f32, down: f32, last: f32, pitch: f32| -> Vec<Row> {
+        let mut v = Vec::new();
+        let mut y = RULED_TOP_CM;
+        while y + last <= h - RULED_BOTTOM_CM + 1e-3 && v.len() < 400 {
+            v.push(Row { base: y + base, up, down, xh: Some(xh) });
+            y += pitch;
+        }
+        v
+    };
+    match paper {
+        Paper::Bianco | Paper::Pentagramma => Rows::Unsupported,
+        Paper::Righe => Rows::Fixed(ruled(0.8)),
+        Paper::RigheLarghe => Rows::Fixed(ruled(1.0)),
+        Paper::Elem1 => Rows::Fixed(bands(0.8, 0.4, 0.8, 0.4, 1.2, 1.6)),
+        Paper::Elem2 => Rows::Fixed(bands(0.6, 0.3, 0.6, 0.3, 0.9, 1.2)),
+        Paper::Elem3 => Rows::Fixed(bands(0.3, 0.3, 0.6, 0.35, 0.3, 1.0)),
+        Paper::Cornell => {
+            let top = RULED_TOP_CM;
+            let sum = (h - 5.0).max(top + 2.0);
+            let row = |y: f32| Row { base: y, up: 0.68, down: 0.4, xh: None };
+            let mut v: Vec<Row> = seq(top + 0.8, sum - 0.2, 0.8).into_iter().map(row).collect();
+            v.extend(seq(sum + 0.8, h - RULED_BOTTOM_CM + 1e-3, 0.8).into_iter().map(row));
+            Rows::Fixed(v)
+        }
+        Paper::Quadretti5 | Paper::Quadretti5M | Paper::Millimetrata | Paper::Cartesiano | Paper::Puntinato => Rows::Grid { cell: 0.5 },
+        Paper::Quadretti4 => Rows::Grid { cell: 0.4 },
+        Paper::Quadretti10 => Rows::Grid { cell: 1.0 },
+        Paper::Isometrica => Rows::Grid { cell: 0.5 * 3f32.sqrt() / 2.0 },
+    }
+}
+
+/// Le righe di una griglia di lato `cell`, una ogni `every` quadretti, su un
+/// foglio alto `h` cm: la scrittura sta in `every` quadretti e le gambe
+/// scendono in quello sotto.
+pub fn grid_rows(cell: f32, every: u32, h: f32) -> Vec<Row> {
+    let p = cell * every.max(1) as f32;
+    let down = 0.5 * p.min(1.0).max(cell);
+    seq(p, h - down.min(0.5), p).into_iter().map(|y| Row { base: y, up: 0.88 * p, down, xh: None }).collect()
+}
+
+/// Dove comincia a scrivere chi rispetta il margine rosso (cm da sinistra).
+pub fn left_edge(paper: Paper, w: f32, margin: bool) -> Option<f32> {
+    let red = (margin && paper.ruled() && w > 2.0 * MARGIN_CM + 2.0) || (paper == Paper::Quadretti5M && w > MARGIN_CM + 2.0);
+    red.then_some(MARGIN_CM + 0.2)
+}
+
+/// Dove smette di scrivere chi rispetta il margine rosso a destra.
+pub fn right_edge(paper: Paper, w: f32, margin: bool) -> Option<f32> {
+    (margin && paper.ruled() && w > 2.0 * MARGIN_CM + 2.0).then_some(w - MARGIN_CM - 0.1)
+}
+
 /// Tratto di una linea.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Ink {
@@ -461,5 +539,31 @@ mod tests {
         assert!(n > 0 && n % 5 == 0);
 
         assert!(labels(&layout(Paper::Cornell, w, h, false)).contains(&"Riassunto".to_string()));
+    }
+
+    #[test]
+    fn righe_su_cui_scrivere() {
+        let (w, h) = (21.0, 29.7);
+        // le righe da 8 mm sono proprio le linee disegnate
+        let Rows::Fixed(rows) = writing_rows(Paper::Righe, w, h) else { panic!() };
+        let drawn: Vec<f32> = lines(&layout(Paper::Righe, w, h, false), |i| i == Ink::Line).iter().map(|(a, _)| a.1).collect();
+        assert_eq!(rows.len(), drawn.len());
+        for (r, y) in rows.iter().zip(&drawn) {
+            assert!((r.base - y).abs() < 1e-4);
+        }
+        // elementari: la base su una linea marcata
+        let Rows::Fixed(e1) = writing_rows(Paper::Elem1, w, h) else { panic!() };
+        let strong: Vec<f32> = lines(&layout(Paper::Elem1, w, h, false), |i| i == Ink::Strong).iter().map(|(a, _)| a.1).collect();
+        assert!(e1.iter().all(|r| strong.iter().any(|y| (y - r.base).abs() < 1e-4)));
+        assert_eq!(writing_rows(Paper::Bianco, w, h), Rows::Unsupported);
+        assert_eq!(writing_rows(Paper::Pentagramma, w, h), Rows::Unsupported);
+        assert_eq!(writing_rows(Paper::Quadretti5, w, h), Rows::Grid { cell: 0.5 });
+        // ogni 2 quadretti da 5 mm: una riga ogni centimetro, sulle linee
+        let g = grid_rows(0.5, 2, h);
+        assert!((g[0].base - 1.0).abs() < 1e-4 && (g[1].base - 2.0).abs() < 1e-4);
+        assert_eq!(left_edge(Paper::Righe, w, true), Some(2.7));
+        assert_eq!(left_edge(Paper::Righe, w, false), None);
+        assert_eq!(left_edge(Paper::Quadretti5M, w, false), Some(2.7));
+        assert_eq!(left_edge(Paper::Quadretti5, w, true), None);
     }
 }

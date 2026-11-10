@@ -20,6 +20,18 @@ use std::sync::Mutex;
 /// dei dati): una riga fatta solo di questi non si rilegge.
 static NEAT: Mutex<Option<Vec<u64>>> = Mutex::new(None);
 const NEAT_FILE: &str = "neat_marks.txt";
+/// La cartella del file delle impronte (sul telefono quella dell'app; sulla
+/// desktop la cartella di lavoro, che è già quella dei dati).
+static NEAT_DIR: Mutex<Option<std::path::PathBuf>> = Mutex::new(None);
+
+/// Dove tenere le impronte dei tratti già in bella.
+pub fn set_data_dir(dir: impl Into<std::path::PathBuf>) {
+    *NEAT_DIR.lock().unwrap() = Some(dir.into());
+}
+
+fn neat_path() -> std::path::PathBuf {
+    NEAT_DIR.lock().unwrap().as_ref().map_or_else(|| std::path::PathBuf::from(NEAT_FILE), |d| d.join(NEAT_FILE))
+}
 const NEAT_KEEP: usize = 40_000;
 
 /// L'impronta di un tratto, a prova di salvataggio: coordinate arrotondate
@@ -40,7 +52,7 @@ fn neat_list<R>(f: impl FnOnce(&mut Vec<u64>) -> R) -> R {
         if cfg!(test) {
             return Vec::new();
         }
-        std::fs::read_to_string(NEAT_FILE).map(|t| t.lines().filter_map(|l| u64::from_str_radix(l.trim(), 16).ok()).collect()).unwrap_or_default()
+        std::fs::read_to_string(neat_path()).map(|t| t.lines().filter_map(|l| u64::from_str_radix(l.trim(), 16).ok()).collect()).unwrap_or_default()
     });
     f(v)
 }
@@ -60,7 +72,7 @@ fn mark_neat(strokes: &[Stroke]) {
         }
         if !cfg!(test) {
             let t: String = v.iter().map(|k| format!("{k:x}\n")).collect();
-            if let Err(e) = crate::web::write_atomic(std::path::Path::new(NEAT_FILE), t.as_bytes()) {
+            if let Err(e) = crate::web::write_atomic(&neat_path(), t.as_bytes()) {
                 tracing::warn!("{NEAT_FILE}: {e}");
             }
         }
@@ -95,7 +107,7 @@ pub fn pending(strokes: &[Stroke], g: &PageGeom) -> Vec<(String, u64)> {
 }
 
 /// I tratti nelle unità della pagina (x come y).
-fn physical(strokes: &[Stroke], g: &PageGeom) -> Vec<Vec<(f32, f32)>> {
+pub(crate) fn physical(strokes: &[Stroke], g: &PageGeom) -> Vec<Vec<(f32, f32)>> {
     let aspect = g.w / g.h;
     strokes
         .iter()
@@ -111,11 +123,11 @@ fn physical(strokes: &[Stroke], g: &PageGeom) -> Vec<Vec<(f32, f32)>> {
         .collect()
 }
 
-fn dist2(a: (f32, f32), b: (f32, f32)) -> f32 {
+pub(crate) fn dist2(a: (f32, f32), b: (f32, f32)) -> f32 {
     (a.0 - b.0).hypot(a.1 - b.1)
 }
 
-fn bbox(pts: &[(f32, f32)]) -> (f32, f32, f32, f32) {
+pub(crate) fn bbox(pts: &[(f32, f32)]) -> (f32, f32, f32, f32) {
     pts.iter().fold((f32::MAX, f32::MIN, f32::MAX, f32::MIN), |b, p| (b.0.min(p.0), b.1.max(p.0), b.2.min(p.1), b.3.max(p.1)))
 }
 
@@ -124,7 +136,13 @@ fn bbox(pts: &[(f32, f32)]) -> (f32, f32, f32, f32) {
 /// giro attorno a una parola e la sottolineatura: una linea lunga e piatta con niente sotto (una linea di
 /// frazione ha sotto il denominatore, e va rifatta).
 fn letters(line: &[usize], strokes: &[Stroke], ph: &[Vec<(f32, f32)>], hh: f32) -> Vec<usize> {
-    let ink: Vec<usize> = line.iter().copied().filter(|&i| strokes.get(i).is_some_and(writable) && !ph[i].is_empty()).collect();
+    letters_by(line, ph, hh, |i| strokes.get(i).is_some_and(writable))
+}
+
+/// Come `letters`, coi tratti scelti da `keep` (per «Disponi sulle righe»
+/// anche quelli già in bella).
+pub(crate) fn letters_by(line: &[usize], ph: &[Vec<(f32, f32)>], hh: f32, keep: impl Fn(usize) -> bool) -> Vec<usize> {
+    let ink: Vec<usize> = line.iter().copied().filter(|&i| keep(i) && !ph[i].is_empty()).collect();
     let boxes: Vec<(f32, f32, f32, f32)> = ink.iter().map(|&i| bbox(&ph[i])).collect();
     (0..ink.len())
         .filter(|&a| {
@@ -152,7 +170,46 @@ fn letters(line: &[usize], strokes: &[Stroke], ph: &[Vec<(f32, f32)>], hh: f32) 
 /// Una «riga» fatta solo di forme (una freccia, un cerchio) o di trattini
 /// (una linea tratteggiata): un disegno, da rifare e non da far leggere.
 fn drawing_line(line: &[usize], strokes: &[Stroke], ph: &[Vec<(f32, f32)>], hh: f32) -> bool {
-    line.iter().filter(|&&i| writable(&strokes[i])).all(|&i| crate::shapes::is_shape(&ph[i], hh) || crate::shapes::is_dash(&ph[i], hh))
+    drawing_line_by(line, ph, hh, |i| writable(&strokes[i]))
+}
+
+pub(crate) fn drawing_line_by(line: &[usize], ph: &[Vec<(f32, f32)>], hh: f32, keep: impl Fn(usize) -> bool) -> bool {
+    line.iter().filter(|&&i| keep(i)).all(|&i| crate::shapes::is_shape(&ph[i], hh) || crate::shapes::is_dash(&ph[i], hh))
+}
+
+/// Il segno di un elenco all'inizio di una riga (un trattino corto e piatto,
+/// un puntino, un pallino), staccato dalla prima parola: il suo tratto.
+pub(crate) fn bullet(letters: &[usize], ph: &[Vec<(f32, f32)>], hh: f32) -> Option<usize> {
+    if letters.len() < 2 {
+        return None;
+    }
+    let first = *letters.iter().min_by(|&&a, &&b| bbox(&ph[a]).0.total_cmp(&bbox(&ph[b]).0))?;
+    let (x0, x1, y0, y1) = bbox(&ph[first]);
+    let rest = letters.iter().filter(|&&i| i != first).map(|&i| bbox(&ph[i])).fold((f32::MAX, f32::MIN, f32::MAX, f32::MIN), |a, b| (a.0.min(b.0), a.1.max(b.1), a.2.min(b.2), a.3.max(b.3)));
+    let (w, h) = (x1 - x0, y1 - y0);
+    let dash = w >= 0.25 * hh && w < 1.8 * hh && h < 0.45 * hh;
+    let dot = w < 0.5 * hh && h < 0.5 * hh;
+    let gap = rest.0 - x1;
+    // alla stessa altezza della riga (non un apice, non una virgola sotto)
+    let c = (y0 + y1) / 2.0;
+    let level = c > rest.2 && c < rest.3;
+    // da solo: niente sopra o sotto (la prima sbarretta di un «=» non è un trattino)
+    let alone = letters.iter().filter(|&&i| i != first).all(|&i| {
+        let b = bbox(&ph[i]);
+        b.0 > x1 || b.1 < x0
+    });
+    ((dash || dot) && alone && gap > 0.3 * hh && level && rest.1 - rest.0 > w).then_some(first)
+}
+
+/// Il testo di una riga senza il segno d'elenco davanti (lo rifà il programma).
+fn strip_bullet(t: &str) -> &str {
+    let s = t.trim_start();
+    for b in ["- ", "– ", "— ", "• ", "* ", "· ", "-", "–", "—", "•"] {
+        if let Some(r) = s.strip_prefix(b) {
+            return r.trim_start();
+        }
+    }
+    s
 }
 
 fn lines_of(r: &Reading, strokes: &[Stroke], g: &PageGeom) -> Vec<(String, u64)> {
@@ -191,27 +248,48 @@ pub fn select(strokes: &[Stroke], g: &PageGeom, rect: [f32; 4]) -> Vec<usize> {
         .collect()
 }
 
-/// Fa leggere all'AI le righe di una zona (bloccante: in un thread).
-/// `strokes` sono solo i tratti della zona; all'AI va l'immagine ritagliata
-/// sulla zona `crop`, in alta risoluzione. `agent`: chi legge (vuoto = gli
-/// agenti di «Lettura dei fogli»). Torna il testo di ogni riga letta, per
-/// impronta (vuoto = da lasciare), e il nome dell'agente che ha letto.
-pub fn recognize_region(strokes: &[Stroke], width: f32, height: f32, view: View, crop: [f32; 4], agent: &str) -> Result<(HashMap<u64, String>, String)> {
+/// La domanda all'AI per una zona: l'immagine con i nomi delle righe, il
+/// testo della richiesta e le righe da leggere (nome e impronta).
+pub struct Ask {
+    pub png: Vec<u8>,
+    pub prompt: String,
+    lines: Vec<(String, u64)>,
+}
+
+/// Prepara la domanda all'AI per le righe di una zona. `strokes` sono solo i
+/// tratti della zona; l'immagine è ritagliata sulla zona `crop`, in alta
+/// risoluzione. `None` se non c'è niente da leggere.
+pub fn ask_region(strokes: &[Stroke], width: f32, height: f32, view: View, crop: [f32; 4]) -> Result<Option<Ask>> {
     let d = Drawing { strokes: strokes.to_vec(), width, height };
     let (pw, ph) = crate::scene::page_dims(&d);
     let g = PageGeom::new(view, pw, ph);
     let reading = crate::boardread::read(strokes, &g, None);
     let lines = lines_of(&reading, strokes, &g);
     if lines.is_empty() {
-        return Ok((HashMap::new(), String::new()));
+        return Ok(None);
     }
     let page = crate::scene::Page::from_drawing(&d, view);
     let png = crate::boardread::labelled_png_crop(&page, &reading, crop)?;
     let ids: Vec<&str> = lines.iter().map(|(id, _)| id.as_str()).collect();
     let prompt = PROMPT.replace("{RIGHE}", &ids.join(", "));
-    let reply = crate::ai::read_image_by(std::sync::Arc::new(png), &prompt, agent)?;
-    let map = parse_reply(&reply.text)?;
-    Ok((lines.iter().filter_map(|(id, k)| map.get(id).map(|v| (*k, v.clone().unwrap_or_default()))).collect(), reply.provider))
+    Ok(Some(Ask { png, prompt, lines }))
+}
+
+/// La risposta dell'AI: il testo di ogni riga letta, per impronta (vuoto =
+/// da lasciare).
+pub fn answer(ask: &Ask, reply: &str) -> Result<HashMap<u64, String>> {
+    let map = parse_reply(reply)?;
+    Ok(ask.lines.iter().filter_map(|(id, k)| map.get(id).map(|v| (*k, v.clone().unwrap_or_default()))).collect())
+}
+
+/// Fa leggere all'AI le righe di una zona (bloccante: in un thread).
+/// `agent`: chi legge (vuoto = gli agenti di «Lettura dei fogli»). Torna il
+/// testo di ogni riga letta, per impronta, e il nome dell'agente che ha letto.
+#[cfg(not(openslate_mobile))]
+pub fn recognize_region(strokes: &[Stroke], width: f32, height: f32, view: View, crop: [f32; 4], agent: &str) -> Result<(HashMap<u64, String>, String)> {
+    let Some(ask) = ask_region(strokes, width, height, view, crop)? else { return Ok((HashMap::new(), String::new())) };
+    let reply = crate::ai::read_image_by(std::sync::Arc::new(ask.png.clone()), &ask.prompt, agent)?;
+    Ok((answer(&ask, &reply.text)?, reply.provider))
 }
 
 const PROMPT: &str = "Questa è una pagina (o una sua parte) scritta a mano col pennino. Accanto a ogni riga c'è il suo nome in rosa (r1, r2…) e ogni parola ha un riquadro.\n\
@@ -220,6 +298,7 @@ Regole:\n\
 - copia fedelmente, errori compresi: non correggere, non completare, non aggiungere niente;\n\
 - tutta la matematica in LaTeX fra $…$: \\frac{a}{b} per le frazioni scritte in colonna, ^ e _ per esponenti e pedici, \\sqrt{} per le radici, \\begin{cases}…\\end{cases} per i sistemi, \\cdot, \\le, \\ge, \\neq, \\Rightarrow, le lettere greche (\\alpha…), \\{ \\} per le graffe, \\sum, \\int, \\lim;\n\
 - il resto come testo normale, nella lingua in cui è scritto;\n\
+- il trattino o il pallino all'inizio di una riga di un elenco scrivilo come \"- \";\n\
 - se una riga è un disegno, uno scarabocchio o non si legge, metti null.\n\
 Rispondi SOLO con un oggetto JSON, una chiave per riga: {\"r1\": \"…\", \"r2\": null}.";
 
@@ -267,20 +346,41 @@ fn apply_with(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, ri
     let mut hidden = vec![false; strokes.len()];
     let mut added: Vec<Stroke> = Vec::new();
     let mut n = 0;
+    // prima si misura ogni riga, poi si allineano le righe dello stesso blocco
+    struct Plan {
+        text: String,
+        letters: Vec<usize>,
+        bullet: Option<usize>,
+        x0: f32,
+        bx: f32,
+        base: f32,
+        xh: f32,
+        top: f32,
+        bottom: f32,
+    }
+    let mut plans: Vec<Plan> = Vec::new();
     for line in &reading.lines {
         let k = line_key(strokes, &line.group.strokes);
         let Some(text) = texts.get(&k).filter(|t| !t.trim().is_empty()) else { continue };
         // si tolgono le lettere, non i segni
-        let letters = letters(&line.group.strokes, strokes, &ph, hh);
+        let mut letters = letters(&line.group.strokes, strokes, &ph, hh);
         if letters.is_empty() {
             continue;
         }
-        let b = crate::mathhand::line_box(crate::handwrite::Style::Naturale, text);
-        if b.strokes.is_empty() {
+        // il trattino dell'elenco: si rifà a parte, nella sua colonna
+        let bullet = bullet(&letters, &ph, hh);
+        let text = match bullet {
+            Some(b) => {
+                letters.retain(|&i| i != b);
+                strip_bullet(text).to_string()
+            }
+            None => text.trim().to_string(),
+        };
+        if text.is_empty() {
             continue;
         }
-        // dove: a sinistra della riga, sulla sua riga di base, alto come la sua scrittura
         let x0 = letters.iter().flat_map(|&i| ph[i].iter().map(|p| p.0)).fold(f32::MAX, f32::min);
+        let bx = bullet.map_or(x0, |b| bbox(&ph[b]).0);
         // la riga di base dalle lettere normali (non dalle graffe alte)
         let body: Vec<usize> = letters.iter().copied().filter(|&i| bbox(&ph[i]).3 - bbox(&ph[i]).2 < 2.4 * hh).collect();
         let body = if body.is_empty() { letters.clone() } else { body };
@@ -288,6 +388,51 @@ fn apply_with(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, ri
             let b = letters.iter().flat_map(|&i| ph[i].iter().map(|p| p.1)).fold(f32::MIN, f32::max);
             (b, 0.6 * hh)
         });
+        let (top, bottom) = letters.iter().map(|&i| bbox(&ph[i])).fold((f32::MAX, f32::MIN), |a, b| (a.0.min(b.2), a.1.max(b.3)));
+        plans.push(Plan { text, letters, bullet, x0, bx, base, xh, top, bottom });
+    }
+    // un blocco: righe una sotto l'altra che cominciano più o meno allo stesso
+    // punto (o tutte coi trattini allineati): un bordo solo, non quello storto
+    // della scrittura a mano. Un rientro voluto resta.
+    let key = |p: &Plan| if p.bullet.is_some() { p.bx } else { p.x0 };
+    let mut start = 0;
+    while start < plans.len() {
+        let mut end = start + 1;
+        while end < plans.len() {
+            let (prev, p) = (&plans[end - 1], &plans[end]);
+            let mut keys: Vec<f32> = plans[start..end].iter().map(key).collect();
+            let mid = quantile(&mut keys, 0.5);
+            if p.top - prev.bottom > 2.5 * hh || (key(p) - mid).abs() > 1.5 * hh {
+                break;
+            }
+            end += 1;
+        }
+        let block = &mut plans[start..end];
+        let med = |v: Vec<f32>| -> Option<f32> {
+            let mut v = v;
+            (!v.is_empty()).then(|| quantile(&mut v, 0.5))
+        };
+        let bx = med(block.iter().filter(|p| p.bullet.is_some()).map(|p| p.bx).collect());
+        let tx = med(block.iter().filter(|p| p.bullet.is_some()).map(|p| p.x0).collect());
+        let px = med(block.iter().filter(|p| p.bullet.is_none()).map(|p| p.x0).collect());
+        for p in block.iter_mut() {
+            match (p.bullet, bx, tx) {
+                (Some(_), Some(bx), Some(tx)) => {
+                    p.bx = bx;
+                    p.x0 = tx;
+                }
+                _ => p.x0 = px.or(bx).unwrap_or(p.x0),
+            }
+        }
+        start = end;
+    }
+    for p in plans {
+        let b = crate::mathhand::line_box(crate::handwrite::Style::Naturale, &p.text);
+        if b.strokes.is_empty() {
+            continue;
+        }
+        let (x0, base, xh) = (p.x0, p.base, p.xh);
+        let letters = p.letters;
         // unità di Hershey → unità della pagina: il corpo delle minuscole (14) come il tuo
         let mut s = (1.15 * xh / 14.0).clamp(0.7 * hh / 21.0, 1.15 * hh / 21.0);
         let edge = right.map_or(0.985, |r| r.min(0.985)) * aspect;
@@ -307,14 +452,24 @@ fn apply_with(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, ri
         let mut widths: Vec<f32> = letters.iter().map(|&i| strokes[i].width).collect();
         widths.sort_by(f32::total_cmp);
         let width = widths[widths.len() / 2];
-        for st in b.strokes {
+        let mut glyphs: Vec<Vec<(f32, f32)>> = b.strokes.into_iter().map(|st| st.into_iter().map(|(x, y)| (x0 + x * s, base + y * s)).collect()).collect();
+        if let Some(bi) = p.bullet {
+            // il trattino: corto, dritto, a metà del corpo delle minuscole
+            let (bx0, bx1, _, _) = bbox(&ph[bi]);
+            let body = 14.0 * s;
+            let len = (bx1 - bx0).clamp(0.6 * body, 1.3 * body).min((x0 - p.bx - 0.3 * body).max(0.3 * body));
+            let y = base - 0.5 * body;
+            glyphs.push(vec![(p.bx, y), (p.bx + len / 2.0, y), (p.bx + len, y)]);
+            hidden[bi] = true;
+        }
+        for st in glyphs {
             if st.len() < 2 {
                 continue;
             }
             let mut stroke = Stroke::new(color, width);
             let m = st.len();
             for (j, (x, y)) in st.into_iter().enumerate() {
-                let (px, py) = g.pad((x0 + x * s) / aspect, base + y * s);
+                let (px, py) = g.pad(x / aspect, y);
                 let phase = if j == 0 { PenPhase::Down } else if j + 1 == m { PenPhase::Up } else { PenPhase::Move };
                 stroke.points.push(PenEvent { x: px, y: py, pressure: 0.6, phase });
             }
@@ -389,7 +544,7 @@ fn apply_with(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, ri
 /// Riga di base e corpo delle minuscole di una riga (y verso il basso): la
 /// base è dove la penna tocca il fondo più spesso, il corpo dove tocca la
 /// cima; così una «g», una «/», un esponente non spostano la riga.
-fn base_and_xheight(idx: &[usize], ph: &[Vec<(f32, f32)>], hh: f32) -> Option<(f32, f32)> {
+pub(crate) fn base_and_xheight(idx: &[usize], ph: &[Vec<(f32, f32)>], hh: f32) -> Option<(f32, f32)> {
     let (mut bottoms, mut tops, mut lows, mut highs) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
     for &i in idx {
         let pts = &ph[i];
@@ -416,7 +571,7 @@ fn base_and_xheight(idx: &[usize], ph: &[Vec<(f32, f32)>], hh: f32) -> Option<(f
     Some((base, (base - top).max(0.0)))
 }
 
-fn quantile(v: &mut [f32], q: f32) -> f32 {
+pub(crate) fn quantile(v: &mut [f32], q: f32) -> f32 {
     v.sort_by(f32::total_cmp);
     v[((v.len() - 1) as f32 * q).round() as usize]
 }
@@ -424,40 +579,46 @@ fn quantile(v: &mut [f32], q: f32) -> f32 {
 /// I fondi e le cime di un tratto: dove la penna, scendendo, torna a salire
 /// (e viceversa) di almeno `min`.
 pub(crate) fn turns(pts: &[(f32, f32)], min: f32) -> (Vec<f32>, Vec<f32>) {
+    let (b, t) = turns_xy(pts, min);
+    (b.into_iter().map(|p| p.1).collect(), t.into_iter().map(|p| p.1).collect())
+}
+
+/// Come `turns`, coi punti interi (per misurare quanto pende una riga).
+pub(crate) fn turns_xy(pts: &[(f32, f32)], min: f32) -> (Vec<(f32, f32)>, Vec<(f32, f32)>) {
     let (mut bottoms, mut tops) = (Vec::new(), Vec::new());
-    let Some(first) = pts.first() else { return (bottoms, tops) };
-    let mut ext = first.1;
+    let Some(&first) = pts.first() else { return (bottoms, tops) };
+    let mut ext = first;
     let mut going_down: Option<bool> = None;
-    for q in &pts[1..] {
+    for &q in &pts[1..] {
         let y = q.1;
         match going_down {
             None => {
-                if y - ext >= min {
+                if y - ext.1 >= min {
                     tops.push(ext);
                     going_down = Some(true);
-                    ext = y;
-                } else if ext - y >= min {
+                    ext = q;
+                } else if ext.1 - y >= min {
                     bottoms.push(ext);
                     going_down = Some(false);
-                    ext = y;
+                    ext = q;
                 }
             }
             Some(true) => {
-                if y > ext {
-                    ext = y;
-                } else if ext - y >= min {
+                if y > ext.1 {
+                    ext = q;
+                } else if ext.1 - y >= min {
                     bottoms.push(ext);
                     going_down = Some(false);
-                    ext = y;
+                    ext = q;
                 }
             }
             Some(false) => {
-                if y < ext {
-                    ext = y;
-                } else if y - ext >= min {
+                if y < ext.1 {
+                    ext = q;
+                } else if y - ext.1 >= min {
                     tops.push(ext);
                     going_down = Some(true);
-                    ext = y;
+                    ext = q;
                 }
             }
         }
@@ -470,8 +631,8 @@ pub(crate) fn turns(pts: &[(f32, f32)], min: f32) -> (Vec<f32>, Vec<f32>) {
     (bottoms, tops)
 }
 
-#[cfg(test)]
-mod tests {
+#[cfg(all(test, not(openslate_mobile)))]
+pub(crate) mod tests {
     use super::*;
 
     #[test]
@@ -534,6 +695,63 @@ mod tests {
         // la riga in bella non si rilegge: resta solo la seconda
         let again = pending(&out, &g);
         assert_eq!(again.len(), 1, "{again:?}");
+    }
+
+    /// Un elenco: un trattino a sinistra e una parola (archetti), coi
+    /// trattini e le parole che cominciano ognuno un po' più in là.
+    pub(crate) fn list_page(dash: &[f32], word: &[f32], y0: f32, step: f32) -> Vec<Stroke> {
+        let mut strokes = Vec::new();
+        for (r, (&dx, &wx)) in dash.iter().zip(word).enumerate() {
+            let y = y0 + r as f32 * step;
+            strokes.push(line_stroke(&[(dx, y - 230.0), (dx + 200.0, y - 240.0), (dx + 400.0, y - 230.0)]));
+            for k in 0..4 {
+                let mut s = Stroke::new([20, 20, 20], 2.0);
+                for t in 0..20 {
+                    let f = t as f32 / 19.0;
+                    s.points.push(PenEvent { x: wx + k as f32 * 650.0 + f * 500.0, y: y - (f * 3.14).sin() * 500.0, pressure: 0.7, phase: PenPhase::Move });
+                }
+                strokes.push(s);
+            }
+        }
+        strokes
+    }
+
+    #[test]
+    fn elenco_allineato() {
+        let g = PageGeom::new(View::default(), 21000.0, 29700.0);
+        let strokes = list_page(&[1500.0, 1250.0, 1650.0, 1400.0], &[2300.0, 2600.0, 2200.0, 2500.0], 6000.0, 1400.0);
+        let lines = pending(&strokes, &g);
+        // i trattini stanno con la loro riga (non sono righe a sé)
+        assert_eq!(lines.len(), 4, "{lines:?}");
+        let words = ["- Pane", "– Pasta", "Salumi", "• Acqua"];
+        let texts: HashMap<u64, String> = lines.iter().zip(words).map(|((_, k), w)| (*k, w.to_string())).collect();
+        let (out, done) = apply(&strokes, &texts, &g).unwrap();
+        assert_eq!(done.lines, 4);
+        // i tratti nuovi: i trattini (tre punti in fila, piatti) e le lettere
+        let new: Vec<&Stroke> = out.iter().filter(|s| !strokes.iter().any(|o| same(o, s))).collect();
+        let is_dash = |s: &Stroke| s.points.len() == 3 && (s.points[0].y - s.points[2].y).abs() < 1.0;
+        let dashes: Vec<f32> = new.iter().filter(|s| is_dash(s)).map(|s| s.points[0].x).collect();
+        assert_eq!(dashes.len(), 4, "un trattino per riga, anche dove l'AI non l'ha scritto");
+        assert!(dashes.iter().all(|x| (x - dashes[0]).abs() < 1.0), "trattini in colonna: {dashes:?}");
+        // il testo di ogni riga comincia nello stesso punto
+        let starts: Vec<f32> = (0..4)
+            .map(|r| {
+                let y = 6000.0 + r as f32 * 1400.0;
+                new.iter().filter(|s| !is_dash(s)).flat_map(|s| s.points.iter()).filter(|p| (p.y - y + 250.0).abs() < 650.0).map(|p| p.x).fold(f32::MAX, f32::min)
+            })
+            .collect();
+        assert!(starts.iter().all(|x| (x - starts[0]).abs() < 60.0), "testo in colonna: {starts:?}");
+        assert!(starts[0] > dashes[0] + 300.0);
+        // un rientro voluto (2 cm) resta
+        let mut more = strokes.clone();
+        more.extend(list_page(&[3500.0], &[4300.0], 6000.0 + 4.0 * 1400.0, 1400.0));
+        let lines = pending(&more, &g);
+        assert_eq!(lines.len(), 5);
+        let texts: HashMap<u64, String> = lines.iter().map(|(_, k)| (*k, "- Pane".to_string())).collect();
+        let (out, _) = apply(&more, &texts, &g).unwrap();
+        let dashes: Vec<f32> = out.iter().filter(|s| !more.iter().any(|o| same(o, s)) && is_dash(s)).map(|s| s.points[0].x).collect();
+        assert_eq!(dashes.len(), 5);
+        assert!(dashes.iter().filter(|x| (**x - 3500.0).abs() < 1.0).count() == 1, "{dashes:?}");
     }
 
     fn line_stroke(pts: &[(f32, f32)]) -> Stroke {

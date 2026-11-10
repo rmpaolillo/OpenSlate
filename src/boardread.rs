@@ -255,9 +255,22 @@ pub fn read(strokes: &[Stroke], g: &PageGeom, bg: Option<&PageBg>) -> Reading {
             let dy = (lb[1] - 0.6 * hh - c).max(c - lb[3] - 0.3 * hh).max(0.0);
             let dx = (lb[0] - b[2]).max(b[0] - lb[2]).max(0.0);
             if dy < 0.8 * hh && dx < 1.5 * hh {
-                let d = dy + dx;
+                // a parità (righe fitte, un «=» fra due righe): quella più vicina al centro
+                let d = dy + 0.5 * dx + 0.5 * (c - (lb[1] + lb[3]) / 2.0).abs();
                 if best.is_none_or(|(_, bd)| d < bd) {
                     best = Some((k, d));
+                }
+            }
+        }
+        // il trattino o il pallino di un elenco: a sinistra della riga, alla
+        // sua altezza, anche se un po' staccato
+        if best.is_none() {
+            for (k, l) in lines.iter().enumerate() {
+                let lb = l.members.iter().map(|&j| phys(ub[j].unwrap())).reduce(union).unwrap();
+                let inside = c > lb[1] + 0.1 * (lb[3] - lb[1]) && c < lb[3] + 0.1 * hh;
+                let dx = lb[0] - b[2];
+                if inside && dx >= 0.0 && dx < 5.0 * hh && best.is_none_or(|(_, bd)| dx < bd) {
+                    best = Some((k, dx));
                 }
             }
         }
