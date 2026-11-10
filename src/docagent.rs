@@ -1224,7 +1224,7 @@ mod e2e {
         // poi l'utente firma con la penna: i valori, la data e la crocetta restano
         drop_session(&p.dir);
         let firmato = work.join("modulo-firmato.pdf");
-        let firma = crate::pdfdoc::OverlayStroke { color: [20, 40, 160], width_frac: 0.003, pts: vec![(0.55, 0.5), (0.65, 0.45), (0.75, 0.52)], highlight: false };
+        let firma = crate::pdfdoc::OverlayStroke { color: [20, 40, 160], width_frac: 0.003, pts: vec![(0.55, 0.5), (0.65, 0.45), (0.75, 0.52)], highlight: false, stamp: None };
         crate::pdfdoc::write_overlay(&p.file, &firmato, &[vec![firma]]).unwrap();
         let s = import(&firmato);
         let f = execute(&s, "pdf__form_fields", &json!({})).unwrap();

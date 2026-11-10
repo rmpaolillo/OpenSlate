@@ -96,6 +96,14 @@ import uniffi.openslate_mobile.Zone
 import uniffi.openslate_mobile.boardArrange
 import uniffi.openslate_mobile.boardSuggestEvery
 import uniffi.openslate_mobile.neatSetDir
+import uniffi.openslate_mobile.SavedStamp
+import uniffi.openslate_mobile.StampSpec
+import uniffi.openslate_mobile.boardAddStamp
+import uniffi.openslate_mobile.stampList
+import uniffi.openslate_mobile.stampNaturalRect
+import uniffi.openslate_mobile.stampRefit
+import uniffi.openslate_mobile.stampReseed
+import uniffi.openslate_mobile.stampSave
 import uniffi.openslate_mobile.paperHasRows
 import uniffi.openslate_mobile.paperIsGrid
 import androidx.compose.material3.CircularProgressIndicator
@@ -138,7 +146,7 @@ class Board {
     fun pen(points: List<PenPoint>) {
         for (op in model.pen(points)) {
             when (op) {
-                is DrawOp.Down -> strokes += PageStroke(op.color, op.width, op.highlight, arrayListOf(op.point))
+                is DrawOp.Down -> strokes += PageStroke(op.color, op.width, op.highlight, arrayListOf(op.point), null)
                 is DrawOp.Move -> (strokes.lastOrNull()?.points as? ArrayList<PenPoint>)?.add(op.point)
                 is DrawOp.Up -> (strokes.lastOrNull()?.points as? ArrayList<PenPoint>)?.add(op.point)
                 DrawOp.Reset -> {
@@ -256,6 +264,11 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var choosingPaper by mutableStateOf(false)
     /** Bella copia o «Disponi sulle righe» in corso (null = no). */
     private var zoneJob by mutableStateOf<ZoneJob?>(null)
+    /** Timbri aziendali salvati, quello che si sta posando, la finestra dei timbri (su quale). */
+    private var stamps by mutableStateOf<List<SavedStamp>>(emptyList())
+    private var sealJob by mutableStateOf<SealJob?>(null)
+    private var stampDialog by mutableStateOf<Int?>(null)
+    private var stampDialogOpen by mutableStateOf(false)
     /** Il numero del lavoro in corso: le risposte di uno annullato non contano. */
     private var neatGen = 0
 
@@ -333,6 +346,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         super.onCreate(savedInstanceState)
         link = SlateLink(this, this)
         neatSetDir(filesDir.path)
+        stamps = stampList(filesDir.path)
         quarter = prefs.getInt("quarter", 1) // lo Slate si usa in verticale
         loadTools()
         prefs.getString("doc_dir", null)?.let { path ->
@@ -774,6 +788,21 @@ class MainActivity : ComponentActivity(), LinkListener {
                         Text("${d.index + 1} / ${d.count}", style = MaterialTheme.typography.labelLarge)
                         IconButton(onClick = { goPage(1) }, enabled = d.index + 1 < d.count) { Icon(Icons.Filled.ChevronRight, stringResource(R.string.next_page)) }
                         Spacer(Modifier.weight(1f))
+                        Box {
+                            var stampMenu by remember { mutableStateOf(false) }
+                            IconButton(onClick = { if (stamps.isEmpty()) openStampDialog(null) else stampMenu = true }, enabled = sealJob == null) {
+                                Icon(Icons.Filled.Approval, stringResource(R.string.stamp))
+                            }
+                            DropdownMenu(stampMenu, { stampMenu = false }) {
+                                stamps.forEachIndexed { i, st ->
+                                    DropdownMenuItem(text = { Text(st.name.ifBlank { st.spec.company.name }) }, leadingIcon = { Icon(Icons.Filled.Approval, null) },
+                                        onClick = { stampMenu = false; startSeal(i) })
+                                }
+                                HorizontalDivider()
+                                DropdownMenuItem(text = { Text(stringResource(R.string.stamp_edit)) }, leadingIcon = { Icon(Icons.Filled.Edit, null) },
+                                    onClick = { stampMenu = false; openStampDialog(0) })
+                            }
+                        }
                         IconButton(onClick = { saveSigned.launch(d.title + " " + getString(R.string.signed_suffix) + "." + d.signedExt) }) {
                             Icon(Icons.Filled.Save, stringResource(R.string.save_signed))
                         }
@@ -804,12 +833,114 @@ class MainActivity : ComponentActivity(), LinkListener {
                         if (j.phase == NeatPhase.PREVIEW && p != null) SheetOverlay(null, p.veil.floats(), p.strokes)
                         else SheetOverlay(j.drag ?: j.zone?.floats())
                     },
+                    seal = sealJob?.let { j -> SealPlace(j.spec, j.rect) { r -> sealJob = sealJob?.copy(rect = r) } },
                 )
             }
-            if (zoneJob != null) NeatBar() else ToolBar()
+            when {
+                sealJob != null -> SealBar()
+                zoneJob != null -> NeatBar()
+                else -> ToolBar()
+            }
         }
         if (zoneJob != null) BackHandler { neatCancel() }
+        if (sealJob != null) BackHandler { sealJob = null }
+        if (stampDialogOpen) {
+            StampDialog(
+                stamps, stampDialog, canPlace = doc != null,
+                onSave = { sel, s -> saveStamp(sel, s) },
+                onDelete = { i -> deleteStamp(i) },
+                onPlace = { i -> stampDialogOpen = false; startSeal(i) },
+                onClose = { stampDialogOpen = false },
+            )
+        }
         if (choosingPaper) PaperDialog()
+    }
+
+    // ------------------------------------------- timbro aziendale
+
+    private fun openStampDialog(sel: Int?) {
+        stampDialog = sel
+        stampDialogOpen = true
+    }
+
+    /** Salva il timbro (nuovo o al posto `sel`); restituisce dove sta nell'elenco. */
+    private fun saveStamp(sel: Int?, s: SavedStamp): Int {
+        val named = if (s.name.isBlank()) s.copy(name = s.spec.company.name.trim()) else s
+        val list = stamps.toMutableList()
+        val i = if (sel != null && sel in list.indices) { list[sel] = named; sel } else { list += named; list.size - 1 }
+        stamps = list
+        runCatching { stampSave(filesDir.path, list) }.onFailure { toast(it.message ?: "") }
+        return i
+    }
+
+    private fun deleteStamp(i: Int) {
+        val list = stamps.toMutableList()
+        if (i !in list.indices) return
+        list.removeAt(i)
+        stamps = list
+        runCatching { stampSave(filesDir.path, list) }
+    }
+
+    /** Posa il timbro n. `i`: compare a grandezza naturale, poi si regola. */
+    private fun startSeal(i: Int) {
+        val st = stamps.getOrNull(i) ?: return
+        if (doc == null) return
+        sealJob = SealJob(st.spec, i, stampNaturalRect(st.spec, view(), 0.3f, 0.84f))
+    }
+
+    private fun sealEdit(spec: StampSpec) {
+        val j = sealJob ?: return
+        sealJob = j.copy(spec = spec, rect = stampRefit(j.spec, spec, view(), j.rect))
+    }
+
+    /** Conferma: il timbro sul foglio (un passo di annulla); le regolazioni restano per la prossima volta. */
+    private fun sealAccept() {
+        val j = sealJob ?: return
+        boardAddStamp(board.model, view(), j.spec, j.rect)
+        board.reload()
+        j.saved?.let { i ->
+            stamps.getOrNull(i)?.let { st ->
+                val list = stamps.toMutableList()
+                list[i] = st.copy(spec = st.spec.copy(style = j.spec.style))
+                stamps = list
+                runCatching { stampSave(filesDir.path, list) }
+            }
+        }
+        sealJob = null
+        toast(getString(R.string.stamp_applied))
+    }
+
+    /** La barra mentre si posa un timbro: colore, cornice, intensità, grana, inclinazione. */
+    @Composable
+    private fun SealBar() {
+        val j = sealJob ?: return
+        val st = j.spec.style
+        fun style(f: (uniffi.openslate_mobile.StampStyle) -> uniffi.openslate_mobile.StampStyle) = sealEdit(j.spec.copy(style = f(st)))
+        @Composable
+        fun slider(label: Int, v: Float, range: ClosedFloatingPointRange<Float>, set: (Float) -> Unit) {
+            Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(label), Modifier.width(132.dp), style = MaterialTheme.typography.labelMedium)
+                Slider(v, set, Modifier.weight(1f).height(32.dp), valueRange = range)
+            }
+        }
+        Surface(tonalElevation = 2.dp) {
+            Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+                Text(stringResource(R.string.stamp_place_title), Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.stamp_place_hint), Modifier.padding(horizontal = 12.dp, vertical = 2.dp), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) { InkDots(st.color) { c -> style { it.copy(color = c) } } }
+                Box(Modifier.padding(horizontal = 12.dp)) { FrameChips(st.frame) { f -> style { it.copy(frame = f) } } }
+                slider(R.string.stamp_opacity, st.opacity, 0.3f..1f) { v -> style { it.copy(opacity = v) } }
+                slider(R.string.stamp_grain, st.grain, 0f..1f) { v -> style { it.copy(grain = v) } }
+                slider(R.string.stamp_uneven, st.uneven, 0f..1f) { v -> style { it.copy(uneven = v) } }
+                slider(R.string.stamp_tilt, st.tilt, -15f..15f) { v -> style { it.copy(tilt = v) } }
+                ActionRow {
+                    Button(onClick = { sealAccept() }) { Text(stringResource(R.string.stamp_apply)) }
+                    OutlinedButton(onClick = { sealEdit(stampReseed(j.spec)) }) { Text(stringResource(R.string.stamp_reseed)) }
+                    TextButton(onClick = { sealJob = null }) { Text(stringResource(R.string.cancel)) }
+                }
+            }
+        }
     }
 
     // ------------------------------------------- bella copia, sulle righe

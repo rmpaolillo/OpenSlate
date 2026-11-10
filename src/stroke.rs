@@ -34,6 +34,9 @@ pub fn strokes_sig(strokes: &[Stroke]) -> u64 {
     mix(strokes.len() as u64);
     for s in strokes {
         mix(s.points.len() as u64 ^ ((s.highlight as u64) << 40));
+        if let Some(t) = &s.stamp {
+            mix(t.key());
+        }
         mix(u32::from_le_bytes([s.color[0], s.color[1], s.color[2], 0]) as u64 ^ (s.width.to_bits() as u64) << 24);
         for p in &s.points {
             mix(p.x.to_bits() as u64 | (p.y.to_bits() as u64) << 32);
@@ -51,6 +54,9 @@ pub struct Stroke {
     pub width: f32,
     /// Tratto di evidenziatore: va disegnato sotto l'inchiostro.
     pub highlight: bool,
+    /// Un timbro (`crate::stamp`): i punti sono i quattro angoli del suo
+    /// riquadro e al posto della linea si disegna l'immagine.
+    pub stamp: Option<std::sync::Arc<crate::stamp::StampSpec>>,
 }
 
 impl Stroke {
@@ -60,7 +66,18 @@ impl Stroke {
             color,
             width,
             highlight: false,
+            stamp: None,
         }
+    }
+
+    /// Un timbro posato: `corners` da `stamp::corners`.
+    pub fn stamp(spec: crate::stamp::StampSpec, corners: Vec<PenEvent>) -> Self {
+        Self { points: corners, color: spec.style.color.rgb(), width: 0.0, highlight: false, stamp: Some(std::sync::Arc::new(spec)) }
+    }
+
+    /// Inchiostro o evidenziatore (non un timbro): quello che si legge e si riconosce.
+    pub fn is_ink(&self) -> bool {
+        self.stamp.is_none()
     }
 
     pub fn highlighter(color: Rgb, width: f32) -> Self {
@@ -230,6 +247,14 @@ pub fn erased_by(s: &Stroke, g: &[(f32, f32)]) -> bool {
     let (sx0, sy0, sx1, sy1) = s.bbox();
     if sx1 < gx0 || sx0 > gx1 || sy1 < gy0 || sy0 > gy1 {
         return false;
+    }
+    // un timbro: basta passarci sopra
+    if s.stamp.is_some() {
+        return g.iter().any(|&(x, y)| x >= sx0 && x <= sx1 && y >= sy0 && y <= sy1)
+            || g.windows(2).any(|w| {
+                let c = [(sx0, sy0), (sx1, sy0), (sx1, sy1), (sx0, sy1), (sx0, sy0)];
+                c.windows(2).any(|e| segments_cross(e[0], e[1], w[0], w[1]))
+            });
     }
     if sx0 >= gx0 && sx1 <= gx1 && sy0 >= gy0 && sy1 <= gy1 {
         return true;

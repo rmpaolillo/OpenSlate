@@ -20,9 +20,17 @@ enum Drag {
     Resize,
 }
 
-/// Firma in corso di posizionamento.
+/// Cosa si sta posando sulla pagina.
+pub(super) enum Placing {
+    /// La firma registrata.
+    Sig(Signature),
+    /// Un timbro aziendale (`saved`: quale dell'elenco, per ricordarne le regolazioni).
+    Seal { spec: crate::stamp::StampSpec, saved: Option<usize> },
+}
+
+/// Firma o timbro in corso di posizionamento.
 pub(super) struct Stamp {
-    sig: Signature,
+    pub(super) what: Placing,
     /// u, v, larghezza, altezza sulla pagina (0..1).
     rect: [f32; 4],
     drag: Option<Drag>,
@@ -122,6 +130,12 @@ pub(super) enum DocAction {
     InsertSignature,
     ApplyStamp,
     CancelStamp,
+    /// Posa il timbro n. dell'elenco.
+    PlaceSeal(usize),
+    /// Regola il timbro che si sta posando.
+    Seal(super::timbro_ui::SealEdit),
+    /// La finestra dei timbri (su quale).
+    StampWindow(Option<usize>),
     OpenLastExport,
     /// Scheda «Lavagna»: chiude il documento (la sua scheda resta).
     TabBoard,
@@ -617,17 +631,58 @@ impl App {
                     r = sig.natural_rect(&g, 0.68, 0.84);
                     r = [0.68 - r[2] * k / 2.0, 0.84 - r[3] * k / 2.0, r[2] * k, r[3] * k];
                 }
-                self.docui.stamp = Some(Stamp { sig, rect: r, drag: None });
+                self.docui.stamp = Some(Stamp { what: Placing::Sig(sig), rect: r, drag: None });
                 self.status = "Trascina la firma dove serve, rotella o angolo per la grandezza, poi Invio.".into();
             }
             DocAction::ApplyStamp => {
                 if let Some(st) = self.docui.stamp.take() {
                     let g = self.hub.lock().geom();
-                    let strokes = st.sig.place(st.rect, &g);
-                    self.hub.edit(|s| s.add_strokes(strokes));
-                    self.status = "Firma apposta ✓ (Cmd+Z per toglierla).".into();
+                    match st.what {
+                        Placing::Sig(sig) => {
+                            let strokes = sig.place(st.rect, &g);
+                            self.hub.edit(|s| s.add_strokes(strokes));
+                            self.status = "Firma apposta ✓ (Cmd+Z per toglierla).".into();
+                        }
+                        Placing::Seal { spec, saved } => {
+                            // le regolazioni restano per la prossima volta
+                            if let Some(t) = saved.and_then(|i| self.stampui.list.get_mut(i)) {
+                                t.spec.style = spec.style.clone();
+                                let _ = self.stampui.save();
+                            }
+                            let stroke = Stroke::stamp(spec, crate::stamp::corners(st.rect, &g));
+                            self.hub.edit(|s| s.add_strokes(vec![stroke]));
+                            self.status = "Timbro apposto ✓ (Cmd+Z per toglierlo).".into();
+                        }
+                    }
                 }
             }
+            DocAction::PlaceSeal(i) => {
+                let Some(t) = self.stampui.list.get(i) else { return };
+                let spec = t.spec.clone();
+                let g = self.hub.lock().geom();
+                let mut r = crate::stamp::natural_rect(&spec, &g, 0.3, 0.84);
+                // mai più largo di metà pagina
+                if r[2] > 0.5 {
+                    let k = 0.5 / r[2];
+                    r = [0.3 - r[2] * k / 2.0, 0.84 - r[3] * k / 2.0, r[2] * k, r[3] * k];
+                }
+                self.docui.stamp = Some(Stamp { what: Placing::Seal { spec, saved: Some(i) }, rect: r, drag: None });
+                self.status = "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.".into();
+            }
+            DocAction::Seal(e) => {
+                let g = self.hub.lock().geom();
+                if let Some(Stamp { what: Placing::Seal { spec, .. }, rect, .. }) = self.docui.stamp.as_mut() {
+                    // stessa grandezza rispetto al timbro vero, stesso centro
+                    let before = crate::stamp::natural_rect(spec, &g, 0.5, 0.5);
+                    let k = rect[2] / before[2].max(1e-6);
+                    let (cx, cy) = (rect[0] + rect[2] / 2.0, rect[1] + rect[3] / 2.0);
+                    e.apply(spec);
+                    let n = crate::stamp::natural_rect(spec, &g, 0.5, 0.5);
+                    let (w, h) = (n[2] * k, n[3] * k);
+                    *rect = [cx - w / 2.0, cy - h / 2.0, w, h];
+                }
+            }
+            DocAction::StampWindow(sel) => self.open_stamp_window(sel),
             DocAction::CancelStamp => self.docui.stamp = None,
             DocAction::OpenLastExport => {
                 if let Some(p) = &self.docui.last_export {
@@ -837,25 +892,36 @@ impl App {
         true
     }
 
+    /// La firma da posizionare, tratto per tratto.
+    fn paint_sig(&self, painter: &egui::Painter, page: egui::Rect, r: egui::Rect, sig: &Signature, st: &Stamp, g: &PageGeom) {
+        let scale = st.rect[3] / (sig.h / g.h);
+        for s in &sig.strokes {
+            let col = egui::Color32::from_rgb(s.color[0], s.color[1], s.color[2]);
+            let w = (s.width * scale * page.height() / 800.0).max(0.8);
+            let pts: Vec<egui::Pos2> = s
+                .points
+                .iter()
+                .map(|p| egui::pos2(r.left() + p.x / sig.w * r.width(), r.top() + p.y / sig.h * r.height()))
+                .collect();
+            if pts.len() == 1 {
+                painter.circle_filled(pts[0], w * 0.6, col);
+            } else {
+                painter.add(egui::Shape::line(pts, egui::Stroke::new(w, col)));
+            }
+        }
+    }
+
     /// Disegna sopra la pagina: firma da posizionare, avviso di registrazione.
     pub(super) fn paint_doc_overlay(&self, painter: &egui::Painter, page: egui::Rect, scene: &Scene) {
         if let Some(st) = &self.docui.stamp {
             let r = self.stamp_screen_rect(st);
             let g = scene.geom();
-            let scale = st.rect[3] / (st.sig.h / g.h);
-            for s in &st.sig.strokes {
-                let col = egui::Color32::from_rgb(s.color[0], s.color[1], s.color[2]);
-                let w = (s.width * scale * page.height() / 800.0).max(0.8);
-                let pts: Vec<egui::Pos2> = s
-                    .points
-                    .iter()
-                    .map(|p| egui::pos2(r.left() + p.x / st.sig.w * r.width(), r.top() + p.y / st.sig.h * r.height()))
-                    .collect();
-                if pts.len() == 1 {
-                    painter.circle_filled(pts[0], w * 0.6, col);
-                } else {
-                    painter.add(egui::Shape::line(pts, egui::Stroke::new(w, col)));
+            match &st.what {
+                Placing::Seal { spec, .. } => {
+                    let uv = [st.rect[0], st.rect[1], st.rect[0] + st.rect[2], st.rect[1] + st.rect[3]];
+                    super::timbro_ui::paint_placed(painter, page, spec, uv, 0);
                 }
+                Placing::Sig(sig) => self.paint_sig(painter, page, r, sig, st, &g),
             }
             let accent = egui::Color32::from_rgb(40, 110, 220);
             let b = r.expand(6.0);

@@ -114,6 +114,7 @@ pub fn to_page_stroke(s: &Stroke) -> PageStroke {
         width: s.width,
         highlight: s.highlight,
         points: s.points.iter().map(to_point).collect(),
+        stamp: s.stamp.as_deref().cloned(),
     }
 }
 
@@ -121,6 +122,7 @@ pub fn from_page_stroke(s: &PageStroke) -> Stroke {
     let color = hex_to_rgb(&s.color).unwrap_or([20, 20, 20]);
     let mut st = if s.highlight { Stroke::highlighter(color, s.width) } else { Stroke::new(color, s.width) };
     st.points = s.points.iter().map(to_event).collect();
+    st.stamp = s.stamp.clone().map(Arc::new);
     st
 }
 

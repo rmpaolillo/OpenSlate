@@ -353,7 +353,19 @@ impl App {
             });
             return;
         }
-        if self.docui.stamp.is_some() {
+        if let Some(st) = &self.docui.stamp {
+            if let super::doc_view::Placing::Seal { spec, .. } = &st.what {
+                group(ui, "Posiziona il timbro", |ui| {
+                    if big(ui, ic::CHECK_CIRCLE, "Applica\ntimbro", "Invio").clicked() {
+                        actions.push(doc(DocAction::ApplyStamp));
+                    }
+                    if big(ui, ic::X_CIRCLE, &crate::i18n::tc("cancel", "Annulla"), "Esc").clicked() {
+                        actions.push(doc(DocAction::CancelStamp));
+                    }
+                });
+                self.ribbon_seal(ui, spec, actions);
+                return;
+            }
             group(ui, "Posiziona la firma", |ui| {
                 if big(ui, ic::CHECK_CIRCLE, "Applica\nfirma", "Invio").clicked() {
                     actions.push(doc(DocAction::ApplyStamp));
@@ -417,6 +429,24 @@ impl App {
             if big_ex(ui, ic::STAMP, "Inserisci\nfirma", if has { "Posa la firma registrata sulla pagina" } else { "Prima registra la firma" }, has, false, false).clicked() {
                 actions.push(doc(DocAction::InsertSignature));
             }
+            let stamps = &self.stampui.list;
+            let r = big_ex(ui, ic::SEAL_CHECK, "Timbro", "Il timbro aziendale: crealo una volta, poi posalo sul documento e rendilo realistico", true, false, true);
+            egui::Popup::menu(&r).show(|ui| {
+                ui.set_min_width(260.0);
+                for (i, t) in stamps.iter().enumerate() {
+                    let name = if t.name.trim().is_empty() { t.spec.company.name.as_str() } else { t.name.as_str() };
+                    if menu_item(ui, open, ic::STAMP, name, "") {
+                        actions.push(doc(DocAction::PlaceSeal(i)));
+                    }
+                }
+                if !stamps.is_empty() {
+                    ui.separator();
+                }
+                let label = if stamps.is_empty() { "Crea un timbro…" } else { "Crea o modifica i timbri…" };
+                if menu_item(ui, true, ic::PENCIL_SIMPLE, label, "") {
+                    actions.push(doc(DocAction::StampWindow(if stamps.is_empty() { None } else { Some(0) })));
+                }
+            });
         });
         group(ui, "Salva", |ui| {
             let word = self.docui.doc.as_ref().is_some_and(|d| d.original.is_some());

@@ -42,10 +42,15 @@ object Ink {
             2 -> padH - y
             else -> padW - x
         } * k
-        // L'evidenziatore sta sotto l'inchiostro.
-        for (pass in 0..1) {
+        // L'evidenziatore sta sotto i timbri, i timbri sotto l'inchiostro.
+        for (pass in 0..2) {
             for (s in strokes) {
-                if (s.highlight != (pass == 0) || s.points.isEmpty()) continue
+                if (s.points.isEmpty()) continue
+                if (pass == 1) {
+                    if (s.stamp != null) SealArt.drawPlaced(c, s, padW, padH, quarter, rw * k, rh * k)
+                    continue
+                }
+                if (s.stamp != null || s.highlight != (pass == 0)) continue
                 paint.color = parseColor(s.color)
                 if (s.highlight) paint.alpha = 90
                 val base = s.width * unit

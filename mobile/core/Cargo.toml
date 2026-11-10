@@ -35,6 +35,8 @@ color_quant = "1.1"
 ureq = { version = "2", features = ["json"] }
 anyhow = "1"
 tiny-skia = "0.11"
+# il timbro aziendale (src/stamp.rs): testo dai font Inter
+ab_glyph = "0.2"
 # i PDF firmati: lo stesso lopdf della desktop (quello di PdfCraft, vedi [patch])
 lopdf = { version = "0.45", default-features = false }
 # Word, foto e SVG firmati con le librerie della suite Craft (MIT OR Apache-2.0,

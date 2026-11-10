@@ -77,6 +77,9 @@ pub struct StrokeFmt {
     /// Evidenziatore.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     h: bool,
+    /// Timbro (i punti sono i quattro angoli).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    t: Option<crate::stamp::StampSpec>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -135,6 +138,7 @@ pub fn strokes_to_fmt(strokes: &[Stroke]) -> Vec<StrokeFmt> {
             w: s.width,
             p: s.points.iter().map(|p| [p.x, p.y, p.pressure]).collect(),
             h: s.highlight,
+            t: s.stamp.as_deref().cloned(),
         })
         .collect()
 }
@@ -160,6 +164,7 @@ pub fn strokes_from_fmt(v: Vec<StrokeFmt>) -> Vec<Stroke> {
             let n = s.p.len();
             let mut st = Stroke::new(hex_to_color(&s.c).unwrap_or([20, 20, 20]), s.w);
             st.highlight = s.h;
+            st.stamp = s.t.map(std::sync::Arc::new);
             st.points = s
                 .p
                 .iter()

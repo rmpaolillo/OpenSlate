@@ -90,29 +90,17 @@ pub fn save_with_ink(src: &Path, dst: &Path, strokes: &[InkStroke]) -> Result<()
     let rgba = img.convert(ChannelLayout::Rgba, SampleType::U8);
     let px = rgba.as_u8().ok_or_else(|| anyhow!("PhotoCraft: pixel non a 8 bit"))?;
     let area = Rect::from_xywh(0, 0, w, h);
+    // prima le evidenziature, poi i timbri, poi l'inchiostro (la firma sopra il timbro)
     let mut surface = Surface::from_interleaved(PixelFormat::RGBA8, area, px);
-    for st in strokes.iter().filter(|s| s.page == 0 && !s.pts.is_empty()) {
-        let mut points: Vec<StrokePoint> =
-            st.pts.iter().take(5000).map(|(u, v)| StrokePoint::new(u.clamp(0.0, 1.0) as f64 * w as f64, v.clamp(0.0, 1.0) as f64 * h as f64, 1.0)).collect();
-        if points.len() == 1 {
-            let mut p = points[0];
-            p.x += 0.3;
-            points.push(p);
+    paint_strokes(&mut surface, w, h, strokes.iter().filter(|s| s.highlight));
+    let mut px = surface.to_interleaved(area);
+    for st in strokes.iter().filter(|s| s.page == 0) {
+        if let Some(spec) = &st.stamp {
+            stamp_onto(&mut px, w, h, spec, &st.pts);
         }
-        let [r, g, b] = st.color;
-        let brush = BrushSettings {
-            size: (st.width_frac * h as f32).clamp(0.6, 400.0),
-            hardness: 0.9,
-            spacing: 0.05,
-            pressure_size: false,
-            color: [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, 1.0],
-            // l'evidenziatore: trasparente e «moltiplica», come un pennarello sulla carta
-            opacity: if st.highlight { 0.45 } else { 1.0 },
-            mode: if st.highlight { BlendMode::Multiply } else { BlendMode::Normal },
-            ..Default::default()
-        };
-        photocraft_paint::apply_stroke(&mut surface, &Stroke { brush, points }, None, false);
     }
+    let mut surface = Surface::from_interleaved(PixelFormat::RGBA8, area, &px);
+    paint_strokes(&mut surface, w, h, strokes.iter().filter(|s| !s.highlight));
     let painted = surface.to_interleaved(area);
     let out_ext = ext(dst);
     let format = match out_ext.as_str() {
@@ -135,6 +123,70 @@ pub fn save_with_ink(src: &Path, dst: &Path, strokes: &[InkStroke]) -> Result<()
     Ok(())
 }
 
+/// I tratti a pennello (PhotoCraft) sulla superficie.
+fn paint_strokes<'a>(surface: &mut Surface, w: u32, h: u32, strokes: impl Iterator<Item = &'a InkStroke>) {
+    for st in strokes.filter(|s| s.page == 0 && !s.pts.is_empty() && s.stamp.is_none()) {
+        let mut points: Vec<StrokePoint> =
+            st.pts.iter().take(5000).map(|(u, v)| StrokePoint::new(u.clamp(0.0, 1.0) as f64 * w as f64, v.clamp(0.0, 1.0) as f64 * h as f64, 1.0)).collect();
+        if points.len() == 1 {
+            let mut p = points[0];
+            p.x += 0.3;
+            points.push(p);
+        }
+        let [r, g, b] = st.color;
+        let brush = BrushSettings {
+            size: (st.width_frac * h as f32).clamp(0.6, 400.0),
+            hardness: 0.9,
+            spacing: 0.05,
+            pressure_size: false,
+            color: [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, 1.0],
+            // l'evidenziatore: trasparente e «moltiplica», come un pennarello sulla carta
+            opacity: if st.highlight { 0.45 } else { 1.0 },
+            mode: if st.highlight { BlendMode::Multiply } else { BlendMode::Normal },
+            ..Default::default()
+        };
+        photocraft_paint::apply_stroke(surface, &Stroke { brush, points }, None, false);
+    }
+}
+
+/// Il timbro sui pixel (RGBA non premoltiplicati), in «moltiplica» come l'inchiostro vero.
+fn stamp_onto(px: &mut [u8], w: u32, h: u32, spec: &crate::stamp::StampSpec, pts: &[(f32, f32)]) {
+    let Some((r, quarter)) = crate::stamp::placement_uv(pts) else { return };
+    let (x0, y0) = ((r[0] * w as f32).round() as i64, (r[1] * h as f32).round() as i64);
+    let bw = ((r[2] - r[0]) * w as f32).round().max(1.0);
+    let img = crate::stamp::render_fit(spec, quarter, bw);
+    // l'immagine resa alla grandezza del riquadro (vicino più prossimo)
+    let bh = ((r[3] - r[1]) * h as f32).round().max(1.0);
+    for y in 0..bh as i64 {
+        let ty = y0 + y;
+        if ty < 0 || ty >= h as i64 {
+            continue;
+        }
+        let sy = ((y as f32 + 0.5) / bh * img.h as f32) as u32;
+        for x in 0..bw as i64 {
+            let tx = x0 + x;
+            if tx < 0 || tx >= w as i64 {
+                continue;
+            }
+            let sx = ((x as f32 + 0.5) / bw * img.w as f32) as u32;
+            let s = ((sy.min(img.h - 1) * img.w + sx.min(img.w - 1)) * 4) as usize;
+            let a = img.px[s + 3] as f32 / 255.0;
+            if a <= 0.0 {
+                continue;
+            }
+            let d = ((ty as u32 * w + tx as u32) * 4) as usize;
+            for c in 0..3 {
+                // colore non premoltiplicato del timbro
+                let sc = (img.px[s + c] as f32 / a).min(255.0);
+                let dc = px[d + c] as f32;
+                let mul = dc * sc / 255.0;
+                px[d + c] = (dc + (mul - dc) * a).round().clamp(0.0, 255.0) as u8;
+            }
+            px[d + 3] = px[d + 3].max((a * 255.0) as u8);
+        }
+    }
+}
+
 // i test usano parti della desktop: non nelle app per telefono (mobile/core)
 #[cfg(all(test, not(openslate_mobile)))]
 mod tests {
@@ -147,7 +199,7 @@ mod tests {
     }
 
     fn ink(highlight: bool) -> Vec<InkStroke> {
-        vec![InkStroke { page: 0, pts: vec![(0.2, 0.5), (0.5, 0.55), (0.8, 0.5)], color: [200, 0, 0], width_frac: 0.03, highlight }]
+        vec![InkStroke { page: 0, pts: vec![(0.2, 0.5), (0.5, 0.55), (0.8, 0.5)], color: [200, 0, 0], width_frac: 0.03, highlight, stamp: None }]
     }
 
     fn white_png(w: u32, h: u32) -> Vec<u8> {
@@ -186,5 +238,32 @@ mod tests {
         assert_eq!(back.dimensions(), (200, 100));
         assert_eq!(signed_ext("jpeg"), "jpg");
         assert_eq!(signed_ext("gif"), "png");
+    }
+
+    fn timbro() -> InkStroke {
+        InkStroke {
+            page: 0,
+            pts: vec![(0.1, 0.2), (0.6, 0.2), (0.6, 0.8), (0.1, 0.8)],
+            color: [0, 0, 0],
+            width_frac: 0.0,
+            highlight: false,
+            stamp: Some(std::sync::Arc::new(crate::stamp::tests::cordua())),
+        }
+    }
+
+    #[test]
+    fn foto_col_timbro() {
+        let src = tmp("timbro.png");
+        std::fs::write(&src, white_png(600, 300)).unwrap();
+        let out = tmp("timbro-firmata.png");
+        save_with_ink(&src, &out, &[timbro()]).unwrap();
+        let img = tiny_skia::Pixmap::decode_png(&std::fs::read(&out).unwrap()).unwrap();
+        // blu dentro il riquadro, bianco fuori
+        let blue = (60..360).flat_map(|x| (60..240).map(move |y| (x, y))).filter(|&(x, y)| {
+            let p = img.pixel(x, y).unwrap();
+            p.blue() as u16 > p.red() as u16 + 40
+        });
+        assert!(blue.count() > 500);
+        assert!((400..600).all(|x| img.pixel(x, 150).unwrap().green() == 255));
     }
 }

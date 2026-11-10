@@ -149,7 +149,8 @@ impl Page {
                 .iter()
                 .filter(|s| s.highlight)
                 .chain(d.strokes.iter().filter(|s| !s.highlight))
-                .filter(|s| !s.points.is_empty())
+                // i timbri (documenti) non sono tratti da disegnare
+                .filter(|s| !s.points.is_empty() && s.is_ink())
                 .map(|s| PageStroke {
                     color: s.color,
                     width: s.width,

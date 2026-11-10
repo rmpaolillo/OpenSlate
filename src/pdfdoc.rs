@@ -53,6 +53,8 @@ pub struct OverlayStroke {
     pub width_frac: f32,
     pub pts: Vec<(f32, f32)>,
     pub highlight: bool,
+    /// Un timbro: `pts` sono i quattro angoli (vedi `stamp::placement`).
+    pub stamp: Option<std::sync::Arc<crate::stamp::StampSpec>>,
 }
 
 fn num(doc: &Document, o: &Object) -> Option<f32> {
@@ -160,8 +162,9 @@ pub fn pages_from_bytes(bytes: &[u8]) -> Result<Vec<PdfPage>> {
 }
 
 /// Operatori PDF che disegnano i tratti di una pagina.
-fn overlay_content(page: &PdfPage, strokes: &[OverlayStroke]) -> String {
+fn overlay_content(page: &PdfPage, strokes: &[OverlayStroke], stamps: &[(String, [f32; 6])]) -> String {
     let (_, dh) = page.display_size();
+    let strokes: Vec<&OverlayStroke> = strokes.iter().filter(|s| s.stamp.is_none()).collect();
     let mut c = String::from("Q\nq\n1 J 1 j\n");
     let draw = |c: &mut String, s: &OverlayStroke| {
         let [r, g, b] = s.color;
@@ -194,11 +197,39 @@ fn overlay_content(page: &PdfPage, strokes: &[OverlayStroke]) -> String {
         }
         c.push_str("Q\n");
     }
+    // i timbri: sopra le evidenziature, sotto l'inchiostro (la firma ci passa sopra)
+    for (name, m) in stamps {
+        let _ = writeln!(c, "q /WacomHL gs {:.3} {:.3} {:.3} {:.3} {:.3} {:.3} cm /{name} Do Q", m[0], m[1], m[2], m[3], m[4], m[5]);
+    }
     for s in strokes.iter().filter(|s| !s.highlight && !s.pts.is_empty()) {
         draw(&mut c, s);
     }
     c.push_str("Q\n");
     c
+}
+
+/// L'immagine di un timbro: RGB più la trasparenza (SMask).
+fn stamp_image(doc: &mut Document, r: &crate::stamp::Raster) -> ObjectId {
+    use lopdf::dictionary;
+    let (rgb, alpha) = r.split();
+    let mut mask = Stream::new(
+        dictionary! {
+            "Type" => "XObject", "Subtype" => "Image", "Width" => r.w as i64, "Height" => r.h as i64,
+            "ColorSpace" => "DeviceGray", "BitsPerComponent" => 8,
+        },
+        alpha,
+    );
+    let _ = mask.compress();
+    let mask_id = doc.add_object(mask);
+    let mut img = Stream::new(
+        dictionary! {
+            "Type" => "XObject", "Subtype" => "Image", "Width" => r.w as i64, "Height" => r.h as i64,
+            "ColorSpace" => "DeviceRGB", "BitsPerComponent" => 8, "SMask" => mask_id,
+        },
+        rgb,
+    );
+    let _ = img.compress();
+    doc.add_object(img)
 }
 
 /// Copia `src` in `dst` aggiungendo i tratti; `per_page[i]` sono quelli della
@@ -221,7 +252,25 @@ pub fn write_overlay(src: &Path, dst: &Path, per_page: &[Vec<OverlayStroke>]) ->
             continue;
         }
         let page = page_of(&doc, pid);
-        let content = overlay_content(&page, strokes);
+        // i timbri: un'immagine (con la trasparenza) per ognuno
+        let mut stamps = Vec::new();
+        let mut xobj = Dictionary::new();
+        for s in strokes.iter() {
+            let Some(spec) = &s.stamp else { continue };
+            let Some((r, quarter)) = crate::stamp::placement_uv(&s.pts) else { continue };
+            let (dw, _) = page.display_size();
+            // 300 dpi
+            let raster = crate::stamp::render_fit(spec, quarter, (r[2] - r[0]) * dw / 72.0 * 300.0);
+            let id = stamp_image(&mut doc, &raster);
+            let name = format!("WacomSt{}", stamps.len());
+            xobj.set(name.as_bytes(), Object::Reference(id));
+            // il quadrato dell'immagine (0,0 in basso a sinistra) → riquadro sulla pagina
+            let (blx, bly) = page.to_user(r[0], r[3]);
+            let (brx, bry) = page.to_user(r[2], r[3]);
+            let (tlx, tly) = page.to_user(r[0], r[1]);
+            stamps.push((name, [brx - blx, bry - bly, tlx - blx, tly - bly, blx, bly]));
+        }
+        let content = overlay_content(&page, strokes, &stamps);
         let ov_id = doc.add_object(Object::Stream(Stream::new(Dictionary::new(), content.into_bytes())));
 
         // Risorse (anche ereditate) + il nostro stato grafico.
@@ -237,6 +286,17 @@ pub fn write_overlay(src: &Path, dst: &Path, per_page: &[Vec<OverlayStroke>]) ->
         };
         ext.set("WacomHL", Object::Reference(gs_id));
         res.set("ExtGState", Object::Dictionary(ext));
+        if !stamps.is_empty() {
+            let mut xo = match res.get(b"XObject") {
+                Ok(Object::Reference(id)) => doc.get_dictionary(*id).cloned().unwrap_or_default(),
+                Ok(Object::Dictionary(d)) => d.clone(),
+                _ => Dictionary::new(),
+            };
+            for (k, v) in xobj.iter() {
+                xo.set(k.clone(), v.clone());
+            }
+            res.set("XObject", Object::Dictionary(xo));
+        }
 
         // Contenuti: [q, originale…, Q + tratti]
         let old = doc.get_dictionary(pid)?.get(b"Contents").ok().cloned();
@@ -307,15 +367,50 @@ mod tests {
             width_frac: 0.003,
             pts: vec![(0.6, 0.9), (0.7, 0.85), (0.8, 0.92)],
             highlight: false,
+            stamp: None,
         };
-        let hl = OverlayStroke { color: [255, 235, 90], width_frac: 0.02, pts: vec![(0.1, 0.1), (0.9, 0.1)], highlight: true };
+        let hl = OverlayStroke { color: [255, 235, 90], width_frac: 0.02, pts: vec![(0.1, 0.1), (0.9, 0.1)], highlight: true, stamp: None };
+        let timbro = OverlayStroke {
+            color: [0, 0, 0],
+            width_frac: 0.0,
+            pts: vec![(0.1, 0.7), (0.4, 0.7), (0.4, 0.8), (0.1, 0.8)],
+            highlight: false,
+            stamp: Some(std::sync::Arc::new(crate::stamp::tests::cordua())),
+        };
         let dst = dir.join("b.pdf");
-        write_overlay(&src, &dst, &[vec![], vec![firma, hl]]).unwrap();
+        write_overlay(&src, &dst, &[vec![], vec![firma, hl, timbro]]).unwrap();
+        let bytes = std::fs::read(&dst).unwrap();
+        let has = |k: &[u8]| bytes.windows(k.len()).any(|w| w == k);
+        assert!(has(b"/SMask") && has(b"/WacomSt0 Do"), "il timbro non c'è");
         let out = Document::load(&dst).unwrap();
         assert_eq!(out.get_pages().len(), 2);
         let p2 = *out.get_pages().get(&2).unwrap();
         let contents = out.get_dictionary(p2).unwrap().get(b"Contents").unwrap().as_array().unwrap().len();
         assert!(contents >= 3);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// TIMBRO_SRC=doc.pdf cargo test --bin openslate timbro_su_pdf_vero -- --ignored
+    /// → /tmp/osl/timbro.pdf (il timbro in basso a sinistra dell'ultima pagina).
+    #[test]
+    #[ignore]
+    fn timbro_su_pdf_vero() {
+        let src = std::path::PathBuf::from(std::env::var("TIMBRO_SRC").unwrap());
+        let n = pages(&src).unwrap().len();
+        let mut spec = crate::stamp::tests::cordua();
+        spec.style.color = crate::stamp::InkColor::Grey;
+        spec.style.grain = 0.45;
+        let timbro = OverlayStroke {
+            color: [0, 0, 0],
+            width_frac: 0.0,
+            pts: vec![(0.1, 0.62), (0.42, 0.62), (0.42, 0.76), (0.1, 0.76)],
+            highlight: false,
+            stamp: Some(std::sync::Arc::new(spec)),
+        };
+        let mut per_page = vec![vec![]; n];
+        per_page[n - 1] = vec![timbro.clone()];
+        per_page[0] = vec![timbro];
+        std::fs::create_dir_all("/tmp/osl").unwrap();
+        write_overlay(&src, std::path::Path::new("/tmp/osl/timbro.pdf"), &per_page).unwrap();
     }
 }

@@ -78,6 +78,8 @@ pub struct InkStroke {
     pub color: Rgb,
     pub width_frac: f32,
     pub highlight: bool,
+    /// Un timbro: `pts` sono i quattro angoli (vedi `stamp::placement`).
+    pub stamp: Option<std::sync::Arc<crate::stamp::StampSpec>>,
 }
 
 /// Copia `src` in `dst` (stesso formato Word) con i tratti come inchiostro.
@@ -129,6 +131,9 @@ pub(crate) fn add_ink(s: &mut Session, strokes: &[InkStroke]) -> Result<()> {
     }
     for (i, st) in strokes.iter().enumerate() {
         let Some(points) = &pts[i] else { continue };
+        if st.stamp.is_some() {
+            continue;
+        }
         let color = format!("{:02X}{:02X}{:02X}", st.color[0], st.color[1], st.color[2]);
         let page_h = layout.pages.get(st.page).map(|p| p.h).unwrap_or(842.0);
         let width = (st.width_frac * page_h).clamp(0.25, 72.0);
@@ -146,6 +151,50 @@ pub(crate) fn add_ink(s: &mut Session, strokes: &[InkStroke]) -> Result<()> {
             }
         }
     }
+    // i timbri per ultimi, in testa al paragrafo: vengono prima dell'inchiostro, che ci passa sopra
+    for (i, st) in strokes.iter().enumerate() {
+        let Some(spec) = &st.stamp else { continue };
+        if pts[i].is_none() {
+            continue;
+        }
+        add_stamp(s, &layout, st, spec, target[i].clone())?;
+    }
+    Ok(())
+}
+
+/// Un timbro: un'immagine (PNG con la trasparenza) davanti al testo, ferma
+/// sulla pagina, agganciata al paragrafo della firma vicina.
+fn add_stamp(
+    s: &mut Session,
+    layout: &wordcraft_engine::layout::DocLayout,
+    st: &InkStroke,
+    spec: &crate::stamp::StampSpec,
+    anchor: Option<doc::Path>,
+) -> Result<()> {
+    use doc::para::{Anchor, Float, InlineObject, Wrap};
+    let Some(page) = layout.pages.get(st.page) else { return Ok(()) };
+    let Some((r, quarter)) = crate::stamp::placement_uv(&st.pts) else { return Ok(()) };
+    let (w, h) = ((r[2] - r[0]) * page.w, (r[3] - r[1]) * page.h);
+    let Some(to) = anchor.or_else(|| text_paragraph_above(s, layout, st.page, 0.0, f32::MAX)) else {
+        bail!("timbro: nessun paragrafo sulla pagina {}", st.page + 1);
+    };
+    let png = crate::stamp::render_fit(spec, quarter, w / 72.0 * 300.0).png();
+    let media = s.doc.add_media(png, "png");
+    let float = Float {
+        wrap: Wrap::InFrontOfText,
+        h_rel: Anchor::Page,
+        v_rel: Anchor::Page,
+        h_align: None,
+        v_align: None,
+        x: r[0] * page.w,
+        y: r[1] * page.h,
+        ..Float::default()
+    };
+    let obj = InlineObject::Image { media, w, h, alt: "Timbro".into(), float, crop: [0.0; 4], fx: Default::default(), ole: None };
+    let dest = s.doc.para_mut(doc::StoryRef::Body, &to).map_err(|e| anyhow!("timbro: {e}"))?;
+    dest.insert_object(0, obj, &doc::CharProps::default()).map_err(|e| anyhow!("timbro: {e}"))?;
+    dest.touch();
+    s.touch();
     Ok(())
 }
 
@@ -260,6 +309,7 @@ mod tests {
             color: [20, 20, 20],
             width_frac: 1.0 / ph,
             highlight: false,
+            stamp: None,
         };
         let mut st = vec![stroke(150.0, 150.0, 200.0, 170.0), stroke(210.0, 140.0, 260.0, 175.0), stroke(270.0, 160.0, 320.0, 150.0)];
         st.push(stroke(400.0, 600.0, 450.0, 620.0));
@@ -285,5 +335,39 @@ mod tests {
         for (got, want) in ys.iter().zip([139.5, 149.5, 149.5, 599.5]) {
             assert!((got - want).abs() < 0.6, "{ys:?}");
         }
+    }
+
+    /// Il timbro: un'immagine davanti al testo, ferma dove è stato posato.
+    #[test]
+    fn timbro_nel_word() {
+        let mut s = Session::new(wordcraft_engine::doc::Document::new());
+        s.run("document.setText", &json!({"text": "Contratto.\nIl committente\n\n\n"})).unwrap();
+        let layout = s.layout();
+        let (pw, ph) = (layout.pages[0].w, layout.pages[0].h);
+        let st = InkStroke {
+            page: 0,
+            pts: vec![(100.0 / pw, 200.0 / ph), (300.0 / pw, 200.0 / ph), (300.0 / pw, 280.0 / ph), (100.0 / pw, 280.0 / ph)],
+            color: [0, 0, 0],
+            width_frac: 0.0,
+            highlight: false,
+            stamp: Some(std::sync::Arc::new(crate::stamp::tests::cordua())),
+        };
+        add_ink(&mut s, &[st]).unwrap();
+        let lay = s.layout();
+        let mut found = Vec::new();
+        for (i, b) in s.doc.body.iter().enumerate() {
+            if let Some(p) = b.as_para() {
+                for off in p.object_offsets() {
+                    let pos = doc::Pos { story: doc::StoryRef::Body, path: doc::Path::top(i), off };
+                    let hit = lay.object(&pos, 0).unwrap();
+                    assert!(matches!(p.object_at(off), Some(doc::para::InlineObject::Image { .. })));
+                    found.push((hit.rect.x, hit.rect.y, hit.rect.w, hit.rect.h));
+                }
+            }
+        }
+        assert_eq!(found.len(), 1, "{found:?}");
+        let (x, y, w, h) = found[0];
+        assert!((x - 100.0).abs() < 1.0 && (y - 200.0).abs() < 1.0, "{found:?}");
+        assert!((w - 200.0).abs() < 1.0 && (h - 80.0).abs() < 1.0, "{found:?}");
     }
 }

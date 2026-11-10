@@ -140,6 +140,7 @@ fn word(page: &DPage, note: Option<&str>, out: &Path) -> Result<()> {
                 color: st.color,
                 width_frac: crate::export::stroke_width(st.width, page.h) / page.h,
                 highlight: st.highlight,
+                stamp: None,
             })
             .collect();
         crate::wordsign::add_ink(&mut s, &strokes)?;
@@ -220,6 +221,7 @@ pub fn anim_page_at(page: Page, quarter: u32, t: f32) -> Page {
                         PenPoint { x, y, pressure, phase: if i == 0 { Phase::Down } else if i + 1 == n { Phase::Up } else { Phase::Move } }
                     })
                     .collect(),
+                stamp: None,
             }
         })
         .collect();
@@ -236,6 +238,7 @@ mod tests {
             width: if hl { 9.0 } else { 2.0 },
             highlight: hl,
             points: (0..20).map(|i| PenPoint { x: 2000.0 + i as f32 * 400.0, y, pressure: 1.0, phase: Phase::Move }).collect(),
+            stamp: None,
         };
         Page {
             id: "20260101-120000".into(),

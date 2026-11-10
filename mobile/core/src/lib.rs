@@ -55,6 +55,10 @@ pub mod mathhand;
 pub mod shapes;
 #[path = "../../../src/stroke.rs"]
 pub mod stroke;
+#[path = "../../../src/stamp.rs"]
+pub mod stamp;
+mod seal;
+pub use seal::*;
 
 /// Come `scene` ed `export` della desktop, per i file inclusi da src/.
 pub mod scene {

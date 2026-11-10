@@ -320,6 +320,7 @@ impl Document {
                         color: s.color,
                         width_frac: s.width_frac,
                         highlight: s.highlight,
+                        stamp: s.stamp,
                     })
                 })
                 .collect();
@@ -361,6 +362,7 @@ impl Document {
                             })
                             .collect(),
                         highlight: s.highlight,
+                        stamp: s.stamp.clone(),
                     })
                     .collect()
             })

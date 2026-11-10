@@ -28,7 +28,7 @@ final class Board: ObservableObject {
         for op in model.pen(points: points) {
             switch op {
             case .down(let color, let width, let highlight, let point):
-                strokes.append(PageStroke(color: color, width: width, highlight: highlight, points: [point]))
+                strokes.append(PageStroke(color: color, width: width, highlight: highlight, points: [point], stamp: nil))
             case .move(let point), .up(let point):
                 if !strokes.isEmpty { strokes[strokes.count - 1].points.append(point) }
             case .reset:
@@ -183,6 +183,9 @@ final class AppModel: ObservableObject, LinkListener {
     @Published var tab: Tab = .board
     @Published var libVersion = 0
     @Published var doc: OpenDoc?
+    /// Timbri aziendali salvati e quello che si sta posando.
+    @Published var stamps: [SavedStamp] = []
+    @Published var sealJob: SealJob?
     @Published var busy: String?
     @Published var toast: String?
 
@@ -218,6 +221,7 @@ final class AppModel: ObservableObject, LinkListener {
         try? FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
         // le impronte dei tratti già in bella
         neatSetDir(dir: support.path)
+        stamps = stampList(dir: support.path)
         link.listener = self
         let w = UserDefaults.standard.double(forKey: "pad_w"), h = UserDefaults.standard.double(forKey: "pad_h")
         if w > 0 && h > 0 { setPadSize(Float(w), Float(h)) }

@@ -64,8 +64,27 @@ fn artboards(s: &Session) -> Result<Vec<[f64; 4]>> {
 /// (l'evidenziatore trasparente, sotto lo stesso colore).
 fn add_ink(s: &mut Session, strokes: &[InkStroke]) -> Result<()> {
     let boards = artboards(s)?;
-    for st in strokes {
+    // prima le evidenziature, poi i timbri, poi l'inchiostro
+    let ordered = strokes
+        .iter()
+        .filter(|s| s.highlight && s.stamp.is_none())
+        .chain(strokes.iter().filter(|s| s.stamp.is_some()))
+        .chain(strokes.iter().filter(|s| !s.highlight && s.stamp.is_none()));
+    for st in ordered {
         let Some(&[bx, by, bw, bh]) = boards.get(st.page) else { continue };
+        if let Some(spec) = &st.stamp {
+            use base64::Engine;
+            let Some((r, quarter)) = crate::stamp::placement_uv(&st.pts) else { continue };
+            let (w, h) = ((r[2] - r[0]) as f64 * bw, (r[3] - r[1]) as f64 * bh);
+            let png = crate::stamp::render_fit(spec, quarter, (w / 72.0 * 300.0) as f32).png();
+            let data = base64::engine::general_purpose::STANDARD.encode(png);
+            run(s, "select.none", json!({}))?;
+            run(s, "file.place", json!({ "name": "timbro.png", "dataBase64": data, "rect": [bx + r[0] as f64 * bw, by + r[1] as f64 * bh, w, h] }))?;
+            // «moltiplica», come l'inchiostro vero sulla carta
+            let _ = run(s, "transparency.set", json!({ "blendMode": "multiply" }));
+            run(s, "select.none", json!({}))?;
+            continue;
+        }
         let mut pts: Vec<[f64; 2]> = st
             .pts
             .iter()
@@ -158,7 +177,7 @@ mod tests {
     }
 
     fn ink() -> Vec<InkStroke> {
-        vec![InkStroke { page: 0, pts: vec![(0.2, 0.5), (0.5, 0.6), (0.8, 0.5)], color: [200, 0, 0], width_frac: 0.02, highlight: false }]
+        vec![InkStroke { page: 0, pts: vec![(0.2, 0.5), (0.5, 0.6), (0.8, 0.5)], color: [200, 0, 0], width_frac: 0.02, highlight: false, stamp: None }]
     }
 
     #[test]
@@ -190,5 +209,26 @@ mod tests {
         let red = (75..98).filter_map(|y| img.pixel(150, y)).any(|p| p.red() > 150 && p.green() < 60);
         assert!(red, "{:?}", (75..98).map(|y| img.pixel(150, y).unwrap().green()).collect::<Vec<_>>());
         assert_eq!(img.pixel(20, 20).unwrap().green(), 255);
+    }
+
+    fn timbro() -> InkStroke {
+        InkStroke {
+            page: 0,
+            pts: vec![(0.1, 0.2), (0.6, 0.2), (0.6, 0.8), (0.1, 0.8)],
+            color: [0, 0, 0],
+            width_frac: 0.0,
+            highlight: false,
+            stamp: Some(std::sync::Arc::new(crate::stamp::tests::cordua())),
+        }
+    }
+
+    #[test]
+    fn svg_col_timbro() {
+        let src = tmp("timbro.svg");
+        std::fs::write(&src, r##"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect x="10" y="10" width="50" height="30" fill="#00f"/></svg>"##).unwrap();
+        let out = tmp("timbro-firmato.svg");
+        save_with_ink(&src, &out, &[timbro()]).unwrap();
+        let svg = std::fs::read_to_string(&out).unwrap();
+        assert!(svg.contains("<image") && svg.contains("data:image/png"), "{}", &svg[..svg.len().min(600)]);
     }
 }

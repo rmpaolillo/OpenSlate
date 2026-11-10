@@ -41,8 +41,15 @@ enum Ink {
         c.setLineCap(.round)
         c.setLineJoin(.round)
         // l'evidenziatore sta sotto l'inchiostro
-        for pass in 0..<2 {
-            for s in strokes where s.highlight == (pass == 0) && !s.points.isEmpty {
+        // l'evidenziatore sotto i timbri, i timbri sotto l'inchiostro
+        for pass in 0..<3 {
+            if pass == 1 {
+                for s in strokes where s.stamp != nil && !s.points.isEmpty {
+                    SealArt.drawPlaced(c, s, padW: padW, padH: padH, quarter: quarter, w: CGFloat(rw) * k, h: CGFloat(rh) * k)
+                }
+                continue
+            }
+            for s in strokes where s.stamp == nil && s.highlight == (pass == 0) && !s.points.isEmpty {
                 let col = uiColor(s.color, alpha: s.highlight ? 0.35 : 1).cgColor
                 c.setStrokeColor(col)
                 c.setFillColor(col)

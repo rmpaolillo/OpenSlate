@@ -30,6 +30,8 @@ pub struct PageStroke {
     pub width: f32,
     pub highlight: bool,
     pub points: Vec<PenPoint>,
+    /// Un timbro aziendale: i punti sono i quattro angoli del riquadro.
+    pub stamp: Option<crate::stamp::StampSpec>,
 }
 
 #[derive(uniffi::Record, Clone, Debug, PartialEq)]
@@ -85,6 +87,8 @@ struct StrokeFmt {
     p: Vec<[f32; 3]>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     h: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    t: Option<crate::stamp::StampSpec>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -123,6 +127,7 @@ fn to_fmt(p: &Page, chart: Option<[f32; 4]>) -> PageFmt {
                 w: s.width,
                 p: s.points.iter().map(|q| [q.x, q.y, q.pressure]).collect(),
                 h: s.highlight,
+                t: s.stamp.clone(),
             })
             .collect(),
         chart,
@@ -165,6 +170,7 @@ fn from_fmt(id: &str, f: PageFmt) -> Page {
                 width: s.w,
                 highlight: s.h,
                 points: points_with_phases(s.p.iter().map(|q| (q[0], q[1], q[2]))),
+                stamp: s.t,
             })
             .collect(),
     }
@@ -331,6 +337,7 @@ pub fn page_from_pad(raw: Vec<u8>, time_bcd: Vec<u8>, width: f32, height: f32, r
                 points: points_with_phases(pts.iter().map(|&(x, y, p)| {
                     (x as f32, y as f32, (p as f32 / crate::live::PRESSURE_MAX).clamp(0.0, 1.0))
                 })),
+                stamp: None,
             })
             .collect(),
     })
@@ -366,6 +373,7 @@ mod tests {
                 width: 2.0,
                 highlight: false,
                 points: points_with_phases([(1.0, 2.0, 0.5), (3.0, 4.0, 0.6)].into_iter()),
+                stamp: None,
             }],
         }
     }

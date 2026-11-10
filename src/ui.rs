@@ -23,6 +23,7 @@ mod savedlg;
 mod sysdlg;
 mod ribbon;
 mod theme;
+mod timbro_ui;
 mod voice_ui;
 mod widgets;
 mod workspace;
@@ -211,6 +212,7 @@ pub fn run_app(
         chat_lib: Vec::new(),
         board_zoom: ZoomView::default(),
         docui: doc_view::DocUi::new(),
+        stampui: timbro_ui::StampUi::new(),
         inbella: inbella_ui::InBellaUi::new(),
         allena: allena_ui::AllenaUi::default(),
     };
@@ -442,6 +444,7 @@ struct App {
     board_zoom: ZoomView,
     /// Documenti importati e firma.
     docui: doc_view::DocUi,
+    stampui: timbro_ui::StampUi,
     /// «Trasforma in bella» (la lettura dell'AI in corso).
     inbella: inbella_ui::InBellaUi,
     allena: allena_ui::AllenaUi,
@@ -623,14 +626,21 @@ fn paint_page(
             clip.image(dt, dr, uv, egui::Color32::WHITE);
         }
     }
-    // Prima gli evidenziatori (sotto), poi l'inchiostro.
+    // Prima gli evidenziatori (sotto), poi i timbri, poi l'inchiostro.
     let ordered = d
         .strokes
         .iter()
         .enumerate()
-        .filter(|(_, s)| s.highlight)
-        .chain(d.strokes.iter().enumerate().filter(|(_, s)| !s.highlight));
+        .filter(|(_, s)| s.highlight && s.stamp.is_none())
+        .chain(d.strokes.iter().enumerate().filter(|(_, s)| s.stamp.is_some()))
+        .chain(d.strokes.iter().enumerate().filter(|(_, s)| !s.highlight && s.stamp.is_none()));
     for (i, s) in ordered {
+        if let Some(spec) = &s.stamp {
+            if let Some((r, q)) = crate::stamp::placement(&s.points, |x, y| g.unit(x, y)) {
+                timbro_ui::paint_placed(&clip, page, spec, r, q);
+            }
+            continue;
+        }
         if s.highlight && baked && keep != Some(i) {
             continue; // già nell'immagine di sfondo
         }
@@ -2445,6 +2455,7 @@ impl eframe::App for App {
         self.help_window(ctx);
         self.error_window(ctx, &mut actions);
         self.quit_window(ctx);
+        self.stamp_window(ctx, &mut actions);
         self.palette_ui(ctx, &mut actions);
         self.place_pages(ctx);
 

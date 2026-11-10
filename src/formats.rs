@@ -419,6 +419,7 @@ fn word(item: &Item, path: &Path, opts: &Opts) -> Result<()> {
             color: st.color,
             width_frac: crate::export::stroke_width(st.width, item.page.h) / item.page.h,
             highlight: st.highlight,
+            stamp: None,
         })
         .collect();
     crate::wordsign::add_ink(&mut s, &strokes)?;

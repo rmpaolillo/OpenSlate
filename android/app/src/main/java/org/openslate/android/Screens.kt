@@ -118,6 +118,8 @@ fun Sheet(
     /** Un dito sceglie una zona (invece di spostare il foglio). */
     zone: ZoneSelect? = null,
     overlay: SheetOverlay? = null,
+    /** Un timbro da posare: un dito lo sposta, l'angolo lo ingrandisce. */
+    seal: SealPlace? = null,
 ) {
     var zoom by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -150,6 +152,7 @@ fun Sheet(
     val labelSummary = stringResource(R.string.lbl_summary)
     val currentEraser by rememberUpdatedState(eraser)
     val currentZone by rememberUpdatedState(zone)
+    val currentSeal by rememberUpdatedState(seal)
     /** Punto dello schermo → frazioni della pagina vista (0..1). */
     fun toUnit(p: Offset): Offset {
         val (k, ox, oy) = fit(canvasSize)
@@ -178,6 +181,23 @@ fun Sheet(
                     var erased = false
                     val zoneStart = currentZone?.let { toUnit(first.position) }
                     var zoneRect: FloatArray? = null
+                    // il timbro: preso nel riquadro (sposta) o sull'angolo (grandezza)
+                    val sealMode = currentSeal?.let { sp ->
+                        val (k, ox, oy) = fit(canvasSize)
+                        val (pw, ph) = rw * k to rh * k
+                        val r = sp.rect
+                        val l = offset.x + (ox + r[0] * pw) * zoom
+                        val t = offset.y + (oy + r[1] * ph) * zoom
+                        val rr = offset.x + (ox + (r[0] + r[2]) * pw) * zoom
+                        val b = offset.y + (oy + (r[1] + r[3]) * ph) * zoom
+                        val p = first.position
+                        val grip = 28f * density
+                        when {
+                            kotlin.math.abs(p.x - rr) < grip && kotlin.math.abs(p.y - b) < grip -> 2
+                            p.x in l - 8f..rr + 8f && p.y in t - 8f..b + 8f -> 1
+                            else -> 0
+                        }
+                    } ?: 0
                     while (true) {
                         val ev = awaitPointerEvent()
                         val down = ev.changes.filter { it.pressed }
@@ -199,7 +219,20 @@ fun Sheet(
                             val p = down[0].position
                             val er = currentEraser
                             val zs = currentZone
-                            if (zs != null && zoneStart != null) {
+                            val sp = currentSeal
+                            if (sp != null && sealMode != 0) {
+                                val (k, _, _) = fit(canvasSize)
+                                val du = (p.x - last.x) / (rw * k * zoom)
+                                val dv = (p.y - last.y) / (rh * k * zoom)
+                                val r = sp.rect
+                                if (sealMode == 1) {
+                                    sp.onRect(listOf(r[0] + du, r[1] + dv, r[2], r[3]))
+                                } else {
+                                    val f = ((r[2] + du) / r[2]).coerceIn(0.5f, 2f)
+                                    if (r[2] * f > 0.03f && r[2] * f < 1.2f) sp.onRect(listOf(r[0], r[1], r[2] * f, r[3] * f))
+                                }
+                                down[0].consume()
+                            } else if (zs != null && zoneStart != null) {
                                 val b = toUnit(p)
                                 zoneRect = floatArrayOf(min(zoneStart.x, b.x), min(zoneStart.y, b.y), maxOf(zoneStart.x, b.x), maxOf(zoneStart.y, b.y))
                                 zs.onDrag(zoneRect)
@@ -267,6 +300,25 @@ fun Sheet(
                     drawIntoCanvas { Ink.draw(it.nativeCanvas, strokes, padW, padH, quarter, pw, ph) }
                 }
             }
+        }
+        // il timbro da posare, con il bordo tratteggiato e l'angolo da tirare
+        seal?.let { sp ->
+            val r = sp.rect
+            val l = offset.x + (ox + r[0] * pw) * zoom
+            val t = offset.y + (oy + r[1] * ph) * zoom
+            val rr = offset.x + (ox + (r[0] + r[2]) * pw) * zoom
+            val b = offset.y + (oy + (r[1] + r[3]) * ph) * zoom
+            drawIntoCanvas { SealArt.draw(it.nativeCanvas, sp.spec, 0, l, t, rr, b) }
+            val accent = Color(0xFF2868DC)
+            val g = 6f * density
+            drawRect(
+                accent, Offset(l - g, t - g), Size(rr - l + 2 * g, b - t + 2 * g),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                    width = 1.5f * density,
+                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6f * density, 4f * density)),
+                ),
+            )
+            drawRect(accent, Offset(rr - 7f * density, b - 7f * density), Size(14f * density, 14f * density))
         }
         // la zona scelta, o l'anteprima sotto un velo
         overlay?.let { o ->

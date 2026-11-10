@@ -66,6 +66,7 @@ fn overlay(page: PdfPageSize, strokes: &[PageStroke], view: BoardView) -> Vec<Ov
                 })
                 .collect(),
             highlight: s.highlight,
+            stamp: s.stamp.clone().map(std::sync::Arc::new),
         })
         .collect()
 }
@@ -155,6 +156,7 @@ pub fn doc_sign(original: String, pdf: String, dst: String, pages: Vec<Vec<PageS
                 color: s.color,
                 width_frac: s.width_frac,
                 highlight: s.highlight,
+                stamp: s.stamp,
             })
         })
         .collect();
@@ -194,6 +196,7 @@ mod tests {
                 PenPoint { x: 5000.0, y: 5000.0, pressure: 0.5, phase: Phase::Down },
                 PenPoint { x: 6000.0, y: 5500.0, pressure: 0.5, phase: Phase::Up },
             ],
+            stamp: None,
         };
         let dst = dir.join("firmato.pdf");
         pdf_sign(src.to_string_lossy().into(), dst.to_string_lossy().into(), vec![vec![firma]], view).unwrap();
@@ -216,6 +219,7 @@ mod tests {
                     phase: if i == 0 { Phase::Down } else if i == 19 { Phase::Up } else { Phase::Move },
                 })
                 .collect(),
+            stamp: None,
         }
     }
 
