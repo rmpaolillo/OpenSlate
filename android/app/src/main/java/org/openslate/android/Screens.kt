@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -153,6 +154,7 @@ fun Sheet(
     val currentEraser by rememberUpdatedState(eraser)
     val currentZone by rememberUpdatedState(zone)
     val currentSeal by rememberUpdatedState(seal)
+    val pagePaint = remember { android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG or android.graphics.Paint.ANTI_ALIAS_FLAG) }
     /** Punto dello schermo → frazioni della pagina vista (0..1). */
     fun toUnit(p: Offset): Offset {
         val (k, ox, oy) = fit(canvasSize)
@@ -290,12 +292,16 @@ fun Sheet(
         translate(offset.x, offset.y) {
             scale(zoom, Offset.Zero) {
                 translate(ox, oy) {
+                    // la pagina al posto esatto (non arrotondato a numeri interi prima dello
+                    // zoom: ingrandito, l'arrotondamento sfasava testo e inchiostro di qualche pixel)
                     background?.let { (img, r) ->
-                        drawImage(
-                            img,
-                            dstOffset = androidx.compose.ui.unit.IntOffset((r[0] * pw).toInt(), (r[1] * ph).toInt()),
-                            dstSize = androidx.compose.ui.unit.IntSize((r[2] * pw).toInt(), (r[3] * ph).toInt()),
-                        )
+                        drawIntoCanvas {
+                            it.nativeCanvas.drawBitmap(
+                                img.asAndroidBitmap(), null,
+                                android.graphics.RectF(r[0] * pw, r[1] * ph, (r[0] + r[2]) * pw, (r[1] + r[3]) * ph),
+                                pagePaint,
+                            )
+                        }
                     }
                     drawIntoCanvas { Ink.draw(it.nativeCanvas, strokes, padW, padH, quarter, pw, ph) }
                 }

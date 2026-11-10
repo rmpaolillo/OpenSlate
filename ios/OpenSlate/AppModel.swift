@@ -124,7 +124,7 @@ final class OpenDoc: ObservableObject {
         guard let page = pdfDoc?.page(at: i) else { return nil }
         let w: CGFloat = 1600
         let h = w * CGFloat(sizes[i].height / sizes[i].width)
-        return page.thumbnail(of: CGSize(width: w, height: h), for: .mediaBox)
+        return page.thumbnail(of: CGSize(width: w, height: h), for: .cropBox)
     }
 
     func sign(to dst: URL, view: BoardView) throws {

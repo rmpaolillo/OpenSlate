@@ -67,7 +67,8 @@ pub(super) struct DocUi {
     renderer: Option<(String, crate::docrender::Renderer)>,
     /// La parte visibile della pagina, disegnata alla risoluzione dello
     /// schermo: chiave, pagina, zona (frazioni della pagina) e immagine.
-    detail: Option<(String, usize, [f32; 4], egui::TextureHandle)>,
+    /// Più quando è arrivata (compare con una breve dissolvenza).
+    detail: Option<(String, usize, [f32; 4], egui::TextureHandle, Instant)>,
     /// Zona voluta e da quando (si disegna quando zoom e scorrimento si fermano).
     detail_want: Option<(String, Instant)>,
     detail_pending: bool,
@@ -414,7 +415,7 @@ impl App {
     /// PDF): il testo resta nitido a ogni ingrandimento. Si ridisegna quando
     /// zoom e scorrimento si fermano; intanto resta quella di prima.
     /// Ritorna (immagine, zona della pagina del documento in frazioni).
-    fn detail_tile(&mut self, ctx: &egui::Context, bg: &PageBg) -> Option<(egui::TextureId, [f32; 4])> {
+    fn detail_tile(&mut self, ctx: &egui::Context, bg: &PageBg) -> Option<(egui::TextureId, [f32; 4], f32)> {
         let d = self.docui.doc.as_ref()?;
         let page = d.current;
         if bg.key != format!("{}-{}", d.id, page) {
@@ -434,23 +435,37 @@ impl App {
                 Ok(done) => {
                     let img = egui::ColorImage::from_rgba_premultiplied(done.size, &done.rgba);
                     let tex = ctx.load_texture(format!("doc-detail-{}", done.key), img, egui::TextureOptions::LINEAR);
-                    self.docui.detail = Some((done.key, done.page, done.region, tex));
+                    self.docui.detail = Some((done.key, done.page, done.region, tex, Instant::now()));
                 }
                 Err(e) => tracing::warn!("pagina nitida: {e}"),
             }
         }
-        let shown = |det: &Option<(String, usize, [f32; 4], egui::TextureHandle)>| det.as_ref().filter(|x| x.1 == page).map(|x| (x.3.id(), x.2));
+        // l'immagine nitida compare in 0,15 s sopra quella intera: niente scatto
+        let shown = |det: &Option<(String, usize, [f32; 4], egui::TextureHandle, Instant)>| {
+            det.as_ref().filter(|x| x.1 == page).map(|x| {
+                let a = (x.4.elapsed().as_secs_f32() / 0.15).min(1.0);
+                if a < 1.0 {
+                    ctx.request_repaint();
+                }
+                (x.3.id(), x.2, a)
+            })
+        };
         // la pagina del documento sullo schermo e la parte che si vede
         let pad = self.docui.last_page;
         let doc_rect = egui::Rect::from_min_size(
             pad.min + egui::vec2(bg.rect[0] * pad.width(), bg.rect[1] * pad.height()),
             egui::vec2(bg.rect[2] * pad.width(), bg.rect[3] * pad.height()),
         );
+        let ppp = ctx.pixels_per_point();
+        // la zona visibile su pixel interi dello schermo: l'immagine nitida
+        // ci cade sopra pixel per pixel, senza essere ricampionata
         let vis = doc_rect.intersect(self.docui.last_view);
+        let snap = |v: f32| (v * ppp).round() / ppp;
+        let vis = egui::Rect::from_min_max(egui::pos2(snap(vis.min.x), snap(vis.min.y)), egui::pos2(snap(vis.max.x), snap(vis.max.y)))
+            .intersect(doc_rect);
         if !vis.is_positive() || !doc_rect.is_positive() {
             return shown(&self.docui.detail);
         }
-        let ppp = ctx.pixels_per_point();
         let px = [(vis.width() * ppp).round().clamp(1.0, DETAIL_MAX) as u32, (vis.height() * ppp).round().clamp(1.0, DETAIL_MAX) as u32];
         let region = [
             (vis.min.x - doc_rect.min.x) / doc_rect.width(),

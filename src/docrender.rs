@@ -109,6 +109,10 @@ fn build(dir: &std::path::Path, original: Option<&str>) -> Engine {
 
 fn render(engine: &mut Engine, req: &Request) -> Result<Done> {
     let [rx, ry, rw, rh] = req.region;
+    // la zona disegnata davvero (frazioni della pagina): i pixel interi la
+    // spostano un poco da quella chiesta, e sullo schermo va messa lì, se no
+    // testo e linee «saltano» quando arriva l'immagine nitida
+    let mut region = req.region;
     let (size, rgba) = match engine {
         Engine::Word(s) => {
             let layout = s.layout();
@@ -118,6 +122,7 @@ fn render(engine: &mut Engine, req: &Request) -> Result<Done> {
             // come sullo schermo del Mac (testo appena più pieno), come in WordCraft
             let opts = wordcraft_engine::render::RenderOptions { text_darkening: cfg!(target_os = "macos"), ..Default::default() };
             let r = wordcraft_engine::render::render_area(&s.doc, page, wordcraft_geom::Rect::new(x, y, w, h), scale, &opts);
+            region = [rx, ry, r.width as f32 / scale / page.w, r.height as f32 / scale / page.h];
             ([r.width as usize, r.height as usize], r.pixels)
         }
         Engine::Pdf(p) => {
@@ -141,11 +146,17 @@ fn render(engine: &mut Engine, req: &Request) -> Result<Done> {
             if let Some(e) = r.error {
                 return Err(anyhow!("PdfCraft: {e}"));
             }
+            region = [
+                tile.x as f32 / pw_px,
+                tile.y as f32 / ph_px,
+                r.width as f32 / pw_px,
+                r.height as f32 / ph_px,
+            ];
             ([r.width as usize, r.height as usize], r.rgba.to_vec())
         }
     };
     if size[0] * size[1] * 4 != rgba.len() || size[0] == 0 {
         return Err(anyhow!("immagine della pagina di misure sbagliate"));
     }
-    Ok(Done { key: req.key.clone(), page: req.page, region: req.region, size, rgba })
+    Ok(Done { key: req.key.clone(), page: req.page, region, size, rgba })
 }

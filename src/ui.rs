@@ -575,7 +575,7 @@ pub(super) struct BgImage {
     pub keep: Option<usize>,
     /// La parte visibile disegnata nitida (immagine, zona della pagina del
     /// documento in frazioni): va sopra l'immagine intera.
-    pub detail: Option<(egui::TextureId, [f32; 4])>,
+    pub detail: Option<(egui::TextureId, [f32; 4], f32)>,
 }
 
 fn paint_page(
@@ -621,9 +621,9 @@ fn paint_page(
         );
         let uv = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
         clip.image(tex, r, uv, egui::Color32::WHITE);
-        if let Some((dt, [dx, dy, dw, dh])) = detail {
+        if let Some((dt, [dx, dy, dw, dh], alpha)) = detail {
             let dr = egui::Rect::from_min_size(r.min + egui::vec2(dx * r.width(), dy * r.height()), egui::vec2(dw * r.width(), dh * r.height()));
-            clip.image(dt, dr, uv, egui::Color32::WHITE);
+            clip.image(dt, dr, uv, egui::Color32::WHITE.gamma_multiply(alpha));
         }
     }
     // Prima gli evidenziatori (sotto), poi i timbri, poi l'inchiostro.
@@ -714,8 +714,15 @@ fn natural_stroke(painter: &egui::Painter, pts: &[egui::Pos2], pr: &[f32], width
         fan(&mut mesh, &mut v, rb.center[0], &start);
     }
     painter.add(egui::Shape::mesh(mesh));
-    let outline: Vec<egui::Pos2> = rb.outline().into_iter().map(p).collect();
-    painter.add(egui::Shape::closed_line(outline, egui::Stroke::new(0.8, col)));
+    // il bordo come linea aperta (chiusa a mano): nelle linee chiuse egui
+    // allunga le giunzioni senza limite, e ai tornanti del contorno (le punte
+    // di una firma) diventavano lunghe righe dritte che cambiavano con lo zoom;
+    // nelle linee aperte gli angoli stretti si tagliano
+    let mut outline: Vec<egui::Pos2> = rb.outline().into_iter().map(p).collect();
+    if let Some(&first) = outline.first() {
+        outline.push(first);
+    }
+    painter.add(egui::Shape::line(outline, egui::Stroke::new(0.8, col)));
 }
 
 /// Colore trasparente per l'evidenziatore sullo schermo: sul bianco dà il
@@ -2595,4 +2602,34 @@ fn ocr_note_for(key: &str, sig: u64) -> Option<String> {
         return Some(n.to_string());
     }
     (v["sig"].as_str() == Some(sig.to_string().as_str())).then(|| v["note"].as_str().map(String::from)).flatten()
+}
+
+#[cfg(test)]
+mod contorno_tests {
+    use eframe::egui;
+    use egui::epaint::{Tessellator, TessellationOptions, TextureAtlas};
+
+    /// Quanto escono i vertici disegnati dal riquadro dei punti.
+    fn overshoot(shape: egui::Shape, pts: &[egui::Pos2]) -> f32 {
+        let atlas = TextureAtlas::new([1024, 1024], Default::default());
+        let mut t = Tessellator::new(1.0, TessellationOptions::default(), atlas.size(), atlas.prepared_discs());
+        let mut mesh = egui::Mesh::default();
+        t.tessellate_shape(shape, &mut mesh);
+        let r = egui::Rect::from_points(pts);
+        mesh.vertices.iter().map(|v| (r.distance_to_pos(v.pos))).fold(0.0, f32::max)
+    }
+
+    /// Il bordo del tratto naturale ai tornanti (le punte di una firma) non
+    /// deve fare lunghe righe dritte.
+    #[test]
+    fn bordo_senza_punte_lunghe() {
+        // un tornante quasi a 180°
+        let pts: Vec<egui::Pos2> =
+            vec![egui::pos2(0.0, 0.0), egui::pos2(100.0, 0.3), egui::pos2(0.0, 0.6), egui::pos2(-20.0, 30.0), egui::pos2(0.0, 0.0)];
+        let stroke = egui::Stroke::new(0.8, egui::Color32::BLACK);
+        let chiusa = overshoot(egui::Shape::closed_line(pts[..4].to_vec(), stroke), &pts);
+        let aperta = overshoot(egui::Shape::line(pts.clone(), stroke), &pts);
+        assert!(chiusa > 20.0, "la linea chiusa ha la punta lunga: {chiusa}");
+        assert!(aperta < 3.0, "la linea aperta resta vicina: {aperta}");
+    }
 }
