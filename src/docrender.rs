@@ -112,8 +112,7 @@ fn render(engine: &mut Engine, req: &Request) -> Result<Done> {
     // la zona disegnata davvero (frazioni della pagina): i pixel interi la
     // spostano un poco da quella chiesta, e sullo schermo va messa lì, se no
     // testo e linee «saltano» quando arriva l'immagine nitida
-    let mut region = req.region;
-    let (size, rgba) = match engine {
+    let (region, size, rgba) = match engine {
         Engine::Word(s) => {
             let layout = s.layout();
             let page = layout.pages.get(req.page).ok_or_else(|| anyhow!("pagina {} assente", req.page + 1))?;
@@ -122,8 +121,8 @@ fn render(engine: &mut Engine, req: &Request) -> Result<Done> {
             // come sullo schermo del Mac (testo appena più pieno), come in WordCraft
             let opts = wordcraft_engine::render::RenderOptions { text_darkening: cfg!(target_os = "macos"), ..Default::default() };
             let r = wordcraft_engine::render::render_area(&s.doc, page, wordcraft_geom::Rect::new(x, y, w, h), scale, &opts);
-            region = [rx, ry, r.width as f32 / scale / page.w, r.height as f32 / scale / page.h];
-            ([r.width as usize, r.height as usize], r.pixels)
+            let region = [rx, ry, r.width as f32 / scale / page.w, r.height as f32 / scale / page.h];
+            (region, [r.width as usize, r.height as usize], r.pixels)
         }
         Engine::Pdf(p) => {
             let (pw, _) = req.page_pt;
@@ -146,13 +145,13 @@ fn render(engine: &mut Engine, req: &Request) -> Result<Done> {
             if let Some(e) = r.error {
                 return Err(anyhow!("PdfCraft: {e}"));
             }
-            region = [
+            let region = [
                 tile.x as f32 / pw_px,
                 tile.y as f32 / ph_px,
                 r.width as f32 / pw_px,
                 r.height as f32 / ph_px,
             ];
-            ([r.width as usize, r.height as usize], r.rgba.to_vec())
+            (region, [r.width as usize, r.height as usize], r.rgba.to_vec())
         }
     };
     if size[0] * size[1] * 4 != rgba.len() || size[0] == 0 {

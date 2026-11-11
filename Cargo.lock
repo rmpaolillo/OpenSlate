@@ -1885,7 +1885,7 @@ dependencies = [
 [[package]]
 name = "craft-docpath"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d#1b34eba41e62138fc2438d2734523b302840b45d"
+source = "git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b#6e03f65bf45181db77ba6229716e6624db9eb25b"
 
 [[package]]
 name = "craft-docpath"
@@ -1931,7 +1931,7 @@ dependencies = [
 [[package]]
 name = "craft-jpeg"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d#1b34eba41e62138fc2438d2734523b302840b45d"
+source = "git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b#6e03f65bf45181db77ba6229716e6624db9eb25b"
 dependencies = [
  "thiserror 2.0.21",
 ]
@@ -1949,7 +1949,7 @@ dependencies = [
 [[package]]
 name = "craft-pdf"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d#1b34eba41e62138fc2438d2734523b302840b45d"
+source = "git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b#6e03f65bf45181db77ba6229716e6624db9eb25b"
 dependencies = [
  "bytemuck",
  "hayro",
@@ -1973,28 +1973,28 @@ dependencies = [
 [[package]]
 name = "craft-print"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d#1b34eba41e62138fc2438d2734523b302840b45d"
+source = "git+https://github.com/storytold/craft-libs?rev=60ede99985ef1e5df87a2aca66ed538eb23dec99#60ede99985ef1e5df87a2aca66ed538eb23dec99"
 dependencies = [
  "craft-winprint-gdi",
  "log",
  "miniz_oxide 0.9.1",
  "roxmltree 0.21.1",
  "tempfile",
- "winprint",
+ "winprint 0.2.1 (git+https://github.com/storytold/winprint.rs?rev=bc06a7c48b768eb27a828c7986f6d2868b245ee0)",
  "winsafe",
 ]
 
 [[package]]
 name = "craft-print"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=7ee35a9fbd47af572d55fd63dbf0333d1f00da17#7ee35a9fbd47af572d55fd63dbf0333d1f00da17"
+source = "git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b#6e03f65bf45181db77ba6229716e6624db9eb25b"
 dependencies = [
  "craft-winprint-gdi",
  "log",
  "miniz_oxide 0.9.1",
  "roxmltree 0.21.1",
  "tempfile",
- "winprint",
+ "winprint 0.2.1 (git+https://github.com/storytold/winprint.rs?rev=bc06a7c48b768eb27a828c7986f6d2868b245ee0)",
  "winsafe",
 ]
 
@@ -2023,7 +2023,7 @@ dependencies = [
 [[package]]
 name = "craft-vectorcraft-format"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=9be9a63782298ab59cd9b7a42ee9cba4f42a5ccb#9be9a63782298ab59cd9b7a42ee9cba4f42a5ccb"
+source = "git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b#6e03f65bf45181db77ba6229716e6624db9eb25b"
 dependencies = [
  "flate2",
  "serde",
@@ -2422,6 +2422,7 @@ checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
 dependencies = [
  "block-buffer 0.10.4",
  "crypto-common 0.1.7",
+ "subtle",
 ]
 
 [[package]]
@@ -4129,7 +4130,7 @@ dependencies = [
 [[package]]
 name = "hayro-jbig2"
 version = "0.3.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "fearless_simd",
  "hayro-ccitt",
@@ -4211,6 +4212,15 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
+name = "hmac"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
+dependencies = [
+ "digest 0.10.7",
+]
 
 [[package]]
 name = "hmac"
@@ -4370,7 +4380,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.62.2",
+ "windows-core 0.61.2",
 ]
 
 [[package]]
@@ -5359,7 +5369,7 @@ dependencies = [
 [[package]]
 name = "lopdf"
 version = "0.45.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "aes 0.9.3",
  "bitflags 2.13.2",
@@ -6750,7 +6760,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "112d82ceb8c5bf524d9af484d4e4970c9fd5a0cc15ba14ad93dccd28873b0629"
 dependencies = [
  "digest 0.11.3",
- "hmac",
+ "hmac 0.13.0",
 ]
 
 [[package]]
@@ -6767,8 +6777,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-a11y"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "pdfcraft-content",
  "pdfcraft-cos",
@@ -6779,8 +6789,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-annot"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "pdfcraft-cos",
  "pdfcraft-fonts",
@@ -6791,8 +6801,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-audit"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "pdfcraft-content",
  "pdfcraft-cos",
@@ -6803,8 +6813,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-automation"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "base64 0.23.1",
  "pdfcraft-cos",
@@ -6821,13 +6831,13 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-compare"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 
 [[package]]
 name = "pdfcraft-content"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "hayro-syntax",
  "pdfcraft-cos",
@@ -6835,8 +6845,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-cos"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "chrono",
  "js-sys",
@@ -6848,8 +6858,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-create"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "encoding_rs",
  "image",
@@ -6859,6 +6869,7 @@ dependencies = [
  "pdfcraft-model",
  "pdfcraft-xfa",
  "png 0.18.1",
+ "rustix 1.1.5",
  "thiserror 2.0.21",
  "tiff",
  "zune-jpeg 0.5.15",
@@ -6866,20 +6877,21 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-crypt"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "aes 0.9.3",
  "md-5 0.11.0",
  "sha2 0.11.1",
  "stringprep",
  "thiserror 2.0.21",
+ "zeroize",
 ]
 
 [[package]]
 name = "pdfcraft-edit"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "icu_segmenter",
  "kurbo 0.13.1",
@@ -6895,8 +6907,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-engine"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "chrono",
  "craft-docpath 0.1.0 (git+https://github.com/storytold/craft-libs?rev=787a7a0f972fd1d7a7618fdbeca3a5267a0407ff)",
@@ -6938,16 +6950,16 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-export"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "flate2",
 ]
 
 [[package]]
 name = "pdfcraft-filters"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "fax",
  "flate2",
@@ -6958,8 +6970,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-fonts"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "harfrust 0.12.0",
  "pdfcraft-cos",
@@ -6969,8 +6981,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-forms"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "pdfcraft-content",
  "pdfcraft-cos",
@@ -6981,13 +6993,13 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-geom"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 
 [[package]]
 name = "pdfcraft-js"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "boa_engine",
  "chrono",
@@ -6995,8 +7007,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-measure"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "pdfcraft-annot",
  "pdfcraft-content",
@@ -7008,21 +7020,22 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-model"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "pdfcraft-cos",
 ]
 
 [[package]]
 name = "pdfcraft-ocr"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "ocrs",
  "pdfcraft-fonts",
  "png 0.18.1",
  "rten",
+ "rten-imageproc",
  "serde_json",
  "sha2 0.11.1",
  "thiserror 2.0.21",
@@ -7030,8 +7043,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-optimize"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "image",
  "pdfcraft-annot",
@@ -7046,8 +7059,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-organize"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "pdfcraft-content",
  "pdfcraft-cos",
@@ -7056,19 +7069,20 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-platform"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "async-channel",
  "futures-lite",
+ "log",
  "rustix 1.1.5",
  "zbus",
 ]
 
 [[package]]
 name = "pdfcraft-prc"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "flate2",
  "thiserror 2.0.21",
@@ -7076,8 +7090,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-prc-render"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "pdfcraft-prc",
  "thiserror 2.0.21",
@@ -7085,8 +7099,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-preflight"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "pdfcraft-content",
  "pdfcraft-cos",
@@ -7096,20 +7110,22 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-print"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
- "craft-print 0.1.0 (git+https://github.com/storytold/craft-libs?rev=7ee35a9fbd47af572d55fd63dbf0333d1f00da17)",
+ "craft-print 0.1.0 (git+https://github.com/storytold/craft-libs?rev=60ede99985ef1e5df87a2aca66ed538eb23dec99)",
+ "log",
  "pdfcraft-content",
  "pdfcraft-cos",
  "pdfcraft-model",
  "thiserror 2.0.21",
+ "winprint 0.2.1 (git+https://github.com/storytold/winprint.rs?rev=5f80b9baf6b58937c401656634e42d33f00ddf49)",
 ]
 
 [[package]]
 name = "pdfcraft-redact"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "aho-corasick",
  "pdfcraft-annot",
@@ -7123,13 +7139,15 @@ dependencies = [
  "pdfcraft-model",
  "pdfcraft-xfa",
  "regex",
+ "roxmltree 0.21.1",
  "sha2 0.11.1",
  "thiserror 2.0.21",
+ "unicode-normalization",
 ]
 
 [[package]]
 name = "pdfcraft-render"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "bytemuck",
  "getrandom 0.4.3",
@@ -7145,12 +7163,13 @@ dependencies = [
  "skrifa 0.44.0",
  "thiserror 2.0.21",
  "unicode-bidi",
+ "url",
 ]
 
 [[package]]
 name = "pdfcraft-sign"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "aes 0.9.3",
  "aws-lc-rs",
@@ -7164,7 +7183,7 @@ dependencies = [
  "ecdsa",
  "ed25519-dalek",
  "getrandom 0.4.3",
- "hmac",
+ "hmac 0.13.0",
  "p256",
  "p384",
  "p521",
@@ -7183,12 +7202,13 @@ dependencies = [
  "sha2 0.11.1",
  "sha3",
  "thiserror 2.0.21",
+ "zeroize",
 ]
 
 [[package]]
 name = "pdfcraft-xfa"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "base64 0.23.1",
  "image",
@@ -7202,8 +7222,8 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-xfdf"
-version = "0.20.0"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+version = "0.21.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "base64 0.23.1",
  "pdfcraft-annot",
@@ -7358,8 +7378,8 @@ dependencies = [
 
 [[package]]
 name = "photocraft-affinity"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "crc32fast",
  "flate2",
@@ -7368,8 +7388,8 @@ dependencies = [
 
 [[package]]
 name = "photocraft-algo"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "photocraft-color",
  "photocraft-geom",
@@ -7381,13 +7401,14 @@ dependencies = [
 
 [[package]]
 name = "photocraft-automation"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "base64 0.23.1",
  "cap-std",
  "clap",
  "getrandom 0.3.4",
+ "hmac 0.12.1",
  "photocraft-codecs",
  "photocraft-compose",
  "photocraft-doc",
@@ -7399,22 +7420,23 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "thiserror 2.0.21",
  "tokio",
 ]
 
 [[package]]
 name = "photocraft-cms"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "rayon",
 ]
 
 [[package]]
 name = "photocraft-codecs"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "craft-jpeg",
  "exr",
@@ -7435,8 +7457,8 @@ dependencies = [
 
 [[package]]
 name = "photocraft-color"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "photocraft-cms",
  "serde",
@@ -7444,8 +7466,8 @@ dependencies = [
 
 [[package]]
 name = "photocraft-compose"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "photocraft-cms",
  "photocraft-color",
@@ -7458,8 +7480,8 @@ dependencies = [
 
 [[package]]
 name = "photocraft-doc"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "photocraft-color",
  "photocraft-geom",
@@ -7470,13 +7492,13 @@ dependencies = [
 
 [[package]]
 name = "photocraft-engine"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "base64 0.22.1",
  "blake3",
  "chrono",
- "craft-print 0.1.0 (git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d)",
+ "craft-print 0.1.0 (git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b)",
  "flate2",
  "photocraft-algo",
  "photocraft-cms",
@@ -7509,8 +7531,8 @@ dependencies = [
 
 [[package]]
 name = "photocraft-format"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "blake3",
  "craft-pcraft-format",
@@ -7533,20 +7555,20 @@ dependencies = [
 
 [[package]]
 name = "photocraft-geom"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "photocraft-io"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "blake3",
- "craft-docpath 0.1.0 (git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d)",
- "craft-pdf 0.1.0 (git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d)",
+ "craft-docpath 0.1.0 (git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b)",
+ "craft-pdf 0.1.0 (git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b)",
  "flate2",
  "imagesize 0.13.0",
  "photocraft-affinity",
@@ -7573,21 +7595,21 @@ dependencies = [
 
 [[package]]
 name = "photocraft-ipp"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 
 [[package]]
 name = "photocraft-ops"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "photocraft-doc",
 ]
 
 [[package]]
 name = "photocraft-paint"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "photocraft-color",
  "photocraft-geom",
@@ -7599,8 +7621,8 @@ dependencies = [
 
 [[package]]
 name = "photocraft-plugins"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "photocraft-color",
  "photocraft-geom",
@@ -7615,8 +7637,8 @@ dependencies = [
 
 [[package]]
 name = "photocraft-psd"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "encoding_rs",
  "flate2",
@@ -7625,8 +7647,8 @@ dependencies = [
 
 [[package]]
 name = "photocraft-raster"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "crc32fast",
  "lz4_flex",
@@ -7641,8 +7663,8 @@ dependencies = [
 
 [[package]]
 name = "photocraft-raw"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "flate2",
  "jxl-oxide",
@@ -7653,8 +7675,8 @@ dependencies = [
 
 [[package]]
 name = "photocraft-text"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "flate2",
  "parley",
@@ -7664,13 +7686,13 @@ dependencies = [
  "photocraft-psd",
  "photocraft-raster",
  "rayon",
- "skrifa 0.44.0",
+ "skrifa 0.47.0",
 ]
 
 [[package]]
 name = "photocraft-vector"
-version = "0.22.0"
-source = "git+https://github.com/storytold/photocraft?rev=5000240c6e5dc30a024d20f97a620c78eca10d1e#5000240c6e5dc30a024d20f97a620c78eca10d1e"
+version = "0.20.1"
+source = "git+https://github.com/storytold/photocraft?rev=7f148de8258aad3a4a751aad3c9fcbfe936d122f#7f148de8258aad3a4a751aad3c9fcbfe936d122f"
 dependencies = [
  "photocraft-color",
  "photocraft-doc",
@@ -8602,7 +8624,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4a459cddafb3fe76b31fd8f1108007566c40301feb64dc7b54656eb7388172b"
 dependencies = [
  "crypto-bigint",
- "hmac",
+ "hmac 0.13.0",
 ]
 
 [[package]]
@@ -11534,8 +11556,8 @@ checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
 name = "vectorcraft-affinity"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "crc32fast",
  "flate2",
@@ -11544,9 +11566,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "vectorcraft-apischema"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "vectorcraft-brush"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "kurbo 0.13.1",
  "serde",
@@ -11558,8 +11588,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-cad"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "image",
  "kurbo 0.13.1",
@@ -11574,8 +11604,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-color"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "kurbo 0.13.1",
  "moxcms",
@@ -11586,8 +11616,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-doc"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "chrono",
  "hayro-ccitt",
@@ -11604,8 +11634,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-effects"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "image",
  "kurbo 0.13.1",
@@ -11622,8 +11652,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-engine"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "cfb",
  "chrono",
@@ -11645,6 +11675,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.21",
  "vectorcraft-affinity",
+ "vectorcraft-apischema",
  "vectorcraft-brush",
  "vectorcraft-cad",
  "vectorcraft-color",
@@ -11652,6 +11683,7 @@ dependencies = [
  "vectorcraft-eps",
  "vectorcraft-format",
  "vectorcraft-geom",
+ "vectorcraft-js",
  "vectorcraft-metafile",
  "vectorcraft-pathops",
  "vectorcraft-pdf",
@@ -11666,8 +11698,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-eps"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "craft-pdf 0.1.0 (git+https://github.com/storytold/craft-libs?rev=9be9a63782298ab59cd9b7a42ee9cba4f42a5ccb)",
  "encoding_rs",
@@ -11693,8 +11725,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-format"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "craft-vectorcraft-format",
  "flate2",
@@ -11707,8 +11739,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-geom"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "kurbo 0.13.1",
  "serde",
@@ -11716,9 +11748,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "vectorcraft-js"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
+dependencies = [
+ "chrono",
+ "unicode-general-category",
+]
+
+[[package]]
 name = "vectorcraft-mcp"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "image",
  "log",
@@ -11734,8 +11775,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-metafile"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "image",
  "kurbo 0.13.1",
@@ -11749,8 +11790,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-pathops"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "kurbo 0.13.1",
  "linesweeper",
@@ -11760,8 +11801,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-pdf"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "aes 0.8.4",
  "chrono",
@@ -11790,8 +11831,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-plugins"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "craft-vectorcraft-format",
  "image",
@@ -11804,12 +11845,13 @@ dependencies = [
  "vectorcraft-doc",
  "vectorcraft-geom",
  "wasmi 2.0.0",
+ "web-time",
 ]
 
 [[package]]
 name = "vectorcraft-render"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "flate2",
  "gif 0.14.2",
@@ -11832,13 +11874,13 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-scriptcheck"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 
 [[package]]
 name = "vectorcraft-svg"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "craft-docpath 0.1.0 (git+https://github.com/storytold/craft-libs?rev=9be9a63782298ab59cd9b7a42ee9cba4f42a5ccb)",
  "flate2",
@@ -11861,8 +11903,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-text"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "harfrust 0.13.3",
  "icu_segmenter",
@@ -11882,8 +11924,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-three-d"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "vectorcraft-geom",
  "vectorcraft-pathops",
@@ -11891,8 +11933,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-tools"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "kurbo 0.13.1",
  "serde",
@@ -11908,8 +11950,8 @@ dependencies = [
 
 [[package]]
 name = "vectorcraft-trace"
-version = "0.23.0"
-source = "git+https://github.com/storytold/vectorcraft?rev=5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a#5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a"
+version = "0.24.0"
+source = "git+https://github.com/storytold/vectorcraft?rev=9840b65a85d888d66dfbd791ee3a6313984a9ad2#9840b65a85d888d66dfbd791ee3a6313984a9ad2"
 dependencies = [
  "image",
  "kurbo 0.13.1",
@@ -11921,7 +11963,7 @@ dependencies = [
 [[package]]
 name = "vello_common"
 version = "0.0.8"
-source = "git+https://github.com/storytold/pdfcraft?rev=2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed#2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed"
+source = "git+https://github.com/storytold/pdfcraft?rev=37fde37781274111973b864b38df75233c1b9191#37fde37781274111973b864b38df75233c1b9191"
 dependencies = [
  "bytemuck",
  "fearless_simd",
@@ -13371,7 +13413,7 @@ dependencies = [
 [[package]]
 name = "winprint"
 version = "0.2.1"
-source = "git+https://github.com/storytold/winprint.rs?rev=51934db382f225454cf152a8657eb03789be63c4#51934db382f225454cf152a8657eb03789be63c4"
+source = "git+https://github.com/storytold/winprint.rs?rev=5f80b9baf6b58937c401656634e42d33f00ddf49#5f80b9baf6b58937c401656634e42d33f00ddf49"
 dependencies = [
  "flate2",
  "fmt-derive",
@@ -13386,6 +13428,28 @@ dependencies = [
  "windows 0.62.2",
  "windows-core 0.62.2",
  "windows-implement",
+ "xml",
+]
+
+[[package]]
+name = "winprint"
+version = "0.2.1"
+source = "git+https://github.com/storytold/winprint.rs?rev=bc06a7c48b768eb27a828c7986f6d2868b245ee0#bc06a7c48b768eb27a828c7986f6d2868b245ee0"
+dependencies = [
+ "flate2",
+ "fmt-derive",
+ "reqwest",
+ "scopeguard",
+ "sigstore-trust-root",
+ "sigstore-types",
+ "sigstore-verify",
+ "strum 0.28.0",
+ "tar",
+ "thiserror 2.0.21",
+ "windows 0.62.2",
+ "windows-core 0.62.2",
+ "windows-implement",
+ "windows-numerics 0.3.1",
  "xml",
 ]
 
@@ -13425,13 +13489,13 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-control-key"
-version = "0.17.0"
-source = "git+https://github.com/storytold/wordcraft?rev=5574b32600aa7d782c64f5a6c6bb24696152220d#5574b32600aa7d782c64f5a6c6bb24696152220d"
+version = "0.18.0"
+source = "git+https://github.com/storytold/wordcraft?rev=a8db235e051ad21d9223209aed1824c4ed511905#a8db235e051ad21d9223209aed1824c4ed511905"
 
 [[package]]
 name = "wordcraft-doc"
-version = "0.17.0"
-source = "git+https://github.com/storytold/wordcraft?rev=5574b32600aa7d782c64f5a6c6bb24696152220d#5574b32600aa7d782c64f5a6c6bb24696152220d"
+version = "0.18.0"
+source = "git+https://github.com/storytold/wordcraft?rev=a8db235e051ad21d9223209aed1824c4ed511905#a8db235e051ad21d9223209aed1824c4ed511905"
 dependencies = [
  "base64 0.23.1",
  "log",
@@ -13444,8 +13508,8 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-docbin"
-version = "0.17.0"
-source = "git+https://github.com/storytold/wordcraft?rev=5574b32600aa7d782c64f5a6c6bb24696152220d#5574b32600aa7d782c64f5a6c6bb24696152220d"
+version = "0.18.0"
+source = "git+https://github.com/storytold/wordcraft?rev=a8db235e051ad21d9223209aed1824c4ed511905#a8db235e051ad21d9223209aed1824c4ed511905"
 dependencies = [
  "cfb",
  "chrono",
@@ -13460,15 +13524,15 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-docx"
-version = "0.17.0"
-source = "git+https://github.com/storytold/wordcraft?rev=5574b32600aa7d782c64f5a6c6bb24696152220d#5574b32600aa7d782c64f5a6c6bb24696152220d"
+version = "0.18.0"
+source = "git+https://github.com/storytold/wordcraft?rev=a8db235e051ad21d9223209aed1824c4ed511905#a8db235e051ad21d9223209aed1824c4ed511905"
 dependencies = [
  "aes 0.9.3",
  "base64 0.23.1",
  "cfb",
  "chrono",
  "getrandom 0.3.4",
- "hmac",
+ "hmac 0.13.0",
  "log",
  "quick-xml 0.41.0",
  "sha1 0.11.0",
@@ -13483,8 +13547,8 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-engine"
-version = "0.17.0"
-source = "git+https://github.com/storytold/wordcraft?rev=5574b32600aa7d782c64f5a6c6bb24696152220d#5574b32600aa7d782c64f5a6c6bb24696152220d"
+version = "0.18.0"
+source = "git+https://github.com/storytold/wordcraft?rev=a8db235e051ad21d9223209aed1824c4ed511905#a8db235e051ad21d9223209aed1824c4ed511905"
 dependencies = [
  "chrono",
  "craft-font-catalog",
@@ -13497,6 +13561,7 @@ dependencies = [
  "log",
  "regex",
  "regex-automata",
+ "rustix 1.1.5",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -13514,8 +13579,8 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-fonts"
-version = "0.17.0"
-source = "git+https://github.com/storytold/wordcraft?rev=5574b32600aa7d782c64f5a6c6bb24696152220d#5574b32600aa7d782c64f5a6c6bb24696152220d"
+version = "0.18.0"
+source = "git+https://github.com/storytold/wordcraft?rev=a8db235e051ad21d9223209aed1824c4ed511905#a8db235e051ad21d9223209aed1824c4ed511905"
 dependencies = [
  "brotli-decompressor",
  "harfrust 0.13.3",
@@ -13529,8 +13594,8 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-formats"
-version = "0.17.0"
-source = "git+https://github.com/storytold/wordcraft?rev=5574b32600aa7d782c64f5a6c6bb24696152220d#5574b32600aa7d782c64f5a6c6bb24696152220d"
+version = "0.18.0"
+source = "git+https://github.com/storytold/wordcraft?rev=a8db235e051ad21d9223209aed1824c4ed511905#a8db235e051ad21d9223209aed1824c4ed511905"
 dependencies = [
  "aes 0.9.3",
  "base64 0.23.1",
@@ -13539,7 +13604,7 @@ dependencies = [
  "chrono",
  "encoding_rs",
  "getrandom 0.3.4",
- "hmac",
+ "hmac 0.13.0",
  "image",
  "js-sys",
  "log",
@@ -13556,8 +13621,8 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-geom"
-version = "0.17.0"
-source = "git+https://github.com/storytold/wordcraft?rev=5574b32600aa7d782c64f5a6c6bb24696152220d#5574b32600aa7d782c64f5a6c6bb24696152220d"
+version = "0.18.0"
+source = "git+https://github.com/storytold/wordcraft?rev=a8db235e051ad21d9223209aed1824c4ed511905#a8db235e051ad21d9223209aed1824c4ed511905"
 dependencies = [
  "image",
  "serde",
@@ -13565,8 +13630,8 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-layout"
-version = "0.17.0"
-source = "git+https://github.com/storytold/wordcraft?rev=5574b32600aa7d782c64f5a6c6bb24696152220d#5574b32600aa7d782c64f5a6c6bb24696152220d"
+version = "0.18.0"
+source = "git+https://github.com/storytold/wordcraft?rev=a8db235e051ad21d9223209aed1824c4ed511905#a8db235e051ad21d9223209aed1824c4ed511905"
 dependencies = [
  "craft-proof 0.1.0 (git+https://github.com/storytold/craft-libs?rev=01315d9c92b5b0e69082d35ca56099461a1efd45)",
  "image",
@@ -13586,8 +13651,8 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-mcp"
-version = "0.17.0"
-source = "git+https://github.com/storytold/wordcraft?rev=5574b32600aa7d782c64f5a6c6bb24696152220d#5574b32600aa7d782c64f5a6c6bb24696152220d"
+version = "0.18.0"
+source = "git+https://github.com/storytold/wordcraft?rev=a8db235e051ad21d9223209aed1824c4ed511905#a8db235e051ad21d9223209aed1824c4ed511905"
 dependencies = [
  "log",
  "serde_json",
@@ -13599,8 +13664,8 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-metafile"
-version = "0.17.0"
-source = "git+https://github.com/storytold/wordcraft?rev=5574b32600aa7d782c64f5a6c6bb24696152220d#5574b32600aa7d782c64f5a6c6bb24696152220d"
+version = "0.18.0"
+source = "git+https://github.com/storytold/wordcraft?rev=a8db235e051ad21d9223209aed1824c4ed511905#a8db235e051ad21d9223209aed1824c4ed511905"
 dependencies = [
  "kurbo 0.13.1",
  "thiserror 2.0.21",
@@ -13608,11 +13673,11 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-pdf"
-version = "0.17.0"
-source = "git+https://github.com/storytold/wordcraft?rev=5574b32600aa7d782c64f5a6c6bb24696152220d#5574b32600aa7d782c64f5a6c6bb24696152220d"
+version = "0.18.0"
+source = "git+https://github.com/storytold/wordcraft?rev=a8db235e051ad21d9223209aed1824c4ed511905#a8db235e051ad21d9223209aed1824c4ed511905"
 dependencies = [
  "chrono",
- "craft-pdf 0.1.0 (git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d)",
+ "craft-pdf 0.1.0 (git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b)",
  "image",
  "js-sys",
  "kurbo 0.13.1",
@@ -13627,8 +13692,8 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-render"
-version = "0.17.0"
-source = "git+https://github.com/storytold/wordcraft?rev=5574b32600aa7d782c64f5a6c6bb24696152220d#5574b32600aa7d782c64f5a6c6bb24696152220d"
+version = "0.18.0"
+source = "git+https://github.com/storytold/wordcraft?rev=a8db235e051ad21d9223209aed1824c4ed511905#a8db235e051ad21d9223209aed1824c4ed511905"
 dependencies = [
  "image",
  "log",

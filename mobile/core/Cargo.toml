@@ -41,14 +41,14 @@ ab_glyph = "0.2"
 lopdf = { version = "0.45", default-features = false }
 # Word, foto e SVG firmati con le librerie della suite Craft (MIT OR Apache-2.0,
 # © ArtCraft Team), le stesse versioni della desktop
-wordcraft-engine = { git = "https://github.com/storytold/wordcraft", rev = "5574b32600aa7d782c64f5a6c6bb24696152220d" }
-photocraft-codecs = { git = "https://github.com/storytold/photocraft", rev = "5000240c6e5dc30a024d20f97a620c78eca10d1e" }
-photocraft-paint = { git = "https://github.com/storytold/photocraft", rev = "5000240c6e5dc30a024d20f97a620c78eca10d1e" }
-photocraft-raster = { git = "https://github.com/storytold/photocraft", rev = "5000240c6e5dc30a024d20f97a620c78eca10d1e" }
-photocraft-color = { git = "https://github.com/storytold/photocraft", rev = "5000240c6e5dc30a024d20f97a620c78eca10d1e" }
-photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "5000240c6e5dc30a024d20f97a620c78eca10d1e" }
-vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a" }
-vectorcraft-render = { git = "https://github.com/storytold/vectorcraft", rev = "5d0e892e2419f63bc0ea3c743ddff2e81e15fd3a" }
+wordcraft-engine = { git = "https://github.com/storytold/wordcraft", rev = "a8db235e051ad21d9223209aed1824c4ed511905" }
+photocraft-codecs = { git = "https://github.com/storytold/photocraft", rev = "7f148de8258aad3a4a751aad3c9fcbfe936d122f" }
+photocraft-paint = { git = "https://github.com/storytold/photocraft", rev = "7f148de8258aad3a4a751aad3c9fcbfe936d122f" }
+photocraft-raster = { git = "https://github.com/storytold/photocraft", rev = "7f148de8258aad3a4a751aad3c9fcbfe936d122f" }
+photocraft-color = { git = "https://github.com/storytold/photocraft", rev = "7f148de8258aad3a4a751aad3c9fcbfe936d122f" }
+photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "7f148de8258aad3a4a751aad3c9fcbfe936d122f" }
+vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "9840b65a85d888d66dfbd791ee3a6313984a9ad2" }
+vectorcraft-render = { git = "https://github.com/storytold/vectorcraft", rev = "9840b65a85d888d66dfbd791ee3a6313984a9ad2" }
 
 [profile.release]
 opt-level = "s"
@@ -62,5 +62,5 @@ codegen-units = 1
 krilla = { git = "https://github.com/storytold/craft-libs", rev = "1b34eba41e62138fc2438d2734523b302840b45d" }
 hayro-interpret = { git = "https://github.com/storytold/craft-libs", rev = "1b34eba41e62138fc2438d2734523b302840b45d" }
 hayro-syntax = { git = "https://github.com/storytold/craft-libs", rev = "1b34eba41e62138fc2438d2734523b302840b45d" }
-hayro-jbig2 = { git = "https://github.com/storytold/pdfcraft", rev = "2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed" }
-lopdf = { git = "https://github.com/storytold/pdfcraft", rev = "2ad7717f87ad6f15b14bdf22cddc1019d6fd0aed" }
+hayro-jbig2 = { git = "https://github.com/storytold/pdfcraft", rev = "37fde37781274111973b864b38df75233c1b9191" }
+lopdf = { git = "https://github.com/storytold/pdfcraft", rev = "37fde37781274111973b864b38df75233c1b9191" }
