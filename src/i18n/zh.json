@@ -1301,6 +1301,7 @@
  "P. IVA": "增值税号",
  "REA (se c'è)": "REA（如有）",
  "Codice univoco (se c'è)": "收件代码（如有）",
+ "PEC (se c'è)": "PEC（认证邮箱，如有）",
  "Cornice": "边框",
  "Senza cornice": "无边框",
  "Rettangolo": "矩形",

@@ -47,6 +47,7 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   entoure l'erreur et écrit la correction à côté, à la main, puis l'explique dans
   le chat, avec les formules. Il peut aussi tracer le graphe d'une fonction sur la page.
 - **Signez des documents Word et PDF au stylet**, enregistrés dans le même format.
+- **Tampon d'entreprise** sur les documents : raison sociale, adresse, numéro de TVA, e-mail certifié (PEC)…, avec l'aspect d'une vraie encre (grain, encrage irrégulier, inclinaison), en bleu, gris ou une autre couleur d'encre.
 - **Écriture manuscrite → notes modifiables**, avec tableaux et formules, exportées en Markdown, Word ou PDF,
   imprimées ou dans une police manuscrite.
 - **Exportez dans le format qu'il vous faut** : PDF consultable, Word avec l'écriture en encre modifiable, JPEG/WebP légers, Xournal++, un GIF, un SVG ou une vidéo MP4 de la page en train de s'écrire, et LaTeX ou Typst à partir de la transcription.
@@ -54,6 +55,7 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   en clair.
 - **Parlez au chat.** Dictez au microphone : Whisper transcrit sur votre ordinateur, hors ligne.
 - **Le tuteur vous répond à voix haute** avec les voix du système.
+- **Apps Android et iPhone/iPad** (première version, à compiler depuis les sources) sur le même cœur Rust : tableau en direct, pages du pad, chat IA, signature et tampons.
 - **Libre et open source**, en neuf langues, pour macOS (plateforme principale), Linux et Windows.
 
 ## Fonctionnalités
@@ -61,7 +63,7 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
 - **Tableau en direct.** Connectez-vous en Bluetooth et voyez ce que vous écrivez sur le bloc au moment où vous l'écrivez,
   en plein écran. Vous disposez de stylos, d'un surligneur (`H` ; le basculement par un appui long du stylet peut être activé dans les Options), d'une gomme (mode
   gribouillis ou mode gomme), de couleurs, d'épaisseurs de trait, d'annuler/rétablir, de rotation/miroir et du zoom avec les
-  gestes du trackpad.
+  gestes du trackpad. **Trait naturel** (activé par défaut, Options → Stylo et surligneur) : la ligne suit la pression du stylo, avec des extrémités effilées, à l'écran et dans les exports ; désactivé, il a une épaisseur constante comme un feutre.
 - **Styles de papier.** Choisissez entre lignes, réglures des écoles primaires italiennes, petits carreaux (4/5/10 mm),
   papier millimétré, repère cartésien, pointillés, isométrique, portée musicale et prise de notes Cornell. Les réglures
   sont dessinées en taille réelle et n'apparaissent qu'à l'écran : les exports restent propres.
@@ -73,6 +75,15 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   PDF, elle devient des traits vectoriels posés sur l'original intact. Les pages restent nettes à tous les niveaux de zoom,
   rendues par les moteurs [WordCraft](https://github.com/storytold/wordcraft) et
   [PdfCraft](https://github.com/storytold/pdfcraft).
+- **Tampon d'entreprise.** Onglet Document → Signature → **Tampon** : crée un ou plusieurs tampons
+  nommés, avec raison sociale, adresse, code postal, ville et province, numéro de TVA et, s'il y en
+  a, numéro REA, code destinataire (SDI) et e-mail certifié (PEC), avec ou sans cadre (rectangle,
+  arrondi, double, ovale). Il apparaît sur la page à sa taille réelle ; déplace-le, redimensionne-le
+  et rends-le réaliste avant de confirmer : couleur d'encre (bleu, gris, noir, rouge, violet),
+  intensité, grain, encrage irrégulier, inclinaison et un nouveau grain. L'encre est transparente
+  comme celle d'un vrai tampon : le texte dessous reste visible et la signature passe par-dessus. Il
+  est enregistré dans la copie signée dans tous les formats (PDF, Word, photos, SVG) ; Annuler le
+  retire en une étape et la gomme l'efface entièrement.
 - **Écrivez aussi sur des images.** Ouvrez un SVG, PNG, JPEG (ou encore WebP, TIFF, BMP, GIF), ou appuyez sur **Coller**
   (`Cmd+V`) avec une capture d'écran ou une photo dans le presse-papiers. Écrivez dessus et réenregistrez-la comme image
   de même format et de même taille : un SVG conserve l'écriture sous forme de tracés vectoriels
@@ -152,6 +163,13 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   espacements mesurés sur tes phrases et, en cursive, les lettres liées. On peut entraîner la cursive
   et le script (chiffres et symboles servent aux deux). Tout reste dans le dossier de données `mano/`,
   sur ton ordinateur.
+- **Sur les lignes.** Accueil → « Aligner sur les lignes » : sur une feuille lignée ou à carreaux,
+  trace un cadre autour de ton écriture (à la main ou mise au propre) et elle passe sur les lignes
+  de la feuille, droite, alignée à gauche et une ligne après l'autre. Un aperçu vient d'abord :
+  Entrée accepte, Échap refuse, Annuler la remet comme avant. Sur papier à carreaux tu choisis
+  combien de carreaux occupe chaque ligne (1, 2 ou 3 ; celui où tient ton écriture est proposé).
+  Dans « Mise au propre », « Sur les lignes de la feuille » place directement la mise au propre
+  sur les lignes.
 - **Le chat écrit sur le tableau.** Demandez-lui « vérifiez mes additions et marquez les erreurs »,
   « soulignez les échéances » ou « écrivez le résultat à côté de la ligne 2 » : il lit la page du tableau ligne
   par ligne et mot par mot, puis surligne, souligne, entoure, barre, dessine des cadres,
@@ -259,6 +277,19 @@ Pour lire les réponses à voix haute, il utilise `espeak-ng` (`sudo apt install
 Décompressez l'archive et lancez `openslate.exe`. Il faut le runtime Microsoft Edge WebView2, fourni avec
 Windows 10/11. Sur les éditions « N » de Windows, la vidéo MP4 demande aussi le Media Feature Pack
 de Microsoft. Tout n'est pas testé sous Windows. Les rapports de bugs sont les très bienvenus.
+
+### Android, iPhone et iPad (première version)
+
+Les dossiers `android/` et `ios/` contiennent les apps pour téléphone et tablette, sur le même
+cœur Rust que l'app de bureau (`mobile/core`, qui reprend les fichiers source de l'app de bureau
+eux-mêmes) : tableau en direct avec le Bamboo Slate, pages téléchargées du pad, l'archive au format
+de l'app de bureau, les outils et types de feuille, trait naturel, mise au propre et alignement
+sur les lignes, le chat IA avec le tuteur qui écrit sur la page, transcription en note et signature
+de documents (PDF, Word, photos, SVG) avec le tampon d'entreprise. Les réglages IA viennent de
+l'app de bureau par un QR code (Réglages IA → « Connecter le téléphone »), affiché seulement à la
+demande ; sur le téléphone, les clés API sont stockées chiffrées. Il n'y a pas encore de
+téléchargements prêts : compile-les comme indiqué dans [android/README.md](android/README.md)
+(Android 8.0 ou plus récent) et [ios/README.md](ios/README.md) (iOS 16 ou plus récent).
 
 ## Fichiers et formats
 
@@ -418,6 +449,10 @@ src/speech.rs                                             réponses à voix haut
 src/inbella.rs, src/mathhand.rs                           mettre au propre : l'IA lit les lignes, réécrites avec les maths mises en page
 src/shapes.rs                                             dessins au propre : droites, flèches, cercles, arcs et polygones parfaits
 src/campioni.rs, src/ui/allena_ui.rs                      ton écriture : tours d'entraînement, tes signes, mots écrits avec eux
+src/stamp.rs, src/ui/timbro_ui.rs                         tampon d'entreprise : mise en page, encre réaliste, éditeur de tampons et outils de placement
+src/righe.rs, src/rigatura.rs                             aligner l'écriture sur les lignes de la feuille ; lignes et carreaux de chaque type de feuille
+src/inkshape.rs                                           trait naturel : épaisseur selon la pression du stylo, extrémités effilées
+mobile/core/, android/, ios/                              apps téléphone et tablette : cœur Rust partagé (UniFFI), Kotlin/Compose et SwiftUI
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

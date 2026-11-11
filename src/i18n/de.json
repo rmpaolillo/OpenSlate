@@ -1301,6 +1301,7 @@
  "P. IVA": "USt-IdNr.",
  "REA (se c'è)": "REA (falls vorhanden)",
  "Codice univoco (se c'è)": "Empfängercode (falls vorhanden)",
+ "PEC (se c'è)": "PEC (zertifizierte E-Mail, falls vorhanden)",
  "Cornice": "Rahmen",
  "Senza cornice": "Ohne Rahmen",
  "Rettangolo": "Rechteck",

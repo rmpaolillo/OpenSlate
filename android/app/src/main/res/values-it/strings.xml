@@ -204,6 +204,7 @@
     <string name="stamp_vat">P. IVA</string>
     <string name="stamp_rea">REA (se c\'è)</string>
     <string name="stamp_sdi">Codice univoco (se c\'è)</string>
+    <string name="stamp_pec">PEC (se c\'è)</string>
     <string name="stamp_frame">Cornice</string>
     <string name="stamp_frame_none">Senza cornice</string>
     <string name="stamp_frame_rect">Rettangolo</string>

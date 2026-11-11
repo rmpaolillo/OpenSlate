@@ -47,6 +47,7 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   kreist den Fehler ein und schreibt die Korrektur handschriftlich daneben, dann erklärt er sie im
   Chat, mit Formeln. Er kann auch den Graphen einer Funktion aufs Blatt zeichnen.
 - **Word- und PDF-Dokumente mit dem Stift unterschreiben**, gespeichert im selben Format.
+- **Firmenstempel** auf Dokumenten: Firmenname, Adresse, USt-IdNr., zertifizierte E-Mail (PEC)…, mit echt wirkender Tinte (Körnung, ungleichmäßige Farbe, Neigung), in Blau, Grau oder einer anderen Stempelfarbe.
 - **Handschrift → bearbeitbare Notizen**, mit Tabellen und Formeln, exportiert als Markdown, Word oder PDF,
   gedruckt oder in einer Handschrift-Schriftart.
 - **Export in das, was du brauchst**: durchsuchbares PDF, Word mit der Handschrift als bearbeitbare Tinte, leichte JPEG/WebP, Xournal++, ein animiertes GIF, SVG oder MP4-Video der Seite, die sich schreibt, und LaTeX oder Typst aus der Transkription.
@@ -54,6 +55,7 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   im Klartext gespeichert.
 - **Mit dem Chat sprechen.** Diktieren per Mikrofon: Whisper transkribiert auf deinem Computer, offline.
 - **Der Tutor antwortet laut** mit den Stimmen des Systems.
+- **Apps für Android und iPhone/iPad** (erste Version, aus dem Quellcode zu bauen) mit demselben Rust-Kern: Live-Tafel, Seiten vom Pad, KI-Chat, Unterschreiben und Stempel.
 - **Frei und Open Source**, in neun Sprachen, für macOS (Hauptplattform), Linux und Windows.
 
 ## Funktionen
@@ -61,7 +63,7 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
 - **Live-Tafel.** Verbinde dich per Bluetooth und sieh, was du auf dem Pad schreibst, während du schreibst,
   im Vollbild. Du bekommst Stifte, einen Textmarker (`H`; das Umschalten per langem Druck mit dem Stift lässt sich in den Optionen einschalten), einen Radierer (ein
   Kritzel- oder Radiermodus), Farben, Strichstärken, Rückgängig/Wiederholen, Drehen/Spiegeln und Zoom mit
-  Trackpad-Gesten.
+  Trackpad-Gesten. **Natürlicher Strich** (standardmäßig an, Optionen → Stift und Textmarker): die Linie folgt dem Stiftdruck, mit spitz zulaufenden Enden, auf dem Bildschirm und in den Exporten; ausgeschaltet ist sie gleichmäßig breit wie ein Filzstift.
 - **Papierstile.** Wähle zwischen liniert, italienischen Grundschullineaturen, kariert (4/5/10 mm),
   Millimeterpapier, kartesischem Koordinatensystem, gepunktet, isometrisch, Notenlinien und Cornell-Notizen. Die Lineaturen
   werden in Originalgröße gezeichnet und erscheinen nur auf dem Bildschirm, sodass Exporte sauber bleiben.
@@ -73,6 +75,16 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   PDF wird sie zu Vektorstrichen über dem unveränderten Original. Die Seiten bleiben bei jedem Zoom scharf,
   gerendert von den Engines [WordCraft](https://github.com/storytold/wordcraft) und
   [PdfCraft](https://github.com/storytold/pdfcraft).
+- **Firmenstempel.** Registerkarte Dokument → Unterschrift → **Stempel**: lege einen oder mehrere
+  benannte Stempel an, mit Firmenname, Adresse, PLZ, Ort und Provinz, USt-IdNr. und, falls
+  vorhanden, REA-Nummer, Empfängercode (SDI) und zertifizierter E-Mail (PEC), mit oder ohne Rahmen
+  (Rechteck, abgerundet, doppelt, oval). Er erscheint in echter Größe auf der Seite; verschiebe
+  ihn, ändere die Größe und lass ihn vor dem Bestätigen echt aussehen: Stempelfarbe (Blau, Grau,
+  Schwarz, Rot, Violett), Intensität, Körnung, ungleichmäßige Farbe, Neigung und ein neues
+  Körnungsmuster. Die Farbe ist durchscheinend wie bei einem echten Stempel: der Text darunter
+  bleibt sichtbar, die Unterschrift liegt darüber. Er wird in der unterschriebenen Kopie in jedem
+  Format gespeichert (PDF, Word, Fotos, SVG); Rückgängig nimmt ihn in einem Schritt zurück, der
+  Radierer entfernt ihn ganz.
 - **Auch auf Bildern schreiben.** Öffne ein SVG, PNG, JPEG (auch WebP, TIFF, BMP, GIF) oder drück **Einfügen**
   (`Cmd+V`) mit einem Screenshot oder Foto in der Zwischenablage. Schreib darauf und speichere es wieder als Bild
   im selben Format und in derselben Größe: Ein SVG behält die Handschrift als Vektorpfade
@@ -152,6 +164,12 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   die Abstände aus deinen Sätzen gemessen, in Schreibschrift mit verbundenen Buchstaben. Schreib- und
   Druckschrift lassen sich beide trainieren (Ziffern und Symbole gelten für beide). Alles bleibt im
   Datenordner `mano/`, auf deinem Computer.
+- **Auf die Linien.** Start → «Auf Linien ausrichten»: auf liniertem oder kariertem Papier ziehst
+  du einen Rahmen um deine Schrift (von Hand oder Reinschrift), und sie kommt auf die Linien des
+  Blatts, gerade, linksbündig und Zeile für Zeile. Zuerst siehst du eine Vorschau: Enter übernimmt,
+  Esc verwirft, Rückgängig stellt den alten Zustand her. Auf Karopapier wählst du, wie viele
+  Kästchen eine Zeile belegt (1, 2 oder 3; vorgeschlagen wird das, in das deine Schrift passt). In
+  «Reinschrift» setzt «Auf die Linien des Blatts» die Reinschrift direkt auf die Linien.
 - **Der Chat schreibt auf die Tafel.** Bitte ihn: „prüf meine Rechnungen und markier die Fehler“,
   „unterstreich die Fristen“ oder „schreib das Ergebnis neben Zeile 2“: Er liest das Tafelblatt Zeile
   für Zeile und Wort für Wort, dann markiert, unterstreicht, umkreist, streicht durch, zeichnet Kästen,
@@ -259,6 +277,19 @@ Zum Vorlesen der Antworten nutzt es `espeak-ng` (`sudo apt install espeak-ng`) o
 Entpacken und `openslate.exe` starten. Benötigt wird die Microsoft Edge WebView2 Runtime, die bei
 Windows 10/11 mitgeliefert wird. Auf den „N“-Editionen von Windows braucht der MP4-Video-Export zusätzlich
 das Media Feature Pack von Microsoft. Unter Windows ist nicht alles getestet. Fehlerberichte sind sehr willkommen.
+
+### Android, iPhone und iPad (erste Version)
+
+In den Ordnern `android/` und `ios/` liegen die Apps für Telefon und Tablet, mit demselben
+Rust-Kern wie die Desktop-App (`mobile/core`, der die Quelldateien der Desktop-App selbst
+verwendet): Live-Tafel mit dem Bamboo Slate, Seiten vom Pad laden, das Archiv im Format der
+Desktop-App, Werkzeuge und Papierarten, natürlicher Strich, Reinschrift und Ausrichten auf Linien,
+der KI-Chat mit dem Tutor, der auf die Seite schreibt, Transkription in eine Notiz und das
+Unterschreiben von Dokumenten (PDF, Word, Fotos, SVG) mit dem Firmenstempel. Die KI-Einstellungen
+kommen per QR-Code von der Desktop-App (KI-Einstellungen → «Telefon verbinden»), der nur auf Wunsch
+erscheint; auf dem Telefon werden die API-Schlüssel verschlüsselt gespeichert. Fertige Downloads
+gibt es noch nicht: baue die Apps wie in [android/README.md](android/README.md) (Android 8.0 oder
+neuer) und [ios/README.md](ios/README.md) (iOS 16 oder neuer) beschrieben.
 
 ## Dateien und Formate
 
@@ -418,6 +449,10 @@ src/speech.rs                                             Antworten vorlesen: Sy
 src/inbella.rs, src/mathhand.rs                           ins Reine schreiben: die KI liest die Zeilen, neu geschrieben mit gesetzter Mathematik
 src/shapes.rs                                             Zeichnungen ins Reine: Geraden, Pfeile, Kreise, Bögen und Vielecke perfekt
 src/campioni.rs, src/ui/allena_ui.rs                      deine Handschrift: Trainingsrunden, deine Zeichen, Wörter daraus
+src/stamp.rs, src/ui/timbro_ui.rs                         Firmenstempel: Layout, echt wirkende Tinte, Stempel-Editor und Platzierungswerkzeuge
+src/righe.rs, src/rigatura.rs                             Schrift auf die Linien des Blatts setzen; Linien und Kästchen jeder Papierart
+src/inkshape.rs                                           natürlicher Strich: Breite nach Stiftdruck, spitz zulaufende Enden
+mobile/core/, android/, ios/                              Apps für Telefon und Tablet: gemeinsamer Rust-Kern (UniFFI), Kotlin/Compose und SwiftUI
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

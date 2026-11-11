@@ -47,6 +47,7 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   rodea el error con un círculo y escribe la corrección al lado, a mano, y luego te lo explica en
   el chat, con fórmulas. También puede dibujar la gráfica de una función en la hoja.
 - **Firma documentos Word y PDF con el bolígrafo**, guardados en el mismo formato.
+- **Sello de empresa** en los documentos: razón social, dirección, NIF/IVA, correo certificado (PEC)…, con aspecto de tinta real (grano, tinta irregular, inclinación), en azul, gris u otro color de tampón.
 - **Escritura a mano → notas editables**, con tablas y fórmulas, exportadas a Markdown, Word o PDF,
   en letra de imprenta o en una fuente manuscrita.
 - **Exporta a lo que necesites**: PDF con búsqueda, Word con la escritura como tinta editable, JPEG/WebP ligeros, Xournal++, un GIF, SVG o vídeo MP4 de la página escribiéndose, y LaTeX o Typst desde la transcripción.
@@ -54,6 +55,7 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   en texto plano.
 - **Habla con el chat.** Dicta con el micrófono: Whisper transcribe en tu ordenador, sin conexión.
 - **El tutor te responde en voz alta** con las voces del sistema.
+- **Apps para Android e iPhone/iPad** (primera versión, para compilar desde el código) con el mismo núcleo en Rust: pizarra en directo, páginas del pad, chat de IA, firma y sellos.
 - **Libre y de código abierto**, en nueve idiomas, para macOS (plataforma principal), Linux y Windows.
 
 ## Funciones
@@ -61,7 +63,7 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
 - **Pizarra en directo.** Conéctate por Bluetooth y ve lo que escribes en el pad mientras lo escribes,
   a pantalla completa. Tienes bolígrafos, un rotulador fluorescente (`H`; el cambio con una pulsación larga del bolígrafo se puede activar en Opciones), un borrador (modo
   garabato o modo borrador), colores, grosores de trazo, deshacer/rehacer, rotar/reflejar y zoom con
-  gestos del trackpad.
+  gestos del trackpad. **Trazo natural** (activado de serie, Opciones → Lápiz y resaltador): la línea sigue la presión del lápiz, con puntas afiladas, en pantalla y en las exportaciones; desactivado, tiene un grosor uniforme como un rotulador.
 - **Tipos de papel.** Elige entre rayado, pautas de la escuela primaria italiana, cuadriculado (4/5/10 mm),
   papel milimetrado, plano cartesiano, punteado, isométrico, pentagrama y notas Cornell. Las pautas
   se dibujan a tamaño real y solo aparecen en pantalla, así que las exportaciones quedan limpias.
@@ -73,6 +75,15 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   PDF se convierte en trazos vectoriales sobre el original intacto. Las páginas se ven nítidas con cualquier zoom,
   renderizadas por los motores [WordCraft](https://github.com/storytold/wordcraft) y
   [PdfCraft](https://github.com/storytold/pdfcraft).
+- **Sello de empresa.** Pestaña Documento → Firma → **Sello**: crea uno o varios sellos con nombre,
+  con razón social, dirección, código postal, ciudad y provincia, número de IVA y, si los hay,
+  número REA, código de destinatario (SDI) y correo certificado (PEC), con o sin marco (rectángulo,
+  redondeado, doble, ovalado). Aparece en la página a su tamaño real; muévelo, cambia su tamaño y
+  dale un aspecto real antes de confirmar: color de la tinta (azul, gris, negro, rojo, violeta),
+  intensidad, grano, tinta irregular, inclinación y un grano nuevo. La tinta es transparente como
+  la de un sello de verdad: el texto de debajo se ve y la firma pasa por encima. Se guarda en la
+  copia firmada en todos los formatos (PDF, Word, fotos, SVG); Deshacer lo quita en un paso y la
+  goma lo borra entero.
 - **Escribe también sobre imágenes.** Abre un SVG, PNG o JPEG (también WebP, TIFF, BMP, GIF), o pulsa **Pegar**
   (`Cmd+V`) con una captura de pantalla o una foto en el portapapeles. Escribe encima y vuelve a guardarla como imagen
   del mismo formato y tamaño: un SVG conserva la escritura como trazados vectoriales
@@ -149,6 +160,12 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   letra: cada vez una versión distinta de cada letra, los espacios medidos en tus frases y, en
   cursiva, las letras ligadas. Se pueden entrenar cursiva e imprenta (cifras y símbolos valen para
   las dos). Todo queda en la carpeta de datos `mano/`, en tu ordenador.
+- **Sobre las líneas.** Inicio → «Colocar en renglones»: en una hoja de rayas o cuadros, arrastra
+  un recuadro alrededor de lo que escribiste (a mano o en limpio) y pasa a las líneas de la hoja,
+  recto, alineado a la izquierda y una línea tras otra. Primero ves una vista previa: Intro acepta,
+  Esc rechaza y Deshacer lo deja como estaba. En papel cuadriculado eliges cuántos cuadros ocupa
+  cada línea (1, 2 o 3; se propone aquel en el que cabe tu letra). En «Pasar a limpio», «En los
+  renglones de la hoja» pone la copia en limpio directamente sobre las líneas.
 - **El chat escribe en la pizarra.** Pídele «revisa mis sumas y marca los errores»,
   «subraya los plazos» o «escribe el resultado junto a la línea 2»: lee la hoja de la pizarra línea
   a línea y palabra a palabra, y después resalta, subraya, rodea con un círculo, tacha, dibuja recuadros,
@@ -256,6 +273,19 @@ Para leer las respuestas en voz alta usa `espeak-ng` (`sudo apt install espeak-n
 Descomprime y ejecuta `openslate.exe`. Necesita el runtime Microsoft Edge WebView2, que viene incluido con
 Windows 10/11. En las ediciones "N" de Windows, el vídeo MP4 necesita además el Media Feature Pack
 de Microsoft. No todo está probado en Windows. Los informes de errores son muy bienvenidos.
+
+### Android, iPhone y iPad (primera versión)
+
+Las carpetas `android/` e `ios/` contienen las apps para teléfono y tableta, con el mismo núcleo
+en Rust que la app de escritorio (`mobile/core`, que usa los propios archivos fuente de escritorio):
+pizarra en directo con el Bamboo Slate, páginas descargadas del pad, el archivo en el formato de
+escritorio, las herramientas y tipos de hoja, trazo natural, pasar a limpio y colocar en
+renglones, el chat de IA con el tutor que escribe en la página, transcripción a nota y firma de
+documentos (PDF, Word, fotos, SVG) con el sello de empresa. Los ajustes de IA llegan desde el
+escritorio con un código QR (Ajustes de IA → «Conectar el teléfono»), que solo se muestra cuando
+lo pides; en el teléfono las claves API se guardan cifradas. Todavía no hay descargas listas:
+compílalas como se explica en [android/README.md](android/README.md) (Android 8.0 o superior) y
+[ios/README.md](ios/README.md) (iOS 16 o superior).
 
 ## Archivos y formatos
 
@@ -415,6 +445,10 @@ src/speech.rs                                             respuestas en voz alta
 src/inbella.rs, src/mathhand.rs                           pasar a limpio: la IA lee las líneas y se reescriben con la matemática compuesta
 src/shapes.rs                                             dibujos en limpio: rectas, flechas, círculos, arcos y polígonos perfectos
 src/campioni.rs, src/ui/allena_ui.rs                      tu letra: turnos de entrenamiento, tus signos, palabras escritas con ellos
+src/stamp.rs, src/ui/timbro_ui.rs                         sello de empresa: composición, tinta realista, editor de sellos y herramientas para colocarlo
+src/righe.rs, src/rigatura.rs                             colocar la escritura en las líneas de la hoja; líneas y cuadros de cada tipo de hoja
+src/inkshape.rs                                           trazo natural: grosor según la presión del lápiz, puntas afiladas
+mobile/core/, android/, ios/                              apps para teléfono y tableta: núcleo Rust compartido (UniFFI), Kotlin/Compose y SwiftUI
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

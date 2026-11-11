@@ -202,6 +202,8 @@ struct StampEditor: View {
                     TextField(L("P. IVA", "VAT number"), text: $draft.spec.company.vat)
                     TextField(L("REA (se c'è)", "REA (if any)"), text: $draft.spec.company.rea)
                     TextField(L("Codice univoco (se c'è)", "Recipient code (if any)"), text: $draft.spec.company.sdi)
+                    TextField(L("PEC (se c'è)", "Certified email (PEC, if any)"), text: $draft.spec.company.pec)
+                        .keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled()
                 }
                 Section(L("Aspetto", "Look")) {
                     FramePicker(selected: draft.spec.style.frame) { draft.spec.style.frame = $0 }

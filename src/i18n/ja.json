@@ -1301,6 +1301,7 @@
  "P. IVA": "VAT番号",
  "REA (se c'è)": "REA（あれば）",
  "Codice univoco (se c'è)": "受信者コード（あれば）",
+ "PEC (se c'è)": "PEC（認証メール、ある場合）",
  "Cornice": "枠",
  "Senza cornice": "枠なし",
  "Rettangolo": "長方形",

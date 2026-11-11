@@ -15,6 +15,8 @@ Non è un prodotto Wacom e non è collegata a Wacom.
   giusto, cerchia l'errore e scrive accanto la correzione a mano, poi la spiega nella chat, con le
   formule. Sa anche disegnare sul foglio il grafico di una funzione.
 - **Firmi documenti Word e PDF con la penna**, salvati nello stesso formato.
+- **Timbro aziendale** sui documenti: ragione sociale, indirizzo, P. IVA, PEC…, con l'aspetto di un
+  timbro vero (grana, inchiostro irregolare, inclinazione), blu, grigio o un altro colore da tampone.
 - **Dalla scrittura a mano agli appunti**, con tabelle e formule, esportati in Markdown, Word o
   PDF, in stampato o con un carattere a mano.
 - **Esporti in quello che ti serve**: PDF ricercabile, Word con la scrittura come inchiostro
@@ -23,6 +25,8 @@ Non è un prodotto Wacom e non è collegata a Wacom.
 - **Parli alla chat.** Detti col microfono: Whisper trascrive sul tuo computer, senza rete.
 - **Il tutor ti risponde a voce** con le voci del sistema.
 - **L'AI che vuoi tu**: modelli locali (LM Studio, Ollama) o in cloud; le chiavi API mai in chiaro.
+- **App per Android e iPhone/iPad** (prima versione, da compilare) con lo stesso cuore Rust: lavagna
+  live, pagine dal pad, chat AI, firma e timbri.
 - **Libera e open source**, in nove lingue, per macOS (piattaforma principale), Linux e Windows.
 
 Le immagini mostrano l'interfaccia in inglese. La scrittura, i documenti e le risposte dell'AI
@@ -59,7 +63,7 @@ Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le
 - **Quattro schede**: **File** apre la pagina a tutta finestra come in Word (Home con i documenti
   recenti, Nuovo, Apri, Salva, **Aiuto e info**, **Opzioni** `Cmd+,`; `Esc` per tornare), poi
   **Home** (penna, evidenziatore, gomma, pulisci, colori, spessore, righe e quadretti, salva),
-  **Documento** (apri, recenti, chiudi, pagine, **registra e inserisci la firma**, salva PDF),
+  **Documento** (apri, recenti, chiudi, pagine, **registra e inserisci la firma**, **il timbro aziendale**, salva PDF),
   **Visualizza** (righelli, zoom, ruota e specchia, schermo intero), **AI** (trascrivi, appunti,
   controlla il foglio, discuti il foglio o il documento, impostazioni AI). Doppio clic su una
   scheda nasconde la barra (e la rimostra). Con un appunto aperto compare la scheda «Appunto», nella
@@ -88,12 +92,14 @@ Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le
 | Lavagna live a tutto schermo | «Collega», poi scrivi sul pad. `F` = schermo intero (la barra sparisce), `Esc` per uscire |
 | **Firmare Word e PDF** | Apri un **.docx / .doc / .odt / .rtf** o un **.pdf** (Documento → Apri, il «+» delle schede, trascinando il file o con `gui --apri file`): le pagine compaiono sulla lavagna, con la solita barra. Scrivi e firmi col pennino; **«Salva»** (scheda Documento, o Cmd+Shift+S) chiede dove salvare (ultima cartella scelta, la prima volta `exports/`) e scrive una copia **nello stesso formato**: un Word resta Word (la scrittura è inchiostro dentro il documento: la vedono Word, Pages, LibreOffice), un PDF resta PDF (tratti vettoriali sopra l'originale, testo selezionabile). L'originale non viene toccato. Le pagine si vedono nitide a ogni ingrandimento, come in un programma di videoscrittura: la parte visibile la disegnano, alla risoluzione dello schermo, il motore di [WordCraft](https://github.com/storytold/wordcraft) per i Word e quello di [PdfCraft](https://github.com/storytold/pdfcraft) per i PDF, senza le loro interfacce |
 | **Immagini** | Apri un **SVG, PNG, JPEG** (anche WebP, TIFF, BMP, GIF) come un documento, oppure **Incolla** (`Cmd+V`, Home → Copia e incolla) una schermata o una foto dagli appunti: ci scrivi e la salvi firmata **nello stesso formato e con gli stessi pixel**. Un SVG tiene la scrittura come tracciati vettoriali (motore di [VectorCraft](https://github.com/storytold/vectorcraft)); su una foto la scrittura la dipinge il pennello di [PhotoCraft](https://github.com/storytold/photocraft), con profilo colore, DPI e metadati dell'originale. Solo le loro librerie, senza le interfacce |
+| **Timbro aziendale** | Scheda Documento → Firma → **Timbro**: costruisci uno o più timbri con nome, con ragione sociale, indirizzo, CAP, città e sigla della provincia, P. IVA e, se ci sono, REA, codice univoco e PEC, con o senza cornice (rettangolare, arrotondata, doppia, ovale). Compare sul foglio a grandezza naturale: lo sposti, lo ridimensioni e prima di confermare lo rendi realistico con gli strumenti: colore dell'inchiostro (blu, grigio, nero, rosso, viola), intensità, grana, inchiostro irregolare, inclinazione e «Nuova grana». L'inchiostro è trasparente come quello di un timbro vero: il testo sotto si vede e la firma ci passa sopra. Si salva nella copia firmata in tutti i formati (PDF, Word, foto, SVG); Annulla lo toglie in un passo e la gomma lo cancella intero |
 | Documenti da firmare (altri formati) | .md, .txt, .html: le pagine diventano lo sfondo della lavagna: ci scrivi e firmi col pennino, anche in diretta web. Tutto si salva da solo in `documents/` e si riapre da «Recenti». **«Salva PDF»** scrive in `exports/` il documento con tratti e firma sopra in grafica vettoriale |
 | Zoom e gesti del trackpad (lavagna e archivio) | **Trackpad del Mac**: pizzico = zoom attorno alle dita, due dita = sposta il foglio, Cmd + due dita su/giù = zoom, **due dita che ruotano = gira il foglio di 90°** (come in Anteprima). Mouse: rotella = zoom attorno al puntatore, Shift + rotella = di lato; trascina = sposta (col tasto centrale se è attiva la gomma o l'evidenziatore); doppio clic = 200% / pagina intera. Tastiera: `Cmd +`, `Cmd −`, `Cmd 0`. In basso a destra il cursore dello zoom. Nella griglia dell'archivio il pizzico (o `Cmd +/−`) cambia la grandezza delle anteprime |
 | Evidenziatore giallo | Pulsante «Evidenziatore» o tasto `H`, oppure **dal pennino: tocco lungo** (da accendere in Opzioni: spento di serie, perché chi scrive guardando la carta non si accorgerebbe del cambio; punta ferma 1,5 s, poi alzala). **Anche col mouse**: tasto sinistro premuto sul foglio; **con Shift la linea è dritta**, orizzontale o verticale (col pennino resta a mano libera); col mouse il foglio si sposta col tasto centrale. È trasparente come un evidenziatore vero: il testo dei documenti sotto resta nero e leggibile (schermo, diretta web, PDF, PNG). Un'etichetta gialla sul foglio dice quando è attivo. Per togliere: Annulla, pulsante accanto a «Evidenziatore» (tutte, `Shift+H`; oppure «Evidenziature → scrittura» se hai scritto con l'evidenziatore senza volerlo), `Alt`+clic su una, oppure «Gomma» con l'evidenziatore attivo (toglie solo il giallo, l'inchiostro resta) |
 | Righe e quadretti | Scheda Home → «Righe e quadretti»: foglio bianco; righe (8 mm o 1 cm) e righe di 1ª, 2ª e 3ª elementare con i due margini rossi a sinistra e a destra (si possono togliere); quadretti da 5 mm (anche con margine a sinistra), 4 mm o 1 cm; carta millimetrata; piano cartesiano con gli assi numerati; puntinato; isometrica (triangoli); pentagramma; appunti Cornell (parole chiave, appunti, riassunto). Le righe delle elementari hanno misure indicative (ogni marca ha le sue). Le misure sono vere (centimetri del pad). Solo sullo schermo: le immagini per l'AI e gli export restano puliti |
 | Colori | 6 colori nella barra, oppure tasti `1`…`6` |
 | Spessore | `–` / `+` nella barra, oppure tasti `-` / `+` |
+| Tratto naturale | Acceso di serie (File → Opzioni → Penna ed evidenziatore): lo spessore segue la pressione della penna e le punte sono affusolate, sullo schermo e negli export. Spento, il tratto ha sempre lo stesso spessore, come un pennarello |
 | Gomma | Pulsante «Gomma» o tasto `E`: il pennino cancella ciò che attraversa (uno zig-zag o una passata). **Anche col mouse**: tieni premuto il tasto sinistro e passa sul foglio, cancella ciò che tocca il cerchio rosso (una passata = un solo `Cmd+Z`; per spostare il foglio, tasto centrale o trackpad). Con l'evidenziatore attivo toglie solo il giallo. Resta attiva finché la spegni; etichetta rossa GOMMA sul foglio. Lo zig-zag automatico (senza Gomma) è spento di serie perché le firme sono spesso zig-zag: si riaccende con `zigzag_auto = 1` |
 | Annulla / Ripeti | `Cmd+Z` / `Shift+Cmd+Z` (anche dopo «Pulisci» o la gomma) |
 | Foglio in una chat AI | **Copia** (Home → Copia e incolla) oppure `Cmd+C`, poi `Cmd+V` nella chat. Ritaglia attorno alla scrittura (`copy_crop = 0` per il foglio intero) |
@@ -117,6 +123,7 @@ Ogni comando ha **un posto solo** (più la ricerca `Cmd+K`, il tasto destro e le
 | Il tutor che parla | Sotto ogni risposta **Ascolta** la legge ad alta voce (Esc la ferma); se la domanda l'hai dettata, la risposta torna a voce da sola. Usa le voci del sistema, senza rete: `say` su macOS (le voci «Premium» o «Migliorata» sono le più naturali: Impostazioni di Sistema → Accessibilità → Contenuto letto), le voci di Windows, `espeak-ng` su Linux; oppure un servizio in rete che parla `/audio/speech` (OpenAI…), in `ai.toml` (`[speech]`). Legge nella lingua della risposta |
 | Trasforma in bella | Home → «Trasforma in bella»: l'AI legge quello che hai scritto sulla lavagna, formule comprese, e al suo posto lo riscrive con una scrittura a mano chiara e la matematica impaginata come sul quaderno ordinato (frazioni in colonna, esponenti, radici, graffe dei sistemi, sommatorie, integrali, limiti). È inchiostro vero, come quello della penna: Annulla riporta la tua scrittura. Disegni, evidenziatori, segni dell'AI e righe che non si leggono restano come sono. Usa gli agenti che leggono i fogli (`[ocr]`). Come funziona: trascini col mouse un riquadro attorno alla parte che vuoi (o «Tutta la pagina»); sul foglio compare l'anteprima, Invio la accetta ed Esc la rifiuta. «Chi legge» sceglie un agente solo che vede le immagini (il più veloce che hai); la barra di stato dice chi legge e da quanto. Ogni riga resta al suo posto e non va sulla colonna accanto. Nei disegni, senza AI, rette, frecce (curve, a due punte, anche con la punta fatta a parte), cerchi ed ellissi (anche fatte in due metà), archi di cerchio e d'ellisse e poligoni diventano perfetti: le linee quasi orizzontali o verticali si raddrizzano, gli angoli quasi retti diventano retti, i segmenti quasi paralleli diventano paralleli, le figure quasi regolari diventano regolari (quadrato, rettangolo, rombo, parallelogramma, triangolo equilatero o isoscele, poligoni regolari), le linee tratteggiate hanno trattini uguali e allineati, i capi vicini si uniscono, le curve libere si lisciano; quello che non si riconosce resta com'è. |
 | La tua scrittura | «Trasforma in bella» → «Scrittura» → «Addestra la tua scrittura…»: in pochi turni scrivi col pennino, su pagine vuote, le lettere (ognuna più volte), le cifre, i simboli della matematica, le lettere greche, le accentate e tre frasi. Dopo ogni turno vedi i segni ritagliati e scarti quelli che non ti piacciono; alla fine c'è l'anteprima e, se vuoi, l'AI prova a leggere una frase scritta coi tuoi segni. Da lì la bella copia scrive con la tua scrittura: ogni volta una versione diversa di ogni lettera, gli spazi misurati dalle tue frasi e, in corsivo, le lettere legate. Si possono addestrare corsivo e stampatello (cifre e simboli valgono per tutti e due). Tutto resta nella cartella dei dati `mano/`, sul tuo computer. |
+| Disponi sulle righe | Home → «Disponi sulle righe»: su un foglio a righe o a quadretti trascini un riquadro attorno alla scrittura (a mano o in bella) e lei va sulle righe del foglio, dritta, allineata a sinistra e una riga dopo l'altra. Prima vedi l'anteprima: Invio accetta, Esc rifiuta, Annulla la riporta com'era. Sui quadretti scegli quanti quadretti occupa ogni riga (1, 2 o 3; è proposto quello in cui ci sta la tua scrittura). In «Trasforma in bella», «Sulle righe del foglio» mette la bella copia subito sulle righe |
 | La chat scrive sulla lavagna | Chiedile «controlla i conti e segna gli errori», «sottolinea le scadenze», «scrivi il risultato accanto alla seconda riga»: legge il foglio riga per riga e parola per parola, poi evidenzia, sottolinea, cerchia, barra, fa riquadri, frecce, spunte e croci, e scrive a mano (stampatello o corsivo, coi caratteri di [Hershey](https://it.wikipedia.org/wiki/Hershey_fonts) a filo singolo: tratti veri). Se glielo chiedi sposta, ingrandisce, ricolora o cancella quello che c'è («il titolo più grande e blu», «sposta l'ultima riga più giù», «togli i miei evidenziatori»); da sola aggiunge soltanto, e per cancellare buona parte del foglio aspetta il tuo sì nella chat. Quello che fa è inchiostro come il tuo (si salva, si esporta, si cancella) e si toglie tutto con un clic nella chat |
 | La chat conosce l'archivio | «Trova la pagina dove ho scritto del bilancio di ottobre», «apri sulla lavagna gli appunti di ieri», «salva la lavagna come Riunione e dammi una pagina nuova», «esporta in un PDF le pagine di questa settimana»: cerca per titolo, data e testo delle trascrizioni, guarda una pagina, la apre sulla lavagna, salva la lavagna (aggiornando la pagina da cui viene), rinomina, esporta nella cartella dove esporti di solito (senza mai sovrascrivere), sposta nel cestino e riprende. Per il cestino aspetta sempre il tuo sì nella chat |
 | Server MCP | Altri server MCP (stdio) in `ai.toml`, come in Claude Desktop o DSH: `[[mcp]]` con `name`, `command`, `args`, `env` (valori come le chiavi: `env:`, `keychain:`, `dsh:`), `enabled`, `timeout`. I loro strumenti arrivano alla chat come `nome__strumento` |
@@ -167,6 +174,18 @@ Il pad ricorda una sola app alla volta: usare Inkspace richiede di registrare di
 Il pad non lascia sfogliare le pagine al suo interno: consegna solo la più vecchia, e per avere
 la successiva bisogna toglierla. Per questo, come Inkspace, le pagine si scaricano e si gestiscono
 sul computer. Ogni pagina è un file `library/<data>.json` leggibile (tratti, colori, titolo).
+
+### Android, iPhone e iPad (prima versione)
+
+Nelle cartelle `android/` e `ios/` ci sono le app per telefono e tablet, con lo stesso cuore Rust
+della desktop (`mobile/core`, che usa gli stessi file della desktop): lavagna live col Bamboo Slate,
+pagine scaricate dal pad, archivio nel formato della desktop, strumenti e fogli, tratto naturale, bella
+copia e «Disponi sulle righe», chat AI col tutor che scrive sul foglio, trascrizione in appunto,
+documenti da firmare (PDF, Word, foto, SVG) col timbro aziendale. Le impostazioni AI arrivano dalla
+desktop col QR (Impostazioni AI → «Collega il telefono»), che compare solo quando lo chiedi; sul
+telefono le chiavi API sono cifrate. Versioni pronte da scaricare ancora non ce ne sono: si compilano
+come spiegano [android/README.md](android/README.md) (Android 8.0 o più recente) e
+[ios/README.md](ios/README.md) (iOS 16 o più recente).
 
 ## Agenti AI (`ai.toml`)
 
@@ -252,8 +271,10 @@ chat_width = 0.55        # larghezza della chat (frazione della finestra)
 paper = bianco           # bianco | righe | righe10 | elem1 | elem2 | elem3 | quadretti5 | quadretti5m | quadretti4
                          # quadretti10 | millimetrata | cartesiano | puntinato | isometrica | pentagramma | cornell
 paper_margin = 1         # margini rossi a sinistra e a destra (solo fogli a righe)
+natural_ink = 1          # tratto naturale: lo spessore segue la pressione, punte affusolate (0 = come un pennarello)
 fair_agent =             # bella copia: chi legge la scrittura (vuoto = gli agenti di «Lettura dei fogli»)
 fair_style = chiaro      # bella copia: chiaro | corsivo | stampatello (la tua scrittura, dopo l'addestramento)
+fair_on_rules = 0        # bella copia: 1 = va subito sulle righe del foglio
 save_dir =               # cartella proposta da «Salva con nome» (l'ultima scelta; vuoto = exports/)
 ```
 
@@ -337,6 +358,10 @@ src/speech.rs     le risposte lette ad alta voce: voci del sistema (say, SAPI, e
 src/inbella.rs    «Trasforma in bella»: l'AI legge le righe e le riscrive al loro posto, con la matematica impaginata da src/mathhand.rs
 src/shapes.rs     i disegni in bella: rette, frecce, cerchi, archi e poligoni rifatti perfetti
 src/campioni.rs   la tua scrittura: i turni dell'addestramento, i tuoi segni, le parole scritte con loro (finestra in src/ui/allena_ui.rs)
+src/stamp.rs      il timbro aziendale: impaginazione, inchiostro realistico (grana, bordi ruvidi, inchiostro irregolare, inclinazione); finestra e strumenti in src/ui/timbro_ui.rs
+src/righe.rs      «Disponi sulle righe»: la scrittura va sulle righe del foglio, dritta e allineata a sinistra (le righe e i quadretti di ogni foglio in src/rigatura.rs)
+src/inkshape.rs   tratto naturale: lo spessore segue la pressione della penna, punte affusolate
+mobile/core/      il cuore Rust delle app per telefono e tablet (UniFFI), con gli stessi file della desktop; app in android/ (Kotlin, Compose) e ios/ (SwiftUI)
 src/ui/sysdlg.rs  le finestre del sistema (rfd; su Linux GTK nel thread della finestra, come la chat)
 src/figures.rs    figure della trascrizione ridisegnate dai tratti veri della penna
 src/update.rs     controllo degli aggiornamenti (ultima release su GitHub)

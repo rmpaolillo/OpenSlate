@@ -1301,6 +1301,7 @@
  "P. IVA": "NIF/IVA",
  "REA (se c'è)": "REA (si existe)",
  "Codice univoco (se c'è)": "Código de destinatario (si existe)",
+ "PEC (se c'è)": "PEC (correo certificado, si existe)",
  "Cornice": "Marco",
  "Senza cornice": "Sin marco",
  "Rettangolo": "Rectángulo",

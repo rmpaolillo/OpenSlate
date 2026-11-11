@@ -47,6 +47,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   circles the mistake and writes the correction next to it in handwriting, then explains it in
   the chat, with formulas. It can also draw the graph of a function onto the page.
 - **Sign Word and PDF documents with the pen**, saved in the same format.
+- **Company stamp** on documents: company name, address, VAT number, certified email (PEC)…, with a realistic ink look (grain, uneven ink, tilt), in blue, grey or another ink colour.
 - **Handwriting → editable notes**, with tables and formulas, exported to Markdown, Word or PDF,
   printed or in a handwriting font.
 - **Export to what you need**: a searchable PDF, Word with the handwriting as editable ink, light
@@ -56,6 +57,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   in plain text.
 - **Talk to the chat.** Dictate with the microphone: Whisper transcribes on your computer, offline.
 - **The tutor talks back.** Answers can be read aloud with the system voices.
+- **Android and iPhone/iPad apps** (first version, built from source) on the same Rust core: live board, pad downloads, AI chat, signing and stamps.
 - **Free and open source**, in nine languages, for macOS (main platform), Linux and Windows.
 
 ## Features
@@ -63,7 +65,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Live board.** Connect over Bluetooth and see what you write on the pad as you write it,
   full screen. You get pens, a highlighter (`H`; switching with a long press of the pen can be turned on in Options), an eraser (a
   scribble or eraser mode), colours, line widths, undo/redo, rotate/mirror and zoom with
-  trackpad gestures.
+  trackpad gestures. **Natural stroke** (on by default, Options → Pen and highlighter): the line follows the pen pressure, with tapered ends, on screen and in the exports; turned off, it has an even width like a felt-tip marker.
 - **Paper styles.** Choose from lined, Italian primary-school rulings, squared (4/5/10 mm),
   graph paper, Cartesian plane, dotted, isometric, music staff and Cornell notes. The rulings
   are drawn at true size and appear on screen only, so exports stay clean.
@@ -75,6 +77,14 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   PDF it becomes vector strokes over the untouched original. Pages stay crisp at any zoom,
   rendered by the [WordCraft](https://github.com/storytold/wordcraft) and
   [PdfCraft](https://github.com/storytold/pdfcraft) engines.
+- **Company stamp.** Document tab → Signature → **Stamp**: make one or more named stamps with the
+  company name, address, postcode, city and province, VAT number and, if any, REA number, recipient
+  code (SDI) and certified email (PEC), with or without a frame (rectangle, rounded, double, oval).
+  It is placed on the page at its real size; move it, resize it and make it look real before
+  confirming: ink colour (blue, grey, black, red, violet), intensity, grain, uneven ink, tilt and a
+  new grain pattern. The ink is see-through like a real stamp: the text underneath shows and the
+  signature goes over it. It is saved in the signed copy in every format (PDF, Word, photos, SVG),
+  Undo takes it away in one step and the eraser removes it whole.
 - **Write on images too.** Open an SVG, PNG, JPEG (also WebP, TIFF, BMP, GIF), or press **Paste**
   (`Cmd+V`) with a screenshot or photo on the clipboard. Write on it and save it back as an image
   of the same format and size: an SVG keeps the handwriting as vector paths
@@ -150,6 +160,11 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   different version of each letter every time, the spacing measured from your sentences, and in
   cursive the letters joined. Cursive and print can both be trained (digits and symbols are shared).
   Everything stays in the data folder `mano/`, on your computer.
+- **On the lines.** Home → «Arrange on lines»: on a lined or squared page, drag a box around your
+  writing (by hand or fair copy) and it goes onto the page lines, straight, left-aligned and one line
+  after another. A preview comes first: Enter accepts, Esc rejects, Undo brings it back as it was.
+  On squared paper you choose how many squares each line takes (1, 2 or 3; the one your writing fits
+  in is suggested). In «Fair copy», «On the page lines» puts the fair copy straight onto the lines.
 - **The chat writes on the board.** Ask it to "check my sums and mark the mistakes",
   "underline the deadlines" or "write the result next to line 2": it reads the board sheet line
   by line and word by word, then highlights, underlines, circles, strikes through, draws boxes,
@@ -257,6 +272,18 @@ To read answers aloud it uses `espeak-ng` (`sudo apt install espeak-ng`) or spee
 Unzip and run `openslate.exe`. It needs the Microsoft Edge WebView2 runtime, which ships with
 Windows 10/11. On the "N" editions of Windows the MP4 video export also needs Microsoft's
 Media Feature Pack. Not everything is tested on Windows. Bug reports are very welcome.
+
+### Android, iPhone and iPad (first version)
+
+The `android/` and `ios/` folders hold the phone and tablet apps, on the same Rust core as the
+desktop (`mobile/core`, which uses the desktop's own source files): live board with the Bamboo Slate,
+pages downloaded from the pad, the library in the desktop format, the tools and paper styles,
+natural stroke, fair copy and arranging on lines, the AI chat with the tutor that writes on the page,
+transcription into a note, and signing documents (PDF, Word, photos, SVG) with the company stamp.
+The AI settings come from the desktop through a QR code (AI settings → «Connect the phone»), shown
+only when you ask for it; on the phone the API keys are stored encrypted. There are no ready-made
+downloads yet: build them as described in [android/README.md](android/README.md) (Android 8.0 or
+newer) and [ios/README.md](ios/README.md) (iOS 16 or newer).
 
 ## Files and formats
 
@@ -416,6 +443,10 @@ src/speech.rs                                             answers read aloud: sy
 src/inbella.rs, src/mathhand.rs                           fair copy: the AI reads the lines, they are rewritten with the maths laid out
 src/shapes.rs                                             fair copy of drawings: lines, arrows, circles, arcs and polygons made perfect
 src/campioni.rs, src/ui/allena_ui.rs                      your handwriting: training rounds, your signs, words written with them
+src/stamp.rs, src/ui/timbro_ui.rs                         company stamp: layout, realistic ink, the stamp editor and the placing tools
+src/righe.rs, src/rigatura.rs                             arrange the writing on the page lines; the lines and squares of each paper style
+src/inkshape.rs                                           natural stroke: width from the pen pressure, tapered ends
+mobile/core/, android/, ios/                              phone and tablet apps: shared Rust core (UniFFI), Kotlin/Compose and SwiftUI
 src/ui/sysdlg.rs                                          system dialogs (rfd; on Linux GTK in the window's thread)
 src/fonts.rs                                              the fonts embedded in the app (one copy each)
 src/demo.rs                                               sample pages for the screenshots (tests only)

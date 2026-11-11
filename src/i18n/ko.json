@@ -1301,6 +1301,7 @@
  "P. IVA": "부가세 번호",
  "REA (se c'è)": "REA (있는 경우)",
  "Codice univoco (se c'è)": "수신자 코드 (있는 경우)",
+ "PEC (se c'è)": "PEC (인증 이메일, 있는 경우)",
  "Cornice": "테두리",
  "Senza cornice": "테두리 없음",
  "Rettangolo": "직사각형",

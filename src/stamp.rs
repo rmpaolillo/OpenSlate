@@ -36,6 +36,8 @@ pub struct Company {
     pub rea: String,
     /// Codice univoco (SDI).
     pub sdi: String,
+    /// Posta elettronica certificata.
+    pub pec: String,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -166,6 +168,9 @@ impl StampSpec {
         }
         if !t(&c.sdi).is_empty() {
             out.push((format!("Codice Univoco: {}", t(&c.sdi).to_uppercase()), false));
+        }
+        if !t(&c.pec).is_empty() {
+            out.push((format!("PEC: {}", t(&c.pec)), false));
         }
         out
     }
@@ -643,9 +648,17 @@ pub(crate) mod tests {
                 vat: "02597400999".into(),
                 rea: "".into(),
                 sdi: "usal8pv".into(),
+                pec: "".into(),
             },
             style: StampStyle::default(),
         }
+    }
+
+    #[test]
+    fn timbri_salvati_prima_della_pec() {
+        let c: Company = serde_json::from_str(r#"{"name":"CORDUA S.R.L.","sdi":"USAL8PV"}"#).unwrap();
+        assert_eq!(c.pec, "");
+        assert_eq!(c.sdi, "USAL8PV");
     }
 
     #[test]
@@ -660,8 +673,9 @@ pub(crate) mod tests {
         s2.company.address.clear();
         s2.company.rea = "GE-123456".into();
         s2.company.sdi = "  ".into();
+        s2.company.pec = " cordua@pec.it ".into();
         let l: Vec<String> = s2.lines().into_iter().map(|l| l.0).collect();
-        assert_eq!(l, ["CORDUA S.R.L.", "16121 Genova (GE)", "P.IVA 02597400999 – REA GE-123456"]);
+        assert_eq!(l, ["CORDUA S.R.L.", "16121 Genova (GE)", "P.IVA 02597400999 – REA GE-123456", "PEC: cordua@pec.it"]);
     }
 
     #[test]

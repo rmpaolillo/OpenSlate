@@ -207,6 +207,7 @@
     <string name="stamp_vat">VAT number</string>
     <string name="stamp_rea">REA (if any)</string>
     <string name="stamp_sdi">Recipient code (if any)</string>
+    <string name="stamp_pec">Certified email (PEC, if any)</string>
     <string name="stamp_frame">Frame</string>
     <string name="stamp_frame_none">No frame</string>
     <string name="stamp_frame_rect">Rectangle</string>

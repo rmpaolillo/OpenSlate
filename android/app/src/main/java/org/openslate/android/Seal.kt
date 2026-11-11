@@ -48,6 +48,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import uniffi.openslate_mobile.BoardView
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import uniffi.openslate_mobile.Company
 import uniffi.openslate_mobile.Frame
 import uniffi.openslate_mobile.InkColor
@@ -200,6 +202,8 @@ fun StampDialog(
                     OutlinedTextField(c.rea, { v -> company { it.copy(rea = v) } }, Modifier.weight(1f), label = { Text(stringResource(R.string.stamp_rea)) }, singleLine = true)
                     OutlinedTextField(c.sdi, { v -> company { it.copy(sdi = v) } }, Modifier.weight(1f), label = { Text(stringResource(R.string.stamp_sdi)) }, singleLine = true)
                 }
+                OutlinedTextField(c.pec, { v -> company { it.copy(pec = v) } }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.stamp_pec)) }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
                 Text(stringResource(R.string.stamp_frame), style = MaterialTheme.typography.labelLarge)
                 FrameChips(draft.spec.style.frame) { f -> draft = draft.copy(spec = draft.spec.copy(style = draft.spec.style.copy(frame = f))) }
                 InkDots(draft.spec.style.color) { col -> draft = draft.copy(spec = draft.spec.copy(style = draft.spec.style.copy(color = col))) }

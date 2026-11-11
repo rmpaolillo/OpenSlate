@@ -1301,6 +1301,7 @@
  "P. IVA": "VAT number",
  "REA (se c'è)": "REA (if any)",
  "Codice univoco (se c'è)": "Recipient code (if any)",
+ "PEC (se c'è)": "Certified email (PEC, if any)",
  "Cornice": "Frame",
  "Senza cornice": "No frame",
  "Rettangolo": "Rectangle",

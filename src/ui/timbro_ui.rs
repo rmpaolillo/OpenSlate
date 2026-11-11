@@ -215,6 +215,7 @@ impl App {
                             row(ui, "P. IVA", &mut c.vat, "02597400999", 160.0);
                             row(ui, "REA (se c'è)", &mut c.rea, "GE-123456", 160.0);
                             row(ui, "Codice univoco (se c'è)", &mut c.sdi, "USAL8PV", 160.0);
+                            row(ui, "PEC (se c'è)", &mut c.pec, "cordua@pec.it", 300.0);
                         });
                         ui.add_space(6.0);
                         let st = &mut d.spec.style;
