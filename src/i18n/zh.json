@@ -1330,5 +1330,16 @@
  "Un lato più scarico dell'altro, come un timbro premuto storto": "一侧比另一侧浅，像印章按歪了",
  "Ruota il timbro di qualche grado, come messo a mano": "将印章旋转几度，像手工盖的一样",
  "Timbro apposto ✓ (Cmd+Z per toglierlo).": "已盖印章 ✓（Cmd+Z 撤销）。",
- "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "把印章拖到需要的位置，用滚轮或角调整大小；在工具栏调整颜色、颗粒和倾斜，然后按回车。"
+ "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "把印章拖到需要的位置，用滚轮或角调整大小；在工具栏调整颜色、颗粒和倾斜，然后按回车。",
+ "Stampa": "打印",
+ "Stampa…": "打印…",
+ "Il documento con quello che hai scritto, firma e timbri compresi": "文档连同你写的内容，包括签名和印章",
+ "La pagina della lavagna": "白板页面",
+ "Stampa il documento con quello che hai scritto, firma e timbri compresi (Cmd+P)": "打印文档及你写的内容，包括签名和印章 (Cmd+P)",
+ "Stampa la pagina della lavagna (Cmd+P)": "打印白板页面 (Cmd+P)",
+ "Niente da stampare: pagina vuota.": "没有可打印的内容：页面是空的。",
+ "Preparo la stampa…": "正在准备打印…",
+ "Stampa inviata.": "已发送到打印机。",
+ "Stampa annullata.": "已取消打印。",
+ "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "要打印的 PDF 已在 PDF 阅读器中打开：请从那里打印 (Ctrl+P)。"
 }

@@ -354,6 +354,7 @@ struct BoardScreen: View {
                         .disabled(board.isEmpty || app.doc != nil || !paperHasRows(paper: app.paperCode))
                 }
                 Section(L("Condividi", "Share")) {
+                    Button { app.printNow() } label: { Label(L("Stampa…", "Print…"), systemImage: "printer") }.disabled(board.isEmpty && app.doc == nil)
                     Button { shareURL = try? Export.pdf(board.toPage(Float(app.padSize.width), Float(app.padSize.height)), quarter: app.quarter) } label: { Label(L("Condividi PDF", "Share as PDF"), systemImage: "doc.richtext") }.disabled(board.isEmpty)
                     Button { shareURL = try? Export.png(board.toPage(Float(app.padSize.width), Float(app.padSize.height)), quarter: app.quarter) } label: { Label(L("Condividi immagine", "Share as image"), systemImage: "photo") }.disabled(board.isEmpty)
                     Button { copyBoard() } label: { Label(L("Copia negli appunti", "Copy to clipboard"), systemImage: "doc.on.doc") }.disabled(board.isEmpty || app.doc != nil)
@@ -394,6 +395,7 @@ struct DocBar: View {
                 }
             } label: { Label(L("Timbro", "Stamp"), systemImage: "seal") }
             .disabled(app.sealJob != nil)
+            Button { app.printNow() } label: { Label(L("Stampa", "Print"), systemImage: "printer") }
             Button { shareURL = app.signedFile() } label: { Label(L("Condividi firmato", "Share signed"), systemImage: "square.and.arrow.up") }
             Button { app.closeDoc() } label: { Image(systemName: "xmark") }
         }

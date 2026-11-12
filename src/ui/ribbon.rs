@@ -193,6 +193,10 @@ impl App {
             {
                 actions.push(Action::SaveBoard);
             }
+            let tip = if doc { "Stampa il documento con quello che hai scritto, firma e timbri compresi (Cmd+P)" } else { "Stampa la pagina della lavagna (Cmd+P)" };
+            if big_ex(ui, ic::PRINTER, "Stampa", tip, true, false, false).clicked() {
+                actions.push(Action::Print);
+            }
         });
     }
 
@@ -457,6 +461,9 @@ impl App {
             };
             if big_ex(ui, glyph, label, tip, open, false, false).clicked() {
                 actions.push(doc(DocAction::SaveSigned));
+            }
+            if big_ex(ui, ic::PRINTER, "Stampa", "Stampa il documento con quello che hai scritto, firma e timbri compresi (Cmd+P)", open, false, false).clicked() {
+                actions.push(Action::Print);
             }
             if big_ex(ui, ic::FILE_MAGNIFYING_GLASS, "Ultimo\nPDF", "Apri l'ultimo PDF salvato", self.docui.last_export.is_some(), false, false).clicked() {
                 actions.push(doc(DocAction::OpenLastExport));

@@ -1330,5 +1330,16 @@
  "Un lato più scarico dell'altro, come un timbro premuto storto": "Один бік блідіший за інший, як печатка, притиснута нерівно",
  "Ruota il timbro di qualche grado, come messo a mano": "Поверніть печатку на кілька градусів, ніби поставлену вручну",
  "Timbro apposto ✓ (Cmd+Z per toglierlo).": "Печатку поставлено ✓ (Cmd+Z, щоб прибрати).",
- "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "Перетягніть печатку куди треба, коліщатко або кут — розмір; налаштуйте колір, зернистість і нахил на панелі, потім Enter."
+ "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "Перетягніть печатку куди треба, коліщатко або кут — розмір; налаштуйте колір, зернистість і нахил на панелі, потім Enter.",
+ "Stampa": "Друк",
+ "Stampa…": "Друк…",
+ "Il documento con quello che hai scritto, firma e timbri compresi": "Документ із тим, що ви написали, разом із підписом і печатками",
+ "La pagina della lavagna": "Сторінка дошки",
+ "Stampa il documento con quello che hai scritto, firma e timbri compresi (Cmd+P)": "Надрукувати документ із тим, що ви написали, разом із підписом і печатками (Cmd+P)",
+ "Stampa la pagina della lavagna (Cmd+P)": "Надрукувати сторінку дошки (Cmd+P)",
+ "Niente da stampare: pagina vuota.": "Нічого друкувати: сторінка порожня.",
+ "Preparo la stampa…": "Готую друк…",
+ "Stampa inviata.": "Надіслано на принтер.",
+ "Stampa annullata.": "Друк скасовано.",
+ "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "PDF для друку відкрито в переглядачі PDF: друкуйте звідти (Ctrl+P)."
 }

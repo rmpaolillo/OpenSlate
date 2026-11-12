@@ -1330,5 +1330,16 @@
  "Un lato più scarico dell'altro, come un timbro premuto storto": "斜めに押したように片側が薄くなります",
  "Ruota il timbro di qualche grado, come messo a mano": "手で押したように数度回転させます",
  "Timbro apposto ✓ (Cmd+Z per toglierlo).": "スタンプを押しました ✓（Cmd+Z で取り消し）。",
- "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "スタンプを必要な場所へドラッグし、ホイールか角で大きさを変え、バーで色・かすれ・傾きを調整して Enter。"
+ "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "スタンプを必要な場所へドラッグし、ホイールか角で大きさを変え、バーで色・かすれ・傾きを調整して Enter。",
+ "Stampa": "印刷",
+ "Stampa…": "印刷…",
+ "Il documento con quello che hai scritto, firma e timbri compresi": "書き込んだ内容を含む文書（署名と印影も含む）",
+ "La pagina della lavagna": "ボードのページ",
+ "Stampa il documento con quello che hai scritto, firma e timbri compresi (Cmd+P)": "書き込んだ内容を含めて文書を印刷します（署名と印影も含む）(Cmd+P)",
+ "Stampa la pagina della lavagna (Cmd+P)": "ボードのページを印刷します (Cmd+P)",
+ "Niente da stampare: pagina vuota.": "印刷するものがありません：ページが空です。",
+ "Preparo la stampa…": "印刷を準備しています…",
+ "Stampa inviata.": "プリンターに送信しました。",
+ "Stampa annullata.": "印刷をキャンセルしました。",
+ "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "印刷用の PDF を PDF ビューアで開きました：そこから印刷してください (Ctrl+P)。"
 }

@@ -336,6 +336,12 @@ impl Document {
         pdfdoc::write_overlay(&self.source_pdf(), dst, &per_page)
     }
 
+    /// Il PDF da stampare: le pagine come si vedono (anche di un Word o di una
+    /// foto) con firma, timbri e scrittura sopra.
+    pub fn export_print(&self, view: View, pad: &Drawing, dst: &Path) -> Result<()> {
+        pdfdoc::write_overlay(&self.source_pdf(), dst, &self.overlay(view, pad))
+    }
+
     /// I tratti di ogni pagina in coordinate della pagina (0..1 dall'alto a sinistra).
     fn overlay(&self, view: View, pad: &Drawing) -> Vec<Vec<OverlayStroke>> {
         let (pw, ph) = page_dims(pad);

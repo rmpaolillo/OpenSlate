@@ -68,6 +68,8 @@ impl App {
                 actions.push(Action::Doc(DocAction::SaveSigned));
             } else if i.consume_key(c, egui::Key::S) {
                 actions.push(if self.docui.doc.is_some() { Action::Doc(DocAction::SaveSigned) } else { Action::SaveBoard });
+            } else if i.consume_key(c, egui::Key::P) {
+                actions.push(Action::Print);
             } else if i.consume_key(c, egui::Key::W) {
                 if self.docui.doc.is_some() {
                     actions.push(Action::Doc(DocAction::Close));

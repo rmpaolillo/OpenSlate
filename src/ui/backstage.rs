@@ -266,6 +266,11 @@ impl App {
             actions.push(Action::SaveBoard);
             actions.push(Action::Backstage(None));
         }
+        let print_sub = if doc.is_some() { "Il documento con quello che hai scritto, firma e timbri compresi" } else { "La pagina della lavagna" };
+        if card(ui, ic::PRINTER, "Stampa", print_sub, true) {
+            actions.push(Action::Print);
+            actions.push(Action::Backstage(None));
+        }
         if card(ui, ic::FILE_MAGNIFYING_GLASS, "Apri l'ultimo PDF salvato", "In Anteprima", self.docui.last_export.is_some()) {
             actions.push(Action::Doc(DocAction::OpenLastExport));
         }

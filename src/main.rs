@@ -40,6 +40,7 @@ mod mathhand;
 mod ocr;
 mod offline;
 mod pdfdoc;
+mod print;
 mod platform;
 mod protocol;
 mod scene;

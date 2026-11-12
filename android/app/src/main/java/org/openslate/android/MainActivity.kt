@@ -592,6 +592,26 @@ class MainActivity : ComponentActivity(), LinkListener {
             .getOrNull()
     }
 
+    /** Stampa il documento con la scrittura, o la pagina della lavagna. */
+    private fun printNow() {
+        val d = doc
+        runCatching {
+            if (d != null) {
+                d.keep(board)
+                val dir = File(cacheDir, "print").apply { deleteRecursively(); mkdirs() }
+                val f = File(dir, d.title + ".pdf")
+                d.printPdf(f, view())
+                Print.pdf(this, f, d.title)
+            } else {
+                val page = board.toPage(padSize.width, padSize.height)
+                Print.pdf(this, Export.pdf(this, page, quarter), page.title.ifBlank { getString(R.string.app_name) })
+            }
+        }.onFailure {
+            Log.e("OpenSlate", "stampa", it)
+            toast(getString(R.string.print_failed, it.message ?: ""))
+        }
+    }
+
     private fun openViewer(id: String) {
         runCatching { libraryLoad(libDir, id) }
             .onSuccess { screen = Screen.Viewer(it) }
@@ -764,6 +784,8 @@ class MainActivity : ComponentActivity(), LinkListener {
                             enabled = !empty && d == null && paperHasRows(paperCode), onClick = { pageMenu = false; startNeat(NeatKind.RULES) })
                         HorizontalDivider()
                         MenuHeader(stringResource(R.string.grp_share))
+                        DropdownMenuItem(text = { Text(stringResource(R.string.print)) }, leadingIcon = { Icon(Icons.Filled.Print, null) },
+                            enabled = !empty || d != null, onClick = { pageMenu = false; printNow() })
                         DropdownMenuItem(text = { Text(stringResource(R.string.share_pdf)) }, leadingIcon = { Icon(Icons.Filled.PictureAsPdf, null) },
                             enabled = !empty, onClick = { pageMenu = false; sharePage(board.toPage(padSize.width, padSize.height), pdf = true) })
                         DropdownMenuItem(text = { Text(stringResource(R.string.share_image)) }, leadingIcon = { Icon(Icons.Filled.Image, null) },

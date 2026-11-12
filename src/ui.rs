@@ -507,6 +507,8 @@ enum Action {
     FlipY,
     Fullscreen,
     Export(Fmt),
+    /// Stampa il documento aperto (con la scrittura) o la pagina della lavagna.
+    Print,
     Ocr,
     /// Mostra/nasconde la chat AI a destra.
     Chat,
@@ -1014,6 +1016,26 @@ impl App {
         self.rt.spawn(async move {
             let r = web::start(hub, port).await.map_err(|e| e.to_string());
             let _ = tx.send(UiEvent::Web(r));
+        });
+    }
+
+    /// Stampa in sottofondo: `make` scrive il PDF, poi il dialogo di stampa
+    /// del sistema (la finestra resta libera mentre è aperto).
+    fn print_job(&mut self, title: String, make: impl FnOnce(&std::path::Path) -> anyhow::Result<()> + Send + 'static) {
+        self.status = "Preparo la stampa…".into();
+        let tx = self.evt_tx.clone();
+        std::thread::spawn(move || {
+            let r = crate::print::temp_pdf(&title).and_then(|pdf| {
+                make(&pdf)?;
+                crate::print::print_pdf(&pdf, &title)
+            });
+            let ev = match r {
+                Ok(crate::print::Printed::Done) => UiEvent::Status("Stampa inviata.".into()),
+                Ok(crate::print::Printed::Cancelled) => UiEvent::Status("Stampa annullata.".into()),
+                Ok(crate::print::Printed::Opened) => UiEvent::Status("Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).".into()),
+                Err(e) => UiEvent::Error(format!("Stampa: {e:#}")),
+            };
+            let _ = tx.send(ev);
         });
     }
 
@@ -1911,6 +1933,17 @@ impl App {
             Action::Export(f) => {
                 let item = self.board_item();
                 self.export_pages(vec![item], f);
+            }
+            Action::Print if self.docui.doc.is_some() => {
+                self.apply_doc(doc_view::DocAction::Print);
+            }
+            Action::Print => {
+                let (_, page) = self.board_page();
+                if page.is_empty() {
+                    self.status = "Niente da stampare: pagina vuota.".into();
+                    return;
+                }
+                self.print_job(crate::i18n::t("Lavagna").to_string(), move |dst| export::save_pdf(&[&page], dst));
             }
             Action::Ocr => {
                 let (_, p) = self.board_page();

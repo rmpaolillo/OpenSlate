@@ -124,6 +124,8 @@ pub(super) enum DocAction {
     OpenRecent(String),
     Page(usize),
     SaveSigned,
+    /// Stampa il documento con la scrittura.
+    Print,
     Close,
     StartCapture,
     SaveCapture,
@@ -569,6 +571,16 @@ impl App {
                     };
                     let _ = tx.send(ev);
                 });
+            }
+            DocAction::Print => {
+                self.save_doc();
+                let Some(d) = &self.docui.doc else { return };
+                let (id, title) = (d.id.clone(), file_stem(&d.title));
+                let (view, pad) = {
+                    let s = self.hub.lock();
+                    (s.view, s.drawing.clone())
+                };
+                self.print_job(title, move |dst| crate::document::Document::open(&id)?.export_print(view, &pad, dst));
             }
             DocAction::Close => {
                 if let Some(id) = self.docui.doc.as_ref().map(|d| d.id.clone()) {

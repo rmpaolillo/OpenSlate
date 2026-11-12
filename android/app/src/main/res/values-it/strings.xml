@@ -227,4 +227,6 @@
     <string name="stamp_apply">Applica</string>
     <string name="stamp_reseed">Nuova grana</string>
     <string name="stamp_applied">Timbro apposto: Annulla lo toglie.</string>
+    <string name="print">Stampa…</string>
+    <string name="print_failed">Stampa non riuscita: %1$s</string>
 </resources>

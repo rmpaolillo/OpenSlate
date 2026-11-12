@@ -1330,5 +1330,16 @@
  "Un lato più scarico dell'altro, come un timbro premuto storto": "Un côté plus pâle que l'autre, comme un tampon appuyé de travers",
  "Ruota il timbro di qualche grado, come messo a mano": "Tourne le tampon de quelques degrés, comme posé à la main",
  "Timbro apposto ✓ (Cmd+Z per toglierlo).": "Tampon apposé ✓ (Cmd+Z pour l'enlever).",
- "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "Faites glisser le tampon où il faut, molette ou coin pour la taille ; réglez couleur, grain et inclinaison dans la barre, puis Entrée."
+ "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "Faites glisser le tampon où il faut, molette ou coin pour la taille ; réglez couleur, grain et inclinaison dans la barre, puis Entrée.",
+ "Stampa": "Imprimer",
+ "Stampa…": "Imprimer…",
+ "Il documento con quello che hai scritto, firma e timbri compresi": "Le document avec ce que vous avez écrit, signature et tampons compris",
+ "La pagina della lavagna": "La page du tableau",
+ "Stampa il documento con quello che hai scritto, firma e timbri compresi (Cmd+P)": "Imprimer le document avec ce que vous avez écrit, signature et tampons compris (Cmd+P)",
+ "Stampa la pagina della lavagna (Cmd+P)": "Imprimer la page du tableau (Cmd+P)",
+ "Niente da stampare: pagina vuota.": "Rien à imprimer : la page est vide.",
+ "Preparo la stampa…": "Préparation de l'impression…",
+ "Stampa inviata.": "Envoyé à l'imprimante.",
+ "Stampa annullata.": "Impression annulée.",
+ "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "Le PDF à imprimer est ouvert dans le lecteur de PDF : imprimez depuis celui-ci (Ctrl+P)."
 }

@@ -230,4 +230,6 @@
     <string name="stamp_apply">Apply</string>
     <string name="stamp_reseed">New grain</string>
     <string name="stamp_applied">Stamp applied: Undo removes it.</string>
+    <string name="print">Print…</string>
+    <string name="print_failed">Could not print: %1$s</string>
 </resources>

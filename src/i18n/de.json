@@ -1330,5 +1330,16 @@
  "Un lato più scarico dell'altro, come un timbro premuto storto": "Eine Seite blasser als die andere, wie ein schief gedrückter Stempel",
  "Ruota il timbro di qualche grado, come messo a mano": "Dreht den Stempel um ein paar Grad, wie von Hand gesetzt",
  "Timbro apposto ✓ (Cmd+Z per toglierlo).": "Stempel gesetzt ✓ (Cmd+Z zum Entfernen).",
- "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "Zieh den Stempel an die richtige Stelle, Mausrad oder Ecke für die Größe; Farbe, Körnung und Neigung in der Leiste einstellen, dann Enter."
+ "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "Zieh den Stempel an die richtige Stelle, Mausrad oder Ecke für die Größe; Farbe, Körnung und Neigung in der Leiste einstellen, dann Enter.",
+ "Stampa": "Drucken",
+ "Stampa…": "Drucken…",
+ "Il documento con quello che hai scritto, firma e timbri compresi": "Das Dokument mit dem, was du geschrieben hast, samt Unterschrift und Stempeln",
+ "La pagina della lavagna": "Die Seite der Tafel",
+ "Stampa il documento con quello che hai scritto, firma e timbri compresi (Cmd+P)": "Das Dokument mit dem, was du geschrieben hast, samt Unterschrift und Stempeln drucken (Cmd+P)",
+ "Stampa la pagina della lavagna (Cmd+P)": "Die Seite der Tafel drucken (Cmd+P)",
+ "Niente da stampare: pagina vuota.": "Nichts zu drucken: die Seite ist leer.",
+ "Preparo la stampa…": "Druck wird vorbereitet…",
+ "Stampa inviata.": "An den Drucker gesendet.",
+ "Stampa annullata.": "Drucken abgebrochen.",
+ "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "Das PDF zum Drucken ist im PDF-Betrachter geöffnet: von dort drucken (Strg+P)."
 }

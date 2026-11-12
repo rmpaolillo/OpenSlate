@@ -1330,5 +1330,16 @@
  "Un lato più scarico dell'altro, come un timbro premuto storto": "도장을 비뚤게 누른 것처럼 한쪽이 더 흐립니다",
  "Ruota il timbro di qualche grado, come messo a mano": "손으로 찍은 것처럼 몇 도 회전합니다",
  "Timbro apposto ✓ (Cmd+Z per toglierlo).": "도장을 찍었습니다 ✓ (Cmd+Z로 제거).",
- "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "도장을 원하는 곳으로 끌고, 휠이나 모서리로 크기를 조절하고, 막대에서 색·거칠기·기울기를 조정한 뒤 Enter."
+ "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "도장을 원하는 곳으로 끌고, 휠이나 모서리로 크기를 조절하고, 막대에서 색·거칠기·기울기를 조정한 뒤 Enter.",
+ "Stampa": "인쇄",
+ "Stampa…": "인쇄…",
+ "Il documento con quello che hai scritto, firma e timbri compresi": "작성한 내용이 담긴 문서(서명과 도장 포함)",
+ "La pagina della lavagna": "보드 페이지",
+ "Stampa il documento con quello che hai scritto, firma e timbri compresi (Cmd+P)": "작성한 내용과 함께 문서를 인쇄합니다(서명과 도장 포함) (Cmd+P)",
+ "Stampa la pagina della lavagna (Cmd+P)": "보드 페이지를 인쇄합니다 (Cmd+P)",
+ "Niente da stampare: pagina vuota.": "인쇄할 내용이 없습니다: 페이지가 비어 있습니다.",
+ "Preparo la stampa…": "인쇄를 준비하는 중…",
+ "Stampa inviata.": "프린터로 보냈습니다.",
+ "Stampa annullata.": "인쇄를 취소했습니다.",
+ "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "인쇄할 PDF를 PDF 뷰어에서 열었습니다: 거기서 인쇄하세요 (Ctrl+P)."
 }

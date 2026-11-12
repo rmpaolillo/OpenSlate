@@ -26,6 +26,7 @@ import uniffi.openslate_mobile.docExtensions
 import uniffi.openslate_mobile.docPrepare
 import uniffi.openslate_mobile.docSign
 import uniffi.openslate_mobile.docSignedExt
+import uniffi.openslate_mobile.pdfSign
 import java.io.File
 
 /**
@@ -92,6 +93,9 @@ class OpenDoc private constructor(val dir: File, val title: String, val original
 
     /** Scrive in `dst` la copia firmata (tutte le pagine). */
     fun sign(dst: File, view: BoardView) = docSign(original.path, pdf.path, dst.path, strokes, view)
+
+    /** Il PDF da stampare: le pagine come si vedono, con la scrittura sopra (anche per Word e foto). */
+    fun printPdf(dst: File, view: BoardView) = pdfSign(pdf.path, dst.path, strokes, view)
 
     val hasInk get() = strokes.any { it.isNotEmpty() }
 

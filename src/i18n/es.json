@@ -1330,5 +1330,16 @@
  "Un lato più scarico dell'altro, come un timbro premuto storto": "Un lado más claro que el otro, como un sello presionado torcido",
  "Ruota il timbro di qualche grado, come messo a mano": "Gira el sello unos grados, como puesto a mano",
  "Timbro apposto ✓ (Cmd+Z per toglierlo).": "Sello aplicado ✓ (Cmd+Z para quitarlo).",
- "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "Arrastra el sello donde haga falta, rueda o esquina para el tamaño; ajusta color, grano e inclinación en la barra, luego Intro."
+ "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "Arrastra el sello donde haga falta, rueda o esquina para el tamaño; ajusta color, grano e inclinación en la barra, luego Intro.",
+ "Stampa": "Imprimir",
+ "Stampa…": "Imprimir…",
+ "Il documento con quello che hai scritto, firma e timbri compresi": "El documento con lo que has escrito, firma y sellos incluidos",
+ "La pagina della lavagna": "La página de la pizarra",
+ "Stampa il documento con quello che hai scritto, firma e timbri compresi (Cmd+P)": "Imprime el documento con lo que has escrito, firma y sellos incluidos (Cmd+P)",
+ "Stampa la pagina della lavagna (Cmd+P)": "Imprime la página de la pizarra (Cmd+P)",
+ "Niente da stampare: pagina vuota.": "Nada que imprimir: la página está vacía.",
+ "Preparo la stampa…": "Preparando la impresión…",
+ "Stampa inviata.": "Enviado a la impresora.",
+ "Stampa annullata.": "Impresión cancelada.",
+ "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "El PDF para imprimir está abierto en el visor de PDF: imprime desde ahí (Ctrl+P)."
 }

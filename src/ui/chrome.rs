@@ -461,6 +461,9 @@ impl App {
                 actions.push(Action::CopyImage);
             }
             ui.separator();
+            if menu_item(ui, true, ic::PRINTER, "Stampa…", &cmd_key("P")) {
+                actions.push(Action::Print);
+            }
             if menu_item(ui, true, ic::FILE_PDF, "Esporta in PDF", "") {
                 actions.push(Action::Export(Fmt::Pdf));
             }
@@ -820,6 +823,7 @@ impl App {
             c(ic::SIGNATURE, "Registra la firma", "", Action::Doc(DocAction::StartCapture)),
             c(ic::STAMP, "Inserisci la firma", "", Action::Doc(DocAction::InsertSignature)),
             c(ic::FILE_PDF, "Esporta la pagina in PDF", "", Action::Export(Fmt::Pdf)),
+            c(ic::PRINTER, "Stampa", &cmd_key("P"), Action::Print),
             c(ic::FILE_SVG, "Esporta la pagina in SVG", "", Action::Export(Fmt::Svg)),
             c(ic::FILE_PNG, "Esporta la pagina in PNG", "", Action::Export(Fmt::Png)),
             c(ic::FOLDER_OPEN, "Apri la cartella dei file salvati", "", Action::OpenExports),

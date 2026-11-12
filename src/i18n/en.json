@@ -1330,5 +1330,16 @@
  "Un lato più scarico dell'altro, come un timbro premuto storto": "One side fainter than the other, like a stamp pressed unevenly",
  "Ruota il timbro di qualche grado, come messo a mano": "Rotate the stamp a few degrees, as if placed by hand",
  "Timbro apposto ✓ (Cmd+Z per toglierlo).": "Stamp applied ✓ (Cmd+Z to remove it).",
- "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "Drag the stamp where needed, wheel or corner for size; adjust colour, grain and tilt in the bar, then Enter."
+ "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.": "Drag the stamp where needed, wheel or corner for size; adjust colour, grain and tilt in the bar, then Enter.",
+ "Stampa": "Print",
+ "Stampa…": "Print…",
+ "Il documento con quello che hai scritto, firma e timbri compresi": "The document with what you wrote, signature and stamps included",
+ "La pagina della lavagna": "The board page",
+ "Stampa il documento con quello che hai scritto, firma e timbri compresi (Cmd+P)": "Print the document with what you wrote, signature and stamps included (Cmd+P)",
+ "Stampa la pagina della lavagna (Cmd+P)": "Print the board page (Cmd+P)",
+ "Niente da stampare: pagina vuota.": "Nothing to print: the page is empty.",
+ "Preparo la stampa…": "Preparing to print…",
+ "Stampa inviata.": "Sent to the printer.",
+ "Stampa annullata.": "Printing cancelled.",
+ "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "The PDF to print is open in your PDF viewer: print from there (Ctrl+P)."
 }

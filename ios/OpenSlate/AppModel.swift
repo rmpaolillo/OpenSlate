@@ -131,6 +131,11 @@ final class OpenDoc: ObservableObject {
         try docSign(original: original.path, pdf: pdf.path, dst: dst.path, pages: strokes, view: view)
     }
 
+    /// Il PDF da stampare: le pagine come si vedono, con la scrittura sopra (anche per Word e foto).
+    func printPdf(to dst: URL, view: BoardView) throws {
+        try pdfSign(src: pdf.path, dst: dst.path, pages: strokes, view: view)
+    }
+
     static var docsRoot: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("documents", isDirectory: true)
     }
@@ -334,6 +339,35 @@ final class AppModel: ObservableObject, LinkListener {
             show(L("Salvataggio non riuscito: ", "Could not save: ") + "\(error)")
             return nil
         }
+    }
+
+    /// Stampa il documento con la scrittura, o la pagina della lavagna, col
+    /// dialogo di stampa di iOS (AirPrint, copie, pagine, «Salva in File»).
+    func printNow() {
+        let url: URL
+        let title: String
+        do {
+            if let d = doc {
+                d.keep(board)
+                url = Export.shareDir().appendingPathComponent(d.title + ".pdf")
+                try d.printPdf(to: url, view: view)
+                title = d.title
+            } else {
+                let page = board.toPage(Float(padSize.width), Float(padSize.height))
+                url = try Export.pdf(page, quarter: quarter)
+                title = page.title.isEmpty ? "OpenSlate" : page.title
+            }
+        } catch {
+            show(L("Stampa non riuscita: ", "Could not print: ") + "\(error)")
+            return
+        }
+        let info = UIPrintInfo(dictionary: nil)
+        info.outputType = .general
+        info.jobName = title
+        let pc = UIPrintInteractionController.shared
+        pc.printInfo = info
+        pc.printingItem = url
+        pc.present(animated: true)
     }
 
     // MARK: pad

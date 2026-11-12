@@ -116,10 +116,10 @@ jobs:
           echo "MACOS_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
           if [ "$HAS_NOTARY" = "true" ]; then echo "CAN_NOTARIZE=1" >> "$GITHUB_ENV"; fi
 
-      - name: Swift helpers (Apple Vision OCR, AVFoundation video)
+      - name: Swift helpers (Apple Vision OCR, AVFoundation video, PDFKit printing)
         run: |
           mkdir -p build/helpers/arm64 build/helpers/x86_64 build/helpers/universal
-          for name in vision_ocr video_mp4; do
+          for name in vision_ocr video_mp4 pdf_print; do
             for arch in arm64 x86_64; do
               d="build/swift/$name-$arch"; mkdir -p "$d"
               cp "src/swift/$name.swift" "$d/main.swift"
