@@ -14,16 +14,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import uniffi.openslate_mobile.BoardView
-import uniffi.openslate_mobile.Page
 import uniffi.openslate_mobile.PageStroke
 import uniffi.openslate_mobile.PdfPageSize
 import uniffi.openslate_mobile.docPageRect
-import uniffi.openslate_mobile.libraryLoad
-import uniffi.openslate_mobile.librarySave
-import uniffi.openslate_mobile.nowCreated
-import uniffi.openslate_mobile.pdfPages
 import uniffi.openslate_mobile.docExtensions
-import uniffi.openslate_mobile.docPrepare
+import uniffi.openslate_mobile.docImport
+import uniffi.openslate_mobile.docOpen
+import uniffi.openslate_mobile.docSave
 import uniffi.openslate_mobile.docSign
 import uniffi.openslate_mobile.docSignedExt
 import uniffi.openslate_mobile.pdfSign
@@ -31,25 +28,31 @@ import java.io.File
 
 /**
  * Un documento da firmare col pennino (PDF, Word, foto, SVG), come «Apri
- * documento» della desktop: ogni pagina sta sul foglio del pad (adattata e
- * centrata) e si scrive sopra. Vive in `documents/<id>/`: l'originale (mai
- * modificato), `source.pdf` (le pagine da mostrare) e i tratti di ogni
- * pagina (`pNNNN.json`, formato della libreria). La copia firmata resta nel
+ * documento» della desktop e nello stesso formato (`src/docstore.rs`), così
+ * si sincronizza col computer: vive in `documents/<id>/` con `doc.json` (i
+ * tratti di ogni pagina), `source.pdf` (le pagine da mostrare) e il file di
+ * partenza (`source.<ext>`, mai modificato). La copia firmata resta nel
  * formato dell'originale.
  */
-class OpenDoc private constructor(val dir: File, val title: String, val original: File, val sizes: List<PdfPageSize>) {
+class OpenDoc private constructor(
+    val dir: File,
+    val title: String,
+    val original: File,
+    val sizes: List<PdfPageSize>,
+    pages: List<List<PageStroke>>,
+    start: Int,
+) {
     val pdf get() = File(dir, "source.pdf")
+    val id: String get() = dir.name
     /** Pagina mostrata (da 0). */
-    var index by mutableIntStateOf(0)
+    var index by mutableIntStateOf(start.coerceIn(0, (sizes.size - 1).coerceAtLeast(0)))
         private set
     /** L'immagine della pagina mostrata, per lo sfondo del foglio. */
     var image by mutableStateOf<ImageBitmap?>(null)
         private set
-    private val strokes = MutableList(sizes.size) { emptyList<PageStroke>() }
+    private val strokes = pages.toMutableList()
 
     val count get() = sizes.size
-
-    private fun pageId(i: Int) = "p%04d".format(i + 1)
 
     /** Pagina `i` sullo sfondo e i suoi tratti sulla lavagna. */
     fun show(i: Int, board: Board) {
@@ -58,13 +61,11 @@ class OpenDoc private constructor(val dir: File, val title: String, val original
         image = render(index)
     }
 
-    /** Ricorda i tratti della pagina mostrata (in memoria e su disco). */
-    fun keep(board: Board) {
-        val s = board.model.strokes()
-        strokes[index] = s
-        runCatching {
-            librarySave(dir.path, Page(pageId(index), "", nowCreated(), "documento", null, 0f, 0f, s))
-        }
+    /** Ricorda i tratti della pagina mostrata (in memoria e in `doc.json`). */
+    fun keep(board: Board, view: BoardView) {
+        strokes[index] = board.model.strokes()
+        runCatching { docSave(dir.path, strokes, index.toUInt(), view) }
+        board.markSaved()
     }
 
     /** Dove sta la pagina sul foglio (u, v, larghezza, altezza in 0..1). */
@@ -110,41 +111,35 @@ class OpenDoc private constructor(val dir: File, val title: String, val original
             "image/*",
         )
 
+        /** La cartella dei documenti. */
+        fun root(ctx: Context) = File(ctx.filesDir, "documents")
+
         /**
          * Copia il documento scelto nell'app e prepara le pagine da mostrare
          * (un Word lo impagina WordCraft, una foto PhotoCraft…). Lento per i
          * Word lunghi: da chiamare fuori dal thread principale.
          */
-        fun import(ctx: Context, uri: Uri): OpenDoc {
+        fun import(ctx: Context, uri: Uri, view: BoardView): OpenDoc {
             val name = ctx.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
                 if (it.moveToFirst()) it.getString(0) else null
             } ?: "documento.pdf"
             val ext = name.substringAfterLast('.', "").lowercase()
             require(ext in docExtensions()) { "formato .$ext non supportato" }
-            val dir = File(ctx.filesDir, "documents/" + System.currentTimeMillis())
-            dir.mkdirs()
-            val original = File(dir, "original.$ext")
-            ctx.contentResolver.openInputStream(uri)!!.use { input -> original.outputStream().use { input.copyTo(it) } }
-            runCatching { docPrepare(original.path, File(dir, "source.pdf").path) }.onFailure {
-                dir.deleteRecursively()
-                throw it
+            val tmp = File(ctx.cacheDir, "import.$ext")
+            ctx.contentResolver.openInputStream(uri)!!.use { input -> tmp.outputStream().use { input.copyTo(it) } }
+            try {
+                val id = docImport(root(ctx).path, tmp.path, name)
+                return open(File(root(ctx), id), view)
+            } finally {
+                tmp.delete()
             }
-            File(dir, "title.txt").writeText(name.substringBeforeLast('.'))
-            return open(dir)
         }
 
-        /** Riapre un documento già importato, con i suoi tratti. */
-        fun open(dir: File): OpenDoc {
-            val title = File(dir, "title.txt").takeIf { it.exists() }?.readText() ?: dir.name
-            val sizes = pdfPages(File(dir, "source.pdf").path)
-            require(sizes.isNotEmpty()) { "documento senza pagine" }
-            // i primi documenti avevano solo source.pdf
-            val original = dir.listFiles()?.firstOrNull { it.name.startsWith("original.") } ?: File(dir, "source.pdf")
-            val d = OpenDoc(dir, title, original, sizes)
-            for (i in sizes.indices) {
-                runCatching { libraryLoad(dir.path, d.pageId(i)).strokes }.getOrNull()?.let { d.strokes[i] = it }
-            }
-            return d
+        /** Riapre un documento, coi tratti portati nella geometria di `view`. */
+        fun open(dir: File, view: BoardView): OpenDoc {
+            val d = docOpen(dir.path, view)
+            require(d.sizes.isNotEmpty()) { "documento senza pagine" }
+            return OpenDoc(dir, d.title, File(d.original), d.sizes, d.pages, d.current.toInt())
         }
     }
 }

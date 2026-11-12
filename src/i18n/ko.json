@@ -1343,7 +1343,7 @@
  "Stampa annullata.": "인쇄를 취소했습니다.",
  "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "인쇄할 PDF를 PDF 뷰어에서 열었습니다: 거기서 인쇄하세요 (Ctrl+P).",
  "{} Telefono": "{} 휴대폰",
- "Le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "보관함 페이지, 메모, 도장이 집 Wi‑Fi를 통해 컴퓨터와 휴대폰 앱(Android, iPhone, iPad)에서 똑같이 유지됩니다. 클라우드 없이 모두 암호화됩니다.",
+ "I documenti da firmare, le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "서명할 문서, 보관함 페이지, 메모, 도장이 집 Wi‑Fi를 통해 컴퓨터와 휴대폰 앱(Android, iPhone, iPad)에서 똑같이 유지됩니다. 클라우드 없이 모두 암호화됩니다.",
  "Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto qui. Quello che si toglie o si sovrascrive va nel cestino, non si perde.": "휴대폰이 같은 네트워크에 있고 여기서 OpenSlate가 열려 있으면 자동으로 동기화됩니다. 지우거나 덮어쓴 것은 휴지통으로 가며 사라지지 않습니다.",
  "Nell'app sul telefono: Impostazioni › Sincronizza col computer › Inquadra il QR.": "휴대폰 앱에서: 설정 › 컴퓨터와 동기화 › QR 코드 스캔.",
  "Non fotografarlo e non condividerlo: chi lo inquadra può leggere e cambiare i tuoi dati.": "사진을 찍거나 공유하지 마세요. 스캔한 사람은 데이터를 읽고 바꿀 수 있습니다.",
@@ -1361,5 +1361,9 @@
  "telefono": "휴대폰",
  "Arrivate novità da «{}».": "«{}»에서 새 내용이 도착했습니다.",
  "la porta {} è occupata ({})": "포트 {}이(가) 사용 중입니다({})",
- "il computer non è collegato a una rete": "컴퓨터가 네트워크에 연결되어 있지 않습니다"
+ "il computer non è collegato a una rete": "컴퓨터가 네트워크에 연결되어 있지 않습니다",
+ "Sposta nel cestino": "휴지통으로 이동",
+ "Spostare «{}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino.": "«{}»을(를) 문서 휴지통으로 옮길까요? 연결된 휴대폰에서도 사라집니다. documents/cestino 폴더에서 되살릴 수 있습니다.",
+ "«{}» è nel cestino dei documenti.": "«{}»은(는) 문서 휴지통에 있습니다.",
+ "Il documento è stato spostato nel cestino dal telefono.": "휴대폰에서 이 문서를 휴지통으로 옮겼습니다."
 }

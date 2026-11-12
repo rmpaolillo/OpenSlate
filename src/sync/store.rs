@@ -6,6 +6,10 @@
 //! | `lib/<id>.md`     | `exports/<appunto>.md` (dalla pagina, `exports/.trascrizioni.json`) | `library/<id>.md` |
 //! | `notes/<nome>.md` | `exports/<nome>.md`                    | `notes/<nome>.md`   |
 //! | `sig/timbri.json` | `signatures/timbri.json`               | `timbri.json`       |
+//! | `doc/<id>/<file>` | `documents/<id>/<file>`                | `documents/<id>/<file>` |
+//!
+//! Dei documenti viaggiano `doc.json`, `source.pdf` e il file di partenza;
+//! le pagine disegnate e il testo estratto si rifanno da soli.
 //!
 //! Quello che si sovrascrive o si toglie non sparisce: le pagine vanno nel
 //! cestino dell'archivio (`library/cestino`, si ripristinano dall'app), il
@@ -40,12 +44,15 @@ enum PageNotes {
 /// I file sul disco.
 pub struct FsStore {
     lib: PathBuf,
+    docs: PathBuf,
     notes: PathBuf,
     stamps: PathBuf,
     state: PathBuf,
     page_notes: PageNotes,
-    /// Impronte già calcolate: file → (mtime, dimensione, impronta).
+    /// Impronte già calcolate: file → (mtime, dimensione, impronta); restano
+    /// in `sync/impronte.json`, così un PDF grande non si rilegge ogni volta.
     cache: HashMap<PathBuf, (i64, u64, String)>,
+    cache_dirty: bool,
 }
 
 impl FsStore {
@@ -53,12 +60,15 @@ impl FsStore {
     pub fn desktop(root: &Path) -> FsStore {
         FsStore {
             lib: root.join("library"),
+            docs: root.join("documents"),
             notes: root.join("exports"),
             stamps: root.join("signatures/timbri.json"),
             state: root.join("sync"),
             page_notes: PageNotes::Linked(root.join("exports/.trascrizioni.json")),
             cache: HashMap::new(),
+            cache_dirty: false,
         }
+        .with_cache()
     }
 
     /// Il telefono: `data` la cartella dei dati dell'app, `library` quella
@@ -66,11 +76,45 @@ impl FsStore {
     pub fn phone(data: &Path, library: &Path) -> FsStore {
         FsStore {
             lib: library.to_path_buf(),
+            docs: data.join("documents"),
             notes: data.join("notes"),
             stamps: data.join("timbri.json"),
             state: data.join("sync"),
             page_notes: PageNotes::Beside,
             cache: HashMap::new(),
+            cache_dirty: false,
+        }
+        .with_cache()
+    }
+
+    fn with_cache(mut self) -> Self {
+        let f = self.state.join("impronte.json");
+        let m: HashMap<String, (i64, u64, String)> = std::fs::read_to_string(f).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
+        self.cache = m.into_iter().map(|(k, v)| (PathBuf::from(k), v)).collect();
+        self
+    }
+
+    /// Il cestino della sincronizzazione tiene le cose per 30 giorni.
+    fn prune_trash(&self) {
+        let limit = std::time::SystemTime::now() - std::time::Duration::from_secs(30 * 24 * 3600);
+        let Ok(rd) = std::fs::read_dir(self.state.join("cestino")) else { return };
+        for e in rd.flatten() {
+            if e.metadata().and_then(|m| m.modified()).is_ok_and(|t| t < limit) {
+                let _ = std::fs::remove_file(e.path());
+            }
+        }
+    }
+
+    fn save_cache(&mut self) {
+        self.prune_trash();
+        if !self.cache_dirty {
+            return;
+        }
+        // solo i file che ci sono ancora
+        self.cache.retain(|p, _| p.exists());
+        let m: HashMap<String, &(i64, u64, String)> = self.cache.iter().map(|(k, v)| (k.to_string_lossy().into_owned(), v)).collect();
+        if write_atomic(&self.state.join("impronte.json"), serde_json::to_string(&m).unwrap_or_default().as_bytes()).is_ok() {
+            self.cache_dirty = false;
         }
     }
 
@@ -117,6 +161,7 @@ impl FsStore {
             },
             "lib" => self.lib.join(name),
             "notes" => self.notes.join(name),
+            "doc" => self.docs.join(name),
             _ => self.stamps.clone(),
         })
     }
@@ -132,6 +177,7 @@ impl FsStore {
         }
         let hash = super::hash(&std::fs::read(f).ok()?);
         self.cache.insert(f.to_path_buf(), (mtime, size, hash.clone()));
+        self.cache_dirty = true;
         Some(Entry { hash, mtime, size })
     }
 
@@ -218,6 +264,24 @@ impl Store for FsStore {
         if let Some(e) = self.entry(&st) {
             out.insert("sig/timbri.json".into(), e);
         }
+        // i documenti: le cartelle con un doc.json, i file che ci sono dentro
+        let mut ids: Vec<String> = std::fs::read_dir(&self.docs)
+            .map(|rd| rd.flatten().filter(|e| e.path().join("doc.json").is_file()).filter_map(|e| e.file_name().to_str().map(String::from)).collect())
+            .unwrap_or_default();
+        ids.sort();
+        for id in ids {
+            let dir = self.docs.join(&id);
+            for n in Self::names(&dir, "") {
+                let p = format!("doc/{id}/{n}");
+                if !valid_path(&p) {
+                    continue;
+                }
+                if let Some(e) = self.entry(&dir.join(&n)) {
+                    out.insert(p, e);
+                }
+            }
+        }
+        self.save_cache();
         Ok(out)
     }
 
@@ -232,6 +296,13 @@ impl Store for FsStore {
         let f = self.physical(path)?;
         self.to_trash(path, &f, true)?;
         write_atomic(&f, data)?;
+        // pagine nuove: quelle già disegnate e il testo estratto non valgono più
+        if path.starts_with("doc/") && path.ends_with("/source.pdf") {
+            if let Some(d) = f.parent() {
+                let _ = std::fs::remove_dir_all(d.join("pages"));
+                let _ = std::fs::remove_file(d.join("text.txt"));
+            }
+        }
         // un appunto nuovo di una pagina, sulla desktop: lo si collega alla pagina
         if let (PageNotes::Linked(_), Some(id)) = (&self.page_notes, path.strip_prefix("lib/").and_then(|n| n.strip_suffix(".md"))) {
             if self.linked_note(id).is_none() {
@@ -246,6 +317,13 @@ impl Store for FsStore {
 
     fn delete(&mut self, path: &str) -> Result<()> {
         let f = self.physical(path)?;
+        // tolto doc.json, il documento intero va nel cestino dei documenti
+        if let Some(id) = path.strip_prefix("doc/").and_then(|r| r.strip_suffix("/doc.json")) {
+            if self.docs.join(id).exists() {
+                crate::docstore::trash(&self.docs, id)?;
+            }
+            return Ok(());
+        }
         self.to_trash(path, &f, false)?;
         if let (PageNotes::Linked(_), Some(id)) = (&self.page_notes, path.strip_prefix("lib/").and_then(|n| n.strip_suffix(".md"))) {
             let mut map = self.links();

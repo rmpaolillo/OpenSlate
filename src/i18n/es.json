@@ -1343,7 +1343,7 @@
  "Stampa annullata.": "Impresión cancelada.",
  "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "El PDF para imprimir está abierto en el visor de PDF: imprime desde ahí (Ctrl+P).",
  "{} Telefono": "{} Teléfono",
- "Le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "Las páginas del archivo, las notas y los sellos son iguales en el ordenador y en la app del teléfono (Android, iPhone, iPad), a través del Wi‑Fi de casa: sin nube, todo cifrado.",
+ "I documenti da firmare, le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "Los documentos para firmar, las páginas del archivo, las notas y los sellos son iguales en el ordenador y en la app del teléfono (Android, iPhone, iPad), a través del Wi‑Fi de casa: sin nube, todo cifrado.",
  "Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto qui. Quello che si toglie o si sovrascrive va nel cestino, non si perde.": "El teléfono se sincroniza solo cuando está en la misma red y OpenSlate está abierto aquí. Lo que se quita o se sobrescribe va a la papelera, no se pierde.",
  "Nell'app sul telefono: Impostazioni › Sincronizza col computer › Inquadra il QR.": "En la app del teléfono: Ajustes › Sincronizar con el ordenador › Escanea el QR.",
  "Non fotografarlo e non condividerlo: chi lo inquadra può leggere e cambiare i tuoi dati.": "No lo fotografíes ni lo compartas: quien lo escanee puede leer y cambiar tus datos.",
@@ -1361,5 +1361,9 @@
  "telefono": "teléfono",
  "Arrivate novità da «{}».": "Novedades llegadas de «{}».",
  "la porta {} è occupata ({})": "el puerto {} está ocupado ({})",
- "il computer non è collegato a una rete": "el ordenador no está conectado a ninguna red"
+ "il computer non è collegato a una rete": "el ordenador no está conectado a ninguna red",
+ "Sposta nel cestino": "Mover a la papelera",
+ "Spostare «{}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino.": "¿Mover «{}» a la papelera de documentos? Desaparece también del teléfono conectado; se recupera desde la carpeta documents/cestino.",
+ "«{}» è nel cestino dei documenti.": "«{}» está en la papelera de documentos.",
+ "Il documento è stato spostato nel cestino dal telefono.": "El documento se movió a la papelera desde el teléfono."
 }

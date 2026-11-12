@@ -1343,7 +1343,7 @@
  "Stampa annullata.": "Друк скасовано.",
  "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "PDF для друку відкрито в переглядачі PDF: друкуйте звідти (Ctrl+P).",
  "{} Telefono": "{} Телефон",
- "Le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "Сторінки архіву, нотатки й печатки однакові на комп'ютері та в застосунку на телефоні (Android, iPhone, iPad) через домашній Wi‑Fi: без хмари, усе зашифровано.",
+ "I documenti da firmare, le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "Документи для підпису, сторінки архіву, нотатки й печатки однакові на комп'ютері та в застосунку на телефоні (Android, iPhone, iPad) через домашній Wi‑Fi: без хмари, усе зашифровано.",
  "Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto qui. Quello che si toglie o si sovrascrive va nel cestino, non si perde.": "Телефон синхронізується сам, коли він у тій самій мережі, а OpenSlate відкрито тут. Те, що видалено або перезаписано, потрапляє в кошик — нічого не губиться.",
  "Nell'app sul telefono: Impostazioni › Sincronizza col computer › Inquadra il QR.": "У застосунку на телефоні: Налаштування › Синхронізація з комп'ютером › Скануйте QR-код.",
  "Non fotografarlo e non condividerlo: chi lo inquadra può leggere e cambiare i tuoi dati.": "Не фотографуйте й не поширюйте його: той, хто його відсканує, зможе читати й змінювати ваші дані.",
@@ -1361,5 +1361,9 @@
  "telefono": "телефон",
  "Arrivate novità da «{}».": "Надійшли новини з «{}».",
  "la porta {} è occupata ({})": "порт {} зайнятий ({})",
- "il computer non è collegato a una rete": "комп'ютер не під'єднано до мережі"
+ "il computer non è collegato a una rete": "комп'ютер не під'єднано до мережі",
+ "Sposta nel cestino": "Перемістити в кошик",
+ "Spostare «{}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino.": "Перемістити «{}» у кошик документів? Він зникне й з під'єднаного телефона; відновити можна з теки documents/cestino.",
+ "«{}» è nel cestino dei documenti.": "«{}» у кошику документів.",
+ "Il documento è stato spostato nel cestino dal telefono.": "Документ переміщено в кошик з телефона."
 }

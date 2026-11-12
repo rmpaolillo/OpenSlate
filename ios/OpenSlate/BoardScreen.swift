@@ -268,6 +268,7 @@ struct BoardScreen: View {
     @ObservedObject var board: Board
     @State private var choosingPaper = false
     @State private var importing = false
+    @State private var docsOpen = false
     @State private var shareURL: URL?
     @State private var choosingMore = false
     @State private var note: NoteItem?
@@ -295,6 +296,7 @@ struct BoardScreen: View {
         }
         .sheet(isPresented: $choosingPaper) { PaperPicker() }
         .fileImporter(isPresented: $importing, allowedContentTypes: docTypes) { r in if case .success(let url) = r { app.openDocument(url) } }
+        .sheet(isPresented: $docsOpen) { DocsSheet().environmentObject(app) }
         .sheet(item: $shareURL) { url in ShareSheet(items: [url]) }
         .sheet(isPresented: $choosingMore) {
             MoreFormatsSheet { kind in
@@ -362,6 +364,7 @@ struct BoardScreen: View {
                 }
                 Section(L("Documento", "Document")) {
                     Button { importing = true } label: { Label(L("Apri un documento da firmare…", "Open a document to sign…"), systemImage: "signature") }
+                    Button { app.saveBoardIfNeeded(); docsOpen = true } label: { Label(L("I miei documenti", "My documents"), systemImage: "folder") }
                 }
             } label: { Image(systemName: "ellipsis.circle").font(.title3) }
         }

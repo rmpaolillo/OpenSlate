@@ -8,12 +8,11 @@
 //! «Salva PDF firmato» scrive in `exports/` una copia del PDF con i tratti
 //! aggiunti sopra in grafica vettoriale.
 
-use crate::library::{strokes_from_fmt, strokes_to_fmt, StrokeFmt};
+use crate::library::{strokes_from_fmt, strokes_to_fmt};
 use crate::pdfdoc::{self, OverlayStroke, PdfPage};
 use crate::scene::{page_dims, PageBg, PageGeom, View};
 use crate::stroke::{Drawing, Stroke};
 use anyhow::{bail, Context, Result};
-use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -75,56 +74,21 @@ pub struct Document {
     /// L'inchiostro di pagine che il documento non ha più (una modifica le
     /// ha tolte): non si butta, torna se le pagine tornano (Annulla).
     pub extra: Vec<Vec<Stroke>>,
+    /// La geometria in cui sono scritti i tratti (vedi `docstore`).
+    pub pad: Option<PadGeom>,
 }
 
-#[derive(Serialize, Deserialize)]
-struct DocFmt {
-    version: u32,
-    title: String,
-    created: String,
-    #[serde(default)]
-    current: usize,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    original: Option<String>,
-    pages: Vec<Vec<StrokeFmt>>,
-    /// Inchiostro delle pagine che non ci sono più.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    extra: Vec<Vec<StrokeFmt>>,
-}
-
-/// Riga dell'elenco «Documenti».
-pub struct DocSummary {
-    pub id: String,
-    pub title: String,
-    pub created: String,
-}
+pub use crate::docstore::DocSummary;
+use crate::docstore::{DocFmt, PadGeom};
 
 pub use crate::pagegeom::fit_rect;
-
-fn safe_id(stem: &str) -> String {
-    let s: String = stem
-        .chars()
-        .map(|c| if c.is_alphanumeric() { c } else { '-' })
-        .collect::<String>()
-        .trim_matches('-')
-        .chars()
-        .take(40)
-        .collect();
-    if s.is_empty() { "documento".into() } else { s }
-}
 
 impl Document {
     /// Importa un file: conversione in PDF e disegno delle pagine.
     pub fn import(input: &Path) -> Result<Document> {
         let stem = input.file_stem().and_then(|s| s.to_str()).unwrap_or("documento").to_string();
         let now = chrono::Local::now();
-        let base = format!("{}-{}", now.format("%Y%m%d-%H%M%S"), safe_id(&stem));
-        let mut id = base.clone();
-        let mut n = 2;
-        while Path::new(DOC_DIR).join(&id).exists() {
-            id = format!("{base}-{n}");
-            n += 1;
-        }
+        let id = crate::docstore::new_id(Path::new(DOC_DIR), &stem, &now);
         let dir = Path::new(DOC_DIR).join(&id);
         std::fs::create_dir_all(&dir)?;
         let result = (|| -> Result<Document> {
@@ -178,6 +142,7 @@ impl Document {
                 current: 0,
                 original,
                 extra: Vec::new(),
+                pad: None,
             };
             doc.load_pages(None)?;
             doc.save()?;
@@ -242,12 +207,30 @@ impl Document {
         Ok(())
     }
 
+    /// Il documento coi tratti come sono salvati.
     pub fn open(id: &str) -> Result<Document> {
+        Self::open_impl(id, None)
+    }
+
+    /// Il documento coi tratti portati nella geometria `geom` (rotazione e
+    /// misure del pad di chi lo apre: un documento firmato sul telefono girato
+    /// in un altro modo torna al suo posto).
+    pub fn open_for(id: &str, geom: PadGeom) -> Result<Document> {
+        Self::open_impl(id, Some(geom))
+    }
+
+    fn open_impl(id: &str, geom: Option<PadGeom>) -> Result<Document> {
         let dir = Path::new(DOC_DIR).join(id);
-        let f: DocFmt = serde_json::from_str(
+        let mut f: DocFmt = serde_json::from_str(
             &std::fs::read_to_string(dir.join("doc.json")).with_context(|| format!("documento {id} non trovato"))?,
         )?;
+        if let (Some(from), Some(to)) = (f.pad, geom) {
+            let sizes: Vec<(f32, f32)> = pdfdoc::pages(&dir.join("source.pdf"))?.iter().map(|p| p.display_size()).collect();
+            crate::docstore::convert(&mut f.pages, &sizes, from, to);
+            crate::docstore::convert(&mut f.extra, &sizes, from, to);
+        }
         let mut doc = Document {
+            pad: geom.or(f.pad),
             id: id.to_string(),
             title: f.title,
             created: f.created,
@@ -270,6 +253,7 @@ impl Document {
             original: self.original.clone(),
             pages: self.pages.iter().map(|p| strokes_to_fmt(&p.strokes)).collect(),
             extra: self.extra.iter().map(|p| strokes_to_fmt(p)).collect(),
+            pad: self.pad,
         };
         let tmp = self.dir.join(".doc.json.tmp");
         std::fs::write(&tmp, serde_json::to_string(&f)?)?;
@@ -402,21 +386,19 @@ pub fn rebuild(dir: &Path) -> Result<()> {
 }
 
 pub fn list() -> Vec<DocSummary> {
-    let mut v = Vec::new();
-    if let Ok(rd) = std::fs::read_dir(DOC_DIR) {
-        for e in rd.flatten() {
-            let path = e.path().join("doc.json");
-            let Ok(text) = std::fs::read_to_string(&path) else { continue };
-            let Ok(f) = serde_json::from_str::<DocFmt>(&text) else { continue };
-            v.push(DocSummary {
-                id: e.file_name().to_string_lossy().into_owned(),
-                title: f.title,
-                created: f.created,
-            });
-        }
-    }
-    v.sort_by(|a, b| b.created.cmp(&a.created));
-    v
+    crate::docstore::list(Path::new(DOC_DIR))
+}
+
+/// Sposta il documento nel cestino dei documenti (`documents/cestino`).
+pub fn trash(id: &str) -> Result<()> {
+    crate::docstore::trash(Path::new(DOC_DIR), id)?;
+    Ok(())
+}
+
+/// La geometria dei tratti per chi guarda con `view` un pad come `pad`.
+pub fn geom_for(view: View, pad: &Drawing) -> PadGeom {
+    let (w, h) = page_dims(pad);
+    PadGeom::new(view, w, h)
 }
 
 #[cfg(test)]

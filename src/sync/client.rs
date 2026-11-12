@@ -237,6 +237,13 @@ mod tests {
         std::fs::create_dir_all(&tl).unwrap();
         std::fs::write(tl.join("t1.json"), "tel").unwrap();
         std::fs::write(tl.join("t1.md"), "nota tel").unwrap();
+        // un documento sulla desktop, con le pagine già disegnate (non viaggiano)
+        let dd = d.join("documents/20261112-090000-Contratto");
+        std::fs::create_dir_all(dd.join("pages")).unwrap();
+        std::fs::write(dd.join("doc.json"), "{}").unwrap();
+        std::fs::write(dd.join("source.pdf"), "%PDF").unwrap();
+        std::fs::write(dd.join("text.txt"), "testo").unwrap();
+        std::fs::write(dd.join("pages/page-0001.png"), "png").unwrap();
 
         let key = crypto::new_secret();
         let port = desk(&d, key);
@@ -245,7 +252,10 @@ mod tests {
         let state = t.join("sync");
         // il QR ha un indirizzo che non risponde: si usa quello trovato sulla rete
         let r = run(&p, &["127.0.0.1".into()], "Pixel", &mut store, &state).unwrap();
-        assert_eq!((r.pulled, r.pushed), (3, 2), "{r:?}");
+        assert_eq!((r.pulled, r.pushed), (5, 2), "{r:?}");
+        let td = t.join("documents/20261112-090000-Contratto");
+        assert_eq!(files(&td), ["doc.json", "source.pdf"]);
+        assert!(r.changed.contains("docs"));
         assert_eq!(files(&tl), ["d1.json", "t1.json", "t1.md"]);
         assert_eq!(std::fs::read(t.join("notes/appunti-1.md")).unwrap(), b"nota desk");
         assert_eq!(std::fs::read(t.join("timbri.json")).unwrap(), b"[1]");
@@ -265,6 +275,16 @@ mod tests {
         // niente da fare
         let r = run(&p, &["127.0.0.1".into()], "Pixel", &mut store, &state).unwrap();
         assert_eq!((r.pulled, r.pushed, r.deleted), (0, 0, 0));
+
+        // il documento firmato sul telefono, poi tolto: sulla desktop arriva la
+        // firma, poi il documento intero va nel cestino dei documenti
+        std::thread::sleep(Duration::from_millis(1100));
+        std::fs::write(td.join("doc.json"), "{\"firmato\":1}").unwrap();
+        run(&p, &["127.0.0.1".into()], "Pixel", &mut store, &state).unwrap();
+        assert_eq!(std::fs::read(dd.join("doc.json")).unwrap(), b"{\"firmato\":1}");
+        crate::docstore::trash(&t.join("documents"), "20261112-090000-Contratto").unwrap();
+        run(&p, &["127.0.0.1".into()], "Pixel", &mut store, &state).unwrap();
+        assert!(!dd.exists() && d.join("documents/cestino/20261112-090000-Contratto/source.pdf").exists());
 
         // un altro segreto non entra
         let bad = Pairing { secret: secret_b64(&crypto::new_secret()), ..p.clone() };

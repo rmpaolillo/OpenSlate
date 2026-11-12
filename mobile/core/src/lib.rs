@@ -59,6 +59,8 @@ pub mod stroke;
 pub mod stamp;
 mod seal;
 pub use seal::*;
+#[path = "../../../src/docstore.rs"]
+pub mod docstore;
 #[path = "../../../src/sync/mod.rs"]
 pub mod sync;
 mod phonesync;

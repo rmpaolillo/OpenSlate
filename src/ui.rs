@@ -1038,6 +1038,9 @@ impl App {
         if changed.contains(&"stamps") {
             self.stampui.list = crate::stamp::load_all(std::path::Path::new(timbro_ui::FILE));
         }
+        if changed.contains(&"docs") {
+            self.docs_changed_by_phone();
+        }
         let who = if name.trim().is_empty() { crate::i18n::t("telefono").to_string() } else { name };
         self.status = crate::i18n::tf(format!("Arrivate novità da «{who}»."));
     }

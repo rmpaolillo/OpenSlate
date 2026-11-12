@@ -126,6 +126,8 @@ pub(super) enum DocAction {
     SaveSigned,
     /// Stampa il documento con la scrittura.
     Print,
+    /// Sposta il documento nel cestino dei documenti.
+    Trash(String),
     Close,
     StartCapture,
     SaveCapture,
@@ -206,7 +208,42 @@ impl App {
         }
     }
 
-    fn open_doc(&mut self, d: Document) {
+    /// La geometria dei tratti qui (rotazione del foglio e misure del pad).
+    fn doc_geom(&self) -> crate::docstore::PadGeom {
+        let s = self.hub.lock();
+        crate::document::geom_for(s.view, &s.drawing)
+    }
+
+    /// Il telefono ha cambiato dei documenti: quello aperto si riapre (se qui
+    /// non ci sono tratti ancora da salvare), quelli tolti si chiudono.
+    pub(super) fn docs_changed_by_phone(&mut self) {
+        self.docui.tabs.retain(|(id, _)| std::path::Path::new(crate::document::DOC_DIR).join(id).join("doc.json").exists());
+        let Some(d) = &self.docui.doc else { return };
+        let (id, cur) = (d.id.clone(), d.current);
+        if !d.dir.join("doc.json").exists() {
+            self.close_doc();
+            self.status = "Il documento è stato spostato nel cestino dal telefono.".into();
+            return;
+        }
+        if self.hub.lock().rev != self.docui.saved_rev {
+            return;
+        }
+        if let Ok(mut nd) = Document::open_for(&id, self.doc_geom()) {
+            nd.current = cur.min(nd.pages.len().saturating_sub(1));
+            let cur = nd.current;
+            self.docui.doc = Some(nd);
+            self.docui.tex.clear();
+            self.docui.renderer = None;
+            self.docui.detail = None;
+            self.docui.detail_want = None;
+            self.load_page(cur);
+        }
+    }
+
+    fn open_doc(&mut self, mut d: Document) {
+        if d.pad.is_none() {
+            d.pad = Some(self.doc_geom());
+        }
         if self.docui.doc.is_some() {
             self.save_doc();
         } else {
@@ -245,7 +282,7 @@ impl App {
         self.save_doc();
         let Some(d) = &self.docui.doc else { return };
         let (id, cur) = (d.id.clone(), d.current);
-        match Document::open(&id) {
+        match Document::open_for(&id, self.doc_geom()) {
             Ok(mut nd) => {
                 nd.current = cur.min(nd.pages.len().saturating_sub(1));
                 let cur = nd.current;
@@ -525,7 +562,7 @@ impl App {
                     self.start_import(p);
                 }
             }
-            DocAction::OpenRecent(id) => match Document::open(&id) {
+            DocAction::OpenRecent(id) => match Document::open_for(&id, self.doc_geom()) {
                 Ok(d) => self.open_doc(d),
                 Err(e) => self.status = format!("⚠ {e:#}"),
             },
@@ -564,7 +601,7 @@ impl App {
                 self.status = "Salvo il documento firmato…".into();
                 let tx = self.evt_tx.clone();
                 std::thread::spawn(move || {
-                    let r = crate::document::Document::open(&id).and_then(|d| d.export_signed(view, &pad, &dst));
+                    let r = crate::document::Document::open_for(&id, crate::document::geom_for(view, &pad)).and_then(|d| d.export_signed(view, &pad, &dst));
                     let ev = match r {
                         Ok(()) => crate::actor::UiEvent::Exported { written: vec![dst], error: None, doc: true },
                         Err(e) => crate::actor::UiEvent::Exported { written: Vec::new(), error: Some(format!("Salvataggio: {e:#}")), doc: true },
@@ -580,7 +617,22 @@ impl App {
                     let s = self.hub.lock();
                     (s.view, s.drawing.clone())
                 };
-                self.print_job(title, move |dst| crate::document::Document::open(&id)?.export_print(view, &pad, dst));
+                self.print_job(title, move |dst| crate::document::Document::open_for(&id, crate::document::geom_for(view, &pad))?.export_print(view, &pad, dst));
+            }
+            DocAction::Trash(id) => {
+                let title = crate::document::list().into_iter().find(|d| d.id == id).map(|d| d.title).unwrap_or_default();
+                let msg = crate::i18n::tf(format!("Spostare «{title}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino."));
+                if !super::sysdlg::confirm(crate::i18n::t("Sposta nel cestino"), &msg) {
+                    return;
+                }
+                if self.docui.doc.as_ref().is_some_and(|d| d.id == id) {
+                    self.close_doc();
+                }
+                self.docui.tabs.retain(|(t, _)| t != &id);
+                self.status = match crate::document::trash(&id) {
+                    Ok(()) => crate::i18n::tf(format!("«{title}» è nel cestino dei documenti.")),
+                    Err(e) => format!("⚠ {e:#}"),
+                };
             }
             DocAction::Close => {
                 if let Some(id) = self.docui.doc.as_ref().map(|d| d.id.clone()) {

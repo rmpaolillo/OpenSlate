@@ -243,7 +243,13 @@
     <string name="sync_where">On the computer: OpenSlate › Options › Phone › Connect a phone…</string>
     <string name="sync_now">Sync now</string>
     <string name="sync_unpair">Disconnect</string>
-    <string name="sync_explain">Library pages, notes and stamps stay the same on the phone and on the computer, over your home Wi‑Fi: no cloud, everything encrypted. The phone syncs by itself when it is on the same network and OpenSlate is open on the computer. Anything removed or overwritten goes to the trash, nothing is lost.</string>
+    <string name="sync_explain">Documents to sign, library pages, notes and stamps stay the same on the phone and on the computer, over your home Wi‑Fi: no cloud, everything encrypted. The phone syncs by itself when it is on the same network and OpenSlate is open on the computer. Anything removed or overwritten goes to the trash, nothing is lost.</string>
     <string name="grp_computer">Computer</string>
     <string name="notes">Notes</string>
+    <string name="my_docs">My documents</string>
+    <string name="docs_empty">No documents yet. Open one to sign from the ⋮ menu: it also appears on the connected computer.</string>
+    <string name="doc_open_now">%1$s · open now</string>
+    <string name="doc_trash">Move to trash</string>
+    <string name="doc_trash_q">Move «%1$s» to the documents trash? It also disappears from the connected computer.</string>
+    <string name="doc_trashed_elsewhere">The document was moved to the trash on the computer.</string>
 </resources>

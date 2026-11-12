@@ -35,7 +35,7 @@ impl PhoneUi {
         let weak = |ui: &mut egui::Ui, s: &str| {
             ui.label(egui::RichText::new(i18n::tr(s)).weak());
         };
-        weak(ui, "Le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.");
+        weak(ui, "I documenti da firmare, le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.");
         weak(ui, "Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto qui. Quello che si toglie o si sovrascrive va nel cestino, non si perde.");
         ui.add_space(10.0);
 

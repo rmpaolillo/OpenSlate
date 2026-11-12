@@ -168,8 +168,8 @@ struct SyncScreen: View {
     var body: some View {
         List {
             Section {
-                Text(L("Le pagine dell'archivio, gli appunti e i timbri restano uguali sul telefono e sul computer, attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato. Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto sul computer. Quello che si toglie o si sovrascrive va nel cestino, non si perde.",
-                       "Library pages, notes and stamps stay the same on the phone and on the computer, over your home Wi‑Fi: no cloud, everything encrypted. The phone syncs by itself when it is on the same network and OpenSlate is open on the computer. Anything removed or overwritten goes to the trash, nothing is lost."))
+                Text(L("I documenti da firmare, le pagine dell'archivio, gli appunti e i timbri restano uguali sul telefono e sul computer, attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato. Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto sul computer. Quello che si toglie o si sovrascrive va nel cestino, non si perde.",
+                       "Documents to sign, library pages, notes and stamps stay the same on the phone and on the computer, over your home Wi‑Fi: no cloud, everything encrypted. The phone syncs by itself when it is on the same network and OpenSlate is open on the computer. Anything removed or overwritten goes to the trash, nothing is lost."))
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if let desk = sync.deskName {

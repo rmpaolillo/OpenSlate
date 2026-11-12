@@ -1343,7 +1343,7 @@
  "Stampa annullata.": "Impression annulée.",
  "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "Le PDF à imprimer est ouvert dans le lecteur de PDF : imprimez depuis celui-ci (Ctrl+P).",
  "{} Telefono": "{} Téléphone",
- "Le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "Les pages de l'archive, les notes et les tampons restent identiques sur l'ordinateur et dans l'app du téléphone (Android, iPhone, iPad), via le Wi‑Fi de la maison : pas de cloud, tout est chiffré.",
+ "I documenti da firmare, le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "Les documents à signer, les pages de l'archive, les notes et les tampons restent identiques sur l'ordinateur et dans l'app du téléphone (Android, iPhone, iPad), via le Wi‑Fi de la maison : pas de cloud, tout est chiffré.",
  "Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto qui. Quello che si toglie o si sovrascrive va nel cestino, non si perde.": "Le téléphone se synchronise tout seul quand il est sur le même réseau et qu'OpenSlate est ouvert ici. Ce qui est supprimé ou remplacé va à la corbeille : rien ne se perd.",
  "Nell'app sul telefono: Impostazioni › Sincronizza col computer › Inquadra il QR.": "Dans l'app du téléphone : Réglages › Synchroniser avec l'ordinateur › Scanner le QR.",
  "Non fotografarlo e non condividerlo: chi lo inquadra può leggere e cambiare i tuoi dati.": "Ne le photographiez pas et ne le partagez pas : qui le scanne peut lire et modifier vos données.",
@@ -1361,5 +1361,9 @@
  "telefono": "téléphone",
  "Arrivate novità da «{}».": "Du nouveau est arrivé de « {} ».",
  "la porta {} è occupata ({})": "le port {} est occupé ({})",
- "il computer non è collegato a una rete": "l'ordinateur n'est connecté à aucun réseau"
+ "il computer non è collegato a una rete": "l'ordinateur n'est connecté à aucun réseau",
+ "Sposta nel cestino": "Mettre à la corbeille",
+ "Spostare «{}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino.": "Mettre « {} » à la corbeille des documents ? Il disparaît aussi du téléphone connecté ; on le récupère dans le dossier documents/cestino.",
+ "«{}» è nel cestino dei documenti.": "« {} » est dans la corbeille des documents.",
+ "Il documento è stato spostato nel cestino dal telefono.": "Le document a été mis à la corbeille depuis le téléphone."
 }

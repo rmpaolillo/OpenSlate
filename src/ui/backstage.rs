@@ -207,8 +207,20 @@ impl App {
                 medium(13.0),
                 t.text,
             );
-            ui.painter().text(pos2(r.max.x - 10.0, r.center().y), Align2::RIGHT_CENTER, i18n::tr(&d.created.get(..16).unwrap_or(&d.created).replace('T', " ")).into_owned(), regular(11.5), t.text_dim);
-            if resp.on_hover_text(i18n::t("Apri sulla lavagna")).clicked() {
+            ui.painter().text(pos2(r.max.x - 44.0, r.center().y), Align2::RIGHT_CENTER, i18n::tr(&d.created.get(..16).unwrap_or(&d.created).replace('T', " ")).into_owned(), regular(11.5), t.text_dim);
+            // il cestino, a destra della riga
+            let bin = egui::Rect::from_center_size(pos2(r.max.x - 20.0, r.center().y), vec2(28.0, 28.0));
+            let on_bin = resp.hovered() && ui.ctx().pointer_hover_pos().is_some_and(|p| bin.contains(p));
+            if resp.hovered() {
+                if on_bin {
+                    ui.painter().rect_filled(bin, 4.0, t.pressed);
+                }
+                ui.painter().text(bin.center(), Align2::CENTER_CENTER, ic::TRASH, icon(16.0), if on_bin { t.red } else { t.text_dim });
+            }
+            let resp = resp.on_hover_text(i18n::t(if on_bin { "Sposta nel cestino" } else { "Apri sulla lavagna" }));
+            if resp.clicked() && on_bin {
+                actions.push(Action::Doc(DocAction::Trash(d.id.clone())));
+            } else if resp.clicked() {
                 actions.push(Action::SetMode(Mode::Board));
                 actions.push(Action::Doc(DocAction::OpenRecent(d.id.clone())));
                 actions.push(Action::Backstage(None));

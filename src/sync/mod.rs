@@ -10,7 +10,9 @@
 //!   (`crypto`, ChaCha20-Poly1305): sulla rete non passa niente in chiaro.
 //! - I dati delle due parti sono messi in uno spazio comune di «percorsi
 //!   logici» (`store`): `lib/<id>.json` una pagina dell'archivio, `lib/<id>.md`
-//!   il suo appunto, `notes/<nome>.md` un appunto, `sig/timbri.json` i timbri.
+//!   il suo appunto, `notes/<nome>.md` un appunto, `sig/timbri.json` i timbri,
+//!   `doc/<id>/<file>` i file di un documento da firmare (`doc.json`,
+//!   `source.pdf`, il file di partenza).
 //! - Cosa copiare lo decide `plan`, confrontando le due parti con com'erano
 //!   all'ultima sincronizzazione: niente si perde, quello che si toglie o si
 //!   sovrascrive va nel cestino.
@@ -69,6 +71,10 @@ pub fn valid_path(p: &str) -> bool {
         Some(("lib", n)) => safe_name(n) && (n.ends_with(".json") || n.ends_with(".md")),
         Some(("notes", n)) => safe_name(n) && n.ends_with(".md"),
         Some(("sig", n)) => n == "timbri.json",
+        Some(("doc", rest)) => match rest.split_once('/') {
+            Some((id, n)) => safe_name(id) && id != "cestino" && safe_name(n) && n != "text.txt",
+            None => false,
+        },
         _ => false,
     }
 }
@@ -80,6 +86,7 @@ pub fn kind_of(p: &str) -> &'static str {
         Some("lib") => "lib",
         Some("notes") => "notes",
         Some("sig") => "stamps",
+        Some("doc") => "docs",
         _ => "",
     }
 }
@@ -118,7 +125,9 @@ mod tests {
         assert!(valid_path("notes/appunti-20261112-101500.md"));
         assert!(valid_path("notes/Riunione con Gino (bozza).md"));
         assert!(valid_path("sig/timbri.json"));
-        for p in ["lib/../x.json", "lib/.x.json", "lib/a/b.json", "notes/x.txt", "sig/altro.json", "doc/x", "x", "lib/"] {
+        assert!(valid_path("doc/20261112-090000-Contratto/doc.json"));
+        assert!(valid_path("doc/20261112-090000-Contratto/source.pdf"));
+        for p in ["lib/../x.json", "lib/.x.json", "lib/a/b.json", "notes/x.txt", "sig/altro.json", "doc/x", "x", "lib/", "doc/cestino/doc.json", "doc/a/pages/p.png", "doc/a/text.txt", "doc/../x/doc.json"] {
             assert!(!valid_path(p), "{p}");
         }
         assert_eq!(kind_of("lib/a.md"), "notes");

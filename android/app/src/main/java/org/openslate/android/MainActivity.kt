@@ -106,6 +106,8 @@ import uniffi.openslate_mobile.stampReseed
 import uniffi.openslate_mobile.stampSave
 import uniffi.openslate_mobile.paperHasRows
 import uniffi.openslate_mobile.paperIsGrid
+import uniffi.openslate_mobile.docMigrate
+import uniffi.openslate_mobile.docTrash
 import androidx.compose.material3.CircularProgressIndicator
 import uniffi.openslate_mobile.BoardView
 import uniffi.openslate_mobile.DrawOp
@@ -229,6 +231,7 @@ private sealed class Screen {
     object Chat : Screen()
     object Settings : Screen()
     object PhoneSync : Screen()
+    object Docs : Screen()
     data class AiSettings(val back: Screen) : Screen()
     /** La nota trascritta della pagina `id` (o l'appunto `file`); `back` = dove si torna. */
     data class Note(val id: String, val title: String, val text: String, val back: Screen, val file: File? = null) : Screen()
@@ -244,6 +247,7 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var screen by mutableStateOf<Screen>(Screen.Board)
     /** Cambia quando l'archivio cambia: la libreria si rilegge. */
     private var libVersion by mutableIntStateOf(0)
+    private var docsVersion by mutableIntStateOf(0)
     /** La sincronizzazione col computer. */
     private val phoneSync by lazy { PhoneSync(this, filesDir, File(libDir), ::syncChanged) }
     /** Rotazione del foglio in quarti di giro (ricordata). */
@@ -352,8 +356,12 @@ class MainActivity : ComponentActivity(), LinkListener {
         stamps = stampList(filesDir.path)
         quarter = prefs.getInt("quarter", 1) // lo Slate si usa in verticale
         loadTools()
+        // i documenti delle versioni di prima passano al formato della desktop
+        runCatching { docMigrate(OpenDoc.root(this).path, view()) }
         prefs.getString("doc_dir", null)?.let { path ->
-            runCatching { OpenDoc.open(File(path)) }.onSuccess { d -> doc = d; d.show(0, board) }
+            runCatching { OpenDoc.open(File(path), view()) }
+                .onSuccess { d -> doc = d; d.show(d.index, board) }
+                .onFailure { prefs.edit().remove("doc_dir").apply() }
         }
         setContent {
             MaterialTheme {
@@ -363,6 +371,20 @@ class MainActivity : ComponentActivity(), LinkListener {
                         when (val s = screen) {
                             Screen.Settings -> SettingsScreen()
                             Screen.PhoneSync -> SyncScreen(phoneSync, onBack = { screen = Screen.Settings })
+                            Screen.Docs -> DocsScreen(
+                                root = OpenDoc.root(this@MainActivity),
+                                version = docsVersion,
+                                openId = doc?.id,
+                                onBack = { screen = Screen.Board },
+                                onOpen = { openDocDir(it) },
+                                onTrash = { id ->
+                                    if (doc?.id == id) closeDoc()
+                                    runCatching { docTrash(OpenDoc.root(this@MainActivity).path, id) }
+                                        .onFailure { toast(it.message ?: "") }
+                                    docsVersion++
+                                    phoneSync.syncSoon(3000)
+                                },
+                            )
                             Screen.Board -> BoardScreen()
                             Screen.Library -> LibraryScreen(
                                 dir = libDir,
@@ -545,6 +567,21 @@ class MainActivity : ComponentActivity(), LinkListener {
     private fun syncChanged(kinds: List<String>) {
         if ("lib" in kinds || "notes" in kinds) libVersion++
         if ("stamps" in kinds) stamps = stampList(filesDir.path)
+        if ("docs" in kinds) {
+            docsVersion++
+            val d = doc ?: return
+            when {
+                // tolto sul computer: si chiude
+                !File(d.dir, "doc.json").exists() -> {
+                    doc = null
+                    prefs.edit().remove("doc_dir").apply()
+                    board.newPage()
+                    toast(getString(R.string.doc_trashed_elsewhere))
+                }
+                // cambiato sul computer, e qui niente da salvare: si riapre
+                !board.dirty -> runCatching { OpenDoc.open(d.dir, view()) }.onSuccess { nd -> doc = nd; nd.show(d.index, board) }
+            }
+        }
     }
 
     /** Come la desktop: nulla si perde. Uscendo dall'app la lavagna va nell'archivio. */
@@ -573,17 +610,38 @@ class MainActivity : ComponentActivity(), LinkListener {
 
     private fun saveBoardIfNeeded() {
         val d = doc
-        if (d != null) d.keep(board) else if (board.dirty) saveBoard()
+        if (d != null) keepDoc(d) else if (board.dirty) saveBoard()
     }
 
     private fun view() = BoardView(quarter.toUInt(), padSize.width, padSize.height)
+
+    /** Salva i tratti del documento aperto e lo fa arrivare al computer. */
+    private fun keepDoc(d: OpenDoc) {
+        val changed = board.dirty
+        d.keep(board, view())
+        if (changed) phoneSync.syncSoon(3000)
+    }
+
+    /** Apre un documento già importato (dall'elenco o arrivato dal computer). */
+    private fun openDocDir(dir: File) {
+        saveBoardIfNeeded()
+        runCatching { OpenDoc.open(dir, view()) }
+            .onSuccess { d ->
+                if (doc != null) closeDoc()
+                doc = d
+                prefs.edit().putString("doc_dir", d.dir.path).apply()
+                d.show(d.index, board)
+                screen = Screen.Board
+            }
+            .onFailure { toast(getString(R.string.doc_failed, it.message ?: "")) }
+    }
 
     private fun openPdf(uri: android.net.Uri) {
         saveBoardIfNeeded()
         busy = getString(R.string.doc_opening)
         // un Word si impagina, una foto grande si converte: non sul thread principale
         kotlin.concurrent.thread(name = "doc-open") {
-            val r = runCatching { OpenDoc.import(this, uri) }
+            val r = runCatching { OpenDoc.import(this, uri, view()) }
             runOnUiThread {
                 busy = null
                 r.onSuccess { d ->
@@ -597,7 +655,7 @@ class MainActivity : ComponentActivity(), LinkListener {
     }
 
     private fun closeDoc() {
-        doc?.keep(board)
+        doc?.let { keepDoc(it) }
         doc = null
         prefs.edit().remove("doc_dir").apply()
         board.newPage()
@@ -605,14 +663,14 @@ class MainActivity : ComponentActivity(), LinkListener {
 
     private fun goPage(delta: Int) {
         val d = doc ?: return
-        d.keep(board)
+        keepDoc(d)
         d.show(d.index + delta, board)
     }
 
     /** La copia firmata in un file temporaneo (per salvarla o condividerla). */
     private fun signedFile(): File? {
         val d = doc ?: return null
-        d.keep(board)
+        keepDoc(d)
         val dir = File(cacheDir, "share").apply { deleteRecursively(); mkdirs() }
         val f = File(dir, d.title + " " + getString(R.string.signed_suffix) + "." + d.signedExt)
         return runCatching { d.sign(f, view()); f }
@@ -625,7 +683,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         val d = doc
         runCatching {
             if (d != null) {
-                d.keep(board)
+                keepDoc(d)
                 val dir = File(cacheDir, "print").apply { deleteRecursively(); mkdirs() }
                 val f = File(dir, d.title + ".pdf")
                 d.printPdf(f, view())
@@ -827,6 +885,8 @@ class MainActivity : ComponentActivity(), LinkListener {
                         MenuHeader(stringResource(R.string.grp_document))
                         DropdownMenuItem(text = { Text(stringResource(R.string.open_pdf)) }, leadingIcon = { Icon(Icons.Filled.FileOpen, null) },
                             onClick = { pageMenu = false; pickDoc.launch(OpenDoc.MIME) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.my_docs)) }, leadingIcon = { Icon(Icons.Filled.FolderOpen, null) },
+                            onClick = { pageMenu = false; saveBoardIfNeeded(); docsVersion++; screen = Screen.Docs })
                     }
                 }
             }

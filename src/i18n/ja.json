@@ -1343,7 +1343,7 @@
  "Stampa annullata.": "印刷をキャンセルしました。",
  "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "印刷用の PDF を PDF ビューアで開きました：そこから印刷してください (Ctrl+P)。",
  "{} Telefono": "{} 電話",
- "Le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "アーカイブのページ、メモ、印影は、家の Wi‑Fi を通じてパソコンと電話のアプリ（Android、iPhone、iPad）で同じに保たれます。クラウドは使わず、すべて暗号化されます。",
+ "I documenti da firmare, le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "署名する文書、アーカイブのページ、メモ、印影は、家の Wi‑Fi を通じてパソコンと電話のアプリ（Android、iPhone、iPad）で同じに保たれます。クラウドは使わず、すべて暗号化されます。",
  "Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto qui. Quello che si toglie o si sovrascrive va nel cestino, non si perde.": "電話が同じネットワークにあり、ここで OpenSlate が開いていれば自動で同期します。削除・上書きされたものはゴミ箱に入り、失われません。",
  "Nell'app sul telefono: Impostazioni › Sincronizza col computer › Inquadra il QR.": "電話のアプリで：設定 › パソコンと同期 › QR コードを読み取る。",
  "Non fotografarlo e non condividerlo: chi lo inquadra può leggere e cambiare i tuoi dati.": "撮影や共有はしないでください。読み取った人はあなたのデータを読み書きできます。",
@@ -1361,5 +1361,9 @@
  "telefono": "電話",
  "Arrivate novità da «{}».": "「{}」から更新が届きました。",
  "la porta {} è occupata ({})": "ポート {} は使用中です（{}）",
- "il computer non è collegato a una rete": "パソコンがネットワークに接続されていません"
+ "il computer non è collegato a una rete": "パソコンがネットワークに接続されていません",
+ "Sposta nel cestino": "ゴミ箱に移動",
+ "Spostare «{}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino.": "「{}」を文書のゴミ箱に移動しますか？接続している電話からも消えます。documents/cestino フォルダーから戻せます。",
+ "«{}» è nel cestino dei documenti.": "「{}」は文書のゴミ箱にあります。",
+ "Il documento è stato spostato nel cestino dal telefono.": "この文書は電話からゴミ箱に移動されました。"
 }

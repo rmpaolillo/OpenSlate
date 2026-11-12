@@ -83,7 +83,9 @@ final class Board: ObservableObject {
     }
 }
 
-/// Un documento da firmare (PDF, Word, foto, SVG), come `DocMode.kt`.
+/// Un documento da firmare (PDF, Word, foto, SVG), come `DocMode.kt`: nel
+/// formato della desktop (`src/docstore.rs`), così si sincronizza col
+/// computer. `documents/<id>/` con `doc.json`, `source.pdf` e il file di partenza.
 final class OpenDoc: ObservableObject {
     let dir: URL
     let title: String
@@ -94,17 +96,20 @@ final class OpenDoc: ObservableObject {
     private var strokes: [[PageStroke]]
     private var pdfDoc: PDFDocument?
 
+    var id: String { dir.lastPathComponent }
     var pdf: URL { dir.appendingPathComponent("source.pdf") }
     var count: Int { sizes.count }
     var signedExt: String { docSignedExt(original: original.path) }
 
-    private init(dir: URL, title: String, original: URL, sizes: [PdfPageSize]) {
-        self.dir = dir; self.title = title; self.original = original; self.sizes = sizes
-        strokes = Array(repeating: [], count: sizes.count)
+    private init(dir: URL, data: DocData) {
+        self.dir = dir
+        title = data.title
+        original = URL(fileURLWithPath: data.original)
+        sizes = data.sizes
+        strokes = data.pages
+        index = Int(data.current)
         pdfDoc = PDFDocument(url: dir.appendingPathComponent("source.pdf"))
     }
-
-    private func pageId(_ i: Int) -> String { String(format: "p%04d", i + 1) }
 
     func show(_ i: Int, _ board: Board) {
         index = min(max(i, 0), count - 1)
@@ -112,10 +117,11 @@ final class OpenDoc: ObservableObject {
         image = render(index)
     }
 
-    func keep(_ board: Board) {
-        let s = board.model.strokes()
-        strokes[index] = s
-        _ = try? librarySave(dir: dir.path, page: Page(id: pageId(index), title: "", created: nowCreated(), source: "documento", raw: nil, width: 0, height: 0, strokes: s))
+    /// Ricorda i tratti della pagina mostrata (in memoria e in `doc.json`).
+    func keep(_ board: Board, view: BoardView) {
+        strokes[index] = board.model.strokes()
+        try? docSave(dir: dir.path, pages: strokes, current: UInt32(index), view: view)
+        board.markSaved()
     }
 
     func rect(_ view: BoardView) -> [Float] { docPageRect(page: sizes[index], view: view) }
@@ -141,36 +147,25 @@ final class OpenDoc: ObservableObject {
     }
 
     /// Copia il documento scelto nell'app e prepara le pagine da mostrare.
-    static func importFile(_ url: URL) throws -> OpenDoc {
+    static func importFile(_ url: URL, view: BoardView) throws -> OpenDoc {
         let access = url.startAccessingSecurityScopedResource()
         defer { if access { url.stopAccessingSecurityScopedResource() } }
         let ext = url.pathExtension.lowercased()
         guard docExtensions().contains(ext) else { throw NSError(domain: "OpenSlate", code: 1, userInfo: [NSLocalizedDescriptionKey: "." + ext]) }
-        let dir = docsRoot.appendingPathComponent(String(Int(Date().timeIntervalSince1970 * 1000)), isDirectory: true)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let original = dir.appendingPathComponent("original." + ext)
-        try FileManager.default.copyItem(at: url, to: original)
-        do {
-            _ = try docPrepare(original: original.path, pdf: dir.appendingPathComponent("source.pdf").path)
-        } catch {
-            try? FileManager.default.removeItem(at: dir)
-            throw error
-        }
-        try url.deletingPathExtension().lastPathComponent.write(to: dir.appendingPathComponent("title.txt"), atomically: true, encoding: .utf8)
-        return try open(dir)
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("import." + ext)
+        try? FileManager.default.removeItem(at: tmp)
+        try FileManager.default.copyItem(at: url, to: tmp)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        try FileManager.default.createDirectory(at: docsRoot, withIntermediateDirectories: true)
+        let id = try docImport(root: docsRoot.path, src: tmp.path, name: url.lastPathComponent)
+        return try open(docsRoot.appendingPathComponent(id, isDirectory: true), view: view)
     }
 
-    static func open(_ dir: URL) throws -> OpenDoc {
-        let title = (try? String(contentsOf: dir.appendingPathComponent("title.txt"), encoding: .utf8)) ?? dir.lastPathComponent
-        let sizes = try pdfPages(path: dir.appendingPathComponent("source.pdf").path)
-        guard !sizes.isEmpty else { throw NSError(domain: "OpenSlate", code: 2, userInfo: [NSLocalizedDescriptionKey: "no pages"]) }
-        let files = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
-        let original = files.first { $0.hasPrefix("original.") }.map { dir.appendingPathComponent($0) } ?? dir.appendingPathComponent("source.pdf")
-        let d = OpenDoc(dir: dir, title: title, original: original, sizes: sizes)
-        for i in sizes.indices {
-            if let p = try? libraryLoad(dir: dir.path, id: d.pageId(i)) { d.strokes[i] = p.strokes }
-        }
-        return d
+    /// Riapre un documento, coi tratti portati nella geometria di `view`.
+    static func open(_ dir: URL, view: BoardView) throws -> OpenDoc {
+        let d = try docOpen(dir: dir.path, view: view)
+        guard !d.sizes.isEmpty else { throw NSError(domain: "OpenSlate", code: 2, userInfo: [NSLocalizedDescriptionKey: "no pages"]) }
+        return OpenDoc(dir: dir, data: d)
     }
 }
 
@@ -186,6 +181,7 @@ final class AppModel: ObservableObject, LinkListener {
     @Published var battery: Int?
     @Published var padSize = CGSize(width: 21600, height: 14800)
     @Published var tab: Tab = .board
+    @Published var docsVersion = 0
     @Published var libVersion = 0 {
         didSet { if !syncReloading { sync.syncSoon(3) } }
     }
@@ -243,9 +239,15 @@ final class AppModel: ObservableObject, LinkListener {
         let w = UserDefaults.standard.double(forKey: "pad_w"), h = UserDefaults.standard.double(forKey: "pad_h")
         if w > 0 && h > 0 { setPadSize(Float(w), Float(h)) }
         applyTools()
-        if let path = UserDefaults.standard.string(forKey: "doc_dir"), let d = try? OpenDoc.open(URL(fileURLWithPath: path)) {
-            doc = d
-            d.show(0, board)
+        // i documenti delle versioni di prima passano al formato della desktop
+        _ = docMigrate(root: OpenDoc.docsRoot.path, view: view)
+        if let path = UserDefaults.standard.string(forKey: "doc_dir") {
+            if let d = try? OpenDoc.open(URL(fileURLWithPath: path), view: view) {
+                doc = d
+                d.show(d.index, board)
+            } else {
+                UserDefaults.standard.removeObject(forKey: "doc_dir")
+            }
         }
     }
 
@@ -292,7 +294,7 @@ final class AppModel: ObservableObject, LinkListener {
     }
 
     func saveBoardIfNeeded() {
-        if let d = doc { d.keep(board) } else if board.dirty { saveBoard() }
+        if let d = doc { keepDoc(d) } else if board.dirty { saveBoard() }
     }
 
     func openOnBoard(_ p: Page) {
@@ -310,7 +312,8 @@ final class AppModel: ObservableObject, LinkListener {
         busy = L("Apro il documento…", "Opening the document…")
         // un Word si impagina, una foto grande si converte: non sul thread principale
         DispatchQueue.global(qos: .userInitiated).async {
-            let r = Result { try OpenDoc.importFile(url) }
+            let v = self.view
+            let r = Result { try OpenDoc.importFile(url, view: v) }
             DispatchQueue.main.async { [self] in
                 busy = nil
                 switch r {
@@ -326,8 +329,38 @@ final class AppModel: ObservableObject, LinkListener {
         }
     }
 
+    /// Salva i tratti del documento aperto e lo fa arrivare al computer.
+    func keepDoc(_ d: OpenDoc) {
+        let changed = board.dirty
+        d.keep(board, view: view)
+        if changed { sync.syncSoon(3) }
+    }
+
+    /// Apre un documento già importato (dall'elenco o arrivato dal computer).
+    func openDocDir(_ dir: URL) {
+        saveBoardIfNeeded()
+        do {
+            let d = try OpenDoc.open(dir, view: view)
+            if doc != nil { closeDoc() }
+            doc = d
+            UserDefaults.standard.set(d.dir.path, forKey: "doc_dir")
+            d.show(d.index, board)
+            tab = .board
+        } catch {
+            show(L("Impossibile aprire il documento: ", "Could not open the document: ") + error.localizedDescription)
+        }
+    }
+
+    /// Sposta il documento nel cestino (sparisce anche dal computer).
+    func trashDoc(_ id: String) {
+        if doc?.id == id { closeDoc() }
+        do { try docTrash(root: OpenDoc.docsRoot.path, id: id) } catch { show("\(error)") }
+        docsVersion += 1
+        sync.syncSoon(3)
+    }
+
     func closeDoc() {
-        doc?.keep(board)
+        doc?.keep(board, view: view)
         doc = nil
         UserDefaults.standard.removeObject(forKey: "doc_dir")
         board.newPage()
@@ -335,7 +368,7 @@ final class AppModel: ObservableObject, LinkListener {
 
     func goPage(_ delta: Int) {
         guard let d = doc else { return }
-        d.keep(board)
+        keepDoc(d)
         d.show(d.index + delta, board)
     }
 
@@ -345,12 +378,28 @@ final class AppModel: ObservableObject, LinkListener {
         if kinds.contains("lib") || kinds.contains("notes") { libVersion += 1 }
         if kinds.contains("stamps") { stamps = stampList(dir: dataDir) }
         syncReloading = false
+        if kinds.contains("docs") {
+            docsVersion += 1
+            if let d = doc {
+                if !FileManager.default.fileExists(atPath: d.dir.appendingPathComponent("doc.json").path) {
+                    // tolto sul computer: si chiude
+                    doc = nil
+                    UserDefaults.standard.removeObject(forKey: "doc_dir")
+                    board.newPage()
+                    show(L("Il documento è stato spostato nel cestino sul computer.", "The document was moved to the trash on the computer."))
+                } else if !board.dirty, let nd = try? OpenDoc.open(d.dir, view: view) {
+                    // cambiato sul computer, e qui niente da salvare: si riapre
+                    doc = nd
+                    nd.show(d.index, board)
+                }
+            }
+        }
     }
 
     /// La copia firmata in un file temporaneo (per salvarla o condividerla).
     func signedFile() -> URL? {
         guard let d = doc else { return nil }
-        d.keep(board)
+        keepDoc(d)
         let f = Export.shareDir().appendingPathComponent(d.title + " " + L("(firmato)", "(signed)") + "." + d.signedExt)
         do {
             try d.sign(to: f, view: view)
@@ -368,7 +417,7 @@ final class AppModel: ObservableObject, LinkListener {
         let title: String
         do {
             if let d = doc {
-                d.keep(board)
+                keepDoc(d)
                 url = Export.shareDir().appendingPathComponent(d.title + ".pdf")
                 try d.printPdf(to: url, view: view)
                 title = d.title

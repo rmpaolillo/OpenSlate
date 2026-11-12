@@ -66,21 +66,7 @@ impl Meta {
 }
 
 /// Un tratto nel formato JSON dei file (archivio, documenti, firma).
-#[derive(Clone, Serialize, Deserialize)]
-pub struct StrokeFmt {
-    /// Colore "#rrggbb".
-    c: String,
-    /// Spessore relativo.
-    w: f32,
-    /// Punti [x, y, pressione] in unità del pad.
-    p: Vec<[f32; 3]>,
-    /// Evidenziatore.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    h: bool,
-    /// Timbro (i punti sono i quattro angoli).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    t: Option<crate::stamp::StampSpec>,
-}
+pub use crate::docstore::InkFmt as StrokeFmt;
 
 #[derive(Serialize, Deserialize)]
 struct PageFmt {

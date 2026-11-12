@@ -134,7 +134,7 @@ fn to_fmt(p: &Page, chart: Option<[f32; 4]>) -> PageFmt {
     }
 }
 
-fn points_with_phases(pts: impl ExactSizeIterator<Item = (f32, f32, f32)>) -> Vec<PenPoint> {
+pub(crate) fn points_with_phases(pts: impl ExactSizeIterator<Item = (f32, f32, f32)>) -> Vec<PenPoint> {
     let n = pts.len();
     pts.enumerate()
         .map(|(i, (x, y, pressure))| PenPoint {

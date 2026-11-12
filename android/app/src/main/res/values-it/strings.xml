@@ -240,7 +240,13 @@
     <string name="sync_where">Sul computer: OpenSlate › Opzioni › Telefono › Collega un telefono…</string>
     <string name="sync_now">Sincronizza adesso</string>
     <string name="sync_unpair">Scollega</string>
-    <string name="sync_explain">Le pagine dell\'archivio, gli appunti e i timbri restano uguali sul telefono e sul computer, attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato. Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto sul computer. Quello che si toglie o si sovrascrive va nel cestino, non si perde.</string>
+    <string name="sync_explain">I documenti da firmare, le pagine dell\'archivio, gli appunti e i timbri restano uguali sul telefono e sul computer, attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato. Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto sul computer. Quello che si toglie o si sovrascrive va nel cestino, non si perde.</string>
     <string name="grp_computer">Computer</string>
     <string name="notes">Appunti</string>
+    <string name="my_docs">I miei documenti</string>
+    <string name="docs_empty">Ancora nessun documento. Aprine uno da firmare dal menu ⋮: compare anche sul computer collegato.</string>
+    <string name="doc_open_now">%1$s · aperto ora</string>
+    <string name="doc_trash">Sposta nel cestino</string>
+    <string name="doc_trash_q">Spostare «%1$s» nel cestino dei documenti? Sparisce anche dal computer collegato.</string>
+    <string name="doc_trashed_elsewhere">Il documento è stato spostato nel cestino sul computer.</string>
 </resources>
