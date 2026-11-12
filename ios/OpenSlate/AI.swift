@@ -442,6 +442,10 @@ struct ServiceEditor: View {
 
 /// Lo scanner del QR (VisionKit). Sul simulatore non c'è la fotocamera: si incolla il testo.
 struct QrScanner: View {
+    var hint = L("Sul computer: OpenSlate → Impostazioni AI → Collega il telefono. Inquadra il QR.",
+                 "On the computer: OpenSlate → AI settings → Connect the phone. Frame the QR code.")
+    var placeholder = "OPENSLATE-AI1:…"
+    var title = L("Importa dal computer", "Import from the computer")
     let found: (String) -> Void
     @State private var pasted = ""
 
@@ -450,18 +454,16 @@ struct QrScanner: View {
             VStack {
                 if DataScannerViewController.isSupported && DataScannerViewController.isAvailable {
                     ScannerView(found: found)
-                    Text(L("Sul computer: OpenSlate → Impostazioni AI → Collega il telefono. Inquadra il QR.",
-                           "On the computer: OpenSlate → AI settings → Connect the phone. Frame the QR code."))
-                        .font(.footnote).padding()
+                    Text(hint).font(.footnote).padding()
                 } else {
                     Form {
                         Text(L("La fotocamera non è disponibile: incolla qui il testo del QR.", "The camera is not available: paste the QR text here."))
-                        TextField("OPENSLATE-AI1:…", text: $pasted, axis: .vertical)
+                        TextField(placeholder, text: $pasted, axis: .vertical)
                         Button(L("Importa", "Import")) { found(pasted) }.disabled(pasted.isEmpty)
                     }
                 }
             }
-            .navigationTitle(L("Importa dal computer", "Import from the computer"))
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
         }
     }

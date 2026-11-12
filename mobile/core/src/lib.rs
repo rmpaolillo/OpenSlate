@@ -59,6 +59,10 @@ pub mod stroke;
 pub mod stamp;
 mod seal;
 pub use seal::*;
+#[path = "../../../src/sync/mod.rs"]
+pub mod sync;
+mod phonesync;
+pub use phonesync::*;
 
 /// Come `scene` ed `export` della desktop, per i file inclusi da src/.
 pub mod scene {

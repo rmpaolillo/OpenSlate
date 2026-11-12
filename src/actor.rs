@@ -92,6 +92,9 @@ pub enum UiEvent {
     UpdateDone(Result<crate::selfupdate::Ready, String>),
     /// La chat AI ha modificato il documento in questa cartella.
     DocChanged(std::path::PathBuf),
+    /// Un telefono ha finito di sincronizzarsi; `changed` = cosa è cambiato
+    /// qui ("lib", "notes", "stamps"), da ricaricare.
+    PhoneSynced { name: String, changed: Vec<&'static str> },
     /// La chat AI chiede qualcosa all'archivio (vedi `libagent`).
     ChatLib(crate::libagent::Req, crate::libagent::Reply),
 }

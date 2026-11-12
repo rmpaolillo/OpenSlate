@@ -228,9 +228,10 @@ private sealed class Screen {
     data class Viewer(val page: Page) : Screen()
     object Chat : Screen()
     object Settings : Screen()
+    object PhoneSync : Screen()
     data class AiSettings(val back: Screen) : Screen()
-    /** La nota trascritta della pagina `id`; `back` = dove si torna. */
-    data class Note(val id: String, val title: String, val text: String, val back: Screen) : Screen()
+    /** La nota trascritta della pagina `id` (o l'appunto `file`); `back` = dove si torna. */
+    data class Note(val id: String, val title: String, val text: String, val back: Screen, val file: File? = null) : Screen()
 }
 
 class MainActivity : ComponentActivity(), LinkListener {
@@ -243,6 +244,8 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var screen by mutableStateOf<Screen>(Screen.Board)
     /** Cambia quando l'archivio cambia: la libreria si rilegge. */
     private var libVersion by mutableIntStateOf(0)
+    /** La sincronizzazione col computer. */
+    private val phoneSync by lazy { PhoneSync(this, filesDir, File(libDir), ::syncChanged) }
     /** Rotazione del foglio in quarti di giro (ricordata). */
     private var quarter by mutableIntStateOf(0)
     /** Bluetooth spento all'ultimo «Collega». */
@@ -359,12 +362,19 @@ class MainActivity : ComponentActivity(), LinkListener {
                     Box(Modifier.weight(1f).fillMaxWidth()) {
                         when (val s = screen) {
                             Screen.Settings -> SettingsScreen()
+                            Screen.PhoneSync -> SyncScreen(phoneSync, onBack = { screen = Screen.Settings })
                             Screen.Board -> BoardScreen()
                             Screen.Library -> LibraryScreen(
                                 dir = libDir,
                                 version = libVersion,
+                                notesDir = File(filesDir, "notes"),
                                 onBack = { screen = Screen.Board },
                                 onOpen = { id -> openViewer(id) },
+                                onOpenNote = { f ->
+                                    runCatching { f.readText() }.onSuccess { text ->
+                                        screen = Screen.Note(f.nameWithoutExtension, f.nameWithoutExtension, text, Screen.Library, f)
+                                    }
+                                },
                             )
                             Screen.Chat -> ChatScreen(
                                 chat = chat,
@@ -382,8 +392,8 @@ class MainActivity : ComponentActivity(), LinkListener {
                             )
                             is Screen.AiSettings -> AiSettingsScreen(aiStore, onBack = { screen = s.back })
                             is Screen.Note -> NoteScreen(s.title, s.text, onSave = { text ->
-                                runCatching { File(libDir, "${s.id}.md").writeText(text) }
-                                    .onSuccess { toast(getString(R.string.note_saved)); screen = s.copy(text = text) }
+                                runCatching { (s.file ?: File(libDir, "${s.id}.md")).writeText(text) }
+                                    .onSuccess { toast(getString(R.string.note_saved)); screen = s.copy(text = text); phoneSync.syncSoon(3000) }
                                     .onFailure { toast(getString(R.string.save_failed, it.message ?: "")) }
                             }, onBack = { screen = s.back })
                             is Screen.Viewer -> ViewerScreen(
@@ -393,6 +403,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                                 onBack = { screen = Screen.Library },
                                 onChanged = { p ->
                                     libVersion++
+                                    phoneSync.syncSoon(3000)
                                     screen = if (p == null) Screen.Library else Screen.Viewer(p)
                                 },
                                 onOpenOnBoard = { p ->
@@ -520,6 +531,22 @@ class MainActivity : ComponentActivity(), LinkListener {
     /** La nota già fatta di una pagina, se c'è. */
     fun noteOf(id: String): String? = File(libDir, "$id.md").takeIf { it.exists() }?.readText()
 
+    override fun onResume() {
+        super.onResume()
+        phoneSync.resume()
+    }
+
+    override fun onPause() {
+        phoneSync.pause()
+        super.onPause()
+    }
+
+    /** Arrivato qualcosa dal computer: si ricarica quello che è cambiato. */
+    private fun syncChanged(kinds: List<String>) {
+        if ("lib" in kinds || "notes" in kinds) libVersion++
+        if ("stamps" in kinds) stamps = stampList(filesDir.path)
+    }
+
     /** Come la desktop: nulla si perde. Uscendo dall'app la lavagna va nell'archivio. */
     override fun onStop() {
         saveBoardIfNeeded()
@@ -538,6 +565,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         if (board.created.isEmpty()) board.created = libraryLoad(libDir, board.id).created
         board.markSaved()
         libVersion++
+        phoneSync.syncSoon(3000)
     }.onFailure {
         Log.e("OpenSlate", "salvataggio lavagna", it)
         toast(getString(R.string.save_failed, it.message ?: ""))
@@ -657,6 +685,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         runCatching { pageFromPad(raw, timeBcd, w, h, f.name)?.let { librarySave(libDir, it) } }
             .onFailure { Log.e("OpenSlate", "pagina del pad non salvata nell'archivio", it) }
         libVersion++
+        phoneSync.syncSoon(3000)
         return true
     }
 
@@ -892,6 +921,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         val i = if (sel != null && sel in list.indices) { list[sel] = named; sel } else { list += named; list.size - 1 }
         stamps = list
         runCatching { stampSave(filesDir.path, list) }.onFailure { toast(it.message ?: "") }
+        phoneSync.syncSoon(3000)
         return i
     }
 
@@ -901,6 +931,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         list.removeAt(i)
         stamps = list
         runCatching { stampSave(filesDir.path, list) }
+        phoneSync.syncSoon(3000)
     }
 
     /** Posa il timbro n. `i`: compare a grandezza naturale, poi si regola. */
@@ -1235,6 +1266,9 @@ class MainActivity : ComponentActivity(), LinkListener {
             Text(stringResource(R.string.settings), Modifier.padding(16.dp), style = MaterialTheme.typography.headlineSmall)
             SettingsHeader(stringResource(R.string.grp_ai))
             SettingsRow(Icons.Filled.SmartToy, stringResource(R.string.ai_settings), aiSummary()) { screen = Screen.AiSettings(Screen.Settings) }
+            SettingsHeader(stringResource(R.string.grp_computer))
+            SettingsRow(Icons.Filled.Sync, stringResource(R.string.sync_title),
+                phoneSync.deskName?.let { stringResource(R.string.sync_connected, it) } ?: stringResource(R.string.sync_off)) { screen = Screen.PhoneSync }
             SettingsHeader(stringResource(R.string.grp_sheet))
             SettingsRow(Icons.Filled.GridOn, stringResource(R.string.paper).trimEnd('…'), paperName(paperCode)) { choosingPaper = true }
             SettingsRow(Icons.Filled.Rotate90DegreesCw, stringResource(R.string.rotate), "${quarter * 90}°") {

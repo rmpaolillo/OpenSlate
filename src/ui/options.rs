@@ -28,11 +28,12 @@ pub(super) enum PrefTab {
     Web,
     Ai,
     Archivio,
+    Telefono,
     Avanzate,
 }
 
 impl PrefTab {
-    const ALL: [PrefTab; 7] = [PrefTab::Aspetto, PrefTab::Penna, PrefTab::Pad, PrefTab::Web, PrefTab::Ai, PrefTab::Archivio, PrefTab::Avanzate];
+    const ALL: [PrefTab; 8] = [PrefTab::Aspetto, PrefTab::Penna, PrefTab::Pad, PrefTab::Web, PrefTab::Ai, PrefTab::Archivio, PrefTab::Telefono, PrefTab::Avanzate];
     fn label(self) -> String {
         match self {
             PrefTab::Aspetto => format!("{} Aspetto", ic::PAINT_BRUSH),
@@ -41,6 +42,7 @@ impl PrefTab {
             PrefTab::Web => format!("{} Diretta web", ic::BROADCAST),
             PrefTab::Ai => format!("{} Trascrizione e AI", ic::SPARKLE),
             PrefTab::Archivio => format!("{} Archivio ed export", ic::ARCHIVE),
+            PrefTab::Telefono => format!("{} Telefono", ic::DEVICE_MOBILE),
             PrefTab::Avanzate => format!("{} Avanzate", ic::WRENCH),
         }
     }
@@ -121,7 +123,16 @@ impl App {
             }
         });
         egui::CentralPanel::default().frame(egui::Frame::NONE.inner_margin(egui::Margin { left: 20, right: 0, top: 0, bottom: 0 })).show(ui, |ui| {
-            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| prefs_page(ui, p, &mut ai));
+            let phone = &mut self.phone;
+            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                if p.tab == PrefTab::Telefono {
+                    ui.heading(i18n::tr(&p.tab.label()).into_owned());
+                    ui.add_space(6.0);
+                    phone.page(ui);
+                } else {
+                    prefs_page(ui, p, &mut ai);
+                }
+            });
         });
         if apply || ok {
             let n = p.draft.clone();
@@ -436,6 +447,8 @@ fn prefs_page(ui: &mut egui::Ui, p: &mut Prefs, ai: &mut bool) {
                 });
             });
         }),
+        // la sua pagina la disegna `PhoneUi::page`
+        PrefTab::Telefono => {}
         PrefTab::Avanzate => grid(ui, "adv", &mut |ui| {
             row(ui, "Comando dopo ogni file", |ui| {
                 ui.vertical(|ui| {

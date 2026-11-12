@@ -232,4 +232,18 @@
     <string name="stamp_applied">Stamp applied: Undo removes it.</string>
     <string name="print">Print…</string>
     <string name="print_failed">Could not print: %1$s</string>
+    <string name="sync_title">Sync with computer</string>
+    <string name="sync_off">Not connected</string>
+    <string name="sync_connected">Connected to %1$s</string>
+    <string name="sync_last">Last sync: %1$s</string>
+    <string name="sync_never">Not synced yet</string>
+    <string name="sync_busy">Syncing…</string>
+    <string name="sync_error">Last attempt: %1$s</string>
+    <string name="sync_scan">Scan the computer\'s QR code</string>
+    <string name="sync_where">On the computer: OpenSlate › Options › Phone › Connect a phone…</string>
+    <string name="sync_now">Sync now</string>
+    <string name="sync_unpair">Disconnect</string>
+    <string name="sync_explain">Library pages, notes and stamps stay the same on the phone and on the computer, over your home Wi‑Fi: no cloud, everything encrypted. The phone syncs by itself when it is on the same network and OpenSlate is open on the computer. Anything removed or overwritten goes to the trash, nothing is lost.</string>
+    <string name="grp_computer">Computer</string>
+    <string name="notes">Notes</string>
 </resources>

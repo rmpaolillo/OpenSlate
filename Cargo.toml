@@ -119,6 +119,10 @@ cpal = "0.18"
 # scarica la prima volta, col permesso dell'utente (vedi src/voice.rs)
 whisper-rs = { version = "0.16", features = ["tracing_backend"] }
 sha1 = "0.10"
+# sincronizzazione col telefono (src/sync, src/phonesync.rs): buste cifrate
+# ChaCha20-Poly1305 e il nome Bonjour con cui il telefono trova il computer
+chacha20poly1305 = "0.10"
+mdns-sd = "0.13"
 
 [dev-dependencies]
 # le prove ritrovano i caratteri messi dentro un Word (src/docxfonts.rs)

@@ -18,6 +18,7 @@ mod inbella_ui;
 mod library_view;
 mod options;
 mod paper;
+mod phone_ui;
 mod quit;
 mod savedlg;
 mod sysdlg;
@@ -139,7 +140,10 @@ pub fn run_app(
             }
         });
     }
+    // la sincronizzazione col telefono (il server parte solo se ce n'è uno abbinato)
+    let phone = phone_ui::PhoneUi::new(crate::phonesync::PhoneSync::new(evt_tx.clone()));
     let mut app = App {
+        phone,
         rt: rt.handle().clone(),
         hub,
         settings,
@@ -445,6 +449,7 @@ struct App {
     /// Documenti importati e firma.
     docui: doc_view::DocUi,
     stampui: timbro_ui::StampUi,
+    phone: phone_ui::PhoneUi,
     /// «Trasforma in bella» (la lettura dell'AI in corso).
     inbella: inbella_ui::InBellaUi,
     allena: allena_ui::AllenaUi,
@@ -930,6 +935,7 @@ impl App {
                 }
                 UiEvent::DocChanged(dir) => self.doc_changed_by_ai(dir),
                 UiEvent::ChatLib(req, reply) => self.chat_lib.push((req, reply)),
+                UiEvent::PhoneSynced { name, changed } => self.phone_synced(name, changed),
                 UiEvent::UpdateDone(r) => {
                     self.update_phase = None;
                     match r {
@@ -1017,6 +1023,23 @@ impl App {
             let r = web::start(hub, port).await.map_err(|e| e.to_string());
             let _ = tx.send(UiEvent::Web(r));
         });
+    }
+
+    /// Un telefono si è sincronizzato: si ricarica quello che è arrivato.
+    fn phone_synced(&mut self, name: String, changed: Vec<&'static str>) {
+        self.phone.synced();
+        if changed.is_empty() {
+            return;
+        }
+        if changed.contains(&"lib") {
+            self.lib = Library::open();
+            self.lui.thumbs.clear();
+        }
+        if changed.contains(&"stamps") {
+            self.stampui.list = crate::stamp::load_all(std::path::Path::new(timbro_ui::FILE));
+        }
+        let who = if name.trim().is_empty() { crate::i18n::t("telefono").to_string() } else { name };
+        self.status = crate::i18n::tf(format!("Arrivate novità da «{who}»."));
     }
 
     /// Stampa in sottofondo: `make` scrive il PDF, poi il dialogo di stampa

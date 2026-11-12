@@ -186,10 +186,20 @@ final class AppModel: ObservableObject, LinkListener {
     @Published var battery: Int?
     @Published var padSize = CGSize(width: 21600, height: 14800)
     @Published var tab: Tab = .board
-    @Published var libVersion = 0
+    @Published var libVersion = 0 {
+        didSet { if !syncReloading { sync.syncSoon(3) } }
+    }
     @Published var doc: OpenDoc?
     /// Timbri aziendali salvati e quello che si sta posando.
-    @Published var stamps: [SavedStamp] = []
+    @Published var stamps: [SavedStamp] = [] {
+        didSet { if !syncReloading { sync.syncSoon(3) } }
+    }
+    /// La sincronizzazione col computer.
+    let sync: PhoneSync
+    /// Si sta ricaricando quello che è arrivato dal computer (non si risincronizza).
+    private var syncReloading = false
+    /// La cartella dei dati dell'app (timbri, appunti, sincronizzazione).
+    var dataDir: String { FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].path }
     @Published var sealJob: SealJob?
     @Published var busy: String?
     @Published var toast: String?
@@ -222,11 +232,13 @@ final class AppModel: ObservableObject, LinkListener {
         // la libreria in Documenti: si vede anche nell'app File
         libDir = docsDir.appendingPathComponent("library", isDirectory: true).path
         rawDir = support.appendingPathComponent("pad-raw", isDirectory: true)
+        sync = PhoneSync(dataDir: support.path, libDir: libDir)
         try? FileManager.default.createDirectory(atPath: libDir, withIntermediateDirectories: true)
         try? FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
         // le impronte dei tratti già in bella
         neatSetDir(dir: support.path)
         stamps = stampList(dir: support.path)
+        sync.onChanged = { [weak self] kinds in self?.syncChanged(kinds) }
         link.listener = self
         let w = UserDefaults.standard.double(forKey: "pad_w"), h = UserDefaults.standard.double(forKey: "pad_h")
         if w > 0 && h > 0 { setPadSize(Float(w), Float(h)) }
@@ -325,6 +337,14 @@ final class AppModel: ObservableObject, LinkListener {
         guard let d = doc else { return }
         d.keep(board)
         d.show(d.index + delta, board)
+    }
+
+    /// Arrivato qualcosa dal computer: si ricarica quello che è cambiato.
+    func syncChanged(_ kinds: [String]) {
+        syncReloading = true
+        if kinds.contains("lib") || kinds.contains("notes") { libVersion += 1 }
+        if kinds.contains("stamps") { stamps = stampList(dir: dataDir) }
+        syncReloading = false
     }
 
     /// La copia firmata in un file temporaneo (per salvarla o condividerla).

@@ -365,20 +365,40 @@ fun Sheet(
 
 /** L'archivio: le pagine raggruppate per giorno, dalla più recente. */
 @Composable
-fun LibraryScreen(dir: String, version: Int, onBack: () -> Unit, onOpen: (String) -> Unit) {
+fun LibraryScreen(dir: String, version: Int, notesDir: java.io.File, onBack: () -> Unit, onOpen: (String) -> Unit, onOpenNote: (java.io.File) -> Unit) {
     BackHandler(onBack = onBack)
     val pages = remember(version) { libraryList(dir) }
+    // gli appunti arrivati dal computer (quelli delle pagine stanno nella pagina)
+    val notes = remember(version) { uniffi.openslate_mobile.notesList(notesDir.parent ?: "") }
     Column(Modifier.fillMaxSize()) {
         ActionRow {
             TextButton(onClick = onBack) { Text("← " + stringResource(R.string.back)) }
             Text(stringResource(R.string.library), style = MaterialTheme.typography.titleLarge)
         }
-        if (pages.isEmpty()) {
+        if (pages.isEmpty() && notes.isEmpty()) {
             Text(stringResource(R.string.library_empty), Modifier.padding(24.dp))
             return@Column
         }
         val days = pages.groupBy { it.day }
         LazyColumn(Modifier.fillMaxSize()) {
+            if (notes.isNotEmpty()) {
+                item(key = "notes") {
+                    Text(
+                        stringResource(R.string.notes),
+                        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+                items(notes, key = { "note-$it" }) { n ->
+                    Text(
+                        n.removeSuffix(".md"),
+                        Modifier.fillMaxWidth().clickable { onOpenNote(java.io.File(notesDir, n)) }.padding(horizontal = 16.dp, vertical = 12.dp),
+                        style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                    HorizontalDivider()
+                }
+            }
             days.forEach { (day, list) ->
                 item(key = "day-$day") {
                     Text(

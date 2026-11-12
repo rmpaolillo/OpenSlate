@@ -4,17 +4,21 @@ struct NoteItem: Identifiable {
     let id: String
     let title: String
     let text: String
+    /// Dove si salva (nil = accanto alla pagina `id`).
+    var file: String? = nil
 }
 
 /// L'archivio: le pagine per giorno, dalla più recente (stesso formato della desktop).
 struct LibraryScreen: View {
     @EnvironmentObject var app: AppModel
+    @State private var note: NoteItem?
 
     var body: some View {
         NavigationStack {
             content
                 .navigationTitle(L("Libreria", "Library"))
                 .navigationDestination(for: String.self) { id in PageViewer(id: id) }
+                .sheet(item: $note) { n in NoteScreen(item: n) }
         }
     }
 
@@ -22,13 +26,26 @@ struct LibraryScreen: View {
     private var content: some View {
         let _ = app.libVersion
         let pages = libraryList(dir: app.libDir)
-        if pages.isEmpty {
+        // gli appunti arrivati dal computer (quelli delle pagine stanno nella pagina)
+        let notes = notesList(dataDir: app.dataDir)
+        if pages.isEmpty && notes.isEmpty {
             Text(L("Ancora nessuna pagina. Salva la lavagna, oppure scarica le pagine scritte sul pad lontano dal telefono.",
                    "No pages yet. Save the board, or download the pages written on the pad away from the phone."))
                 .foregroundStyle(.secondary).padding()
         } else {
             let days: [String] = Array(Set(pages.map { $0.day })).sorted(by: >)
             List {
+                if !notes.isEmpty {
+                    Section(L("Appunti", "Notes")) {
+                        ForEach(notes, id: \.self) { n in
+                            Button {
+                                let f = app.dataDir + "/notes/" + n
+                                let name = String(n.dropLast(3))
+                                note = NoteItem(id: name, title: name, text: (try? String(contentsOfFile: f, encoding: .utf8)) ?? "", file: f)
+                            } label: { Label(String(n.dropLast(3)), systemImage: "doc.text").foregroundStyle(.primary) }
+                        }
+                    }
+                }
                 ForEach(days, id: \.self) { day in
                     Section(dayLabel(day)) {
                         ForEach(pages.filter { $0.day == day }, id: \.id) { p in
@@ -152,8 +169,9 @@ struct NoteScreen: View {
                     ToolbarItemGroup(placement: .primaryAction) {
                         ShareLink(item: text) { Image(systemName: "square.and.arrow.up") }
                         Button(L("Salva", "Save")) {
-                            try? text.write(toFile: app.libDir + "/\(item.id).md", atomically: true, encoding: .utf8)
+                            try? text.write(toFile: item.file ?? app.libDir + "/\(item.id).md", atomically: true, encoding: .utf8)
                             app.show(L("Nota salvata.", "Note saved."))
+                            app.sync.syncSoon(3)
                             dismiss()
                         }
                     }
@@ -177,6 +195,14 @@ struct SettingsScreen: View {
                     } label: {
                         let on = app.ai.services.filter { $0.enabled }.map { $0.name }
                         LabeledContent(L("Impostazioni AI", "AI settings"), value: on.isEmpty ? L("Nessun servizio", "No service yet") : on.joined(separator: ", "))
+                    }
+                }
+                Section(L("Computer", "Computer")) {
+                    NavigationLink {
+                        SyncScreen(sync: app.sync)
+                    } label: {
+                        LabeledContent(L("Sincronizza col computer", "Sync with computer"),
+                                       value: app.sync.deskName.map { L("Collegato a ", "Connected to ") + $0 } ?? L("Non collegato", "Not connected"))
                     }
                 }
                 Section(L("Foglio", "Sheet")) {

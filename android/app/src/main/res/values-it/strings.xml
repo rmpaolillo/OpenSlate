@@ -229,4 +229,18 @@
     <string name="stamp_applied">Timbro apposto: Annulla lo toglie.</string>
     <string name="print">Stampa…</string>
     <string name="print_failed">Stampa non riuscita: %1$s</string>
+    <string name="sync_title">Sincronizza col computer</string>
+    <string name="sync_off">Non collegato</string>
+    <string name="sync_connected">Collegato a %1$s</string>
+    <string name="sync_last">Ultima sincronizzazione: %1$s</string>
+    <string name="sync_never">Non ancora sincronizzato</string>
+    <string name="sync_busy">Sincronizzo…</string>
+    <string name="sync_error">Ultimo tentativo: %1$s</string>
+    <string name="sync_scan">Inquadra il QR del computer</string>
+    <string name="sync_where">Sul computer: OpenSlate › Opzioni › Telefono › Collega un telefono…</string>
+    <string name="sync_now">Sincronizza adesso</string>
+    <string name="sync_unpair">Scollega</string>
+    <string name="sync_explain">Le pagine dell\'archivio, gli appunti e i timbri restano uguali sul telefono e sul computer, attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato. Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto sul computer. Quello che si toglie o si sovrascrive va nel cestino, non si perde.</string>
+    <string name="grp_computer">Computer</string>
+    <string name="notes">Appunti</string>
 </resources>

@@ -139,7 +139,7 @@ class AiStore(context: Context) {
 }
 
 /** Cifratura AES-GCM con una chiave dell'Android Keystore. */
-private object Secrets {
+internal object Secrets {
     private const val ALIAS = "openslate-ai-keys"
 
     private fun secretKey(): SecretKey {

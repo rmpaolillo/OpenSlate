@@ -679,7 +679,7 @@ fn is_loopback(ip: IpAddr) -> bool {
 }
 
 /// Indirizzi della rete di casa (o del Mac stesso).
-fn is_local(ip: IpAddr) -> bool {
+pub(crate) fn is_local(ip: IpAddr) -> bool {
     match ip {
         IpAddr::V4(v) => v.is_loopback() || v.is_private() || v.is_link_local(),
         IpAddr::V6(v) => {
