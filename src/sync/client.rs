@@ -186,7 +186,7 @@ pub fn run(pairing: &Pairing, found: &[String], device: &str, store: &mut dyn St
 mod tests {
     use super::super::pair::{secret_b64, Pairing};
     use super::super::server::{serve_conn, PeerKey, Server};
-    use super::super::store::FsStore;
+    use super::super::store::{FsStore, MemVirtual};
     use super::*;
     use std::path::{Path, PathBuf};
     use std::sync::{Arc, Mutex};
@@ -199,10 +199,12 @@ mod tests {
     }
 
     /// Una desktop finta su 127.0.0.1, con i dati in `root`.
-    fn desk(root: &Path, key: Secret) -> u16 {
+    fn desk(root: &Path, key: Secret, ai: MemVirtual) -> u16 {
         let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let port = l.local_addr().unwrap().port();
-        let state = Arc::new(Mutex::new((Server::new("D", "Mac"), FsStore::desktop(root))));
+        let mut store = FsStore::desktop(root);
+        store.set_ai(Box::new(ai));
+        let state = Arc::new(Mutex::new((Server::new("D", "Mac"), store)));
         std::thread::spawn(move || {
             for s in l.incoming().flatten() {
                 let st = state.clone();
@@ -246,13 +248,20 @@ mod tests {
         std::fs::write(dd.join("pages/page-0001.png"), "png").unwrap();
 
         let key = crypto::new_secret();
-        let port = desk(&d, key);
+        // le impostazioni AI: sulla desktop più recenti, arrivano sul telefono
+        let desk_ai = Arc::new(Mutex::new(None));
+        let port = desk(&d, key, MemVirtual { data: Some((b"[desk]".to_vec(), 2_000_000_000)), received: desk_ai.clone() });
         let p = Pairing { desk_id: "D".into(), desk_name: "Mac".into(), hosts: vec!["10.255.255.1".into()], port, peer_id: "T".into(), secret: secret_b64(&key) };
         let mut store = FsStore::phone(&t, &tl);
+        let phone_ai = Arc::new(Mutex::new(None));
+        store.set_ai(Box::new(MemVirtual { data: Some((b"[tel]".to_vec(), 1_000)), received: phone_ai.clone() }));
         let state = t.join("sync");
         // il QR ha un indirizzo che non risponde: si usa quello trovato sulla rete
         let r = run(&p, &["127.0.0.1".into()], "Pixel", &mut store, &state).unwrap();
-        assert_eq!((r.pulled, r.pushed), (5, 2), "{r:?}");
+        assert_eq!((r.pulled, r.pushed), (6, 2), "{r:?}");
+        assert_eq!(phone_ai.lock().unwrap().as_deref(), Some(&b"[desk]"[..]));
+        assert!(desk_ai.lock().unwrap().is_none() && r.changed.contains("ai"));
+        assert!(!t.join("sync/cestino").exists() || std::fs::read_dir(t.join("sync/cestino")).unwrap().all(|e| !e.unwrap().file_name().to_string_lossy().starts_with("ai")));
         let td = t.join("documents/20261112-090000-Contratto");
         assert_eq!(files(&td), ["doc.json", "source.pdf"]);
         assert!(r.changed.contains("docs"));

@@ -1343,7 +1343,7 @@
  "Stampa annullata.": "Printing cancelled.",
  "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "The PDF to print is open in your PDF viewer: print from there (Ctrl+P).",
  "{} Telefono": "{} Phone",
- "I documenti da firmare, le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "Documents to sign, library pages, notes and stamps stay the same on the computer and in the phone app (Android, iPhone, iPad), over your home Wi‑Fi: no cloud, everything encrypted.",
+ "I documenti da firmare, la firma, i timbri, le pagine dell'archivio, gli appunti e le impostazioni AI (chiavi comprese) restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "Documents to sign, the signature, stamps, library pages, notes and AI settings (keys included) stay the same on the computer and in the phone app (Android, iPhone, iPad), over your home Wi‑Fi: no cloud, everything encrypted.",
  "Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto qui. Quello che si toglie o si sovrascrive va nel cestino, non si perde.": "The phone syncs by itself when it is on the same network and OpenSlate is open here. Anything removed or overwritten goes to the trash, nothing is lost.",
  "Nell'app sul telefono: Impostazioni › Sincronizza col computer › Inquadra il QR.": "In the phone app: Settings › Sync with computer › Scan the QR code.",
  "Non fotografarlo e non condividerlo: chi lo inquadra può leggere e cambiare i tuoi dati.": "Do not photograph or share it: whoever scans it can read and change your data.",

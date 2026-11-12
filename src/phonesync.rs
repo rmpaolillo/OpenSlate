@@ -97,8 +97,11 @@ impl PhoneSync {
         let root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let server = server::Server::new(&file.desk_id, &computer_name());
         let any = !file.phones.is_empty();
+        let mut store = FsStore::desktop(&root);
+        // le impostazioni AI, con le chiavi (solo in memoria e cifrate in rete)
+        store.set_ai(Box::new(crate::aiconfig::PhoneAi::default()));
         let mut me = PhoneSync {
-            shared: Arc::new(Mutex::new(Shared { file, server, store: FsStore::desktop(&root), changed: Default::default() })),
+            shared: Arc::new(Mutex::new(Shared { file, server, store, changed: Default::default() })),
             evt,
             running: false,
             _mdns: None,

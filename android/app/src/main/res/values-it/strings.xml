@@ -240,7 +240,7 @@
     <string name="sync_where">Sul computer: OpenSlate › Opzioni › Telefono › Collega un telefono…</string>
     <string name="sync_now">Sincronizza adesso</string>
     <string name="sync_unpair">Scollega</string>
-    <string name="sync_explain">I documenti da firmare, le pagine dell\'archivio, gli appunti e i timbri restano uguali sul telefono e sul computer, attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato. Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto sul computer. Quello che si toglie o si sovrascrive va nel cestino, non si perde.</string>
+    <string name="sync_explain">I documenti da firmare, la firma, i timbri, le pagine dell\'archivio, gli appunti e le impostazioni AI (chiavi comprese) restano uguali sul telefono e sul computer, attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato. Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto sul computer. Quello che si toglie o si sovrascrive va nel cestino, non si perde.</string>
     <string name="grp_computer">Computer</string>
     <string name="notes">Appunti</string>
     <string name="my_docs">I miei documenti</string>
@@ -249,4 +249,16 @@
     <string name="doc_trash">Sposta nel cestino</string>
     <string name="doc_trash_q">Spostare «%1$s» nel cestino dei documenti? Sparisce anche dal computer collegato.</string>
     <string name="doc_trashed_elsewhere">Il documento è stato spostato nel cestino sul computer.</string>
+    <string name="signature">Firma</string>
+    <string name="sig_insert">Inserisci la firma</string>
+    <string name="sig_record">Registra la firma…</string>
+    <string name="sig_capture_title">Registra la firma</string>
+    <string name="sig_capture_hint">Firma sul pad come su un foglio, poi «Salva firma». Va anche sul computer collegato.</string>
+    <string name="sig_save">Salva firma</string>
+    <string name="sig_saved">Firma salvata ✓</string>
+    <string name="sig_none">Nessuna firma: prima registrala.</string>
+    <string name="sig_place_title">Posa la firma</string>
+    <string name="sig_place_hint">Trascinala dove serve, tira l\'angolo per ingrandirla, poi «Applica».</string>
+    <string name="sig_apply">Applica</string>
+    <string name="sig_applied">Firma posata ✓ (Annulla per toglierla).</string>
 </resources>

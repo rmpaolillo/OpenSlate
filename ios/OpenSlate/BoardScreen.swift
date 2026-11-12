@@ -23,7 +23,9 @@ final class SheetUIView: UIView {
     var preview: [PageStroke]? { didSet { setNeedsDisplay() } }
     private var zoneStart: CGPoint?
     /// Il timbro da posare (u, v, larghezza, altezza): un dito lo sposta, l'angolo lo ingrandisce.
-    var seal: (StampSpec, [Float])? { didSet { setNeedsDisplay() } }
+    var seal: (StampSpec?, [Float])? { didSet { setNeedsDisplay() } }
+    /// Al posto del timbro, l'anteprima della firma da posare.
+    var sealArt: UIImage? { didSet { setNeedsDisplay() } }
     var onSealRect: (([Float]) -> Void)?
     /// 0 = niente, 1 = sposta, 2 = grandezza.
     private var sealMode = 0
@@ -215,7 +217,7 @@ final class SheetUIView: UIView {
         // il timbro da posare, con il bordo tratteggiato e l'angolo da tirare
         if let (spec, s) = seal, s.count == 4 {
             let r = screen([s[0], s[1], s[0] + s[2], s[1] + s[3]])
-            SealArt.draw(c, spec, quarter: 0, in: r)
+            if let art = sealArt { art.draw(in: r) } else if let spec { SealArt.draw(c, spec, quarter: 0, in: r) }
             dashed(r.insetBy(dx: -6, dy: -6))
             c.setFillColor(accent.cgColor)
             c.fill(CGRect(x: r.maxX - 7, y: r.maxY - 7, width: 14, height: 14))
@@ -237,7 +239,8 @@ struct Sheet: UIViewRepresentable {
     var zoneRect: [Float]?
     var veil: [Float]?
     var preview: [PageStroke]?
-    var seal: (StampSpec, [Float])?
+    var seal: (StampSpec?, [Float])?
+    var sealArt: UIImage?
     var onSealRect: (([Float]) -> Void)?
 
     func makeUIView(context: Context) -> SheetUIView { SheetUIView() }
@@ -259,6 +262,7 @@ struct Sheet: UIViewRepresentable {
         v.preview = preview
         v.onSealRect = onSealRect
         if v.seal?.0 != seal?.0 || v.seal?.1 != seal?.1 { v.seal = seal }
+        if v.sealArt !== sealArt { v.sealArt = sealArt }
         v.strokes = strokes
     }
 }
@@ -290,9 +294,14 @@ struct BoardScreen: View {
                   zoneRect: app.zoneJob.flatMap { $0.phase == .preview ? nil : ($0.drag ?? $0.zone?.floats) },
                   veil: app.zoneJob.flatMap { $0.phase == .preview ? $0.preview?.veil.floats : nil },
                   preview: app.zoneJob?.preview?.strokes,
-                  seal: app.sealJob.map { ($0.spec, $0.rect) },
-                  onSealRect: { r in app.sealJob?.rect = r })
-            if app.sealJob != nil { SealBar() } else if app.zoneJob != nil { NeatBar() } else { ToolBar(board: board, choosingPaper: $choosingPaper) }
+                  seal: app.sealJob.map { ($0.spec, $0.rect) } ?? app.sigJob.map { (nil, $0.rect) },
+                  sealArt: app.sigJob?.art,
+                  onSealRect: { r in if app.sealJob != nil { app.sealJob?.rect = r } else { app.sigJob?.rect = r } })
+            if app.sealJob != nil { SealBar() }
+            else if app.sigJob != nil { SigBar() }
+            else if app.sigCapture != nil { SigCaptureBar(board: board) }
+            else if app.zoneJob != nil { NeatBar() }
+            else { ToolBar(board: board, choosingPaper: $choosingPaper) }
         }
         .sheet(isPresented: $choosingPaper) { PaperPicker() }
         .fileImporter(isPresented: $importing, allowedContentTypes: docTypes) { r in if case .success(let url) = r { app.openDocument(url) } }
@@ -388,6 +397,12 @@ struct DocBar: View {
             Text("\(doc.index + 1) / \(doc.count)").font(.callout.monospacedDigit())
             Button { app.goPage(1) } label: { Image(systemName: "chevron.right") }.disabled(doc.index + 1 >= doc.count)
             Spacer()
+            Menu {
+                Button { app.sigStart() } label: { Label(L("Inserisci la firma", "Insert the signature"), systemImage: "signature") }
+                    .disabled(!sigExists(dataDir: app.dataDir))
+                Button { app.sigCaptureStart() } label: { Label(L("Registra la firma…", "Record the signature…"), systemImage: "pencil.and.scribble") }
+            } label: { Label(L("Firma", "Signature"), systemImage: "signature") }
+            .disabled(app.sealJob != nil || app.sigJob != nil || app.sigCapture != nil)
             Menu {
                 ForEach(Array(app.stamps.enumerated()), id: \.offset) { i, s in
                     Button { app.startSeal(i) } label: { Label(s.name.isEmpty ? s.spec.company.name : s.name, systemImage: "seal") }

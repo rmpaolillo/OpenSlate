@@ -1343,7 +1343,7 @@
  "Stampa annullata.": "已取消打印。",
  "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "要打印的 PDF 已在 PDF 阅读器中打开：请从那里打印 (Ctrl+P)。",
  "{} Telefono": "{} 手机",
- "I documenti da firmare, le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "待签文档、档案页面、笔记和印章在电脑和手机应用（Android、iPhone、iPad）上保持一致，通过家里的 Wi‑Fi 同步：不用云，全程加密。",
+ "I documenti da firmare, la firma, i timbri, le pagine dell'archivio, gli appunti e le impostazioni AI (chiavi comprese) restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "待签文档、签名、印章、档案页面、笔记和 AI 设置（含密钥）在电脑和手机应用（Android、iPhone、iPad）上保持一致，通过家里的 Wi‑Fi 同步：不用云，全程加密。",
  "Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto qui. Quello che si toglie o si sovrascrive va nel cestino, non si perde.": "手机在同一网络中且这里打开了 OpenSlate 时会自动同步。被删除或覆盖的内容会进入回收站，不会丢失。",
  "Nell'app sul telefono: Impostazioni › Sincronizza col computer › Inquadra il QR.": "在手机应用中：设置 › 与电脑同步 › 扫描二维码。",
  "Non fotografarlo e non condividerlo: chi lo inquadra può leggere e cambiare i tuoi dati.": "不要拍照或分享：扫描它的人可以读取并修改你的数据。",

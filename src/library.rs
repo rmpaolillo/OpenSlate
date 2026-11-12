@@ -10,8 +10,7 @@
 //! `library/<id>.grafico.png` (e va nel cestino con la pagina).
 
 use crate::scene::PageBg;
-use crate::settings::{color_to_hex, hex_to_color};
-use crate::stroke::{Drawing, PenEvent, PenPhase, Stroke};
+use crate::stroke::{Drawing, Stroke};
 use chrono::{Local, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -116,17 +115,7 @@ pub struct Library {
 
 /// Tratti → formato JSON.
 pub fn strokes_to_fmt(strokes: &[Stroke]) -> Vec<StrokeFmt> {
-    strokes
-        .iter()
-        .filter(|s| !s.points.is_empty())
-        .map(|s| StrokeFmt {
-            c: color_to_hex(s.color),
-            w: s.width,
-            p: s.points.iter().map(|p| [p.x, p.y, p.pressure]).collect(),
-            h: s.highlight,
-            t: s.stamp.as_deref().cloned(),
-        })
-        .collect()
+    crate::docstore::strokes_to_ink(strokes)
 }
 
 fn to_fmt(d: &Drawing, meta: &Meta, chart: Option<&PageBg>) -> PageFmt {
@@ -142,35 +131,7 @@ fn to_fmt(d: &Drawing, meta: &Meta, chart: Option<&PageBg>) -> PageFmt {
 
 /// Formato JSON → tratti.
 pub fn strokes_from_fmt(v: Vec<StrokeFmt>) -> Vec<Stroke> {
-    v.into_iter()
-        // un tratto senza punti (file rovinato o scritto a mano) non serve e
-        // farebbe inciampare chi disegna
-        .filter(|s| !s.p.is_empty())
-        .map(|s| {
-            let n = s.p.len();
-            let mut st = Stroke::new(hex_to_color(&s.c).unwrap_or([20, 20, 20]), s.w);
-            st.highlight = s.h;
-            st.stamp = s.t.map(std::sync::Arc::new);
-            st.points = s
-                .p
-                .iter()
-                .enumerate()
-                .map(|(i, p)| PenEvent {
-                    x: p[0],
-                    y: p[1],
-                    pressure: p[2],
-                    phase: if i == 0 {
-                        PenPhase::Down
-                    } else if i + 1 == n {
-                        PenPhase::Up
-                    } else {
-                        PenPhase::Move
-                    },
-                })
-                .collect();
-            st
-        })
-        .collect()
+    crate::docstore::ink_to_strokes(v)
 }
 
 fn from_fmt(f: PageFmt, dir: &Path, id: &str) -> Entry {
@@ -488,6 +449,7 @@ pub fn day_label(created: Option<NaiveDateTime>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stroke::{PenEvent, PenPhase};
 
     fn drawing() -> Drawing {
         let mut s = Stroke::new([210, 40, 40], 3.0);

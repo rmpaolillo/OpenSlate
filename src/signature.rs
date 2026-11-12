@@ -5,7 +5,7 @@
 //! inserita su una pagina ha la sua dimensione naturale, poi si sposta e si
 //! ridimensiona col mouse.
 
-use crate::library::{strokes_from_fmt, strokes_to_fmt, StrokeFmt};
+use crate::docstore::{ink_to_strokes as strokes_from_fmt, strokes_to_ink as strokes_to_fmt, InkFmt as StrokeFmt};
 use crate::scene::{PageGeom, View};
 use crate::stroke::{PenEvent, Stroke};
 use anyhow::{bail, Result};
@@ -65,17 +65,31 @@ impl Signature {
     }
 
     pub fn load() -> Option<Signature> {
-        let f: SigFmt = serde_json::from_str(&std::fs::read_to_string(SIG_FILE).ok()?).ok()?;
-        Some(Signature { w: f.w, h: f.h, strokes: strokes_from_fmt(f.strokes) })
+        Self::load_from(std::path::Path::new(SIG_FILE))
     }
 
     pub fn save(&self) -> Result<()> {
+        self.save_to(std::path::Path::new(SIG_FILE))
+    }
+
+    pub fn load_from(file: &std::path::Path) -> Option<Signature> {
+        let f: SigFmt = serde_json::from_str(&std::fs::read_to_string(file).ok()?).ok()?;
+        Some(Signature { w: f.w, h: f.h, strokes: strokes_from_fmt(f.strokes) })
+    }
+
+    /// Scrive la firma (passando da un file temporaneo: la sincronizzazione
+    /// col telefono non trova mai un file a metà).
+    pub fn save_to(&self, file: &std::path::Path) -> Result<()> {
         if self.strokes.is_empty() {
             bail!("firma vuota");
         }
-        let _ = std::fs::create_dir_all("signatures");
+        if let Some(d) = file.parent() {
+            std::fs::create_dir_all(d)?;
+        }
         let f = SigFmt { version: 1, w: self.w, h: self.h, strokes: strokes_to_fmt(&self.strokes) };
-        std::fs::write(SIG_FILE, serde_json::to_string(&f)?)?;
+        let tmp = file.with_extension("json.tmp");
+        std::fs::write(&tmp, serde_json::to_string(&f)?)?;
+        std::fs::rename(&tmp, file)?;
         Ok(())
     }
 

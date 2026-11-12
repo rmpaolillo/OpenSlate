@@ -107,6 +107,11 @@ import uniffi.openslate_mobile.stampSave
 import uniffi.openslate_mobile.paperHasRows
 import uniffi.openslate_mobile.paperIsGrid
 import uniffi.openslate_mobile.docMigrate
+import uniffi.openslate_mobile.sigExists
+import uniffi.openslate_mobile.sigSave
+import uniffi.openslate_mobile.sigNaturalRect
+import uniffi.openslate_mobile.sigPng
+import uniffi.openslate_mobile.boardAddSignature
 import uniffi.openslate_mobile.docTrash
 import androidx.compose.material3.CircularProgressIndicator
 import uniffi.openslate_mobile.BoardView
@@ -249,7 +254,13 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var libVersion by mutableIntStateOf(0)
     private var docsVersion by mutableIntStateOf(0)
     /** La sincronizzazione col computer. */
-    private val phoneSync by lazy { PhoneSync(this, filesDir, File(libDir), ::syncChanged) }
+    private val phoneSync by lazy {
+        PhoneSync(
+            this, filesDir, File(libDir), ::syncChanged,
+            aiExport = { uniffi.openslate_mobile.SyncAi(uniffi.openslate_mobile.aiSyncJson(aiStore.providers()), aiStore.mtime) },
+            aiImport = { json -> aiStore.replaceFromSync(uniffi.openslate_mobile.aiSyncParse(json)) },
+        )
+    }
     /** Rotazione del foglio in quarti di giro (ricordata). */
     private var quarter by mutableIntStateOf(0)
     /** Bluetooth spento all'ultimo «Collega». */
@@ -274,6 +285,10 @@ class MainActivity : ComponentActivity(), LinkListener {
     /** Timbri aziendali salvati, quello che si sta posando, la finestra dei timbri (su quale). */
     private var stamps by mutableStateOf<List<SavedStamp>>(emptyList())
     private var sealJob by mutableStateOf<SealJob?>(null)
+    /** La firma che si sta posando. */
+    private var sigJob by mutableStateOf<SigJob?>(null)
+    /** Si sta registrando la firma: i tratti del foglio messi da parte. */
+    private var sigCapture by mutableStateOf<List<PageStroke>?>(null)
     private var stampDialog by mutableStateOf<Int?>(null)
     private var stampDialogOpen by mutableStateOf(false)
     /** Il numero del lavoro in corso: le risposte di uno annullato non contano. */
@@ -610,6 +625,7 @@ class MainActivity : ComponentActivity(), LinkListener {
 
     private fun saveBoardIfNeeded() {
         val d = doc
+        if (sigCapture != null) return
         if (d != null) keepDoc(d) else if (board.dirty) saveBoard()
     }
 
@@ -617,6 +633,8 @@ class MainActivity : ComponentActivity(), LinkListener {
 
     /** Salva i tratti del documento aperto e lo fa arrivare al computer. */
     private fun keepDoc(d: OpenDoc) {
+        // mentre si registra la firma, sul foglio c'è la firma, non la pagina
+        if (sigCapture != null) return
         val changed = board.dirty
         d.keep(board, view())
         if (changed) phoneSync.syncSoon(3000)
@@ -900,6 +918,18 @@ class MainActivity : ComponentActivity(), LinkListener {
                         IconButton(onClick = { goPage(1) }, enabled = d.index + 1 < d.count) { Icon(Icons.Filled.ChevronRight, stringResource(R.string.next_page)) }
                         Spacer(Modifier.weight(1f))
                         Box {
+                            var sigMenu by remember { mutableStateOf(false) }
+                            IconButton(onClick = { sigMenu = true }, enabled = sealJob == null && sigJob == null && sigCapture == null) {
+                                Icon(Icons.Filled.HistoryEdu, stringResource(R.string.signature))
+                            }
+                            DropdownMenu(sigMenu, { sigMenu = false }) {
+                                DropdownMenuItem(text = { Text(stringResource(R.string.sig_insert)) }, leadingIcon = { Icon(Icons.Filled.HistoryEdu, null) },
+                                    enabled = sigExists(filesDir.path), onClick = { sigMenu = false; sigStart() })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.sig_record)) }, leadingIcon = { Icon(Icons.Filled.Draw, null) },
+                                    onClick = { sigMenu = false; sigCaptureStart() })
+                            }
+                        }
+                        Box {
                             var stampMenu by remember { mutableStateOf(false) }
                             IconButton(onClick = { if (stamps.isEmpty()) openStampDialog(null) else stampMenu = true }, enabled = sealJob == null) {
                                 Icon(Icons.Filled.Approval, stringResource(R.string.stamp))
@@ -944,17 +974,22 @@ class MainActivity : ComponentActivity(), LinkListener {
                         if (j.phase == NeatPhase.PREVIEW && p != null) SheetOverlay(null, p.veil.floats(), p.strokes)
                         else SheetOverlay(j.drag ?: j.zone?.floats())
                     },
-                    seal = sealJob?.let { j -> SealPlace(j.spec, j.rect) { r -> sealJob = sealJob?.copy(rect = r) } },
+                    seal = sealJob?.let { j -> SealPlace(j.spec, j.rect) { r -> sealJob = sealJob?.copy(rect = r) } }
+                        ?: sigJob?.let { j -> SealPlace(null, j.rect, j.art) { r -> sigJob = sigJob?.copy(rect = r) } },
                 )
             }
             when {
                 sealJob != null -> SealBar()
+                sigJob != null -> SigBar()
+                sigCapture != null -> SigCaptureBar()
                 zoneJob != null -> NeatBar()
                 else -> ToolBar()
             }
         }
         if (zoneJob != null) BackHandler { neatCancel() }
         if (sealJob != null) BackHandler { sealJob = null }
+        if (sigJob != null) BackHandler { sigJob = null }
+        if (sigCapture != null) BackHandler { sigCaptureEnd(save = false) }
         if (stampDialogOpen) {
             StampDialog(
                 stamps, stampDialog, canPlace = doc != null,
@@ -965,6 +1000,88 @@ class MainActivity : ComponentActivity(), LinkListener {
             )
         }
         if (choosingPaper) PaperDialog()
+    }
+
+    // ------------------------------------------- firma registrata
+
+    /** Registra la firma: il foglio si svuota, si firma col pennino, poi «Salva firma». */
+    private fun sigCaptureStart() {
+        doc?.let { keepDoc(it) }
+        sealJob = null
+        sigJob = null
+        sigCapture = board.model.strokes()
+        board.openStrokes(emptyList())
+        toast(getString(R.string.sig_capture_hint))
+    }
+
+    private fun sigCaptureEnd(save: Boolean) {
+        val stash = sigCapture ?: return
+        if (save) {
+            val r = runCatching { sigSave(filesDir.path, board.model.strokes(), view()) }
+            r.onFailure { toast(it.message ?: ""); return }
+            toast(getString(R.string.sig_saved))
+            phoneSync.syncSoon(3000)
+        }
+        sigCapture = null
+        val d = doc
+        if (d != null) d.show(d.index, board) else board.openStrokes(stash)
+        if (save && d != null) sigStart()
+    }
+
+    /** Posa la firma registrata: compare a grandezza naturale in basso a destra, poi si sposta. */
+    private fun sigStart() {
+        if (doc == null) return
+        val rect = sigNaturalRect(filesDir.path, view(), 0.68f, 0.84f)
+        if (rect.size < 4) {
+            toast(getString(R.string.sig_none))
+            return
+        }
+        // l'anteprima larga 600 px: il foglio visto, in quei pixel, è alto così
+        val seenHOverW = if (quarter % 2 == 1) padSize.width / padSize.height else padSize.height / padSize.width
+        val png = sigPng(filesDir.path, 600f, 600f / rect[2] * seenHOverW)
+        val bmp = android.graphics.BitmapFactory.decodeByteArray(png, 0, png.size) ?: return
+        sealJob = null
+        sigJob = SigJob(rect, bmp)
+    }
+
+    private fun sigAccept() {
+        val j = sigJob ?: return
+        if (boardAddSignature(board.model, view(), filesDir.path, j.rect)) {
+            board.reload()
+            toast(getString(R.string.sig_applied))
+        }
+        sigJob = null
+    }
+
+    @Composable
+    private fun SigBar() {
+        Surface(tonalElevation = 2.dp) {
+            Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+                Text(stringResource(R.string.sig_place_title), Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.sig_place_hint), Modifier.padding(horizontal = 12.dp, vertical = 2.dp), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                ActionRow {
+                    Button(onClick = { sigAccept() }) { Text(stringResource(R.string.sig_apply)) }
+                    TextButton(onClick = { sigJob = null }) { Text(stringResource(R.string.cancel)) }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun SigCaptureBar() {
+        Surface(tonalElevation = 2.dp) {
+            Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+                Text(stringResource(R.string.sig_capture_title), Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.sig_capture_hint), Modifier.padding(horizontal = 12.dp, vertical = 2.dp), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                ActionRow {
+                    Button(onClick = { sigCaptureEnd(save = true) }, enabled = !board.isEmpty) { Text(stringResource(R.string.sig_save)) }
+                    OutlinedButton(onClick = { board.clear() }) { Text(stringResource(R.string.clear_page)) }
+                    TextButton(onClick = { sigCaptureEnd(save = false) }) { Text(stringResource(R.string.cancel)) }
+                }
+            }
+        }
     }
 
     // ------------------------------------------- timbro aziendale

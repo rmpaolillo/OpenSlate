@@ -6,6 +6,7 @@
 //! | `lib/<id>.md`     | `exports/<appunto>.md` (dalla pagina, `exports/.trascrizioni.json`) | `library/<id>.md` |
 //! | `notes/<nome>.md` | `exports/<nome>.md`                    | `notes/<nome>.md`   |
 //! | `sig/timbri.json` | `signatures/timbri.json`               | `timbri.json`       |
+//! | `sig/firma.json`  | `signatures/firma.json`                | `signatures/firma.json` |
 //! | `doc/<id>/<file>` | `documents/<id>/<file>`                | `documents/<id>/<file>` |
 //!
 //! Dei documenti viaggiano `doc.json`, `source.pdf` e il file di partenza;
@@ -20,10 +21,40 @@ use std::collections::HashMap;
 use std::io::{Error, ErrorKind, Result};
 use std::path::{Path, PathBuf};
 
+/// Un «file» che non sta sul disco (le impostazioni AI, con le chiavi): chi
+/// lo ha lo fa al momento e lo riceve. Non va mai nel cestino, così le
+/// chiavi non finiscono in chiaro su disco.
+pub trait Virtual: Send {
+    /// Il contenuto e quando è cambiato (secondi Unix); None = non c'è.
+    fn read(&mut self) -> Option<(Vec<u8>, i64)>;
+    fn write(&mut self, data: &[u8]) -> Result<()>;
+}
+
+/// Un `Virtual` in memoria: il contenuto lo dà l'app prima di sincronizzare,
+/// quello arrivato dall'altra parte lo riprende dopo (`received`).
+pub struct MemVirtual {
+    pub data: Option<(Vec<u8>, i64)>,
+    pub received: std::sync::Arc<std::sync::Mutex<Option<Vec<u8>>>>,
+}
+
+impl Virtual for MemVirtual {
+    fn read(&mut self) -> Option<(Vec<u8>, i64)> {
+        self.data.clone()
+    }
+
+    fn write(&mut self, data: &[u8]) -> Result<()> {
+        self.data = Some((data.to_vec(), super::now()));
+        if let Ok(mut r) = self.received.lock() {
+            *r = Some(data.to_vec());
+        }
+        Ok(())
+    }
+}
+
 /// Una parte della sincronizzazione.
 pub trait Store {
     fn manifest(&mut self) -> Result<Manifest>;
-    fn read(&self, path: &str) -> Result<Vec<u8>>;
+    fn read(&mut self, path: &str) -> Result<Vec<u8>>;
     /// Scrive (la versione di prima va nel cestino).
     fn write(&mut self, path: &str, data: &[u8]) -> Result<()>;
     /// Toglie (nel cestino).
@@ -47,12 +78,15 @@ pub struct FsStore {
     docs: PathBuf,
     notes: PathBuf,
     stamps: PathBuf,
+    signature: PathBuf,
     state: PathBuf,
     page_notes: PageNotes,
     /// Impronte già calcolate: file → (mtime, dimensione, impronta); restano
     /// in `sync/impronte.json`, così un PDF grande non si rilegge ogni volta.
     cache: HashMap<PathBuf, (i64, u64, String)>,
     cache_dirty: bool,
+    /// Le impostazioni AI (`ai/servizi.json`).
+    ai: Option<Box<dyn Virtual>>,
 }
 
 impl FsStore {
@@ -63,10 +97,12 @@ impl FsStore {
             docs: root.join("documents"),
             notes: root.join("exports"),
             stamps: root.join("signatures/timbri.json"),
+            signature: root.join("signatures/firma.json"),
             state: root.join("sync"),
             page_notes: PageNotes::Linked(root.join("exports/.trascrizioni.json")),
             cache: HashMap::new(),
             cache_dirty: false,
+            ai: None,
         }
         .with_cache()
     }
@@ -79,10 +115,12 @@ impl FsStore {
             docs: data.join("documents"),
             notes: data.join("notes"),
             stamps: data.join("timbri.json"),
+            signature: data.join("signatures/firma.json"),
             state: data.join("sync"),
             page_notes: PageNotes::Beside,
             cache: HashMap::new(),
             cache_dirty: false,
+            ai: None,
         }
         .with_cache()
     }
@@ -116,6 +154,11 @@ impl FsStore {
         if write_atomic(&self.state.join("impronte.json"), serde_json::to_string(&m).unwrap_or_default().as_bytes()).is_ok() {
             self.cache_dirty = false;
         }
+    }
+
+    /// Chi fa e riceve le impostazioni AI.
+    pub fn set_ai(&mut self, ai: Box<dyn Virtual>) {
+        self.ai = Some(ai);
     }
 
     pub fn state_dir(&self) -> &Path {
@@ -162,6 +205,8 @@ impl FsStore {
             "lib" => self.lib.join(name),
             "notes" => self.notes.join(name),
             "doc" => self.docs.join(name),
+            "ai" => return Err(Error::new(ErrorKind::InvalidInput, "le impostazioni AI non sono un file")),
+            _ if name == "firma.json" => self.signature.clone(),
             _ => self.stamps.clone(),
         })
     }
@@ -264,6 +309,13 @@ impl Store for FsStore {
         if let Some(e) = self.entry(&st) {
             out.insert("sig/timbri.json".into(), e);
         }
+        let sg = self.signature.clone();
+        if let Some(e) = self.entry(&sg) {
+            out.insert("sig/firma.json".into(), e);
+        }
+        if let Some((data, mtime)) = self.ai.as_mut().and_then(|a| a.read()) {
+            out.insert(format!("ai/{}", super::AI_FILE), Entry { hash: super::hash(&data), mtime, size: data.len() as u64 });
+        }
         // i documenti: le cartelle con un doc.json, i file che ci sono dentro
         let mut ids: Vec<String> = std::fs::read_dir(&self.docs)
             .map(|rd| rd.flatten().filter(|e| e.path().join("doc.json").is_file()).filter_map(|e| e.file_name().to_str().map(String::from)).collect())
@@ -285,13 +337,22 @@ impl Store for FsStore {
         Ok(out)
     }
 
-    fn read(&self, path: &str) -> Result<Vec<u8>> {
+    fn read(&mut self, path: &str) -> Result<Vec<u8>> {
+        if path.starts_with("ai/") && valid_path(path) {
+            return self.ai.as_mut().and_then(|a| a.read()).map(|(d, _)| d).ok_or_else(|| Error::new(ErrorKind::NotFound, "niente impostazioni AI"));
+        }
         std::fs::read(self.physical(path)?)
     }
 
     fn write(&mut self, path: &str, data: &[u8]) -> Result<()> {
         if data.len() > super::MAX_FILE {
             return Err(Error::new(ErrorKind::InvalidData, "file troppo grande"));
+        }
+        if path.starts_with("ai/") && valid_path(path) {
+            return match self.ai.as_mut() {
+                Some(a) => a.write(data),
+                None => Ok(()),
+            };
         }
         let f = self.physical(path)?;
         self.to_trash(path, &f, true)?;
@@ -316,6 +377,10 @@ impl Store for FsStore {
     }
 
     fn delete(&mut self, path: &str) -> Result<()> {
+        // le impostazioni AI non si tolgono (al più si svuotano dall'app)
+        if path.starts_with("ai/") {
+            return Ok(());
+        }
         let f = self.physical(path)?;
         // tolto doc.json, il documento intero va nel cestino dei documenti
         if let Some(id) = path.strip_prefix("doc/").and_then(|r| r.strip_suffix("/doc.json")) {

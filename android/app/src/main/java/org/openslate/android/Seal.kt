@@ -104,8 +104,14 @@ object SealArt {
     }
 }
 
-/** Il timbro che si sta posando: riquadro (u, v, larghezza, altezza) del foglio visto. */
-class SealPlace(val spec: StampSpec, val rect: List<Float>, val onRect: (List<Float>) -> Unit)
+/**
+ * Il timbro (o la firma, `art`) che si sta posando: riquadro (u, v,
+ * larghezza, altezza) del foglio visto.
+ */
+class SealPlace(val spec: StampSpec?, val rect: List<Float>, val art: android.graphics.Bitmap? = null, val onRect: (List<Float>) -> Unit)
+
+/** La firma che si sta posando: riquadro e anteprima. */
+data class SigJob(val rect: List<Float>, val art: android.graphics.Bitmap)
 
 /** Un timbro in corso di posa. */
 data class SealJob(val spec: StampSpec, val saved: Int?, val rect: List<Float>)

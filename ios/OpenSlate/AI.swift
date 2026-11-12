@@ -74,10 +74,29 @@ final class AiStore: ObservableObject {
         for s in services where !l.contains(where: { $0.id == s.id }) { Keychain.delete(s.id) }
         services = l
         UserDefaults.standard.set(try? JSONEncoder().encode(l), forKey: "ai_services")
+        touch()
     }
 
     func hasKey(_ id: String) -> Bool { Keychain.get(id) != nil }
-    func setKey(_ key: String, for id: String) { Keychain.set(key.trimmingCharacters(in: .whitespacesAndNewlines), for: id) }
+    func setKey(_ key: String, for id: String) {
+        Keychain.set(key.trimmingCharacters(in: .whitespacesAndNewlines), for: id)
+        touch()
+    }
+
+    /// Quando sono cambiate l'ultima volta (secondi Unix; 0 = mai): serve alla sincronizzazione.
+    var mtime: Int64 { Int64(UserDefaults.standard.double(forKey: "ai_mtime")) }
+    private func touch() { UserDefaults.standard.set(Date().timeIntervalSince1970.rounded(), forKey: "ai_mtime") }
+
+    /// I servizi arrivati dal computer (sincronizzazione): prendono il posto di
+    /// quelli di qui, nello stesso ordine; le chiavi nel Portachiavi.
+    func replaceFromSync(_ list: [AiProvider]) {
+        let out = list.map { p in
+            AiService(id: services.first { $0.name == p.name }?.id ?? UUID().uuidString, name: p.name, url: p.url, model: p.model, vision: p.vision,
+                      enabled: p.enabled, noTemperature: p.noTemperature, maxTokens: p.maxTokens, timeoutS: p.timeoutS)
+        }
+        save(out)
+        for (p, s) in zip(list, out) { if p.key.isEmpty { Keychain.delete(s.id) } else { setKey(p.key, for: s.id) } }
+    }
 
     func provider(_ s: AiService, key: String? = nil) -> AiProvider {
         AiProvider(name: s.name, url: s.url, model: s.model, key: key ?? Keychain.get(s.id) ?? "", vision: s.vision, enabled: s.enabled,

@@ -59,6 +59,10 @@ pub mod stroke;
 pub mod stamp;
 mod seal;
 pub use seal::*;
+#[path = "../../../src/signature.rs"]
+pub mod signature;
+mod signing;
+pub use signing::*;
 #[path = "../../../src/docstore.rs"]
 pub mod docstore;
 #[path = "../../../src/sync/mod.rs"]

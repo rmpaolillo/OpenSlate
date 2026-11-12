@@ -15,8 +15,11 @@ final class PhoneSync: ObservableObject {
 
     private let dataDir: String
     private let libDir: String
-    /// Cosa è cambiato sul telefono ("lib", "notes", "stamps").
+    /// Cosa è cambiato sul telefono ("lib", "notes", "stamps"…).
     var onChanged: ([String]) -> Void = { _ in }
+    /// Le impostazioni AI (servizi e chiavi) da mandare al computer, e quelle arrivate.
+    var aiExport: () -> SyncAi? = { nil }
+    var aiImport: (String) -> Void = { _ in }
     private var timer: Timer?
     private var pending: DispatchWorkItem?
     private let defaults = UserDefaults(suiteName: "sync") ?? .standard
@@ -94,9 +97,10 @@ final class PhoneSync: ObservableObject {
         busy = true
         let lastHost = defaults.string(forKey: "last_host")
         let (data, lib, device) = (dataDir, libDir, UIDevice.current.name)
+        let ai = aiExport()
         DispatchQueue.global(qos: .utility).async {
             func run(_ found: [String]) -> Result<SyncReport, Error> {
-                Result { try syncRun(pairing: p, found: found, device: device, dataDir: data, libraryDir: lib) }
+                Result { try syncRun(pairing: p, found: found, device: device, dataDir: data, libraryDir: lib, ai: ai) }
             }
             var r = run(lastHost.map { [$0] } ?? [])
             // il computer ha cambiato indirizzo: lo si cerca sulla rete (Bonjour)
@@ -112,6 +116,7 @@ final class PhoneSync: ObservableObject {
                     self.lastError = nil
                     self.defaults.set(rep.host, forKey: "last_host")
                     self.defaults.set(self.lastOk!.timeIntervalSince1970, forKey: "last_ok")
+                    if let a = rep.ai { self.aiImport(a) }
                     if !rep.changed.isEmpty { self.onChanged(rep.changed) }
                 case .failure(let e):
                     if case StoreError.Io(let reason) = e { self.lastError = reason } else { self.lastError = "\(e)" }
@@ -168,8 +173,8 @@ struct SyncScreen: View {
     var body: some View {
         List {
             Section {
-                Text(L("I documenti da firmare, le pagine dell'archivio, gli appunti e i timbri restano uguali sul telefono e sul computer, attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato. Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto sul computer. Quello che si toglie o si sovrascrive va nel cestino, non si perde.",
-                       "Documents to sign, library pages, notes and stamps stay the same on the phone and on the computer, over your home Wi‑Fi: no cloud, everything encrypted. The phone syncs by itself when it is on the same network and OpenSlate is open on the computer. Anything removed or overwritten goes to the trash, nothing is lost."))
+                Text(L("I documenti da firmare, la firma, i timbri, le pagine dell'archivio, gli appunti e le impostazioni AI (chiavi comprese) restano uguali sul telefono e sul computer, attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato. Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto sul computer. Quello che si toglie o si sovrascrive va nel cestino, non si perde.",
+                       "Documents to sign, the signature, stamps, library pages, notes and AI settings (keys included) stay the same on the phone and on the computer, over your home Wi‑Fi: no cloud, everything encrypted. The phone syncs by itself when it is on the same network and OpenSlate is open on the computer. Anything removed or overwritten goes to the trash, nothing is lost."))
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if let desk = sync.deskName {

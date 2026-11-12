@@ -197,6 +197,9 @@ final class AppModel: ObservableObject, LinkListener {
     /// La cartella dei dati dell'app (timbri, appunti, sincronizzazione).
     var dataDir: String { FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].path }
     @Published var sealJob: SealJob?
+    /// La firma che si sta posando, e la firma che si sta registrando (i tratti messi da parte).
+    @Published var sigJob: SigJob?
+    @Published var sigCapture: [PageStroke]?
     @Published var busy: String?
     @Published var toast: String?
 
@@ -235,6 +238,13 @@ final class AppModel: ObservableObject, LinkListener {
         neatSetDir(dir: support.path)
         stamps = stampList(dir: support.path)
         sync.onChanged = { [weak self] kinds in self?.syncChanged(kinds) }
+        sync.aiExport = { [weak self] in
+            guard let ai = self?.ai else { return nil }
+            return SyncAi(json: aiSyncJson(list: ai.providers()), mtime: ai.mtime)
+        }
+        sync.aiImport = { [weak self] json in
+            if let l = try? aiSyncParse(json: json) { self?.ai.replaceFromSync(l) }
+        }
         link.listener = self
         let w = UserDefaults.standard.double(forKey: "pad_w"), h = UserDefaults.standard.double(forKey: "pad_h")
         if w > 0 && h > 0 { setPadSize(Float(w), Float(h)) }
@@ -294,6 +304,7 @@ final class AppModel: ObservableObject, LinkListener {
     }
 
     func saveBoardIfNeeded() {
+        if sigCapture != nil { return }
         if let d = doc { keepDoc(d) } else if board.dirty { saveBoard() }
     }
 
@@ -331,6 +342,8 @@ final class AppModel: ObservableObject, LinkListener {
 
     /// Salva i tratti del documento aperto e lo fa arrivare al computer.
     func keepDoc(_ d: OpenDoc) {
+        // mentre si registra la firma, sul foglio c'è la firma, non la pagina
+        if sigCapture != nil { return }
         let changed = board.dirty
         d.keep(board, view: view)
         if changed { sync.syncSoon(3) }

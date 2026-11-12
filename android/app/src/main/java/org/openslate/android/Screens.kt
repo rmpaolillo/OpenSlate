@@ -314,7 +314,11 @@ fun Sheet(
             val t = offset.y + (oy + r[1] * ph) * zoom
             val rr = offset.x + (ox + (r[0] + r[2]) * pw) * zoom
             val b = offset.y + (oy + (r[1] + r[3]) * ph) * zoom
-            drawIntoCanvas { SealArt.draw(it.nativeCanvas, sp.spec, 0, l, t, rr, b) }
+            drawIntoCanvas {
+                val art = sp.art
+                if (art != null) it.nativeCanvas.drawBitmap(art, null, android.graphics.RectF(l, t, rr, b), SealArt.paint)
+                else sp.spec?.let { spec -> SealArt.draw(it.nativeCanvas, spec, 0, l, t, rr, b) }
+            }
             val accent = Color(0xFF2868DC)
             val g = 6f * density
             drawRect(

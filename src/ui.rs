@@ -1041,6 +1041,9 @@ impl App {
         if changed.contains(&"docs") {
             self.docs_changed_by_phone();
         }
+        if changed.contains(&"signature") {
+            self.docui.signature = crate::signature::Signature::load();
+        }
         let who = if name.trim().is_empty() { crate::i18n::t("telefono").to_string() } else { name };
         self.status = crate::i18n::tf(format!("Arrivate novità da «{who}»."));
     }

@@ -11,6 +11,8 @@
 //! - I dati delle due parti sono messi in uno spazio comune di «percorsi
 //!   logici» (`store`): `lib/<id>.json` una pagina dell'archivio, `lib/<id>.md`
 //!   il suo appunto, `notes/<nome>.md` un appunto, `sig/timbri.json` i timbri,
+//!   `sig/firma.json` la firma registrata, `ai/servizi.json` le impostazioni
+//!   AI con le chiavi (mai scritte in chiaro su disco: vedi `store::Virtual`),
 //!   `doc/<id>/<file>` i file di un documento da firmare (`doc.json`,
 //!   `source.pdf`, il file di partenza).
 //! - Cosa copiare lo decide `plan`, confrontando le due parti con com'erano
@@ -27,6 +29,10 @@ pub mod store;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::Path;
+
+/// Le impostazioni AI (servizi e chiavi) nello spazio comune: non è un file
+/// vero, lo fa e lo legge chi lo ha (`store::Virtual`).
+pub const AI_FILE: &str = "servizi.json";
 
 /// Porta della sincronizzazione sulla desktop.
 pub const PORT: u16 = 47613;
@@ -70,7 +76,8 @@ pub fn valid_path(p: &str) -> bool {
     match p.split_once('/') {
         Some(("lib", n)) => safe_name(n) && (n.ends_with(".json") || n.ends_with(".md")),
         Some(("notes", n)) => safe_name(n) && n.ends_with(".md"),
-        Some(("sig", n)) => n == "timbri.json",
+        Some(("sig", n)) => n == "timbri.json" || n == "firma.json",
+        Some(("ai", n)) => n == AI_FILE,
         Some(("doc", rest)) => match rest.split_once('/') {
             Some((id, n)) => safe_name(id) && id != "cestino" && safe_name(n) && n != "text.txt",
             None => false,
@@ -85,8 +92,10 @@ pub fn kind_of(p: &str) -> &'static str {
         Some("lib") if p.ends_with(".md") => "notes",
         Some("lib") => "lib",
         Some("notes") => "notes",
+        Some("sig") if p.ends_with("firma.json") => "signature",
         Some("sig") => "stamps",
         Some("doc") => "docs",
+        Some("ai") => "ai",
         _ => "",
     }
 }
@@ -125,6 +134,9 @@ mod tests {
         assert!(valid_path("notes/appunti-20261112-101500.md"));
         assert!(valid_path("notes/Riunione con Gino (bozza).md"));
         assert!(valid_path("sig/timbri.json"));
+        assert!(valid_path("sig/firma.json"));
+        assert!(valid_path("ai/servizi.json") && !valid_path("ai/altro.json"));
+        assert_eq!(kind_of("sig/firma.json"), "signature");
         assert!(valid_path("doc/20261112-090000-Contratto/doc.json"));
         assert!(valid_path("doc/20261112-090000-Contratto/source.pdf"));
         for p in ["lib/../x.json", "lib/.x.json", "lib/a/b.json", "notes/x.txt", "sig/altro.json", "doc/x", "x", "lib/", "doc/cestino/doc.json", "doc/a/pages/p.png", "doc/a/text.txt", "doc/../x/doc.json"] {

@@ -36,6 +36,63 @@ pub struct InkFmt {
     pub t: Option<crate::stamp::StampSpec>,
 }
 
+/// I tratti di un file → tratti da disegnare.
+pub fn ink_to_strokes(v: Vec<InkFmt>) -> Vec<crate::stroke::Stroke> {
+    use crate::stroke::{PenEvent, PenPhase, Stroke};
+    v.into_iter()
+        // un tratto senza punti (file rovinato o scritto a mano) non serve
+        .filter(|s| !s.p.is_empty())
+        .map(|s| {
+            let n = s.p.len();
+            let mut st = Stroke::new(hex_rgb(&s.c).unwrap_or([20, 20, 20]), s.w);
+            st.highlight = s.h;
+            st.stamp = s.t.map(std::sync::Arc::new);
+            st.points = s
+                .p
+                .iter()
+                .enumerate()
+                .map(|(i, p)| PenEvent {
+                    x: p[0],
+                    y: p[1],
+                    pressure: p[2],
+                    phase: if i == 0 {
+                        PenPhase::Down
+                    } else if i + 1 == n {
+                        PenPhase::Up
+                    } else {
+                        PenPhase::Move
+                    },
+                })
+                .collect();
+            st
+        })
+        .collect()
+}
+
+/// Tratti → formato dei file.
+pub fn strokes_to_ink(strokes: &[crate::stroke::Stroke]) -> Vec<InkFmt> {
+    strokes
+        .iter()
+        .filter(|s| !s.points.is_empty())
+        .map(|s| InkFmt {
+            c: format!("#{:02x}{:02x}{:02x}", s.color[0], s.color[1], s.color[2]),
+            w: s.width,
+            p: s.points.iter().map(|p| [p.x, p.y, p.pressure]).collect(),
+            h: s.highlight,
+            t: s.stamp.as_deref().cloned(),
+        })
+        .collect()
+}
+
+fn hex_rgb(s: &str) -> Option<[u8; 3]> {
+    let s = s.trim().trim_start_matches('#');
+    if s.len() != 6 {
+        return None;
+    }
+    let v = u32::from_str_radix(s, 16).ok()?;
+    Some([(v >> 16) as u8, (v >> 8) as u8, v as u8])
+}
+
 /// La geometria in cui sono scritti i tratti: misure del pad e vista.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 pub struct PadGeom {

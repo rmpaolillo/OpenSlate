@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import org.json.JSONArray
 import org.json.JSONObject
+import uniffi.openslate_mobile.SyncAi
 import uniffi.openslate_mobile.SyncPairing
 import uniffi.openslate_mobile.syncParseQr
 import uniffi.openslate_mobile.syncRun
@@ -35,8 +36,12 @@ class PhoneSync(
     private val ctx: Context,
     private val dataDir: File,
     private val libDir: File,
-    /** Cosa è cambiato sul telefono ("lib", "notes", "stamps"): sul thread principale. */
+    /** Cosa è cambiato sul telefono ("lib", "notes", "stamps"…): sul thread principale. */
     private val onChanged: (List<String>) -> Unit,
+    /** Le impostazioni AI (servizi e chiavi) da mandare al computer. */
+    private val aiExport: () -> SyncAi?,
+    /** Le impostazioni AI arrivate dal computer (JSON di `ai_sync_json`). */
+    private val aiImport: (String) -> Unit,
 ) {
     private val prefs = ctx.getSharedPreferences("sync", Context.MODE_PRIVATE)
     private val main = Handler(Looper.getMainLooper())
@@ -130,8 +135,9 @@ class PhoneSync(
         if (!running.compareAndSet(false, true)) return
         busy = true
         val lastHost = prefs.getString("last_host", null)
+        val ai = runCatching { aiExport() }.getOrNull()
         thread(name = "sync") {
-            val run = { found: List<String> -> runCatching { syncRun(p, found, deviceName(), dataDir.path, libDir.path) } }
+            val run = { found: List<String> -> runCatching { syncRun(p, found, deviceName(), dataDir.path, libDir.path, ai) } }
             var r = run(listOfNotNull(lastHost))
             // il computer ha cambiato indirizzo: lo si cerca sulla rete (Bonjour)
             if (r.isFailure && r.exceptionOrNull()?.message?.contains("QR") != true) {
@@ -145,6 +151,7 @@ class PhoneSync(
                     lastOk = System.currentTimeMillis()
                     lastError = null
                     prefs.edit().putString("last_host", rep.host).putLong("last_ok", lastOk).apply()
+                    rep.ai?.let { runCatching { aiImport(it) } }
                     if (rep.changed.isNotEmpty()) onChanged(rep.changed)
                 }.onFailure { lastError = it.message }
             }

@@ -77,7 +77,7 @@ class AiStore(context: Context) {
                 put("timeoutS", s.timeoutS)
             })
         }
-        prefs.edit().putString("services", arr.toString()).apply()
+        prefs.edit().putString("services", arr.toString()).putLong("mtime", System.currentTimeMillis() / 1000).apply()
         // chiavi di servizi tolti: via
         val ids = list.map { it.id }.toSet()
         val e = prefs.edit()
@@ -114,8 +114,35 @@ class AiStore(context: Context) {
     fun hasKey(id: String) = prefs.contains("key_$id")
 
     fun setKey(id: String, key: String) {
-        if (key.isBlank()) prefs.edit().remove("key_$id").apply()
-        else prefs.edit().putString("key_$id", Secrets.encrypt(key.trim())).apply()
+        val e = prefs.edit().putLong("mtime", System.currentTimeMillis() / 1000)
+        if (key.isBlank()) e.remove("key_$id").apply()
+        else e.putString("key_$id", Secrets.encrypt(key.trim())).apply()
+    }
+
+    /** Quando sono cambiate l'ultima volta (secondi Unix; 0 = mai). */
+    val mtime: Long get() = prefs.getLong("mtime", 0L)
+
+    /**
+     * I servizi arrivati dal computer (sincronizzazione): prendono il posto di
+     * quelli di qui, nello stesso ordine; le chiavi nel Keystore.
+     */
+    fun replaceFromSync(list: List<AiProvider>) {
+        val now = services()
+        val out = list.map { p ->
+            AiService(
+                id = now.firstOrNull { it.name == p.name }?.id ?: UUID.randomUUID().toString(),
+                name = p.name,
+                url = p.url,
+                model = p.model,
+                vision = p.vision,
+                enabled = p.enabled,
+                noTemperature = p.noTemperature,
+                maxTokens = p.maxTokens?.toInt(),
+                timeoutS = p.timeoutS.toInt(),
+            )
+        }
+        save(out)
+        list.zip(out).forEach { (p, s) -> setKey(s.id, p.key) }
     }
 
     private fun key(id: String): String = prefs.getString("key_$id", null)?.let(Secrets::decrypt) ?: ""

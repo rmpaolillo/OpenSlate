@@ -243,7 +243,7 @@
     <string name="sync_where">On the computer: OpenSlate › Options › Phone › Connect a phone…</string>
     <string name="sync_now">Sync now</string>
     <string name="sync_unpair">Disconnect</string>
-    <string name="sync_explain">Documents to sign, library pages, notes and stamps stay the same on the phone and on the computer, over your home Wi‑Fi: no cloud, everything encrypted. The phone syncs by itself when it is on the same network and OpenSlate is open on the computer. Anything removed or overwritten goes to the trash, nothing is lost.</string>
+    <string name="sync_explain">Documents to sign, the signature, stamps, library pages, notes and AI settings (keys included) stay the same on the phone and on the computer, over your home Wi‑Fi: no cloud, everything encrypted. The phone syncs by itself when it is on the same network and OpenSlate is open on the computer. Anything removed or overwritten goes to the trash, nothing is lost.</string>
     <string name="grp_computer">Computer</string>
     <string name="notes">Notes</string>
     <string name="my_docs">My documents</string>
@@ -252,4 +252,16 @@
     <string name="doc_trash">Move to trash</string>
     <string name="doc_trash_q">Move «%1$s» to the documents trash? It also disappears from the connected computer.</string>
     <string name="doc_trashed_elsewhere">The document was moved to the trash on the computer.</string>
+    <string name="signature">Signature</string>
+    <string name="sig_insert">Insert the signature</string>
+    <string name="sig_record">Record the signature…</string>
+    <string name="sig_capture_title">Record the signature</string>
+    <string name="sig_capture_hint">Sign on the pad as on paper, then «Save signature». It also goes to the connected computer.</string>
+    <string name="sig_save">Save signature</string>
+    <string name="sig_saved">Signature saved ✓</string>
+    <string name="sig_none">No signature yet: record it first.</string>
+    <string name="sig_place_title">Place the signature</string>
+    <string name="sig_place_hint">Drag it where it belongs, pull the corner to resize it, then «Apply».</string>
+    <string name="sig_apply">Apply</string>
+    <string name="sig_applied">Signature placed ✓ (Undo to remove it).</string>
 </resources>

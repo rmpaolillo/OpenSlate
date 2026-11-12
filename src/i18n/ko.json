@@ -1343,7 +1343,7 @@
  "Stampa annullata.": "인쇄를 취소했습니다.",
  "Il PDF da stampare è aperto nel lettore di PDF: stampa da lì (Ctrl+P).": "인쇄할 PDF를 PDF 뷰어에서 열었습니다: 거기서 인쇄하세요 (Ctrl+P).",
  "{} Telefono": "{} 휴대폰",
- "I documenti da firmare, le pagine dell'archivio, gli appunti e i timbri restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "서명할 문서, 보관함 페이지, 메모, 도장이 집 Wi‑Fi를 통해 컴퓨터와 휴대폰 앱(Android, iPhone, iPad)에서 똑같이 유지됩니다. 클라우드 없이 모두 암호화됩니다.",
+ "I documenti da firmare, la firma, i timbri, le pagine dell'archivio, gli appunti e le impostazioni AI (chiavi comprese) restano uguali sul computer e sull'app per telefono (Android, iPhone, iPad), attraverso la rete Wi‑Fi di casa: niente cloud, tutto cifrato.": "서명할 문서, 서명, 도장, 보관함 페이지, 메모, AI 설정(키 포함)이 집 Wi‑Fi를 통해 컴퓨터와 휴대폰 앱(Android, iPhone, iPad)에서 똑같이 유지됩니다. 클라우드 없이 모두 암호화됩니다.",
  "Il telefono si sincronizza da solo quando è sulla stessa rete e OpenSlate è aperto qui. Quello che si toglie o si sovrascrive va nel cestino, non si perde.": "휴대폰이 같은 네트워크에 있고 여기서 OpenSlate가 열려 있으면 자동으로 동기화됩니다. 지우거나 덮어쓴 것은 휴지통으로 가며 사라지지 않습니다.",
  "Nell'app sul telefono: Impostazioni › Sincronizza col computer › Inquadra il QR.": "휴대폰 앱에서: 설정 › 컴퓨터와 동기화 › QR 코드 스캔.",
  "Non fotografarlo e non condividerlo: chi lo inquadra può leggere e cambiare i tuoi dati.": "사진을 찍거나 공유하지 마세요. 스캔한 사람은 데이터를 읽고 바꿀 수 있습니다.",
