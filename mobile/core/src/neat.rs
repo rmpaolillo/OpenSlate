@@ -103,6 +103,17 @@ pub struct BoardPreview {
     pub rules_issue: Option<NeatIssue>,
 }
 
+/// La larghezza più stretta e più larga che si può scegliere per la bella copia.
+#[uniffi::export]
+pub fn fair_width_min() -> f32 {
+    crate::inbella::WIDTH.0
+}
+
+#[uniffi::export]
+pub fn fair_width_max() -> f32 {
+    crate::inbella::WIDTH.1
+}
+
 /// Dove tenere le impronte dei tratti già in bella (la cartella dell'app).
 #[uniffi::export]
 pub fn neat_set_dir(dir: String) {
@@ -175,6 +186,8 @@ pub struct FairJob {
     rect: [f32; 4],
     texts: Mutex<HashMap<u64, String>>,
     by: Mutex<String>,
+    /// Quanto larghe le lettere (volte il carattere; `None` = come la tua scrittura).
+    width: Mutex<Option<f32>>,
 }
 
 impl FairJob {
@@ -185,7 +198,8 @@ impl FairJob {
         let idx = crate::inbella::select(&strokes, &g, self.rect);
         let sub: Vec<Stroke> = idx.iter().map(|&i| strokes[i].clone()).collect();
         let texts = self.texts.lock().unwrap().clone();
-        let (new_sub, done) = crate::inbella::apply_region(&sub, &texts, &g, self.rect[2]).ok_or(NeatError::NothingToDo)?;
+        let width = *self.width.lock().unwrap();
+        let (new_sub, done) = crate::inbella::apply_region_w(&sub, &texts, &g, self.rect[2], width).ok_or(NeatError::NothingToDo)?;
         let mut page: Vec<Stroke> = strokes.iter().enumerate().filter(|(i, _)| !idx.contains(i)).map(|(_, s)| s.clone()).collect();
         let first = page.len();
         page.extend(new_sub);
@@ -227,7 +241,14 @@ impl FairJob {
     #[uniffi::constructor]
     pub fn new(board: Arc<BoardModel>, view: BoardView, zone: Option<Zone>) -> Arc<Self> {
         let rect = zone.map_or([0.0, 0.0, 1.0, 1.0], Zone::rect);
-        Arc::new(Self { board, view, rect, texts: Mutex::new(HashMap::new()), by: Mutex::new(String::new()) })
+        Arc::new(Self { board, view, rect, texts: Mutex::new(HashMap::new()), by: Mutex::new(String::new()), width: Mutex::new(None) })
+    }
+
+    /// Quanto larghe le lettere della bella copia, volte il carattere (da
+    /// `fair_width_min` a `fair_width_max`; `None` o 0 = come la tua
+    /// scrittura). Vale dalla prossima anteprima.
+    pub fn set_width(&self, width: Option<f32>) {
+        *self.width.lock().unwrap() = width.filter(|w| *w > 0.0 && w.is_finite());
     }
 
     /// Nella zona c'è scrittura da far leggere all'AI? (Se no, la bella copia

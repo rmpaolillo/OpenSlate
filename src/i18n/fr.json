@@ -1365,5 +1365,9 @@
  "Sposta nel cestino": "Mettre à la corbeille",
  "Spostare «{}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino.": "Mettre « {} » à la corbeille des documents ? Il disparaît aussi du téléphone connecté ; on le récupère dans le dossier documents/cestino.",
  "«{}» è nel cestino dei documenti.": "« {} » est dans la corbeille des documents.",
- "Il documento è stato spostato nel cestino dal telefono.": "Le document a été mis à la corbeille depuis le téléphone."
+ "Il documento è stato spostato nel cestino dal telefono.": "Le document a été mis à la corbeille depuis le téléphone.",
+ "Come la mia scrittura": "Comme mon écriture",
+ "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "Des lettres à peu près aussi larges que les tiennes (jamais au-delà du bord)",
+ "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "Largeur des lettres : plus à droite, plus larges (si la ligne ne tient pas dans la page, elle se resserre)",
+ "Larghezza": "Largeur"
 }

@@ -146,6 +146,7 @@ extension AppModel {
             neatRun(job) { try boardArrange(board: model, view: v, zone: zone, sheet: spec, commit: false) }
         case .fair:
             let fj = FairJob(board: model, view: v, zone: zone)
+            fj.setWidth(width: fairWidth > 0 ? Float(fairWidth) : nil)
             job.fair = fj
             job.note = L("Leggo la scrittura…", "Reading the writing…")
             let providers = ai.providers()
@@ -171,6 +172,7 @@ extension AppModel {
         case .fair:
             guard let fj = job.fair else { return }
             let onRules = fairOnRules && paperHasRows(paper: paperCode)
+            fj.setWidth(width: fairWidth > 0 ? Float(fairWidth) : nil)
             neatRun(job) { try fj.preview(onRules: onRules, sheet: spec) }
         }
     }
@@ -196,6 +198,8 @@ extension AppModel {
 /// La barra durante la bella copia o «Disponi sulle righe», al posto degli strumenti.
 struct NeatBar: View {
     @EnvironmentObject var app: AppModel
+    /// Il cursore della larghezza mentre lo si muove (nil = quello salvato).
+    @State private var width: Double?
 
     var body: some View {
         if let job = app.zoneJob {
@@ -226,6 +230,9 @@ struct NeatBar: View {
                             })) { Label(L("Sulle righe", "On the lines"), systemImage: "text.alignleft") }
                                 .toggleStyle(.button)
                         }
+                        if job.kind == .fair && job.phase == .preview {
+                            widthControls(job)
+                        }
                         if grid && job.phase != .working {
                             Text(L("Quadretti per riga", "Squares per line")).font(.caption)
                             ForEach([UInt32(1), 2, 3], id: \.self) { n in
@@ -247,5 +254,31 @@ struct NeatBar: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.bar)
         }
+    }
+}
+
+extension NeatBar {
+    /// Bella copia: le lettere larghe come le tue, o quanto scegli col
+    /// cursore (l'anteprima si rifà lasciando il cursore).
+    @ViewBuilder
+    func widthControls(_ job: ZoneJob) -> some View {
+        let auto = app.fairWidth <= 0
+        let shown = width ?? (auto ? 1.25 : app.fairWidth)
+        Toggle(isOn: Binding(get: { auto }, set: { on in
+            guard on, !auto else { return }
+            app.fairWidth = 0
+            app.neatRefresh(job)
+        })) { Label(L("Come la mia scrittura", "Like my handwriting"), systemImage: "arrow.left.and.right") }
+            .toggleStyle(.button)
+        Text(Lf("Larghezza %d%%", "Width %d%%", Int((shown * 100).rounded()))).font(.caption)
+        Slider(value: Binding(get: { shown }, set: { width = $0 }),
+               in: Double(fairWidthMin())...Double(fairWidthMax()), step: 0.05,
+               onEditingChanged: { editing in
+                   guard !editing, let w = width else { return }
+                   app.fairWidth = w
+                   width = nil
+                   app.neatRefresh(job)
+               })
+        .frame(width: 160)
     }
 }

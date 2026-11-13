@@ -89,6 +89,9 @@ pub struct Settings {
     pub fair_style: String,
     /// La bella copia va subito sulle righe del foglio (`crate::righe`).
     pub fair_on_rules: bool,
+    /// Bella copia: quanto larghe le lettere (volte il carattere; 0 = come
+    /// la tua scrittura).
+    pub fair_width: f32,
 }
 
 impl Default for Settings {
@@ -132,7 +135,16 @@ impl Default for Settings {
             fair_agent: String::new(),
             fair_style: "chiaro".into(),
             fair_on_rules: false,
+            fair_width: 0.0,
         }
+    }
+}
+
+/// `fair_width` da settings.conf: 0 (come la tua scrittura) o da 0,8 a 2.
+fn parse_fair_width(v: &str) -> f32 {
+    match v.trim().replace(',', ".").parse::<f32>() {
+        Ok(w) if w > 0.0 && w.is_finite() => w.clamp(crate::inbella::WIDTH.0, crate::inbella::WIDTH.1),
+        _ => 0.0,
     }
 }
 
@@ -212,6 +224,7 @@ impl Settings {
             "paper_margin" => self.paper_margin = b(v),
             "fair_agent" => self.fair_agent = v.trim().to_string(),
             "fair_on_rules" => self.fair_on_rules = b(v),
+            "fair_width" => self.fair_width = parse_fair_width(v),
             "fair_style" => self.fair_style = crate::campioni::Mode::parse(v).key().into(),
             // com'era prima: «la tua mano» accesa o spenta
             "fair_hand" if b(v) => self.fair_style = "mano".into(),
@@ -255,6 +268,7 @@ impl Settings {
              # bella copia: chi legge la scrittura (vuoto = gli agenti di «Lettura dei fogli»)\nfair_agent = {}\n\
              # bella copia: con che scrittura (chiaro, corsivo, stampatello: la tua, addestrata; mano: la rete, se c'è mano/graves.bin)\nfair_style = {}\n\
              # bella copia: subito sulle righe del foglio\nfair_on_rules = {}\n\
+             # bella copia: larghezza delle lettere (0 = come la tua scrittura; da 0.8 a 2 = volte il carattere)\nfair_width = {:.2}\n\
              # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
              # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n\
              # aggiornamenti: avvisa quando c'è una versione nuova su GitHub; versione saltata; installa da solo senza chiedere\nupdate_check = {}\nupdate_skip = {}\nupdate_install_auto = {}\n",
@@ -290,6 +304,7 @@ impl Settings {
             self.fair_agent,
             self.fair_style,
             b(self.fair_on_rules),
+            self.fair_width,
             self.save_dir,
             self.ui_lang,
             b(self.update_check),

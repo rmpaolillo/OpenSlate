@@ -1365,5 +1365,9 @@
  "Sposta nel cestino": "Move to trash",
  "Spostare «{}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino.": "Move «{}» to the documents trash? It also disappears from the connected phone; it can be recovered from the documents/cestino folder.",
  "«{}» è nel cestino dei documenti.": "«{}» is in the documents trash.",
- "Il documento è stato spostato nel cestino dal telefono.": "The document was moved to the trash from the phone."
+ "Il documento è stato spostato nel cestino dal telefono.": "The document was moved to the trash from the phone.",
+ "Come la mia scrittura": "Like my handwriting",
+ "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "Letters about as wide as yours (never past the edge)",
+ "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "Letter width: further right, wider (if the line doesn't fit on the page, it narrows)",
+ "Larghezza": "Width"
 }

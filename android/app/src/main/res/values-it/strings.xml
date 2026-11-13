@@ -172,6 +172,8 @@
     <string name="neat_hint">Trascina col dito un riquadro attorno alla scrittura, o scegli tutta la pagina.</string>
     <string name="neat_whole_page">Tutta la pagina</string>
     <string name="neat_on_rules">Sulle righe</string>
+    <string name="neat_width_auto">Come la mia scrittura</string>
+    <string name="neat_width">Larghezza %1$d%%</string>
     <string name="neat_squares">Quadretti per riga</string>
     <string name="neat_accept">Accetta</string>
     <string name="neat_reject">Rifiuta</string>

@@ -229,6 +229,9 @@ impl App {
                 }
                 Phase::Off => {}
             }
+            if matches!(phase, Phase::Preview { .. }) {
+                self.width_column(ui, actions);
+            }
             // chi legge: un agente che vede le immagini
             let cur = self.settings.fair_agent.clone();
             let r = big_ex(ui, ic::ROBOT, "Chi\nlegge", "L'agente che legge la scrittura per la bella copia: uno solo, il più veloce che hai", !matches!(phase, Phase::Reading { .. }), false, true);
@@ -323,6 +326,29 @@ impl App {
             if big(ui, ic::X_CIRCLE, &label, tip).clicked() {
                 actions.push(fair(Fair::Reject));
             }
+        });
+    }
+
+    /// Bella copia: quanto larghe le lettere (come la tua scrittura, o a mano
+    /// col cursore); l'anteprima si rifà subito.
+    fn width_column(&self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
+        use super::inbella_ui::Fair;
+        let w = self.settings.fair_width;
+        let auto = w <= 0.0;
+        column(ui, |ui| {
+            if small_ex(ui, ic::ARROWS_OUT_LINE_HORIZONTAL, "Come la mia scrittura", "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)", true, auto).clicked() && !auto {
+                actions.push(Action::Fair(Fair::Width(None)));
+            }
+            let mut v = if auto { 1.25 } else { w };
+            ui.add_space(4.0);
+            ui.spacing_mut().slider_width = 120.0;
+            let r = ui
+                .add(egui::Slider::new(&mut v, crate::inbella::WIDTH.0..=crate::inbella::WIDTH.1).step_by(0.05).custom_formatter(|v, _| format!("{:.0}%", v * 100.0)))
+                .on_hover_text(crate::i18n::tr("Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)").into_owned());
+            if r.changed() {
+                actions.push(Action::Fair(Fair::Width(Some(v))));
+            }
+            ui.label(egui::RichText::new(crate::i18n::tr("Larghezza").into_owned()).size(11.0));
         });
     }
 

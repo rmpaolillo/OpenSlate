@@ -1365,5 +1365,9 @@
  "Sposta nel cestino": "移到回收站",
  "Spostare «{}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino.": "把“{}”移到文档回收站？它也会从已连接的手机上消失；可从 documents/cestino 文件夹恢复。",
  "«{}» è nel cestino dei documenti.": "“{}”已在文档回收站中。",
- "Il documento è stato spostato nel cestino dal telefono.": "这个文档已在手机上被移到回收站。"
+ "Il documento è stato spostato nel cestino dal telefono.": "这个文档已在手机上被移到回收站。",
+ "Come la mia scrittura": "像我的笔迹",
+ "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "字母宽度与你的大致相同（不超出边缘）",
+ "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "字母宽度：越往右越宽（如果一行放不下，会自动收窄）",
+ "Larghezza": "宽度"
 }

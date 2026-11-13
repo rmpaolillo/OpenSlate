@@ -1365,5 +1365,9 @@
  "Sposta nel cestino": "ゴミ箱に移動",
  "Spostare «{}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino.": "「{}」を文書のゴミ箱に移動しますか？接続している電話からも消えます。documents/cestino フォルダーから戻せます。",
  "«{}» è nel cestino dei documenti.": "「{}」は文書のゴミ箱にあります。",
- "Il documento è stato spostato nel cestino dal telefono.": "この文書は電話からゴミ箱に移動されました。"
+ "Il documento è stato spostato nel cestino dal telefono.": "この文書は電話からゴミ箱に移動されました。",
+ "Come la mia scrittura": "自分の筆跡に合わせる",
+ "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "文字の幅をあなたの字とほぼ同じに（端からはみ出さない）",
+ "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "文字の幅：右にするほど広く（行がページに収まらないときは狭くなります）",
+ "Larghezza": "幅"
 }

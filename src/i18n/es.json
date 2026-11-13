@@ -1365,5 +1365,9 @@
  "Sposta nel cestino": "Mover a la papelera",
  "Spostare «{}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino.": "¿Mover «{}» a la papelera de documentos? Desaparece también del teléfono conectado; se recupera desde la carpeta documents/cestino.",
  "«{}» è nel cestino dei documenti.": "«{}» está en la papelera de documentos.",
- "Il documento è stato spostato nel cestino dal telefono.": "El documento se movió a la papelera desde el teléfono."
+ "Il documento è stato spostato nel cestino dal telefono.": "El documento se movió a la papelera desde el teléfono.",
+ "Come la mia scrittura": "Como mi letra",
+ "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "Letras más o menos tan anchas como las tuyas (nunca más allá del borde)",
+ "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "Ancho de las letras: más a la derecha, más anchas (si la línea no cabe en la página, se estrecha)",
+ "Larghezza": "Ancho"
 }

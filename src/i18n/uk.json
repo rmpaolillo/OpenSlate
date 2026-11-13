@@ -1365,5 +1365,9 @@
  "Sposta nel cestino": "Перемістити в кошик",
  "Spostare «{}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino.": "Перемістити «{}» у кошик документів? Він зникне й з під'єднаного телефона; відновити можна з теки documents/cestino.",
  "«{}» è nel cestino dei documenti.": "«{}» у кошику документів.",
- "Il documento è stato spostato nel cestino dal telefono.": "Документ переміщено в кошик з телефона."
+ "Il documento è stato spostato nel cestino dal telefono.": "Документ переміщено в кошик з телефона.",
+ "Come la mia scrittura": "Як мій почерк",
+ "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "Літери приблизно такої ж ширини, як твої (ніколи за край)",
+ "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "Ширина літер: що правіше, то ширші (якщо рядок не вміщається на сторінці, він звужується)",
+ "Larghezza": "Ширина"
 }

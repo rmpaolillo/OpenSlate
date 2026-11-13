@@ -217,6 +217,8 @@ final class AppModel: ObservableObject, LinkListener {
     @AppStorage("natural_ink") var naturalInk = true
     /// La bella copia va subito sulle righe del foglio.
     @AppStorage("fair_on_rules") var fairOnRules = false
+    /// Bella copia: quanto larghe le lettere (volte il carattere; 0 = come la tua scrittura).
+    @AppStorage("fair_width") var fairWidth = 0.0
     /// Bella copia o «Disponi sulle righe» in corso (nil = no).
     @Published var zoneJob: ZoneJob?
     /// Il numero del lavoro in corso: le risposte di uno annullato non contano.

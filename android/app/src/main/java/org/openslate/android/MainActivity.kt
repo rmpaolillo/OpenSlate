@@ -105,6 +105,9 @@ import uniffi.openslate_mobile.stampRefit
 import uniffi.openslate_mobile.stampReseed
 import uniffi.openslate_mobile.stampSave
 import uniffi.openslate_mobile.paperHasRows
+import uniffi.openslate_mobile.fairWidthMin
+import uniffi.openslate_mobile.fairWidthMax
+import kotlin.math.roundToInt
 import uniffi.openslate_mobile.paperIsGrid
 import uniffi.openslate_mobile.docMigrate
 import uniffi.openslate_mobile.sigExists
@@ -279,6 +282,8 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var naturalInk by mutableStateOf(true)
     /** La bella copia va subito sulle righe del foglio. */
     private var fairOnRules by mutableStateOf(false)
+    /** Bella copia: quanto larghe le lettere (volte il carattere; 0 = come la tua scrittura). */
+    private var fairWidth by mutableStateOf(0f)
     private var choosingPaper by mutableStateOf(false)
     /** Bella copia o «Disponi sulle righe» in corso (null = no). */
     private var zoneJob by mutableStateOf<ZoneJob?>(null)
@@ -315,6 +320,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         zigzag = prefs.getBoolean("zigzag", zigzag)
         naturalInk = prefs.getBoolean("natural_ink", naturalInk)
         fairOnRules = prefs.getBoolean("fair_on_rules", fairOnRules)
+        fairWidth = prefs.getFloat("fair_width", fairWidth)
         applyTools()
     }
 
@@ -336,6 +342,7 @@ class MainActivity : ComponentActivity(), LinkListener {
             .putBoolean("zigzag", zigzag)
             .putBoolean("natural_ink", naturalInk)
             .putBoolean("fair_on_rules", fairOnRules)
+            .putFloat("fair_width", fairWidth)
             .apply()
     }
 
@@ -1235,6 +1242,7 @@ class MainActivity : ComponentActivity(), LinkListener {
             }
             NeatKind.FAIR -> {
                 val fj = FairJob(model, v, zone)
+                fj.setWidth(fairWidth.takeIf { it > 0f })
                 val providers = aiStore.providers()
                 val onRules = fairOnRules && paperHasRows(paperCode)
                 val spec = sheetSpec(job.every)
@@ -1268,6 +1276,7 @@ class MainActivity : ComponentActivity(), LinkListener {
             NeatKind.FAIR -> {
                 val fj = job.fair ?: return
                 val onRules = fairOnRules && paperHasRows(paperCode)
+                fj.setWidth(fairWidth.takeIf { it > 0f })
                 neatRun(job) { fj.preview(onRules, spec) }
             }
         }
@@ -1327,6 +1336,9 @@ class MainActivity : ComponentActivity(), LinkListener {
                             if (job.phase == NeatPhase.PREVIEW) neatRefresh(job)
                         }, label = { Text(stringResource(R.string.neat_on_rules)) }, leadingIcon = { Icon(Icons.Filled.FormatAlignLeft, null) })
                     }
+                    if (job.kind == NeatKind.FAIR && job.phase == NeatPhase.PREVIEW) {
+                        FairWidth(job)
+                    }
                     if (grid && job.phase != NeatPhase.WORKING) {
                         Text(stringResource(R.string.neat_squares), style = MaterialTheme.typography.labelMedium)
                         for (n in 1u..3u) {
@@ -1343,6 +1355,32 @@ class MainActivity : ComponentActivity(), LinkListener {
                 }
             }
         }
+    }
+
+    /** Bella copia: le lettere larghe come le tue, o quanto scegli col cursore (l'anteprima si rifà lasciando il cursore). */
+    @Composable
+    private fun FairWidth(job: ZoneJob) {
+        val auto = fairWidth <= 0f
+        var v by remember(fairWidth) { mutableStateOf(if (auto) 1.25f else fairWidth) }
+        FilterChip(selected = auto, onClick = {
+            if (!auto) {
+                fairWidth = 0f
+                applyTools()
+                neatRefresh(job)
+            }
+        }, label = { Text(stringResource(R.string.neat_width_auto)) })
+        Text(stringResource(R.string.neat_width, (v * 100).roundToInt()), style = MaterialTheme.typography.labelMedium)
+        Slider(
+            value = v,
+            onValueChange = { v = it },
+            onValueChangeFinished = {
+                fairWidth = (Math.round(v * 20f) / 20f).coerceIn(fairWidthMin(), fairWidthMax())
+                applyTools()
+                neatRefresh(job)
+            },
+            valueRange = fairWidthMin()..fairWidthMax(),
+            modifier = Modifier.width(160.dp),
+        )
     }
 
     @Composable

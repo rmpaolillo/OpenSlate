@@ -175,6 +175,8 @@
     <string name="neat_hint">Drag a box around the writing with your finger, or choose the whole page.</string>
     <string name="neat_whole_page">Whole page</string>
     <string name="neat_on_rules">On the lines</string>
+    <string name="neat_width_auto">Like my handwriting</string>
+    <string name="neat_width">Width %1$d%%</string>
     <string name="neat_squares">Squares per line</string>
     <string name="neat_accept">Accept</string>
     <string name="neat_reject">Reject</string>

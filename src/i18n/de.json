@@ -1365,5 +1365,9 @@
  "Sposta nel cestino": "In den Papierkorb",
  "Spostare «{}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino.": "«{}» in den Dokumenten-Papierkorb verschieben? Es verschwindet auch vom verbundenen Telefon; wiederherstellbar aus dem Ordner documents/cestino.",
  "«{}» è nel cestino dei documenti.": "«{}» ist im Dokumenten-Papierkorb.",
- "Il documento è stato spostato nel cestino dal telefono.": "Das Dokument wurde vom Telefon in den Papierkorb verschoben."
+ "Il documento è stato spostato nel cestino dal telefono.": "Das Dokument wurde vom Telefon in den Papierkorb verschoben.",
+ "Come la mia scrittura": "Wie meine Schrift",
+ "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "Buchstaben etwa so breit wie deine (nie über den Rand hinaus)",
+ "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "Buchstabenbreite: weiter rechts, breiter (passt die Zeile nicht auf die Seite, wird sie schmaler)",
+ "Larghezza": "Breite"
 }

@@ -34,6 +34,14 @@ fn neat_path() -> std::path::PathBuf {
 }
 const NEAT_KEEP: usize = 40_000;
 
+/// Quanto si può allargare in orizzontale la bella copia di una riga, per
+/// stare nello spazio della scrittura a mano: almeno un po' (Kalam è
+/// stretto), al massimo una volta e mezza.
+const STRETCH: (f32, f32) = (1.12, 1.5);
+
+/// La larghezza che si può scegliere a mano (anteprima della bella copia).
+pub const WIDTH: (f32, f32) = (0.8, 2.0);
+
 /// L'impronta di un tratto, a prova di salvataggio: coordinate arrotondate
 /// (l'archivio le salva con tre decimali).
 fn sig(s: &Stroke) -> u64 {
@@ -325,17 +333,24 @@ pub struct Done {
 /// `None` se non cambia niente. Le righe cambiate nel frattempo (impronta
 /// diversa) restano come sono.
 pub fn apply(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom) -> Option<(Vec<Stroke>, Done)> {
-    apply_with(strokes, texts, g, None)
+    apply_with(strokes, texts, g, None, None)
 }
 
 /// Come `apply`, per i tratti di una zona: la scrittura nuova non va oltre
 /// il bordo destro della zona (`right`, in frazioni della larghezza), così
 /// non finisce sopra la colonna accanto.
 pub fn apply_region(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, right: f32) -> Option<(Vec<Stroke>, Done)> {
-    apply_with(strokes, texts, g, Some(right))
+    apply_with(strokes, texts, g, Some(right), None)
 }
 
-fn apply_with(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, right: Option<f32>) -> Option<(Vec<Stroke>, Done)> {
+/// Come `apply_region`, con la larghezza delle lettere scelta da te
+/// (`width`, volte la larghezza del carattere; `None` = come la tua
+/// scrittura). Non va mai oltre il bordo: se non ci sta, si stringe.
+pub fn apply_region_w(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, right: f32, width: Option<f32>) -> Option<(Vec<Stroke>, Done)> {
+    apply_with(strokes, texts, g, Some(right), width.map(|w| w.clamp(WIDTH.0, WIDTH.1)))
+}
+
+fn apply_with(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, right: Option<f32>, width: Option<f32>) -> Option<(Vec<Stroke>, Done)> {
     if strokes.is_empty() {
         return None;
     }
@@ -352,6 +367,8 @@ fn apply_with(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, ri
         letters: Vec<usize>,
         bullet: Option<usize>,
         x0: f32,
+        /// Dove finisce la riga scritta a mano.
+        x1: f32,
         bx: f32,
         base: f32,
         xh: f32,
@@ -380,6 +397,7 @@ fn apply_with(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, ri
             continue;
         }
         let x0 = letters.iter().flat_map(|&i| ph[i].iter().map(|p| p.0)).fold(f32::MAX, f32::min);
+        let x1 = letters.iter().flat_map(|&i| ph[i].iter().map(|p| p.0)).fold(f32::MIN, f32::max);
         let bx = bullet.map_or(x0, |b| bbox(&ph[b]).0);
         // la riga di base dalle lettere normali (non dalle graffe alte)
         let body: Vec<usize> = letters.iter().copied().filter(|&i| bbox(&ph[i]).3 - bbox(&ph[i]).2 < 2.4 * hh).collect();
@@ -389,7 +407,7 @@ fn apply_with(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, ri
             (b, 0.6 * hh)
         });
         let (top, bottom) = letters.iter().map(|&i| bbox(&ph[i])).fold((f32::MAX, f32::MIN), |a, b| (a.0.min(b.2), a.1.max(b.3)));
-        plans.push(Plan { text, letters, bullet, x0, bx, base, xh, top, bottom });
+        plans.push(Plan { text, letters, bullet, x0, x1, bx, base, xh, top, bottom });
     }
     // un blocco: righe una sotto l'altra che cominciano più o meno allo stesso
     // punto (o tutte coi trattini allineati): un bordo solo, non quello storto
@@ -437,8 +455,15 @@ fn apply_with(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, ri
         let mut s = (1.15 * xh / 14.0).clamp(0.7 * hh / 21.0, 1.15 * hh / 21.0);
         let edge = right.map_or(0.985, |r| r.min(0.985)) * aspect;
         let room = (edge - x0).max(0.05);
-        if b.w * s > room {
-            s = room / b.w;
+        // in larghezza la riga prende più o meno lo spazio della tua: le
+        // lettere di Kalam sono strette, si allargano (mai troppo, e mai
+        // più strette del carattere)
+        let mut sx = width.unwrap_or_else(|| ((p.x1 - x0) / (b.w * s)).clamp(STRETCH.0, STRETCH.1));
+        if b.w * s * sx > room {
+            sx = (room / (b.w * s)).max(sx.min(1.0));
+        }
+        if b.w * s * sx > room {
+            s = room / (b.w * sx);
         }
         // colore e spessore: quelli più usati nella riga
         let mut colors: Vec<([u8; 3], usize)> = Vec::new();
@@ -452,7 +477,9 @@ fn apply_with(strokes: &[Stroke], texts: &HashMap<u64, String>, g: &PageGeom, ri
         let mut widths: Vec<f32> = letters.iter().map(|&i| strokes[i].width).collect();
         widths.sort_by(f32::total_cmp);
         let width = widths[widths.len() / 2];
-        let mut glyphs: Vec<Vec<(f32, f32)>> = b.strokes.into_iter().map(|st| st.into_iter().map(|(x, y)| (x0 + x * s, base + y * s)).collect()).collect();
+        // si allarga dal primo segno: l'inizio della riga resta dov'era
+        let xm = b.strokes.iter().flatten().map(|p| p.0).fold(f32::MAX, f32::min).min(b.w);
+        let mut glyphs: Vec<Vec<(f32, f32)>> = b.strokes.into_iter().map(|st| st.into_iter().map(|(x, y)| (x0 + xm * s + (x - xm) * s * sx, base + y * s)).collect()).collect();
         if let Some(bi) = p.bullet {
             // il trattino: corto, dritto, a metà del corpo delle minuscole
             let (bx0, bx1, _, _) = bbox(&ph[bi]);
@@ -936,5 +963,30 @@ pub(crate) mod tests {
         assert_eq!(done.lines, 1);
         let max_u = out.iter().flat_map(|s| s.points.iter().map(|p| g.unit(p.x, p.y).0)).fold(f32::MIN, f32::max);
         assert!(max_u <= right + 0.01, "{max_u} > {right}");
+        // anche larghissima a mano, resta nel bordo
+        let (out, _) = apply_region_w(&sub, &texts, &g, right, Some(2.0)).unwrap();
+        let max_u = out.iter().flat_map(|s| s.points.iter().map(|p| g.unit(p.x, p.y).0)).fold(f32::MIN, f32::max);
+        assert!(max_u <= right + 0.01, "{max_u} > {right}");
+    }
+
+    /// La larghezza scelta a mano: più larga, la riga si allunga (stessa altezza).
+    #[test]
+    fn larghezza_a_mano() {
+        let g = PageGeom::new(View::default(), 21000.0, 29700.0);
+        let strokes = page();
+        let lines = pending(&strokes, &g);
+        let texts: HashMap<u64, String> = [(lines[0].1, "ciao".to_string())].into();
+        let span = |w: Option<f32>| {
+            let (out, _) = apply_region_w(&strokes, &texts, &g, 1.0, w).unwrap();
+            let new: Vec<&Stroke> = out.iter().filter(|o| !strokes.iter().any(|s| same(s, o))).collect();
+            let xs: Vec<f32> = new.iter().flat_map(|s| s.points.iter().map(|p| p.x)).collect();
+            let ys: Vec<f32> = new.iter().flat_map(|s| s.points.iter().map(|p| p.y)).collect();
+            let r = |v: &[f32]| v.iter().copied().fold(f32::MIN, f32::max) - v.iter().copied().fold(f32::MAX, f32::min);
+            (r(&xs), r(&ys))
+        };
+        let (w1, h1) = span(Some(1.0));
+        let (w2, h2) = span(Some(1.5));
+        assert!((w2 / w1 - 1.5).abs() < 0.1, "{w1} {w2}");
+        assert!((h2 - h1).abs() < 1.0, "{h1} {h2}");
     }
 }

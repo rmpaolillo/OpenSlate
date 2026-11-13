@@ -1365,5 +1365,9 @@
  "Sposta nel cestino": "휴지통으로 이동",
  "Spostare «{}» nel cestino dei documenti? Sparisce anche dal telefono collegato; si recupera dalla cartella documents/cestino.": "«{}»을(를) 문서 휴지통으로 옮길까요? 연결된 휴대폰에서도 사라집니다. documents/cestino 폴더에서 되살릴 수 있습니다.",
  "«{}» è nel cestino dei documenti.": "«{}»은(는) 문서 휴지통에 있습니다.",
- "Il documento è stato spostato nel cestino dal telefono.": "휴대폰에서 이 문서를 휴지통으로 옮겼습니다."
+ "Il documento è stato spostato nel cestino dal telefono.": "휴대폰에서 이 문서를 휴지통으로 옮겼습니다.",
+ "Come la mia scrittura": "내 글씨처럼",
+ "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "글자 폭을 내 글씨와 비슷하게 (가장자리를 넘지 않음)",
+ "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "글자 폭: 오른쪽으로 갈수록 넓게 (줄이 페이지에 맞지 않으면 좁아짐)",
+ "Larghezza": "폭"
 }
