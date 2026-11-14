@@ -1375,5 +1375,10 @@
  "Stampa anche le righe del foglio": "同时打印纸张的横线和格子",
  "stampando la lavagna, stampa anche le righe del foglio": "打印画板时，同时打印纸张的横线和格子",
  "Stampa: con le righe del foglio.": "打印：包含纸张的横线和格子。",
- "Stampa: senza le righe del foglio (solo la scrittura).": "打印：不含纸张的横线和格子（只有书写内容）。"
+ "Stampa: senza le righe del foglio (solo la scrittura).": "打印：不含纸张的横线和格子（只有书写内容）。",
+ "Stampa la pagina della lavagna, con o senza le righe del foglio (Cmd+P ricorda l'ultima scelta)": "打印白板页面，可带或不带纸张的线条（Cmd+P 会记住上次的选择）",
+ "Stampa solo la scrittura": "只打印书写内容",
+ "Stampa con le righe del foglio": "连同纸张线条一起打印",
+ "La pagina della lavagna, su foglio bianco": "白板页面，白纸",
+ "La pagina della lavagna con le righe o i quadretti": "白板页面，带横线或方格"
 }

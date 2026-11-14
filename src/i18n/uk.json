@@ -1375,5 +1375,10 @@
  "Stampa anche le righe del foglio": "Друкувати також лінії аркуша",
  "stampando la lavagna, stampa anche le righe del foglio": "друкуючи дошку, друкувати також лінії аркуша",
  "Stampa: con le righe del foglio.": "Друк: з лініями аркуша.",
- "Stampa: senza le righe del foglio (solo la scrittura).": "Друк: без ліній аркуша (лише написане)."
+ "Stampa: senza le righe del foglio (solo la scrittura).": "Друк: без ліній аркуша (лише написане).",
+ "Stampa la pagina della lavagna, con o senza le righe del foglio (Cmd+P ricorda l'ultima scelta)": "Друкує сторінку дошки з лініями аркуша або без них (Cmd+P запам'ятовує останній вибір)",
+ "Stampa solo la scrittura": "Друкувати лише написане",
+ "Stampa con le righe del foglio": "Друкувати з лініями аркуша",
+ "La pagina della lavagna, su foglio bianco": "Сторінка дошки на білому аркуші",
+ "La pagina della lavagna con le righe o i quadretti": "Сторінка дошки з лініями або клітинками"
 }

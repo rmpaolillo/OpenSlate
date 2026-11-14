@@ -232,6 +232,8 @@
     <string name="stamp_reseed">Nuova grana</string>
     <string name="stamp_applied">Timbro apposto: Annulla lo toglie.</string>
     <string name="print">Stampa…</string>
+    <string name="print_writing">Stampa solo la scrittura…</string>
+    <string name="print_with_paper">Stampa con le righe del foglio…</string>
     <string name="print_failed">Stampa non riuscita: %1$s</string>
     <string name="sync_title">Sincronizza col computer</string>
     <string name="sync_off">Non collegato</string>

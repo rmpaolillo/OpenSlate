@@ -1375,5 +1375,10 @@
  "Stampa anche le righe del foglio": "Imprimir también las líneas de la hoja",
  "stampando la lavagna, stampa anche le righe del foglio": "al imprimir la pizarra, imprimir también las líneas de la hoja",
  "Stampa: con le righe del foglio.": "Impresión: con las líneas de la hoja.",
- "Stampa: senza le righe del foglio (solo la scrittura).": "Impresión: sin las líneas de la hoja (solo la escritura)."
+ "Stampa: senza le righe del foglio (solo la scrittura).": "Impresión: sin las líneas de la hoja (solo la escritura).",
+ "Stampa la pagina della lavagna, con o senza le righe del foglio (Cmd+P ricorda l'ultima scelta)": "Imprime la página de la pizarra, con o sin las líneas de la hoja (Cmd+P recuerda la última elección)",
+ "Stampa solo la scrittura": "Imprimir solo la escritura",
+ "Stampa con le righe del foglio": "Imprimir con las líneas de la hoja",
+ "La pagina della lavagna, su foglio bianco": "La página de la pizarra, en hoja blanca",
+ "La pagina della lavagna con le righe o i quadretti": "La página de la pizarra con las líneas o la cuadrícula"
 }

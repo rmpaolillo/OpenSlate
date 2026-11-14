@@ -365,7 +365,13 @@ struct BoardScreen: View {
                         .disabled(board.isEmpty || app.doc != nil || !paperHasRows(paper: app.paperCode))
                 }
                 Section(L("Condividi", "Share")) {
-                    Button { app.printNow() } label: { Label(L("Stampa…", "Print…"), systemImage: "printer") }.disabled(board.isEmpty && app.doc == nil)
+                    if app.doc == nil && app.paperCode != "bianco" {
+                        // foglio a righe o quadretti: si sceglie se stamparli
+                        Button { app.printNow(withPaper: false) } label: { Label(L("Stampa solo la scrittura…", "Print only the writing…"), systemImage: "printer") }.disabled(board.isEmpty)
+                        Button { app.printNow(withPaper: true) } label: { Label(L("Stampa con le righe del foglio…", "Print with the page lines…"), systemImage: "squareshape.split.3x3") }.disabled(board.isEmpty)
+                    } else {
+                        Button { app.printNow() } label: { Label(L("Stampa…", "Print…"), systemImage: "printer") }.disabled(board.isEmpty && app.doc == nil)
+                    }
                     Button { shareURL = try? Export.pdf(board.toPage(Float(app.padSize.width), Float(app.padSize.height)), quarter: app.quarter) } label: { Label(L("Condividi PDF", "Share as PDF"), systemImage: "doc.richtext") }.disabled(board.isEmpty)
                     Button { shareURL = try? Export.png(board.toPage(Float(app.padSize.width), Float(app.padSize.height)), quarter: app.quarter) } label: { Label(L("Condividi immagine", "Share as image"), systemImage: "photo") }.disabled(board.isEmpty)
                     Button { copyBoard() } label: { Label(L("Copia negli appunti", "Copy to clipboard"), systemImage: "doc.on.doc") }.disabled(board.isEmpty || app.doc != nil)

@@ -464,6 +464,11 @@ impl App {
             if menu_item(ui, true, ic::PRINTER, "Stampa…", &cmd_key("P")) {
                 actions.push(Action::Print);
             }
+            if self.docui.doc.is_none() && super::paper::Paper::from_code(&self.settings.paper) != super::paper::Paper::Bianco {
+                if menu_item(ui, true, if self.settings.print_paper { ic::CHECK_SQUARE } else { ic::SQUARE }, "Stampa anche le righe del foglio", "") {
+                    actions.push(Action::TogglePrintPaper);
+                }
+            }
             if menu_item(ui, true, ic::FILE_PDF, "Esporta in PDF", "") {
                 actions.push(Action::Export(Fmt::Pdf));
             }

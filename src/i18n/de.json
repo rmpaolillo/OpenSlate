@@ -1375,5 +1375,10 @@
  "Stampa anche le righe del foglio": "Auch die Linien des Blatts drucken",
  "stampando la lavagna, stampa anche le righe del foglio": "beim Drucken der Tafel auch die Linien des Blatts drucken",
  "Stampa: con le righe del foglio.": "Drucken: mit den Linien des Blatts.",
- "Stampa: senza le righe del foglio (solo la scrittura).": "Drucken: ohne die Linien des Blatts (nur die Schrift)."
+ "Stampa: senza le righe del foglio (solo la scrittura).": "Drucken: ohne die Linien des Blatts (nur die Schrift).",
+ "Stampa la pagina della lavagna, con o senza le righe del foglio (Cmd+P ricorda l'ultima scelta)": "Druckt die Tafelseite, mit oder ohne die Linien des Blatts (Cmd+P merkt sich die letzte Wahl)",
+ "Stampa solo la scrittura": "Nur die Schrift drucken",
+ "Stampa con le righe del foglio": "Mit den Linien des Blatts drucken",
+ "La pagina della lavagna, su foglio bianco": "Die Tafelseite, auf weißem Papier",
+ "La pagina della lavagna con le righe o i quadretti": "Die Tafelseite mit Linien oder Kästchen"
 }

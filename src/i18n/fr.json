@@ -1375,5 +1375,10 @@
  "Stampa anche le righe del foglio": "Imprimer aussi les lignes de la feuille",
  "stampando la lavagna, stampa anche le righe del foglio": "en imprimant le tableau, imprimer aussi les lignes de la feuille",
  "Stampa: con le righe del foglio.": "Impression : avec les lignes de la feuille.",
- "Stampa: senza le righe del foglio (solo la scrittura).": "Impression : sans les lignes de la feuille (seulement l'écriture)."
+ "Stampa: senza le righe del foglio (solo la scrittura).": "Impression : sans les lignes de la feuille (seulement l'écriture).",
+ "Stampa la pagina della lavagna, con o senza le righe del foglio (Cmd+P ricorda l'ultima scelta)": "Imprime la page du tableau, avec ou sans les lignes de la feuille (Cmd+P retient le dernier choix)",
+ "Stampa solo la scrittura": "Imprimer seulement l'écriture",
+ "Stampa con le righe del foglio": "Imprimer avec les lignes de la feuille",
+ "La pagina della lavagna, su foglio bianco": "La page du tableau, sur feuille blanche",
+ "La pagina della lavagna con le righe o i quadretti": "La page du tableau avec les lignes ou les carreaux"
 }

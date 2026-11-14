@@ -514,6 +514,8 @@ enum Action {
     Export(Fmt),
     /// Stampa il documento aperto (con la scrittura) o la pagina della lavagna.
     Print,
+    /// Stampa la lavagna con (true) o senza (false) le righe del foglio, e lo ricorda.
+    PrintBoard(bool),
     Ocr,
     /// Mostra/nasconde la chat AI a destra.
     Chat,
@@ -2060,6 +2062,13 @@ impl App {
             Action::ToggleMargin => {
                 self.settings.paper_margin = !self.settings.paper_margin;
                 self.settings.save();
+            }
+            Action::PrintBoard(with) => {
+                if self.settings.print_paper != with {
+                    self.settings.print_paper = with;
+                    self.settings.save();
+                }
+                self.apply(Action::Print, ctx);
             }
             Action::TogglePrintPaper => {
                 self.settings.print_paper = !self.settings.print_paper;

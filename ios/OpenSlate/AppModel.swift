@@ -431,7 +431,8 @@ final class AppModel: ObservableObject, LinkListener {
 
     /// Stampa il documento con la scrittura, o la pagina della lavagna, col
     /// dialogo di stampa di iOS (AirPrint, copie, pagine, «Salva in File»).
-    func printNow() {
+    func printNow(withPaper: Bool? = nil) {
+        if let w = withPaper { printPaper = w }
         let url: URL
         let title: String
         do {

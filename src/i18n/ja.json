@@ -1375,5 +1375,10 @@
  "Stampa anche le righe del foglio": "用紙の罫線も印刷する",
  "stampando la lavagna, stampa anche le righe del foglio": "ボードを印刷するとき、用紙の罫線も印刷する",
  "Stampa: con le righe del foglio.": "印刷：用紙の罫線あり。",
- "Stampa: senza le righe del foglio (solo la scrittura).": "印刷：用紙の罫線なし（書いた文字だけ）。"
+ "Stampa: senza le righe del foglio (solo la scrittura).": "印刷：用紙の罫線なし（書いた文字だけ）。",
+ "Stampa la pagina della lavagna, con o senza le righe del foglio (Cmd+P ricorda l'ultima scelta)": "ボードのページを用紙の罫線ありまたはなしで印刷します（Cmd+P は前回の選択を記憶）",
+ "Stampa solo la scrittura": "書いたものだけを印刷",
+ "Stampa con le righe del foglio": "用紙の罫線と一緒に印刷",
+ "La pagina della lavagna, su foglio bianco": "ボードのページ（白紙）",
+ "La pagina della lavagna con le righe o i quadretti": "罫線または方眼付きのボードのページ"
 }

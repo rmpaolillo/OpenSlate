@@ -1375,5 +1375,10 @@
  "Stampa anche le righe del foglio": "종이의 줄도 함께 인쇄",
  "stampando la lavagna, stampa anche le righe del foglio": "보드를 인쇄할 때 종이의 줄도 함께 인쇄",
  "Stampa: con le righe del foglio.": "인쇄: 종이의 줄 포함.",
- "Stampa: senza le righe del foglio (solo la scrittura).": "인쇄: 종이의 줄 없이 (글씨만)."
+ "Stampa: senza le righe del foglio (solo la scrittura).": "인쇄: 종이의 줄 없이 (글씨만).",
+ "Stampa la pagina della lavagna, con o senza le righe del foglio (Cmd+P ricorda l'ultima scelta)": "보드 페이지를 종이의 줄과 함께 또는 없이 인쇄합니다 (Cmd+P는 마지막 선택을 기억)",
+ "Stampa solo la scrittura": "글씨만 인쇄",
+ "Stampa con le righe del foglio": "종이의 줄과 함께 인쇄",
+ "La pagina della lavagna, su foglio bianco": "보드 페이지, 흰 종이",
+ "La pagina della lavagna con le righe o i quadretti": "줄 또는 모눈이 있는 보드 페이지"
 }

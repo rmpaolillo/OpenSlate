@@ -279,7 +279,17 @@ impl App {
             actions.push(Action::Backstage(None));
         }
         let print_sub = if doc.is_some() { "Il documento con quello che hai scritto, firma e timbri compresi" } else { "La pagina della lavagna" };
-        if card(ui, ic::PRINTER, "Stampa", print_sub, true) {
+        let ruled = doc.is_none() && super::paper::Paper::from_code(&self.settings.paper) != super::paper::Paper::Bianco;
+        if ruled {
+            if card(ui, ic::PRINTER, "Stampa solo la scrittura", "La pagina della lavagna, su foglio bianco", true) {
+                actions.push(Action::PrintBoard(false));
+                actions.push(Action::Backstage(None));
+            }
+            if card(ui, ic::NOTEBOOK, "Stampa con le righe del foglio", "La pagina della lavagna con le righe o i quadretti", true) {
+                actions.push(Action::PrintBoard(true));
+                actions.push(Action::Backstage(None));
+            }
+        } else if card(ui, ic::PRINTER, "Stampa", print_sub, true) {
             actions.push(Action::Print);
             actions.push(Action::Backstage(None));
         }

@@ -197,8 +197,23 @@ impl App {
                 actions.push(Action::SaveBoard);
             }
             let tip = if doc { "Stampa il documento con quello che hai scritto, firma e timbri compresi (Cmd+P)" } else { "Stampa la pagina della lavagna (Cmd+P)" };
-            if big_ex(ui, ic::PRINTER, "Stampa", tip, true, false, false).clicked() {
-                actions.push(Action::Print);
+            if doc || cur == super::paper::Paper::Bianco {
+                if big_ex(ui, ic::PRINTER, "Stampa", tip, true, false, false).clicked() {
+                    actions.push(Action::Print);
+                }
+            } else {
+                // foglio a righe o quadretti: si sceglie se stamparli
+                let r = big_ex(ui, ic::PRINTER, "Stampa", "Stampa la pagina della lavagna, con o senza le righe del foglio (Cmd+P ricorda l'ultima scelta)", true, false, true);
+                egui::Popup::menu(&r).show(|ui| {
+                    ui.set_min_width(250.0);
+                    let radio = |on: bool| if on { ic::RADIO_BUTTON } else { ic::CIRCLE };
+                    if menu_item(ui, true, radio(!self.settings.print_paper), "Stampa solo la scrittura", "") {
+                        actions.push(Action::PrintBoard(false));
+                    }
+                    if menu_item(ui, true, radio(self.settings.print_paper), "Stampa con le righe del foglio", "") {
+                        actions.push(Action::PrintBoard(true));
+                    }
+                });
             }
         });
     }

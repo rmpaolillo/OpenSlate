@@ -712,7 +712,8 @@ class MainActivity : ComponentActivity(), LinkListener {
     }
 
     /** Stampa il documento con la scrittura, o la pagina della lavagna. */
-    private fun printNow() {
+    private fun printNow(withPaper: Boolean? = null) {
+        if (withPaper != null && withPaper != printPaper) { printPaper = withPaper; applyTools() }
         val d = doc
         runCatching {
             if (d != null) {
@@ -904,8 +905,16 @@ class MainActivity : ComponentActivity(), LinkListener {
                             enabled = !empty && d == null && paperHasRows(paperCode), onClick = { pageMenu = false; startNeat(NeatKind.RULES) })
                         HorizontalDivider()
                         MenuHeader(stringResource(R.string.grp_share))
-                        DropdownMenuItem(text = { Text(stringResource(R.string.print)) }, leadingIcon = { Icon(Icons.Filled.Print, null) },
-                            enabled = !empty || d != null, onClick = { pageMenu = false; printNow() })
+                        if (d == null && paperCode != "bianco") {
+                            // foglio a righe o quadretti: si sceglie se stamparli
+                            DropdownMenuItem(text = { Text(stringResource(R.string.print_writing)) }, leadingIcon = { Icon(Icons.Filled.Print, null) },
+                                enabled = !empty, onClick = { pageMenu = false; printNow(false) })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.print_with_paper)) }, leadingIcon = { Icon(Icons.Filled.GridOn, null) },
+                                enabled = !empty, onClick = { pageMenu = false; printNow(true) })
+                        } else {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.print)) }, leadingIcon = { Icon(Icons.Filled.Print, null) },
+                                enabled = !empty || d != null, onClick = { pageMenu = false; printNow() })
+                        }
                         DropdownMenuItem(text = { Text(stringResource(R.string.share_pdf)) }, leadingIcon = { Icon(Icons.Filled.PictureAsPdf, null) },
                             enabled = !empty, onClick = { pageMenu = false; sharePage(board.toPage(padSize.width, padSize.height), pdf = true) })
                         DropdownMenuItem(text = { Text(stringResource(R.string.share_image)) }, leadingIcon = { Icon(Icons.Filled.Image, null) },

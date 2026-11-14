@@ -1375,5 +1375,10 @@
  "Stampa anche le righe del foglio": "Also print the page lines",
  "stampando la lavagna, stampa anche le righe del foglio": "when printing the board, also print the page lines",
  "Stampa: con le righe del foglio.": "Printing: with the page lines.",
- "Stampa: senza le righe del foglio (solo la scrittura).": "Printing: without the page lines (only the writing)."
+ "Stampa: senza le righe del foglio (solo la scrittura).": "Printing: without the page lines (only the writing).",
+ "Stampa la pagina della lavagna, con o senza le righe del foglio (Cmd+P ricorda l'ultima scelta)": "Print the board page, with or without the page lines (Cmd+P remembers the last choice)",
+ "Stampa solo la scrittura": "Print only the writing",
+ "Stampa con le righe del foglio": "Print with the page lines",
+ "La pagina della lavagna, su foglio bianco": "The board page, on plain paper",
+ "La pagina della lavagna con le righe o i quadretti": "The board page with its lines or grid"
 }
