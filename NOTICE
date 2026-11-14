@@ -113,6 +113,16 @@ Third-party material
   (src/handwrite/LICENSE-kalam.txt). Modified: packaging/stroke_font.py reduces each glyph to
   single-line strokes (src/handwrite/naturale.txt, the handwriting of «Fair copy» on the
   board). The modified version is not named Kalam.
+- Coming Soon, Copyright (c) 2010 Kimberly Geswein, Apache License 2.0
+  (src/handwrite/LICENSE-comingsoon.txt). Modified: packaging/stroke_font.py reduces each glyph
+  to single-line strokes (src/handwrite/mano-naturale.txt, the «natural» hand of «Fair copy»).
+- Architects Daughter, Copyright (c) 2010 Kimberly Geswein, SIL Open Font License 1.1
+  (src/handwrite/LICENSE-architects.txt). Modified the same way (src/handwrite/mano-ariosa.txt,
+  the «airy» hand of «Fair copy»).
+- Delius, Copyright (c) 2010, 2011 Natalia Raices, with Reserved Font Names "Delia", "Delia
+  Unicase", "Delius", SIL Open Font License 1.1 (src/handwrite/LICENSE-rotonda.txt). Modified the
+  same way (src/handwrite/mano-rotonda.txt, the «round» hand of «Fair copy»); as the Reserved Font
+  Name clause requires, the modified version does not use those names.
 - assets/fonts/GlyphLess.ttf: an empty font (two glyphs with no outlines) made for OpenSlate with
   fontTools, for the invisible text layer of searchable PDFs (src/formats.rs). Public domain.
 - MP4 video export (src/video.rs): on Linux, when ffmpeg is not installed, OpenSlate downloads

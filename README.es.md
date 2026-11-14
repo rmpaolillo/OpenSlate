@@ -66,7 +66,7 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   gestos del trackpad. **Trazo natural** (activado de serie, Opciones → Lápiz y resaltador): la línea sigue la presión del lápiz, con puntas afiladas, en pantalla y en las exportaciones; desactivado, tiene un grosor uniforme como un rotulador.
 - **Tipos de papel.** Elige entre rayado, pautas de la escuela primaria italiana, cuadriculado (4/5/10 mm),
   papel milimetrado, plano cartesiano, punteado, isométrico, pentagrama y notas Cornell. Las pautas
-  se dibujan a tamaño real y solo aparecen en pantalla, así que las exportaciones quedan limpias.
+  se dibujan a tamaño real y solo aparecen en pantalla, así que las exportaciones quedan limpias. Al imprimir la pizarra eliges si las líneas van también al papel: Imprimir → «Imprimir solo la escritura» o «Imprimir con las líneas de la hoja» (Cmd+P recuerda la última elección; también en Opciones y en el móvil).
 - **Páginas sin conexión.** Descarga las páginas que escribiste lejos del ordenador en un archivo
   agrupado por días. Desde ahí puedes renombrar, exportar, aplicar OCR o recuperar páginas de la papelera.
 - **Firma documentos Word y PDF.** Abre un `.docx`/`.doc`/`.odt`/`.rtf` o un `.pdf`, escribe o
@@ -152,6 +152,10 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   vuelven regulares (cuadrado, rectángulo, rombo, paralelogramo, triángulo equilátero o isósceles,
   polígonos regulares), las líneas discontinuas quedan con trazos iguales y alineados, los extremos
   cercanos se unen, las curvas libres se suavizan; lo que no se reconoce queda como está.
+- **Opciones del pasar a limpio.** «Escritura» elige la letra: cuatro letras a mano claras (inclinada, natural,
+  redonda, amplia) o la tuya, una vez entrenada. Las letras son tan anchas como las tuyas («Como mi letra») o
+  tanto como elijas con el control «Ancho», sin pasar nunca del borde de la hoja; «Desde el margen» empieza el
+  texto en el margen izquierdo en lugar de donde empezaste a escribir. La vista previa se rehace al momento.
 - **Tu letra.** «Pasar a limpio» → «Escritura» → «Entrena tu letra…»: en unos pocos turnos escribes
   con el lápiz, en páginas vacías, las letras (cada una varias veces), las cifras, los símbolos
   matemáticos, las letras griegas, las acentuadas y tres frases. Después de cada turno ves los signos

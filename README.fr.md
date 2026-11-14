@@ -66,7 +66,7 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   gestes du trackpad. **Trait naturel** (activé par défaut, Options → Stylo et surligneur) : la ligne suit la pression du stylo, avec des extrémités effilées, à l'écran et dans les exports ; désactivé, il a une épaisseur constante comme un feutre.
 - **Styles de papier.** Choisissez entre lignes, réglures des écoles primaires italiennes, petits carreaux (4/5/10 mm),
   papier millimétré, repère cartésien, pointillés, isométrique, portée musicale et prise de notes Cornell. Les réglures
-  sont dessinées en taille réelle et n'apparaissent qu'à l'écran : les exports restent propres.
+  sont dessinées en taille réelle et n'apparaissent qu'à l'écran : les exports restent propres. En imprimant le tableau, vous choisissez si les lignes vont aussi sur le papier : Imprimer → « Imprimer seulement l'écriture » ou « Imprimer avec les lignes de la feuille » (Cmd+P retient le dernier choix ; aussi dans les Options et sur le téléphone).
 - **Pages hors ligne.** Téléchargez les pages écrites loin de l'ordinateur dans des archives
   classées par jour. De là, vous pouvez renommer, exporter, passer à l'OCR ou récupérer des pages de la corbeille.
 - **Signez des documents Word et PDF.** Ouvrez un `.docx`/`.doc`/`.odt`/`.rtf` ou un `.pdf`, écrivez ou
@@ -154,6 +154,11 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   triangle équilatéral ou isocèle, polygones réguliers), les pointillés ont des traits égaux et
   alignés, les extrémités proches se rejoignent, les courbes libres sont lissées ; ce qui n'est pas
   reconnu reste tel quel.
+- **Options de la mise au propre.** « Écriture » choisit l'écriture : quatre écritures manuscrites claires
+  (penchée, naturelle, ronde, aérée) ou la vôtre, une fois entraînée. Les lettres sont aussi larges que les vôtres
+  (« Comme mon écriture ») ou autant que vous le choisissez avec le curseur « Largeur », sans jamais dépasser le
+  bord de la page ; « Depuis la marge » fait commencer le texte à la marge gauche plutôt qu'à l'endroit où vous
+  avez commencé. L'aperçu est refait aussitôt.
 - **Ton écriture.** « Mise au propre » → « Écriture » → « Entraîne ton écriture… » : en quelques tours,
   tu écris au stylet, sur des pages vides, les lettres (chacune plusieurs fois), les chiffres, les
   symboles mathématiques, les lettres grecques, les lettres accentuées et trois phrases. Après chaque

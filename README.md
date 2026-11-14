@@ -68,7 +68,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   trackpad gestures. **Natural stroke** (on by default, Options → Pen and highlighter): the line follows the pen pressure, with tapered ends, on screen and in the exports; turned off, it has an even width like a felt-tip marker.
 - **Paper styles.** Choose from lined, Italian primary-school rulings, squared (4/5/10 mm),
   graph paper, Cartesian plane, dotted, isometric, music staff and Cornell notes. The rulings
-  are drawn at true size and appear on screen only, so exports stay clean.
+  are drawn at true size and appear on screen only, so exports stay clean. When printing the board you choose whether the lines go on paper too: Print → «Print only the writing» or «Print with the page lines» (Cmd+P remembers the last choice; also in Options and on the phone).
 - **Offline pages.** Download the pages you wrote away from the computer into a library
   grouped by day. From there you can rename, export, OCR or restore pages from the trash.
 - **Sign Word and PDF documents.** Open a `.docx`/`.doc`/`.odt`/`.rtf` or a `.pdf`, write or
@@ -152,6 +152,10 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   parallel segments become parallel, almost-regular figures become regular (square, rectangle,
   rhombus, parallelogram, equilateral or isosceles triangle, regular polygons), dashed lines get even
   dashes in a row, close ends join, free curves are smoothed; what is not recognised stays as it is.
+- **Fair copy options.** «Writing» picks the handwriting: four clear hands (slanted, natural, round,
+  airy) or your own, once trained. The letters are as wide as yours («Like my handwriting»), or as wide
+  as you choose with the «Width» slider, never past the edge of the page; «From the margin» starts the
+  text at the left margin instead of where you started writing. The preview is redone at once.
 - **Your handwriting.** «Fair copy» → «Writing» → «Train your handwriting…»: in a few rounds you write
   with the pen, on empty pages, the letters (each several times), digits, maths symbols, Greek letters,
   accented letters and three sentences. After each round you see the signs it cut out and can discard

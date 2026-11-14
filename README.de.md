@@ -66,7 +66,7 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   Trackpad-Gesten. **Natürlicher Strich** (standardmäßig an, Optionen → Stift und Textmarker): die Linie folgt dem Stiftdruck, mit spitz zulaufenden Enden, auf dem Bildschirm und in den Exporten; ausgeschaltet ist sie gleichmäßig breit wie ein Filzstift.
 - **Papierstile.** Wähle zwischen liniert, italienischen Grundschullineaturen, kariert (4/5/10 mm),
   Millimeterpapier, kartesischem Koordinatensystem, gepunktet, isometrisch, Notenlinien und Cornell-Notizen. Die Lineaturen
-  werden in Originalgröße gezeichnet und erscheinen nur auf dem Bildschirm, sodass Exporte sauber bleiben.
+  werden in Originalgröße gezeichnet und erscheinen nur auf dem Bildschirm, sodass Exporte sauber bleiben. Beim Drucken der Tafel wählst du, ob die Linien mit aufs Papier kommen: Drucken → «Nur die Schrift drucken» oder «Mit den Linien des Blatts drucken» (Cmd+P merkt sich die letzte Wahl; auch in den Optionen und auf dem Handy).
 - **Offline-Seiten.** Lade die Seiten, die du fern vom Computer geschrieben hast, in ein nach Tagen gruppiertes
   Archiv herunter. Von dort aus kannst du Seiten umbenennen, exportieren, per OCR erfassen oder aus dem Papierkorb wiederherstellen.
 - **Word- und PDF-Dokumente unterschreiben.** Öffne eine `.docx`/`.doc`/`.odt`/`.rtf` oder eine `.pdf`, schreib oder
@@ -155,6 +155,10 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   regelmäßig (Quadrat, Rechteck, Raute, Parallelogramm, gleichseitiges oder gleichschenkliges
   Dreieck, regelmäßige Vielecke), gestrichelte Linien bekommen gleiche Striche in einer Reihe, nahe
   Enden werden verbunden, freie Kurven geglättet; was nicht erkannt wird, bleibt, wie es ist.
+- **Optionen der Reinschrift.** «Schrift» wählt die Handschrift: vier klare Hände (schräg, natürlich, rund,
+  luftig) oder deine eigene, wenn trainiert. Die Buchstaben sind so breit wie deine («Wie meine Schrift»)
+  oder so breit, wie du mit dem Regler «Breite» wählst, nie über den Seitenrand hinaus; «Ab dem Rand» lässt
+  den Text am linken Rand beginnen statt dort, wo du angefangen hast. Die Vorschau wird sofort neu erstellt.
 - **Deine Handschrift.** «Reinschrift» → «Schrift» → «Deine Handschrift trainieren…»: In wenigen Runden
   schreibst du mit dem Stift auf leere Seiten die Buchstaben (jeden mehrmals), Ziffern,
   Mathe-Symbole, griechische Buchstaben, Buchstaben mit Akzent und drei Sätze. Nach jeder Runde

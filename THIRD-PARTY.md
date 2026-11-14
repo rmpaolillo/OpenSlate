@@ -44,6 +44,9 @@ Per-file attributions are in [NOTICE](NOTICE). The release packages also contain
 | [DOMPurify](https://github.com/cure53/DOMPurify) 3.4.16 | Cure53 and contributors | Apache-2.0 OR MPL-2.0 | `src/web/vendor/purify.min.js` (cleans the HTML of AI answers and notes before showing them) |
 | [Hershey fonts](https://github.com/kamalmostafa/hershey-fonts) (`futural`, `cursive`, `greek`, `mathlow`) | Dr. A. V. Hershey (U.S. NBS); `.jhf` format by James Hurt (Cognition, Inc.); files by Kamal Mostafa | Hershey fonts licence (free use with acknowledgement, `src/handwrite/LICENSE-hershey.txt`) | `src/handwrite/*.jhf` (the chat's handwriting on the board; Greek letters and maths symbols for «Fair copy») |
 | [Kalam](https://github.com/itfoundry/kalam) (Light) | Indian Type Foundry | SIL OFL 1.1 (`src/handwrite/LICENSE-kalam.txt`) | `src/handwrite/naturale.txt`: reduced to single-line strokes by `packaging/stroke_font.py` (the handwriting of «Fair copy» on the board; a Modified Version, not named Kalam) |
+| [Coming Soon](https://fonts.google.com/specimen/Coming+Soon) | Kimberly Geswein | Apache 2.0 (`src/handwrite/LICENSE-comingsoon.txt`) | `src/handwrite/mano-naturale.txt`: reduced to single-line strokes by `packaging/stroke_font.py` (the «natural» hand of «Fair copy») |
+| [Architects Daughter](https://fonts.google.com/specimen/Architects+Daughter) | Kimberly Geswein | SIL OFL 1.1 (`src/handwrite/LICENSE-architects.txt`) | `src/handwrite/mano-ariosa.txt`: reduced to single-line strokes by `packaging/stroke_font.py` (the «airy» hand of «Fair copy») |
+| [Delius](https://fonts.google.com/specimen/Delius) | Natalia Raices | SIL OFL 1.1, Reserved Font Names "Delia", "Delia Unicase", "Delius" (`src/handwrite/LICENSE-rotonda.txt`) | `src/handwrite/mano-rotonda.txt`: reduced to single-line strokes by `packaging/stroke_font.py` (the «round» hand of «Fair copy»; a Modified Version, not named Delius) |
 
 ## Platform components used at run time (not bundled)
 
