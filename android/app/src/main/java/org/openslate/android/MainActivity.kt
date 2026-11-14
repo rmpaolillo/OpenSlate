@@ -107,6 +107,7 @@ import uniffi.openslate_mobile.stampSave
 import uniffi.openslate_mobile.paperHasRows
 import uniffi.openslate_mobile.fairWidthMin
 import uniffi.openslate_mobile.fairWidthMax
+import uniffi.openslate_mobile.fairFonts
 import kotlin.math.roundToInt
 import uniffi.openslate_mobile.paperIsGrid
 import uniffi.openslate_mobile.docMigrate
@@ -288,6 +289,8 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var fairWidth by mutableStateOf(0f)
     /** Bella copia: il testo dal margine sinistro (non da dove hai cominciato). */
     private var fairLeft by mutableStateOf(false)
+    /** Bella copia: il carattere a mano (inclinata, naturale, rotonda, ariosa). */
+    private var fairFont by mutableStateOf("inclinata")
     private var choosingPaper by mutableStateOf(false)
     /** Bella copia o «Disponi sulle righe» in corso (null = no). */
     private var zoneJob by mutableStateOf<ZoneJob?>(null)
@@ -327,6 +330,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         fairOnRules = prefs.getBoolean("fair_on_rules", fairOnRules)
         fairWidth = prefs.getFloat("fair_width", fairWidth)
         fairLeft = prefs.getBoolean("fair_left", fairLeft)
+        fairFont = prefs.getString("fair_font", fairFont)!!
         applyTools()
     }
 
@@ -351,6 +355,7 @@ class MainActivity : ComponentActivity(), LinkListener {
             .putBoolean("fair_on_rules", fairOnRules)
             .putFloat("fair_width", fairWidth)
             .putBoolean("fair_left", fairLeft)
+            .putString("fair_font", fairFont)
             .apply()
     }
 
@@ -1261,6 +1266,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                 val fj = FairJob(model, v, zone)
                 fj.setWidth(fairWidth.takeIf { it > 0f })
                 fj.setLeft(fairLeft)
+                fj.setFont(fairFont)
                 val providers = aiStore.providers()
                 val onRules = fairOnRules && paperHasRows(paperCode)
                 val spec = sheetSpec(job.every)
@@ -1296,6 +1302,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                 val onRules = fairOnRules && paperHasRows(paperCode)
                 fj.setWidth(fairWidth.takeIf { it > 0f })
                 fj.setLeft(fairLeft)
+                fj.setFont(fairFont)
                 neatRun(job) { fj.preview(onRules, spec) }
             }
         }
@@ -1355,6 +1362,9 @@ class MainActivity : ComponentActivity(), LinkListener {
                             if (job.phase == NeatPhase.PREVIEW) neatRefresh(job)
                         }, label = { Text(stringResource(R.string.neat_on_rules)) }, leadingIcon = { Icon(Icons.Filled.FormatAlignLeft, null) })
                     }
+                    if (job.kind == NeatKind.FAIR && job.phase != NeatPhase.WORKING) {
+                        FairFont(job)
+                    }
                     if (job.kind == NeatKind.FAIR && job.phase == NeatPhase.PREVIEW) {
                         FairWidth(job)
                     }
@@ -1375,6 +1385,38 @@ class MainActivity : ComponentActivity(), LinkListener {
             }
         }
     }
+
+    /** Bella copia: con che carattere a mano (l'anteprima si rifà subito). */
+    @Composable
+    private fun FairFont(job: ZoneJob) {
+        var open by remember { mutableStateOf(false) }
+        Box {
+            AssistChip(onClick = { open = true }, label = { Text(fontName(fairFont)) },
+                leadingIcon = { Icon(Icons.Filled.Draw, null) }, trailingIcon = { Icon(Icons.Filled.ArrowDropDown, null) })
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                for (k in fairFonts()) {
+                    DropdownMenuItem(text = { Text(fontName(k)) },
+                        leadingIcon = { Icon(if (k == fairFont) Icons.Filled.RadioButtonChecked else Icons.Filled.RadioButtonUnchecked, null) },
+                        onClick = {
+                            open = false
+                            if (k != fairFont) {
+                                fairFont = k
+                                applyTools()
+                                job.fair?.setFont(k)
+                                if (job.phase == NeatPhase.PREVIEW) neatRefresh(job)
+                            }
+                        })
+                }
+            }
+        }
+    }
+
+    private fun fontName(key: String): String = getString(when (key) {
+        "naturale" -> R.string.font_natural
+        "rotonda" -> R.string.font_round
+        "ariosa" -> R.string.font_airy
+        else -> R.string.font_slanted
+    })
 
     /** Bella copia: le lettere larghe come le tue, o quanto scegli col cursore (l'anteprima si rifà lasciando il cursore). */
     @Composable

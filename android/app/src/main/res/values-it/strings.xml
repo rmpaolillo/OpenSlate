@@ -267,4 +267,8 @@
     <string name="sig_place_hint">Trascinala dove serve, tira l\'angolo per ingrandirla, poi «Applica».</string>
     <string name="sig_apply">Applica</string>
     <string name="sig_applied">Firma posata ✓ (Annulla per toglierla).</string>
+    <string name="font_slanted">A mano, inclinata</string>
+    <string name="font_natural">A mano, naturale</string>
+    <string name="font_round">A mano, rotonda</string>
+    <string name="font_airy">A mano, ariosa</string>
 </resources>

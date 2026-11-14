@@ -1380,5 +1380,9 @@
  "Stampa solo la scrittura": "只打印书写内容",
  "Stampa con le righe del foglio": "连同纸张线条一起打印",
  "La pagina della lavagna, su foglio bianco": "白板页面，白纸",
- "La pagina della lavagna con le righe o i quadretti": "白板页面，带横线或方格"
+ "La pagina della lavagna con le righe o i quadretti": "白板页面，带横线或方格",
+ "A mano, inclinata": "手写，倾斜",
+ "A mano, naturale": "手写，自然",
+ "A mano, rotonda": "手写，圆润",
+ "A mano, ariosa": "手写，舒展"
 }

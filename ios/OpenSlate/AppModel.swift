@@ -223,6 +223,8 @@ final class AppModel: ObservableObject, LinkListener {
     @AppStorage("fair_width") var fairWidth = 0.0
     /// Bella copia: il testo dal margine sinistro (non da dove hai cominciato).
     @AppStorage("fair_left") var fairLeft = false
+    /// Bella copia: il carattere a mano (inclinata, naturale, rotonda, ariosa).
+    @AppStorage("fair_font") var fairFont = "inclinata"
     /// Bella copia o «Disponi sulle righe» in corso (nil = no).
     @Published var zoneJob: ZoneJob?
     /// Il numero del lavoro in corso: le risposte di uno annullato non contano.

@@ -148,6 +148,7 @@ extension AppModel {
             let fj = FairJob(board: model, view: v, zone: zone)
             fj.setWidth(width: fairWidth > 0 ? Float(fairWidth) : nil)
             fj.setLeft(on: fairLeft)
+            fj.setFont(key: fairFont)
             job.fair = fj
             job.note = L("Leggo la scrittura…", "Reading the writing…")
             let providers = ai.providers()
@@ -175,6 +176,7 @@ extension AppModel {
             let onRules = fairOnRules && paperHasRows(paper: paperCode)
             fj.setWidth(width: fairWidth > 0 ? Float(fairWidth) : nil)
             fj.setLeft(on: fairLeft)
+            fj.setFont(key: fairFont)
             neatRun(job) { try fj.preview(onRules: onRules, sheet: spec) }
         }
     }
@@ -232,6 +234,9 @@ struct NeatBar: View {
                             })) { Label(L("Sulle righe", "On the lines"), systemImage: "text.alignleft") }
                                 .toggleStyle(.button)
                         }
+                        if job.kind == .fair && job.phase != .working {
+                            fontMenu(job)
+                        }
                         if job.kind == .fair && job.phase == .preview {
                             widthControls(job)
                         }
@@ -259,7 +264,32 @@ struct NeatBar: View {
     }
 }
 
+/// Il nome di un carattere a mano della bella copia (`fairFonts()`).
+func fairFontName(_ key: String) -> String {
+    switch key {
+    case "naturale": return L("A mano, naturale", "Handwriting, natural")
+    case "rotonda": return L("A mano, rotonda", "Handwriting, round")
+    case "ariosa": return L("A mano, ariosa", "Handwriting, airy")
+    default: return L("A mano, inclinata", "Handwriting, slanted")
+    }
+}
+
 extension NeatBar {
+    /// Bella copia: con che carattere a mano (l'anteprima si rifà subito).
+    func fontMenu(_ job: ZoneJob) -> some View {
+        Menu {
+            Picker(L("Carattere", "Font"), selection: Binding(get: { app.fairFont }, set: { k in
+                guard k != app.fairFont else { return }
+                app.fairFont = k
+                job.fair?.setFont(key: k)
+                if job.phase == .preview { app.neatRefresh(job) }
+            })) {
+                ForEach(fairFonts(), id: \.self) { k in Text(fairFontName(k)).tag(k) }
+            }
+        } label: { Label(fairFontName(app.fairFont), systemImage: "pencil.and.scribble") }
+            .buttonStyle(.bordered)
+    }
+
     /// Bella copia: le lettere larghe come le tue, o quanto scegli col
     /// cursore (l'anteprima si rifà lasciando il cursore).
     @ViewBuilder

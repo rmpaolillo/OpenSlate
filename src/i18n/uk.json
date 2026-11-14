@@ -1380,5 +1380,9 @@
  "Stampa solo la scrittura": "Друкувати лише написане",
  "Stampa con le righe del foglio": "Друкувати з лініями аркуша",
  "La pagina della lavagna, su foglio bianco": "Сторінка дошки на білому аркуші",
- "La pagina della lavagna con le righe o i quadretti": "Сторінка дошки з лініями або клітинками"
+ "La pagina della lavagna con le righe o i quadretti": "Сторінка дошки з лініями або клітинками",
+ "A mano, inclinata": "Від руки, похило",
+ "A mano, naturale": "Від руки, природно",
+ "A mano, rotonda": "Від руки, округло",
+ "A mano, ariosa": "Від руки, просторо"
 }

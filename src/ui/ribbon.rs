@@ -273,9 +273,14 @@ impl App {
                 use crate::campioni::{Mode, Style};
                 ui.set_min_width(260.0);
                 let radio = |on: bool| if on { ic::RADIO_BUTTON } else { ic::CIRCLE };
-                if menu_item(ui, true, radio(cur == Mode::Chiaro), "Carattere chiaro", "") {
-                    actions.push(fair(Fair::Style("chiaro".into())));
+                // i caratteri a mano chiari
+                let hand = crate::handwrite::Hand::parse(&self.settings.fair_font);
+                for h in crate::handwrite::Hand::ALL {
+                    if menu_item(ui, true, radio(cur == Mode::Chiaro && hand == h), h.label(), "") {
+                        actions.push(fair(Fair::Font(h.key().into())));
+                    }
                 }
+                ui.separator();
                 let trained = crate::campioni::trained();
                 for st in Style::ALL {
                     let label = match st {

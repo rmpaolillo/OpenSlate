@@ -95,6 +95,8 @@ pub struct Settings {
     /// Bella copia: il testo comincia dal margine sinistro (non dove hai
     /// cominciato a scrivere).
     pub fair_left: bool,
+    /// Bella copia: il carattere a mano (`handwrite::Hand::key`).
+    pub fair_font: String,
     /// Stampando la lavagna, anche la rigatura del foglio (righe, quadretti…).
     pub print_paper: bool,
 }
@@ -142,6 +144,7 @@ impl Default for Settings {
             fair_on_rules: false,
             fair_width: 0.0,
             fair_left: false,
+            fair_font: "inclinata".into(),
             print_paper: false,
         }
     }
@@ -233,6 +236,7 @@ impl Settings {
             "fair_on_rules" => self.fair_on_rules = b(v),
             "fair_width" => self.fair_width = parse_fair_width(v),
             "fair_left" => self.fair_left = b(v),
+            "fair_font" => self.fair_font = crate::handwrite::Hand::parse(v).key().into(),
             "print_paper" => self.print_paper = b(v),
             "fair_style" => self.fair_style = crate::campioni::Mode::parse(v).key().into(),
             // com'era prima: «la tua mano» accesa o spenta
@@ -278,6 +282,7 @@ impl Settings {
              # bella copia: con che scrittura (chiaro, corsivo, stampatello: la tua, addestrata; mano: la rete, se c'è mano/graves.bin)\nfair_style = {}\n\
              # bella copia: subito sulle righe del foglio\nfair_on_rules = {}\n\
              # bella copia: larghezza delle lettere (0 = come la tua scrittura; da 0.8 a 3 = volte il carattere); dal margine sinistro\nfair_width = {:.2}\nfair_left = {}\n\
+             # bella copia: il carattere a mano (inclinata, naturale, rotonda, ariosa)\nfair_font = {}\n\
              # stampa della lavagna: anche le righe o i quadretti del foglio\nprint_paper = {}\n\
              # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
              # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n\
@@ -316,6 +321,7 @@ impl Settings {
             b(self.fair_on_rules),
             self.fair_width,
             b(self.fair_left),
+            self.fair_font,
             b(self.print_paper),
             self.save_dir,
             self.ui_lang,

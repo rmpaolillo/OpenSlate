@@ -114,6 +114,13 @@ pub fn fair_width_max() -> f32 {
     crate::inbella::WIDTH.1
 }
 
+/// I caratteri a mano della bella copia: le chiavi per `FairJob::set_font`
+/// (inclinata, naturale, rotonda, ariosa; i nomi li mette l'app).
+#[uniffi::export]
+pub fn fair_fonts() -> Vec<String> {
+    crate::handwrite::Hand::ALL.iter().map(|h| h.key().to_string()).collect()
+}
+
 /// Dove tenere le impronte dei tratti già in bella (la cartella dell'app).
 #[uniffi::export]
 pub fn neat_set_dir(dir: String) {
@@ -190,6 +197,8 @@ pub struct FairJob {
     width: Mutex<Option<f32>>,
     /// Il testo dal margine sinistro (non da dove hai cominciato a scrivere).
     left: Mutex<bool>,
+    /// Il carattere a mano (`handwrite::Hand`).
+    font: Mutex<crate::handwrite::Hand>,
 }
 
 impl FairJob {
@@ -205,7 +214,7 @@ impl FairJob {
             width: *self.width.lock().unwrap(),
             left: self.left.lock().unwrap().then(|| crate::righe::margin_left(&g, zone, Paper::from_code(&sheet.paper), sheet.margin)),
         };
-        let (new_sub, done) = crate::inbella::apply_region_fit(&sub, &texts, &g, self.rect[2], fit).ok_or(NeatError::NothingToDo)?;
+        let (new_sub, done) = crate::handwrite::using_hand(*self.font.lock().unwrap(), || crate::inbella::apply_region_fit(&sub, &texts, &g, self.rect[2], fit)).ok_or(NeatError::NothingToDo)?;
         let mut page: Vec<Stroke> = strokes.iter().enumerate().filter(|(i, _)| !idx.contains(i)).map(|(_, s)| s.clone()).collect();
         let first = page.len();
         page.extend(new_sub);
@@ -247,13 +256,19 @@ impl FairJob {
     #[uniffi::constructor]
     pub fn new(board: Arc<BoardModel>, view: BoardView, zone: Option<Zone>) -> Arc<Self> {
         let rect = zone.map_or([0.0, 0.0, 1.0, 1.0], Zone::rect);
-        Arc::new(Self { board, view, rect, texts: Mutex::new(HashMap::new()), by: Mutex::new(String::new()), width: Mutex::new(None), left: Mutex::new(false) })
+        Arc::new(Self { board, view, rect, texts: Mutex::new(HashMap::new()), by: Mutex::new(String::new()), width: Mutex::new(None), left: Mutex::new(false), font: Mutex::new(Default::default()) })
     }
 
     /// Il testo dal margine sinistro del foglio (o della zona), invece che
     /// da dove hai cominciato a scrivere. Vale dalla prossima anteprima.
     pub fn set_left(&self, on: bool) {
         *self.left.lock().unwrap() = on;
+    }
+
+    /// Il carattere a mano della bella copia (una delle chiavi di
+    /// `fair_fonts`; le altre = il primo). Vale dalla prossima anteprima.
+    pub fn set_font(&self, key: String) {
+        *self.font.lock().unwrap() = crate::handwrite::Hand::parse(&key);
     }
 
     /// Quanto larghe le lettere della bella copia, volte il carattere (da

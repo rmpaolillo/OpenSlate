@@ -112,6 +112,8 @@ pub enum Fair {
     Width(Option<f32>),
     /// Il testo dal margine sinistro (sì) o da dove hai cominciato (no).
     Left(bool),
+    /// Il carattere a mano (`handwrite::Hand::key`): passa anche al carattere chiaro.
+    Font(String),
 }
 
 impl App {
@@ -190,6 +192,12 @@ impl App {
                 if self.settings.fair_style == "mano" {
                     crate::mano::preload();
                 }
+            }
+            Fair::Font(k) => {
+                self.settings.fair_font = k;
+                self.settings.fair_style = "chiaro".into();
+                self.settings.save();
+                self.fair_refresh();
             }
             Fair::Train => self.train_open(),
         }
@@ -290,7 +298,7 @@ impl App {
             width: (self.settings.fair_width > 0.0).then_some(self.settings.fair_width),
             left: self.settings.fair_left.then(|| crate::righe::margin_left(&g, zone, crate::rigatura::Paper::from_code(&self.settings.paper), self.settings.paper_margin)),
         };
-        let Some((new_sub, done)) = crate::campioni::using(crate::campioni::Mode::parse(&self.settings.fair_style), || crate::inbella::apply_region_fit(&sub, texts, &g, rect[2], fit)) else {
+        let Some((new_sub, done)) = crate::handwrite::using_hand(crate::handwrite::Hand::parse(&self.settings.fair_font), || crate::campioni::using(crate::campioni::Mode::parse(&self.settings.fair_style), || crate::inbella::apply_region_fit(&sub, texts, &g, rect[2], fit))) else {
             return Err("Non ho trovato niente da mettere in bella in questa zona (disegni non riconosciuti o scrittura che non si legge). Trascina un altro riquadro, o Esc.".into());
         };
         let mut page: Vec<Stroke> = s.drawing.strokes.iter().enumerate().filter(|(i, _)| !idx.contains(i)).map(|(_, st)| st.clone()).collect();

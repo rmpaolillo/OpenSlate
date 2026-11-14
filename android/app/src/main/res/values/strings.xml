@@ -270,4 +270,8 @@
     <string name="sig_place_hint">Drag it where it belongs, pull the corner to resize it, then «Apply».</string>
     <string name="sig_apply">Apply</string>
     <string name="sig_applied">Signature placed ✓ (Undo to remove it).</string>
+    <string name="font_slanted">Handwriting, slanted</string>
+    <string name="font_natural">Handwriting, natural</string>
+    <string name="font_round">Handwriting, round</string>
+    <string name="font_airy">Handwriting, airy</string>
 </resources>

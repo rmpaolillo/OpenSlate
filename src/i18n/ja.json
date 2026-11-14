@@ -1380,5 +1380,9 @@
  "Stampa solo la scrittura": "書いたものだけを印刷",
  "Stampa con le righe del foglio": "用紙の罫線と一緒に印刷",
  "La pagina della lavagna, su foglio bianco": "ボードのページ（白紙）",
- "La pagina della lavagna con le righe o i quadretti": "罫線または方眼付きのボードのページ"
+ "La pagina della lavagna con le righe o i quadretti": "罫線または方眼付きのボードのページ",
+ "A mano, inclinata": "手書き・斜め",
+ "A mano, naturale": "手書き・自然",
+ "A mano, rotonda": "手書き・丸文字",
+ "A mano, ariosa": "手書き・ゆったり"
 }

@@ -112,6 +112,9 @@ def main():
         ("DOMPurify (src/web/vendor)", "src/web/vendor/LICENSE-dompurify"),
         ("Hershey fonts (src/handwrite)", "src/handwrite/LICENSE-hershey.txt"),
         ("Kalam, single-line version (src/handwrite/naturale.txt)", "src/handwrite/LICENSE-kalam.txt"),
+        ("Coming Soon, single-line version (src/handwrite/mano-naturale.txt)", "src/handwrite/LICENSE-comingsoon.txt"),
+        ("Single-line font derived from Delius (src/handwrite/mano-rotonda.txt)", "src/handwrite/LICENSE-rotonda.txt"),
+        ("Architects Daughter, single-line version (src/handwrite/mano-ariosa.txt)", "src/handwrite/LICENSE-architects.txt"),
         ("OpenSlate Corsivo / Stampatello (assets/fonts)", "assets/fonts/LICENSE-OpenSlateHand.txt"),
         ("New Computer Modern, formula fonts (assets/fonts/typst)", "assets/fonts/typst/NOTICE-typst-assets.txt"),
     ]

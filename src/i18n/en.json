@@ -1380,5 +1380,9 @@
  "Stampa solo la scrittura": "Print only the writing",
  "Stampa con le righe del foglio": "Print with the page lines",
  "La pagina della lavagna, su foglio bianco": "The board page, on plain paper",
- "La pagina della lavagna con le righe o i quadretti": "The board page with its lines or grid"
+ "La pagina della lavagna con le righe o i quadretti": "The board page with its lines or grid",
+ "A mano, inclinata": "Handwriting, slanted",
+ "A mano, naturale": "Handwriting, natural",
+ "A mano, rotonda": "Handwriting, round",
+ "A mano, ariosa": "Handwriting, airy"
 }

@@ -1380,5 +1380,9 @@
  "Stampa solo la scrittura": "글씨만 인쇄",
  "Stampa con le righe del foglio": "종이의 줄과 함께 인쇄",
  "La pagina della lavagna, su foglio bianco": "보드 페이지, 흰 종이",
- "La pagina della lavagna con le righe o i quadretti": "줄 또는 모눈이 있는 보드 페이지"
+ "La pagina della lavagna con le righe o i quadretti": "줄 또는 모눈이 있는 보드 페이지",
+ "A mano, inclinata": "손글씨, 기울임",
+ "A mano, naturale": "손글씨, 자연스러움",
+ "A mano, rotonda": "손글씨, 둥근",
+ "A mano, ariosa": "손글씨, 넉넉함"
 }

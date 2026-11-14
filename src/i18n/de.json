@@ -1380,5 +1380,9 @@
  "Stampa solo la scrittura": "Nur die Schrift drucken",
  "Stampa con le righe del foglio": "Mit den Linien des Blatts drucken",
  "La pagina della lavagna, su foglio bianco": "Die Tafelseite, auf weißem Papier",
- "La pagina della lavagna con le righe o i quadretti": "Die Tafelseite mit Linien oder Kästchen"
+ "La pagina della lavagna con le righe o i quadretti": "Die Tafelseite mit Linien oder Kästchen",
+ "A mano, inclinata": "Handschrift, schräg",
+ "A mano, naturale": "Handschrift, natürlich",
+ "A mano, rotonda": "Handschrift, rund",
+ "A mano, ariosa": "Handschrift, luftig"
 }

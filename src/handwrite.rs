@@ -17,6 +17,10 @@ const CURSIVE: &str = include_str!("handwrite/cursive.jhf");
 /// «Naturale»: un carattere a mano vero (Kalam), ridotto a linee da
 /// `packaging/stroke_font.py` (la scrittura di «Trasforma in bella»).
 const NATURALE: &str = include_str!("handwrite/naturale.txt");
+/// Le altre mani di «Trasforma in bella», dritte e più larghe di Kalam (vedi `Hand`).
+const MANO_NATURALE: &str = include_str!("handwrite/mano-naturale.txt");
+const MANO_ROTONDA: &str = include_str!("handwrite/mano-rotonda.txt");
+const MANO_ARIOSA: &str = include_str!("handwrite/mano-ariosa.txt");
 /// Lettere greche e simboli matematici di Hershey (per le formule riscritte).
 const GREEK: &str = include_str!("handwrite/greek.jhf");
 const MATHLOW: &str = include_str!("handwrite/mathlow.jhf");
@@ -45,6 +49,65 @@ impl Style {
             _ => Style::Stampatello,
         }
     }
+}
+
+/// Con che carattere a mano scrive lo stile `Naturale` (la bella copia).
+/// Si sceglie per un lavoro con `using_hand`; di base è Kalam.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum Hand {
+    /// Kalam: inclinato e stretto (il primo).
+    #[default]
+    Inclinata,
+    /// Da Coming Soon: dritto, largo, come una penna vera.
+    Naturale,
+    /// Da Delius: rotondo e chiarissimo.
+    Rotonda,
+    /// Da Architects Daughter: largo e arioso.
+    Ariosa,
+}
+
+impl Hand {
+    pub const ALL: [Hand; 4] = [Hand::Inclinata, Hand::Naturale, Hand::Rotonda, Hand::Ariosa];
+
+    pub fn key(self) -> &'static str {
+        match self {
+            Hand::Inclinata => "inclinata",
+            Hand::Naturale => "naturale",
+            Hand::Rotonda => "rotonda",
+            Hand::Ariosa => "ariosa",
+        }
+    }
+
+    pub fn parse(s: &str) -> Hand {
+        Hand::ALL.into_iter().find(|h| h.key() == s.trim()).unwrap_or_default()
+    }
+
+    /// Il nome nei menu (da tradurre).
+    pub fn label(self) -> &'static str {
+        match self {
+            Hand::Inclinata => "A mano, inclinata",
+            Hand::Naturale => "A mano, naturale",
+            Hand::Rotonda => "A mano, rotonda",
+            Hand::Ariosa => "A mano, ariosa",
+        }
+    }
+}
+
+thread_local! {
+    static HAND: std::cell::Cell<Hand> = const { std::cell::Cell::new(Hand::Inclinata) };
+}
+
+/// Fa `f` scrivendo lo stile `Naturale` con la mano `h`.
+pub fn using_hand<R>(h: Hand, f: impl FnOnce() -> R) -> R {
+    let prev = HAND.with(|c| c.replace(h));
+    let r = f();
+    HAND.with(|c| c.set(prev));
+    r
+}
+
+/// La mano dello stile `Naturale` in questo momento.
+pub fn hand() -> Hand {
+    HAND.with(|c| c.get())
 }
 
 #[derive(Clone)]
@@ -103,6 +166,16 @@ fn font(style: Style) -> &'static Font {
     static F: OnceLock<Font> = OnceLock::new();
     static C: OnceLock<Font> = OnceLock::new();
     static N: OnceLock<Font> = OnceLock::new();
+    static HANDS: [OnceLock<Font>; 3] = [OnceLock::new(), OnceLock::new(), OnceLock::new()];
+    let other = match (style, hand()) {
+        (Style::Naturale, Hand::Naturale) => Some((0, MANO_NATURALE)),
+        (Style::Naturale, Hand::Rotonda) => Some((1, MANO_ROTONDA)),
+        (Style::Naturale, Hand::Ariosa) => Some((2, MANO_ARIOSA)),
+        _ => None,
+    };
+    if let Some((i, src)) = other {
+        return HANDS[i].get_or_init(|| upright_hand(src));
+    }
     match style {
         Style::Stampatello => F.get_or_init(|| Font { glyphs: parse(FUTURAL), x_top: -5.0, slant: 0.0 }),
         Style::Corsivo => C.get_or_init(|| Font { glyphs: parse(CURSIVE), x_top: 0.0, slant: 2.0 }),
@@ -151,6 +224,24 @@ fn font(style: Style) -> &'static Font {
             Font { glyphs, x_top: BASE_Y + (x_top - BASE_Y) * k, slant: 0.8 }
         }),
     }
+}
+
+/// Una mano dritta (non Kalam): il corpo delle minuscole alto come lo
+/// stampatello, attorno alla riga di base.
+fn upright_hand(src: &str) -> Font {
+    let mut glyphs = parse_lines(src);
+    let x_top = glyphs.get(&'x').map(|g| g.strokes.iter().flatten().map(|p| p.1).fold(f32::MAX, f32::min)).filter(|v| v.is_finite()).unwrap_or(-4.0);
+    let k = (14.0 / (BASE_Y - x_top)).clamp(0.6, 1.6);
+    for g in glyphs.values_mut() {
+        g.left *= k;
+        g.right *= k;
+        for st in g.strokes.iter_mut() {
+            for p in st.iter_mut() {
+                *p = (p.0 * k, BASE_Y + (p.1 - BASE_Y) * k);
+            }
+        }
+    }
+    Font { glyphs, x_top: BASE_Y + (x_top - BASE_Y) * k, slant: 0.0 }
 }
 
 /// Il formato di `packaging/stroke_font.py`: «U+0041<TAB>sinistra<TAB>destra<TAB>tratti».
@@ -531,6 +622,62 @@ mod tests {
         let h = l.bbox[3] - l.bbox[1];
         assert!(h > 0.025 && h < 0.08, "{h}");
         assert!(all_glyphs(Style::Naturale).len() > 150);
+    }
+
+    /// Ogni mano scrive tutto (lettere, accenti, cifre, simboli), alta come
+    /// le altre e larga più o meno uguale (cambia la forma, non la misura).
+    #[test]
+    fn le_mani_della_bella() {
+        let t = "Bene! È giusto: x² + 1 = 0 ⇒ niente, perché 4·5 = 20";
+        let w = |h| using_hand(h, || {
+            let l = layout(t, Style::Naturale, 0.03, 0.7, (0.1, 0.2), 9.0, false);
+            assert!(l.missing.is_empty(), "{h:?} {:?}", l.missing);
+            let ys: Vec<f32> = char_glyph(Style::Naturale, 'x').unwrap().strokes.into_iter().flatten().map(|p| p.1).collect();
+            let x = ys.iter().cloned().fold(f32::MIN, f32::max) - ys.iter().cloned().fold(f32::MAX, f32::min);
+            (l.bbox[2] - l.bbox[0], x)
+        });
+        let (kalam, kx) = w(Hand::Inclinata);
+        for h in [Hand::Naturale, Hand::Rotonda, Hand::Ariosa] {
+            assert_eq!(Hand::parse(h.key()), h);
+            let (wide, x) = w(h);
+            // più o meno larga come Kalam (a parità di «x»): cambia la forma
+            assert!(wide > kalam * 0.85 && wide < kalam * 1.4, "{h:?}: {wide} contro {kalam}");
+            assert!((x - kx).abs() < 3.0, "{h:?}: x alta {x} contro {kx}");
+            assert!(using_hand(h, || all_glyphs(Style::Naturale).len()) > 150);
+        }
+        // fuori da `using_hand` torna Kalam
+        assert_eq!(hand(), Hand::Inclinata);
+        assert_eq!(Hand::parse("boh"), Hand::Inclinata);
+    }
+
+    /// Le quattro mani a confronto in un PNG, con una formula:
+    /// MANI_PNG=file.png cargo test -- --ignored mani_png
+    #[test]
+    #[ignore]
+    fn mani_png() {
+        let t = "Oggi è venerdì: studiare $f(x) = \\frac{x^2-1}{x}$ con $x \\neq 0$";
+        let rows: Vec<_> = Hand::ALL.iter().map(|&h| using_hand(h, || crate::mathhand::line_box(Style::Naturale, t)).strokes).collect();
+        let s = 2.2;
+        let mut pm = tiny_skia::Pixmap::new(1500, 120 * rows.len() as u32 + 30).unwrap();
+        pm.fill(tiny_skia::Color::WHITE);
+        let mut paint = tiny_skia::Paint::default();
+        paint.set_color_rgba8(20, 30, 90, 255);
+        paint.anti_alias = true;
+        let stroke = tiny_skia::Stroke { width: 2.2, line_cap: tiny_skia::LineCap::Round, line_join: tiny_skia::LineJoin::Round, ..Default::default() };
+        for (r, strokes) in rows.iter().enumerate() {
+            let base = 85.0 + r as f32 * 120.0;
+            for st in strokes {
+                let mut pb = tiny_skia::PathBuilder::new();
+                pb.move_to(30.0 + st[0].0 * s, base + st[0].1 * s);
+                for p in &st[1..] {
+                    pb.line_to(30.0 + p.0 * s, base + p.1 * s);
+                }
+                if let Some(p) = pb.finish() {
+                    pm.stroke_path(&p, &paint, &stroke, tiny_skia::Transform::identity(), None);
+                }
+            }
+        }
+        pm.save_png(std::env::var("MANI_PNG").unwrap_or("/tmp/mani.png".into())).unwrap();
     }
 
 
