@@ -74,6 +74,9 @@ struct Ln {
     xh: f32,
     up: f32,
     down: f32,
+    /// Quanto scendono sotto la riga di base i fondi delle lettere (le
+    /// tonde: a, o, e…): la riga del foglio va sotto di loro, non le taglia.
+    sink: f32,
     /// Dove comincia il testo (dopo il trattino) e dove finisce la riga.
     tx0: f32,
     bx0: f32,
@@ -196,6 +199,7 @@ fn measure(strokes: &[Stroke], g: &PageGeom, ph: &[Vec<(f32, f32)>], sel: &[usiz
             xh: 0.0,
             up: 0.0,
             down: 0.0,
+            sink: 0.0,
             tx0: 0.0,
             bx0: 0.0,
             x1: 0.0,
@@ -219,6 +223,10 @@ fn measure(strokes: &[Stroke], g: &PageGeom, ph: &[Vec<(f32, f32)>], sel: &[usiz
         ln.xh = xh.max(0.2 * hh);
         ln.up = (base - top).max(0.5 * hh);
         ln.down = (bottom - base).max(0.0);
+        // i fondi delle lettere (non le gambe di p, g…) sotto la base: il
+        // punto più basso di ogni segno che non scende troppo
+        let mut sinks: Vec<f32> = rph.iter().filter(|p| !p.is_empty()).map(|p| p.iter().map(|q| q.1).fold(f32::MIN, f32::max) - base).filter(|&d| d > -0.3 * hh && d < 0.35 * hh).collect();
+        ln.sink = if sinks.len() >= 2 { quantile(&mut sinks, 0.9).clamp(0.0, 0.3 * hh) } else { 0.0 };
         ln.tx0 = tx0;
         ln.bx0 = bx0;
         ln.x1 = x1;
@@ -295,6 +303,34 @@ pub fn arrange(strokes: &[Stroke], g: &PageGeom, zone: Option<[f32; 4]>, sheet: 
 }
 
 /// Come `arrange`, solo per i tratti `movable` (la bella copia appena fatta).
+/// Il margine sinistro (frazione della larghezza della pagina): il margine
+/// rosso se c'è, se no 1 cm dal bordo (sui quadretti, sulla prima linea
+/// della griglia da lì); in una zona, il suo bordo sinistro. Lo stesso bordo
+/// da cui comincia «Disponi sulle righe».
+pub fn margin_left(g: &PageGeom, zone: Option<[f32; 4]>, paper: Paper, margin: bool) -> f32 {
+    let (wcm, hcm) = (g.w / 1000.0, g.h / 1000.0);
+    let aspect = g.w / g.h;
+    let kcm = 1000.0 / g.h;
+    let cell = match rigatura::writing_rows(paper, wcm, hcm) {
+        Rows::Grid { cell } => Some(cell),
+        _ => None,
+    };
+    let snap = |x: f32| match cell {
+        Some(c) => ((x / kcm / c) - 1e-3).ceil() * c * kcm,
+        None => x,
+    };
+    let red = rigatura::left_edge(paper, wcm, margin).map(|x| x * kcm);
+    let x = match zone {
+        Some(z) => {
+            let (zl, zr) = (z[0] * aspect, z[2] * aspect);
+            let l = zl + 0.1 * kcm;
+            snap(red.filter(|&r| r > zl && r < zr).map_or(l, |r| r.max(l)))
+        }
+        None => snap(red.unwrap_or(kcm)),
+    };
+    x / aspect
+}
+
 pub fn arrange_only(strokes: &[Stroke], g: &PageGeom, movable: &[usize], zone: Option<[f32; 4]>, sheet: Sheet) -> Result<Arranged, Problem> {
     arrange_sel(strokes, g, movable, zone, sheet)
 }
@@ -423,7 +459,9 @@ fn arrange_sel(strokes: &[Stroke], g: &PageGeom, sel: &[usize], zone: Option<[f3
                 let (bx, tx) = (left, left + lead * s);
                 // la riga di base: sulla riga del foglio; un sistema comincia
                 // in cima alla riga
-                let base = if l.multi { row.base - row.up + l.up * s } else { row.base };
+                // le lettere poggiano sopra la riga del foglio (con un filo di
+                // spazio): la riga non le taglia, solo le gambe la passano
+                let base = if l.multi { row.base - row.up + l.up * s } else { row.base - l.sink * s - 0.08 * pitch };
                 let b = if l.multi {
                     (bx - 0.1 * hh, tx + (l.x1 - l.tx0) * s + 0.1 * hh, base - l.up * s, base + l.down * s)
                 } else {
@@ -513,6 +551,42 @@ mod tests {
             .collect()
     }
 
+    /// Una riga in bella sui quadretti: i fondi delle lettere stanno sopra la
+    /// linea del foglio (la linea non le taglia), solo le gambe la passano.
+    #[test]
+    fn bella_sopra_la_linea() {
+        let g = PageGeom::new(crate::scene::View::default(), 21000.0, 29700.0);
+        let b = crate::mathhand::line_box(crate::handwrite::Style::Naturale, "Adesso faccio un'altra prova con caratteri");
+        // circa come la bella copia: corpo delle minuscole di 3 mm, a metà pagina
+        let k = 300.0 / 14.0;
+        let strokes: Vec<Stroke> = b
+            .strokes
+            .iter()
+            .map(|st| {
+                let mut s = Stroke::new([0, 0, 0], 2.0);
+                for &(x, y) in st {
+                    s.points.push(crate::stroke::PenEvent { x: 2000.0 + x * k, y: 9000.0 + y * k, pressure: 0.6, phase: crate::stroke::PenPhase::Move });
+                }
+                s
+            })
+            .collect();
+        for every in [1, 2] {
+            let a = arrange(&strokes, &g, None, Sheet { every: Some(every), ..sheet(Paper::Quadretti5) }).unwrap();
+            let ph = physical(&a.strokes, &g);
+            let kcm = 1000.0 / g.h;
+            let pitch = 0.5 * every as f32 * kcm;
+            // i fondi delle lettere e la linea (della griglia) appena sotto
+            let mut bottoms: Vec<f32> = ph.iter().flat_map(|p| turns_xy(p, 0.002).0).map(|q| q.1).collect();
+            let low = quantile(&mut bottoms, 0.5);
+            // la linea della griglia più vicina ai fondi: quella su cui poggiano
+            let line = (low / (0.5 * kcm)).round() * 0.5 * kcm;
+            assert!(low < line, "ogni {every}: i fondi (mediana {low}) non stanno sopra la linea {line}");
+            // tagliati: i fondi sulla linea o appena sotto
+            let cut = bottoms.iter().filter(|&&y| y > line - 0.015 * pitch && y < line + 0.15 * pitch).count();
+            assert!((cut as f32) < 0.15 * bottoms.len() as f32, "ogni {every}: {cut} fondi su {} tagliati dalla linea", bottoms.len());
+        }
+    }
+
     fn sheet(paper: Paper) -> Sheet {
         Sheet { paper, margin: true, every: None }
     }
@@ -538,10 +612,11 @@ mod tests {
         assert_eq!(a.lines, 3);
         assert_eq!(a.shrunk, 0);
         let b = bases(&a.strokes, &idx);
-        // sulle righe da 8 mm (2,0 + k·0,8), una dopo l'altra
+        // sulle righe da 8 mm (2,0 + k·0,8), appena sopra (la riga non
+        // taglia le lettere), una dopo l'altra
         for y in &b {
             let k = (y - 2.0) / 0.8;
-            assert!((k - k.round()).abs() < 0.06, "{b:?}");
+            assert!(k.round() - k > 0.0 && k.round() - k < 0.15, "{b:?}");
         }
         assert!((b[1] - b[0] - 0.8).abs() < 0.05 && (b[2] - b[1] - 0.8).abs() < 0.05, "{b:?}");
         // tutte dal margine rosso
@@ -584,13 +659,14 @@ mod tests {
         let big = word_line(4000.0, 6000.0, 5, 1200.0, 0.0);
         assert_eq!(suggest_every(&big, &g, None, Paper::Quadretti5), Some(3));
         assert_eq!(suggest_every(&big, &g, None, Paper::Righe), None);
-        // ogni 2 quadretti: le basi sui centimetri interi; il bordo su una linea
+        // ogni 2 quadretti: le basi appena sopra i centimetri interi (la linea
+        // non taglia le lettere); il bordo su una linea
         let mut strokes = small.clone();
         strokes.extend(word_line(4300.0, 8000.0, 5, 700.0, 0.0));
         let a = arrange(&strokes, &g, None, sheet(Paper::Quadretti5)).unwrap();
         assert_eq!(a.every, Some(2));
         let b = bases(&a.strokes, &[0..5, 5..10]);
-        assert!(b.iter().all(|y| (y - y.round()).abs() < 0.06) && (b[1] - b[0] - 1.0).abs() < 0.06, "{b:?}");
+        assert!(b.iter().all(|y| y.round() - y > 0.0 && y.round() - y < 0.2) && (b[1] - b[0] - 1.0).abs() < 0.06, "{b:?}");
         let l = lefts(&a.strokes, &[0..5, 5..10]);
         assert!(l.iter().all(|x| ((x / 0.5) - (x / 0.5).round()).abs() < 0.1), "{l:?}");
         // ogni quadretto: la scrittura si stringe in mezzo centimetro

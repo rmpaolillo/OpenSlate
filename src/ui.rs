@@ -545,6 +545,8 @@ enum Action {
     /// Rigatura del foglio.
     Paper(paper::Paper),
     ToggleMargin,
+    /// Stampa anche le righe del foglio (sì/no).
+    TogglePrintPaper,
     /// La bella copia (pulsante «Trasforma in bella»): zona, anteprima, accetta.
     Fair(inbella_ui::Fair),
     /// Apre la finestra degli appunti.
@@ -1972,6 +1974,8 @@ impl App {
                     self.status = "Niente da stampare: pagina vuota.".into();
                     return;
                 }
+                // le righe del foglio, se le vuoi anche sulla carta
+                let page = if self.settings.print_paper { export::with_paper(page, paper::Paper::from_code(&self.settings.paper), self.settings.paper_margin) } else { page };
                 self.print_job(crate::i18n::t("Lavagna").to_string(), move |dst| export::save_pdf(&[&page], dst));
             }
             Action::Ocr => {
@@ -2056,6 +2060,11 @@ impl App {
             Action::ToggleMargin => {
                 self.settings.paper_margin = !self.settings.paper_margin;
                 self.settings.save();
+            }
+            Action::TogglePrintPaper => {
+                self.settings.print_paper = !self.settings.print_paper;
+                self.settings.save();
+                self.status = if self.settings.print_paper { "Stampa: con le righe del foglio." } else { "Stampa: senza le righe del foglio (solo la scrittura)." }.into();
             }
             Action::ShowBoard => {
                 self.center = workspace::Center::Board;

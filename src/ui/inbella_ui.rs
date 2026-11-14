@@ -110,6 +110,8 @@ pub enum Fair {
     Every(u32),
     /// Quanto larghe le lettere (volte il carattere; `None` = come la tua scrittura).
     Width(Option<f32>),
+    /// Il testo dal margine sinistro (sì) o da dove hai cominciato (no).
+    Left(bool),
 }
 
 impl App {
@@ -147,6 +149,11 @@ impl App {
             }
             Fair::Width(w) => {
                 self.settings.fair_width = w.map_or(0.0, |w| w.clamp(crate::inbella::WIDTH.0, crate::inbella::WIDTH.1));
+                self.settings.save();
+                self.fair_refresh();
+            }
+            Fair::Left(on) => {
+                self.settings.fair_left = on;
                 self.settings.save();
                 self.fair_refresh();
             }
@@ -279,7 +286,11 @@ impl App {
         }
         let idx = crate::inbella::select(&s.drawing.strokes, &g, rect);
         let sub: Vec<Stroke> = idx.iter().map(|&i| s.drawing.strokes[i].clone()).collect();
-        let Some((new_sub, done)) = crate::campioni::using(crate::campioni::Mode::parse(&self.settings.fair_style), || crate::inbella::apply_region_w(&sub, texts, &g, rect[2], (self.settings.fair_width > 0.0).then_some(self.settings.fair_width))) else {
+        let fit = crate::inbella::Fit {
+            width: (self.settings.fair_width > 0.0).then_some(self.settings.fair_width),
+            left: self.settings.fair_left.then(|| crate::righe::margin_left(&g, zone, crate::rigatura::Paper::from_code(&self.settings.paper), self.settings.paper_margin)),
+        };
+        let Some((new_sub, done)) = crate::campioni::using(crate::campioni::Mode::parse(&self.settings.fair_style), || crate::inbella::apply_region_fit(&sub, texts, &g, rect[2], fit)) else {
             return Err("Non ho trovato niente da mettere in bella in questa zona (disegni non riconosciuti o scrittura che non si legge). Trascina un altro riquadro, o Esc.".into());
         };
         let mut page: Vec<Stroke> = s.drawing.strokes.iter().enumerate().filter(|(i, _)| !idx.contains(i)).map(|(_, st)| st.clone()).collect();

@@ -188,6 +188,8 @@ pub struct FairJob {
     by: Mutex<String>,
     /// Quanto larghe le lettere (volte il carattere; `None` = come la tua scrittura).
     width: Mutex<Option<f32>>,
+    /// Il testo dal margine sinistro (non da dove hai cominciato a scrivere).
+    left: Mutex<bool>,
 }
 
 impl FairJob {
@@ -198,8 +200,12 @@ impl FairJob {
         let idx = crate::inbella::select(&strokes, &g, self.rect);
         let sub: Vec<Stroke> = idx.iter().map(|&i| strokes[i].clone()).collect();
         let texts = self.texts.lock().unwrap().clone();
-        let width = *self.width.lock().unwrap();
-        let (new_sub, done) = crate::inbella::apply_region_w(&sub, &texts, &g, self.rect[2], width).ok_or(NeatError::NothingToDo)?;
+        let zone = (self.rect != [0.0, 0.0, 1.0, 1.0]).then_some(self.rect);
+        let fit = crate::inbella::Fit {
+            width: *self.width.lock().unwrap(),
+            left: self.left.lock().unwrap().then(|| crate::righe::margin_left(&g, zone, Paper::from_code(&sheet.paper), sheet.margin)),
+        };
+        let (new_sub, done) = crate::inbella::apply_region_fit(&sub, &texts, &g, self.rect[2], fit).ok_or(NeatError::NothingToDo)?;
         let mut page: Vec<Stroke> = strokes.iter().enumerate().filter(|(i, _)| !idx.contains(i)).map(|(_, s)| s.clone()).collect();
         let first = page.len();
         page.extend(new_sub);
@@ -241,7 +247,13 @@ impl FairJob {
     #[uniffi::constructor]
     pub fn new(board: Arc<BoardModel>, view: BoardView, zone: Option<Zone>) -> Arc<Self> {
         let rect = zone.map_or([0.0, 0.0, 1.0, 1.0], Zone::rect);
-        Arc::new(Self { board, view, rect, texts: Mutex::new(HashMap::new()), by: Mutex::new(String::new()), width: Mutex::new(None) })
+        Arc::new(Self { board, view, rect, texts: Mutex::new(HashMap::new()), by: Mutex::new(String::new()), width: Mutex::new(None), left: Mutex::new(false) })
+    }
+
+    /// Il testo dal margine sinistro del foglio (o della zona), invece che
+    /// da dove hai cominciato a scrivere. Vale dalla prossima anteprima.
+    pub fn set_left(&self, on: bool) {
+        *self.left.lock().unwrap() = on;
     }
 
     /// Quanto larghe le lettere della bella copia, volte il carattere (da

@@ -92,6 +92,11 @@ pub struct Settings {
     /// Bella copia: quanto larghe le lettere (volte il carattere; 0 = come
     /// la tua scrittura).
     pub fair_width: f32,
+    /// Bella copia: il testo comincia dal margine sinistro (non dove hai
+    /// cominciato a scrivere).
+    pub fair_left: bool,
+    /// Stampando la lavagna, anche la rigatura del foglio (righe, quadretti…).
+    pub print_paper: bool,
 }
 
 impl Default for Settings {
@@ -136,6 +141,8 @@ impl Default for Settings {
             fair_style: "chiaro".into(),
             fair_on_rules: false,
             fair_width: 0.0,
+            fair_left: false,
+            print_paper: false,
         }
     }
 }
@@ -225,6 +232,8 @@ impl Settings {
             "fair_agent" => self.fair_agent = v.trim().to_string(),
             "fair_on_rules" => self.fair_on_rules = b(v),
             "fair_width" => self.fair_width = parse_fair_width(v),
+            "fair_left" => self.fair_left = b(v),
+            "print_paper" => self.print_paper = b(v),
             "fair_style" => self.fair_style = crate::campioni::Mode::parse(v).key().into(),
             // com'era prima: «la tua mano» accesa o spenta
             "fair_hand" if b(v) => self.fair_style = "mano".into(),
@@ -268,7 +277,8 @@ impl Settings {
              # bella copia: chi legge la scrittura (vuoto = gli agenti di «Lettura dei fogli»)\nfair_agent = {}\n\
              # bella copia: con che scrittura (chiaro, corsivo, stampatello: la tua, addestrata; mano: la rete, se c'è mano/graves.bin)\nfair_style = {}\n\
              # bella copia: subito sulle righe del foglio\nfair_on_rules = {}\n\
-             # bella copia: larghezza delle lettere (0 = come la tua scrittura; da 0.8 a 2 = volte il carattere)\nfair_width = {:.2}\n\
+             # bella copia: larghezza delle lettere (0 = come la tua scrittura; da 0.8 a 3 = volte il carattere); dal margine sinistro\nfair_width = {:.2}\nfair_left = {}\n\
+             # stampa della lavagna: anche le righe o i quadretti del foglio\nprint_paper = {}\n\
              # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
              # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n\
              # aggiornamenti: avvisa quando c'è una versione nuova su GitHub; versione saltata; installa da solo senza chiedere\nupdate_check = {}\nupdate_skip = {}\nupdate_install_auto = {}\n",
@@ -305,6 +315,8 @@ impl Settings {
             self.fair_style,
             b(self.fair_on_rules),
             self.fair_width,
+            b(self.fair_left),
+            b(self.print_paper),
             self.save_dir,
             self.ui_lang,
             b(self.update_check),

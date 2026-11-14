@@ -484,6 +484,7 @@ struct PaperPicker: View {
                     }
                 }
                 Toggle(L("Margini rossi sui fogli a righe", "Red margins on lined paper"), isOn: Binding(get: { app.paperMargin }, set: { app.paperMargin = $0; app.applyTools() }))
+                Toggle(L("Stampa anche le righe del foglio", "Also print the page lines"), isOn: Binding(get: { app.printPaper }, set: { app.printPaper = $0 }))
             }
             .navigationTitle(L("Foglio", "Paper"))
             .toolbar { Button("OK") { dismiss() } }

@@ -1369,5 +1369,11 @@
  "Come la mia scrittura": "내 글씨처럼",
  "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "글자 폭을 내 글씨와 비슷하게 (가장자리를 넘지 않음)",
  "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "글자 폭: 오른쪽으로 갈수록 넓게 (줄이 페이지에 맞지 않으면 좁아짐)",
- "Larghezza": "폭"
+ "Larghezza": "폭",
+ "Dal margine": "여백부터",
+ "Il testo comincia dal margine sinistro del foglio (o della zona), invece che da dove hai cominciato a scrivere": "글을 쓰기 시작한 곳 대신 종이(또는 영역)의 왼쪽 여백부터 시작합니다",
+ "Stampa anche le righe del foglio": "종이의 줄도 함께 인쇄",
+ "stampando la lavagna, stampa anche le righe del foglio": "보드를 인쇄할 때 종이의 줄도 함께 인쇄",
+ "Stampa: con le righe del foglio.": "인쇄: 종이의 줄 포함.",
+ "Stampa: senza le righe del foglio (solo la scrittura).": "인쇄: 종이의 줄 없이 (글씨만)."
 }

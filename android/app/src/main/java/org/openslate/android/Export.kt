@@ -40,10 +40,24 @@ object Export {
         return (t.ifEmpty { "OpenSlate-" + page.id.ifEmpty { "pagina" } }) + ".$ext"
     }
 
-    fun pdf(ctx: Context, page: Page, quarter: Int): File {
+    /** La pagina in PDF; con `paper` (codice, margini rossi) anche la rigatura del foglio, sotto la scrittura (per stampare). */
+    fun pdf(ctx: Context, page: Page, quarter: Int, paper: Pair<String, Boolean>? = null): File {
         val (w, h) = size(page, quarter, PDF_LONG)
         val doc = PdfDocument()
         val p = doc.startPage(PdfDocument.PageInfo.Builder(w.toInt(), h.toInt(), 1).create())
+        paper?.takeIf { it.first != "bianco" }?.let { (code, margin) ->
+            val (rw, rh) = Ink.rotated(page.width, page.height, quarter)
+            val marks = uniffi.openslate_mobile.paperMarks(code, rw / 1000f, rh / 1000f, margin)
+            // nel PDF un punto vale un dp: gli spessori come sullo schermo
+            PaperDraw.draw(p.canvas, marks, PaperDraw.kind(code), 0f, 0f, w / (rw / 1000f), 1f) { t ->
+                when (t) {
+                    "Parole chiave" -> ctx.getString(R.string.lbl_keywords)
+                    "Appunti" -> ctx.getString(R.string.lbl_notes)
+                    "Riassunto" -> ctx.getString(R.string.lbl_summary)
+                    else -> t
+                }
+            }
+        }
         Ink.draw(p.canvas, page.strokes, page.width, page.height, quarter, w, h)
         doc.finishPage(p)
         val f = File(shareDir(ctx), fileName(page, "pdf"))

@@ -1369,5 +1369,11 @@
  "Come la mia scrittura": "自分の筆跡に合わせる",
  "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "文字の幅をあなたの字とほぼ同じに（端からはみ出さない）",
  "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "文字の幅：右にするほど広く（行がページに収まらないときは狭くなります）",
- "Larghezza": "幅"
+ "Larghezza": "幅",
+ "Dal margine": "余白から",
+ "Il testo comincia dal margine sinistro del foglio (o della zona), invece che da dove hai cominciato a scrivere": "書き始めた位置ではなく、用紙（または範囲）の左余白から文字を始めます",
+ "Stampa anche le righe del foglio": "用紙の罫線も印刷する",
+ "stampando la lavagna, stampa anche le righe del foglio": "ボードを印刷するとき、用紙の罫線も印刷する",
+ "Stampa: con le righe del foglio.": "印刷：用紙の罫線あり。",
+ "Stampa: senza le righe del foglio (solo la scrittura).": "印刷：用紙の罫線なし（書いた文字だけ）。"
 }

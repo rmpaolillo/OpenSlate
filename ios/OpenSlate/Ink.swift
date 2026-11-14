@@ -189,12 +189,19 @@ enum Export {
         return d
     }
 
-    static func pdf(_ page: Page, quarter: Int) throws -> URL {
+    /// La pagina in PDF; con `paper` (codice, margini rossi) anche la rigatura
+    /// del foglio, sotto la scrittura (per stampare).
+    static func pdf(_ page: Page, quarter: Int, paper: (String, Bool)? = nil) throws -> URL {
         let s = size(page, quarter: quarter, long: 842)
         let url = shareDir().appendingPathComponent(fileName(page, "pdf"))
         let r = UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: s))
         try r.writePDF(to: url) { ctx in
             ctx.beginPage()
+            if let (code, margin) = paper, code != "bianco", let kind = paperKinds().first(where: { $0.code == code }) {
+                let (rw, rh) = Ink.rotated(page.width, page.height, quarter)
+                let marks = paperMarks(code: code, wCm: rw / 1000, hCm: rh / 1000, margin: margin)
+                Ink.drawPaper(ctx.cgContext, marks, kind: kind, left: 0, top: 0, pxPerCm: s.width / CGFloat(rw / 1000))
+            }
             Ink.draw(ctx.cgContext, page.strokes, padW: page.width, padH: page.height, quarter: quarter, w: s.width, h: s.height)
         }
         return url

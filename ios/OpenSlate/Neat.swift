@@ -147,6 +147,7 @@ extension AppModel {
         case .fair:
             let fj = FairJob(board: model, view: v, zone: zone)
             fj.setWidth(width: fairWidth > 0 ? Float(fairWidth) : nil)
+            fj.setLeft(on: fairLeft)
             job.fair = fj
             job.note = L("Leggo la scrittura…", "Reading the writing…")
             let providers = ai.providers()
@@ -173,6 +174,7 @@ extension AppModel {
             guard let fj = job.fair else { return }
             let onRules = fairOnRules && paperHasRows(paper: paperCode)
             fj.setWidth(width: fairWidth > 0 ? Float(fairWidth) : nil)
+            fj.setLeft(on: fairLeft)
             neatRun(job) { try fj.preview(onRules: onRules, sheet: spec) }
         }
     }
@@ -279,6 +281,11 @@ extension NeatBar {
                    width = nil
                    app.neatRefresh(job)
                })
-        .frame(width: 160)
+        .frame(width: 200)
+        Toggle(isOn: Binding(get: { app.fairLeft }, set: { on in
+            app.fairLeft = on
+            app.neatRefresh(job)
+        })) { Label(L("Dal margine", "From the margin"), systemImage: "text.alignleft") }
+            .toggleStyle(.button)
     }
 }

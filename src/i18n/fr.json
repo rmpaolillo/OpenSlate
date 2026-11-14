@@ -1369,5 +1369,11 @@
  "Come la mia scrittura": "Comme mon écriture",
  "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "Des lettres à peu près aussi larges que les tiennes (jamais au-delà du bord)",
  "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "Largeur des lettres : plus à droite, plus larges (si la ligne ne tient pas dans la page, elle se resserre)",
- "Larghezza": "Largeur"
+ "Larghezza": "Largeur",
+ "Dal margine": "Depuis la marge",
+ "Il testo comincia dal margine sinistro del foglio (o della zona), invece che da dove hai cominciato a scrivere": "Le texte commence à la marge gauche de la feuille (ou de la zone), au lieu de là où tu as commencé à écrire",
+ "Stampa anche le righe del foglio": "Imprimer aussi les lignes de la feuille",
+ "stampando la lavagna, stampa anche le righe del foglio": "en imprimant le tableau, imprimer aussi les lignes de la feuille",
+ "Stampa: con le righe del foglio.": "Impression : avec les lignes de la feuille.",
+ "Stampa: senza le righe del foglio (solo la scrittura).": "Impression : sans les lignes de la feuille (seulement l'écriture)."
 }

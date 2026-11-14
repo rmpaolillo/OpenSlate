@@ -49,6 +49,50 @@ pub fn save_pdf(pages: &[&Page], path: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// La pagina con sotto la rigatura del foglio (righe, quadretti, margini…),
+/// per stamparla come la si vede: linee sottili coi colori dello schermo (vedi
+/// `ui::paper`), sotto la scrittura. Le scritte della rigatura (Cornell,
+/// numeri del piano cartesiano) no: solo linee e puntini.
+pub fn with_paper(mut page: Page, paper: crate::rigatura::Paper, margin: bool) -> Page {
+    use crate::rigatura::{Ink, Mark, Paper};
+    use crate::scene::PageStroke;
+    let (wcm, hcm) = (page.w / 1000.0, page.h / 1000.0);
+    let marks = crate::rigatura::layout(paper, wcm, hcm, margin);
+    if marks.is_empty() {
+        return page;
+    }
+    // i colori dello schermo, già fusi sul bianco della carta
+    let on_white = |c: [u8; 3], a: f32| -> [u8; 3] { c.map(|v| (255.0 - (255.0 - v as f32) * a).round() as u8) };
+    let mm = paper == Paper::Millimetrata;
+    let rgb = if mm { [225, 130, 60] } else if paper.grid_like() { [110, 150, 205] } else { [80, 125, 200] };
+    let line = if mm { 75.0 } else if paper.grid_like() { 95.0 } else { 130.0 } / 255.0;
+    let strong = if mm { 140.0 } else { 175.0 } / 255.0;
+    let style = |ink: Ink| -> ([u8; 3], f32) {
+        match ink {
+            Ink::Fine => (on_white(rgb, 80.0 / 255.0), 0.4),
+            Ink::Line => (on_white(rgb, line), 0.6),
+            Ink::Strong => (on_white(rgb, strong), 0.9),
+            Ink::Red => (on_white([215, 70, 70], 150.0 / 255.0), 0.8),
+            Ink::Axis => (on_white([60, 70, 95], 210.0 / 255.0), 1.0),
+        }
+    };
+    let u = |p: (f32, f32)| (p.0 / wcm, p.1 / hcm);
+    let mut strokes: Vec<PageStroke> = marks
+        .into_iter()
+        .filter_map(|m| match m {
+            Mark::Line(ink, a, b) => {
+                let (color, width) = style(ink);
+                Some(PageStroke { color, width, pts: vec![u(a), u(b)], pr: vec![], highlight: false })
+            }
+            Mark::Dot(p) => Some(PageStroke { color: on_white(rgb, 170.0 / 255.0), width: 1.2, pts: vec![u(p)], pr: vec![], highlight: false }),
+            Mark::Label(..) => None,
+        })
+        .collect();
+    strokes.append(&mut page.strokes);
+    page.strokes = strokes;
+    page
+}
+
 pub fn save_png(page: &Page, path: &Path) -> anyhow::Result<()> {
     std::fs::write(path, crate::craftexport::png(page, 2480)?)?;
     Ok(())
@@ -78,6 +122,17 @@ mod tests {
         assert_eq!(&png[1..4], b"PNG");
         let (w, h, px) = page_to_rgba(&p, 400).unwrap();
         assert_eq!(px.len(), w * h * 4);
+    }
+
+    #[test]
+    fn stampa_con_le_righe() {
+        let r = with_paper(sample(), crate::rigatura::Paper::Quadretti5, false);
+        // sotto la scrittura, le linee dei quadretti (ogni 5 mm su 21 × 29,7 cm)
+        assert!(r.strokes.len() > 90, "{}", r.strokes.len());
+        assert_eq!(&r.strokes[r.strokes.len() - 2..].iter().map(|s| s.color).collect::<Vec<_>>(), &[[255, 0, 0], [0, 0, 0]]);
+        assert!(r.strokes.iter().all(|s| s.pts.iter().all(|&(x, y)| (-0.01..=1.01).contains(&x) && (-0.01..=1.01).contains(&y))));
+        assert_eq!(with_paper(sample(), crate::rigatura::Paper::Bianco, true).strokes.len(), 2);
+        assert!(crate::craftexport::pdf(&[&r]).unwrap().starts_with(b"%PDF"));
     }
 
     #[test]

@@ -213,12 +213,16 @@ final class AppModel: ObservableObject, LinkListener {
     @AppStorage("hl_width") var hlWidth = 16.0
     @AppStorage("paper") var paperCode = "bianco"
     @AppStorage("paper_margin") var paperMargin = true
+    /// Stampando la lavagna, anche la rigatura del foglio.
+    @AppStorage("print_paper") var printPaper = false
     @AppStorage("zigzag") var zigzag = false
     @AppStorage("natural_ink") var naturalInk = true
     /// La bella copia va subito sulle righe del foglio.
     @AppStorage("fair_on_rules") var fairOnRules = false
     /// Bella copia: quanto larghe le lettere (volte il carattere; 0 = come la tua scrittura).
     @AppStorage("fair_width") var fairWidth = 0.0
+    /// Bella copia: il testo dal margine sinistro (non da dove hai cominciato).
+    @AppStorage("fair_left") var fairLeft = false
     /// Bella copia o «Disponi sulle righe» in corso (nil = no).
     @Published var zoneJob: ZoneJob?
     /// Il numero del lavoro in corso: le risposte di uno annullato non contano.
@@ -438,7 +442,7 @@ final class AppModel: ObservableObject, LinkListener {
                 title = d.title
             } else {
                 let page = board.toPage(Float(padSize.width), Float(padSize.height))
-                url = try Export.pdf(page, quarter: quarter)
+                url = try Export.pdf(page, quarter: quarter, paper: printPaper ? (paperCode, paperMargin) : nil)
                 title = page.title.isEmpty ? "OpenSlate" : page.title
             }
         } catch {

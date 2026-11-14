@@ -317,6 +317,7 @@ fn prefs_page(ui: &mut egui::Ui, p: &mut Prefs, ai: &mut bool) {
                     }
                     ui.checkbox(&mut d.paper_margin, i18n::t("margini rossi a sinistra e a destra (fogli a righe)"));
                     hint(ui, "solo sullo schermo: non va nelle immagini per l'AI né negli export");
+                    ui.checkbox(&mut d.print_paper, i18n::t("stampando la lavagna, stampa anche le righe del foglio"));
                 });
             });
         }),

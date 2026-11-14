@@ -278,12 +278,16 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var hlWidth by mutableFloatStateOf(16f)
     private var paperCode by mutableStateOf("bianco")
     private var paperMargin by mutableStateOf(true)
+    /** Stampando la lavagna, anche la rigatura del foglio. */
+    private var printPaper by mutableStateOf(false)
     private var zigzag by mutableStateOf(false)
     private var naturalInk by mutableStateOf(true)
     /** La bella copia va subito sulle righe del foglio. */
     private var fairOnRules by mutableStateOf(false)
     /** Bella copia: quanto larghe le lettere (volte il carattere; 0 = come la tua scrittura). */
     private var fairWidth by mutableStateOf(0f)
+    /** Bella copia: il testo dal margine sinistro (non da dove hai cominciato). */
+    private var fairLeft by mutableStateOf(false)
     private var choosingPaper by mutableStateOf(false)
     /** Bella copia o «Disponi sulle righe» in corso (null = no). */
     private var zoneJob by mutableStateOf<ZoneJob?>(null)
@@ -317,10 +321,12 @@ class MainActivity : ComponentActivity(), LinkListener {
         hlWidth = prefs.getFloat("hl_width", hlWidth)
         paperCode = prefs.getString("paper", paperCode)!!
         paperMargin = prefs.getBoolean("paper_margin", paperMargin)
+        printPaper = prefs.getBoolean("print_paper", printPaper)
         zigzag = prefs.getBoolean("zigzag", zigzag)
         naturalInk = prefs.getBoolean("natural_ink", naturalInk)
         fairOnRules = prefs.getBoolean("fair_on_rules", fairOnRules)
         fairWidth = prefs.getFloat("fair_width", fairWidth)
+        fairLeft = prefs.getBoolean("fair_left", fairLeft)
         applyTools()
     }
 
@@ -339,10 +345,12 @@ class MainActivity : ComponentActivity(), LinkListener {
             .putString("pen_color", penColor).putFloat("pen_width", penWidth)
             .putString("hl_color", hlColor).putFloat("hl_width", hlWidth)
             .putString("paper", paperCode).putBoolean("paper_margin", paperMargin)
+            .putBoolean("print_paper", printPaper)
             .putBoolean("zigzag", zigzag)
             .putBoolean("natural_ink", naturalInk)
             .putBoolean("fair_on_rules", fairOnRules)
             .putFloat("fair_width", fairWidth)
+            .putBoolean("fair_left", fairLeft)
             .apply()
     }
 
@@ -715,7 +723,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                 Print.pdf(this, f, d.title)
             } else {
                 val page = board.toPage(padSize.width, padSize.height)
-                Print.pdf(this, Export.pdf(this, page, quarter), page.title.ifBlank { getString(R.string.app_name) })
+                Print.pdf(this, Export.pdf(this, page, quarter, if (printPaper) paperCode to paperMargin else null), page.title.ifBlank { getString(R.string.app_name) })
             }
         }.onFailure {
             Log.e("OpenSlate", "stampa", it)
@@ -1243,6 +1251,7 @@ class MainActivity : ComponentActivity(), LinkListener {
             NeatKind.FAIR -> {
                 val fj = FairJob(model, v, zone)
                 fj.setWidth(fairWidth.takeIf { it > 0f })
+                fj.setLeft(fairLeft)
                 val providers = aiStore.providers()
                 val onRules = fairOnRules && paperHasRows(paperCode)
                 val spec = sheetSpec(job.every)
@@ -1277,6 +1286,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                 val fj = job.fair ?: return
                 val onRules = fairOnRules && paperHasRows(paperCode)
                 fj.setWidth(fairWidth.takeIf { it > 0f })
+                fj.setLeft(fairLeft)
                 neatRun(job) { fj.preview(onRules, spec) }
             }
         }
@@ -1379,8 +1389,13 @@ class MainActivity : ComponentActivity(), LinkListener {
                 neatRefresh(job)
             },
             valueRange = fairWidthMin()..fairWidthMax(),
-            modifier = Modifier.width(160.dp),
+            modifier = Modifier.width(200.dp),
         )
+        FilterChip(selected = fairLeft, onClick = {
+            fairLeft = !fairLeft
+            applyTools()
+            neatRefresh(job)
+        }, label = { Text(stringResource(R.string.neat_left)) }, leadingIcon = { Icon(Icons.Filled.FormatAlignLeft, null) })
     }
 
     @Composable
@@ -1583,6 +1598,15 @@ class MainActivity : ComponentActivity(), LinkListener {
                         ) {
                             Checkbox(checked = paperMargin, onCheckedChange = null)
                             Text(stringResource(R.string.paper_margin), Modifier.padding(start = 8.dp))
+                        }
+                    }
+                    item {
+                        Row(
+                            Modifier.fillMaxWidth().clickable { printPaper = !printPaper; applyTools() },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(checked = printPaper, onCheckedChange = null)
+                            Text(stringResource(R.string.print_paper), Modifier.padding(start = 8.dp))
                         }
                     }
                 }

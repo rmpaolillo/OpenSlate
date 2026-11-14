@@ -1369,5 +1369,11 @@
  "Come la mia scrittura": "Wie meine Schrift",
  "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "Buchstaben etwa so breit wie deine (nie über den Rand hinaus)",
  "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "Buchstabenbreite: weiter rechts, breiter (passt die Zeile nicht auf die Seite, wird sie schmaler)",
- "Larghezza": "Breite"
+ "Larghezza": "Breite",
+ "Dal margine": "Ab dem Rand",
+ "Il testo comincia dal margine sinistro del foglio (o della zona), invece che da dove hai cominciato a scrivere": "Der Text beginnt am linken Rand des Blatts (oder des Bereichs) statt dort, wo du zu schreiben begonnen hast",
+ "Stampa anche le righe del foglio": "Auch die Linien des Blatts drucken",
+ "stampando la lavagna, stampa anche le righe del foglio": "beim Drucken der Tafel auch die Linien des Blatts drucken",
+ "Stampa: con le righe del foglio.": "Drucken: mit den Linien des Blatts.",
+ "Stampa: senza le righe del foglio (solo la scrittura).": "Drucken: ohne die Linien des Blatts (nur die Schrift)."
 }

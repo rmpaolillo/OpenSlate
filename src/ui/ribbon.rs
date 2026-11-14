@@ -148,6 +148,9 @@ impl App {
                 if menu_item(ui, cur.ruled(), check_icon(self.settings.paper_margin), "Margini rossi (fogli a righe)", "") {
                     actions.push(Action::ToggleMargin);
                 }
+                if menu_item(ui, cur != b, check_icon(self.settings.print_paper), "Stampa anche le righe del foglio", "") {
+                    actions.push(Action::TogglePrintPaper);
+                }
             });
             if big_ex(
                 ui,
@@ -349,6 +352,12 @@ impl App {
                 actions.push(Action::Fair(Fair::Width(Some(v))));
             }
             ui.label(egui::RichText::new(crate::i18n::tr("Larghezza").into_owned()).size(11.0));
+        });
+        let left = self.settings.fair_left;
+        column(ui, |ui| {
+            if small_ex(ui, ic::TEXT_ALIGN_LEFT, "Dal margine", "Il testo comincia dal margine sinistro del foglio (o della zona), invece che da dove hai cominciato a scrivere", true, left).clicked() {
+                actions.push(Action::Fair(Fair::Left(!left)));
+            }
         });
     }
 

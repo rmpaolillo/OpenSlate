@@ -1369,5 +1369,11 @@
  "Come la mia scrittura": "Як мій почерк",
  "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "Літери приблизно такої ж ширини, як твої (ніколи за край)",
  "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "Ширина літер: що правіше, то ширші (якщо рядок не вміщається на сторінці, він звужується)",
- "Larghezza": "Ширина"
+ "Larghezza": "Ширина",
+ "Dal margine": "Від поля",
+ "Il testo comincia dal margine sinistro del foglio (o della zona), invece che da dove hai cominciato a scrivere": "Текст починається від лівого поля аркуша (або області), а не там, де ти почав писати",
+ "Stampa anche le righe del foglio": "Друкувати також лінії аркуша",
+ "stampando la lavagna, stampa anche le righe del foglio": "друкуючи дошку, друкувати також лінії аркуша",
+ "Stampa: con le righe del foglio.": "Друк: з лініями аркуша.",
+ "Stampa: senza le righe del foglio (solo la scrittura).": "Друк: без ліній аркуша (лише написане)."
 }

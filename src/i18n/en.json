@@ -1369,5 +1369,11 @@
  "Come la mia scrittura": "Like my handwriting",
  "Le lettere larghe più o meno quanto le tue (mai oltre il bordo)": "Letters about as wide as yours (never past the edge)",
  "Larghezza delle lettere: più a destra, più larghe (se la riga non ci sta nella pagina, si stringe)": "Letter width: further right, wider (if the line doesn't fit on the page, it narrows)",
- "Larghezza": "Width"
+ "Larghezza": "Width",
+ "Dal margine": "From the margin",
+ "Il testo comincia dal margine sinistro del foglio (o della zona), invece che da dove hai cominciato a scrivere": "The text starts at the left margin of the page (or of the area) instead of where you started writing",
+ "Stampa anche le righe del foglio": "Also print the page lines",
+ "stampando la lavagna, stampa anche le righe del foglio": "when printing the board, also print the page lines",
+ "Stampa: con le righe del foglio.": "Printing: with the page lines.",
+ "Stampa: senza le righe del foglio (solo la scrittura).": "Printing: without the page lines (only the writing)."
 }
