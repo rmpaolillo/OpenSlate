@@ -271,4 +271,7 @@
     <string name="font_natural">A mano, naturale</string>
     <string name="font_round">A mano, rotonda</string>
     <string name="font_airy">A mano, ariosa</string>
+    <string name="reply_copied">Risposta copiata.</string>
+    <string name="note_preview">Anteprima</string>
+    <string name="note_edit">Modifica</string>
 </resources>

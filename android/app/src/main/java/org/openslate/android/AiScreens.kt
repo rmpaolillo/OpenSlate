@@ -242,7 +242,7 @@ fun ChatScreen(
             if (chat.msgs.isEmpty() && !noServices) {
                 item { Text(stringResource(R.string.chat_hint), Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
-            itemsIndexed(chat.msgs) { _, m -> Bubble(m, onBack) }
+            itemsIndexed(chat.msgs) { i, m -> Bubble(m, settled = !(chat.running && i == chat.msgs.size - 1), showBoard = onBack) }
         }
         if (chat.status.isNotEmpty()) {
             Text(chat.status, Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -369,7 +369,7 @@ private fun ChatInput(
 }
 
 @Composable
-private fun Bubble(m: UiMsg, showBoard: () -> Unit) {
+private fun Bubble(m: UiMsg, settled: Boolean, showBoard: () -> Unit) {
     val mine = m.role == "user"
     var showThinking by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
@@ -397,7 +397,12 @@ private fun Bubble(m: UiMsg, showBoard: () -> Unit) {
             for (step in m.steps) {
                 Text("✓ $step", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            SelectionContainer { Text(m.text.ifEmpty { "…" }) }
+            if (!mine && !m.error && looksRich(m.text)) {
+                // Markdown e formule, come nella chat della desktop
+                RichText(m.text, settled, MaterialTheme.colorScheme.onSurfaceVariant, MaterialTheme.colorScheme.primary)
+            } else {
+                SelectionContainer { Text(m.text.ifEmpty { "…" }) }
+            }
             if (m.boardChanged) {
                 TextButton(onClick = showBoard) { Text(stringResource(R.string.see_board)) }
             }
@@ -413,6 +418,8 @@ fun NoteScreen(title: String, initial: String, onSave: (String) -> Unit, onBack:
     BackHandler(onBack = onBack)
     val ctx = LocalContext.current
     var text by remember(initial) { mutableStateOf(initial) }
+    // si apre impaginata (formule comprese); «Modifica» per correggerla
+    var editing by remember(initial) { mutableStateOf(initial.isBlank()) }
     Column(Modifier.fillMaxSize().imePadding()) {
         ActionRow {
             TextButton(onClick = onBack) { Text("← " + stringResource(R.string.back)) }
@@ -430,12 +437,20 @@ fun NoteScreen(title: String, initial: String, onSave: (String) -> Unit, onBack:
                 ctx.startActivity(Intent.createChooser(send, title))
             }) { Text(stringResource(R.string.share)) }
         }
-        Text(title, Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.titleMedium)
-        OutlinedTextField(
-            text, { text = it },
-            Modifier.fillMaxSize().padding(12.dp),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-        )
+        Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+            FilterChip(selected = !editing, onClick = { editing = false }, label = { Text(stringResource(R.string.note_preview)) })
+            FilterChip(selected = editing, onClick = { editing = true }, label = { Text(stringResource(R.string.note_edit)) })
+        }
+        if (editing) {
+            OutlinedTextField(
+                text, { text = it },
+                Modifier.fillMaxSize().padding(12.dp),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+            )
+        } else {
+            MarkdownPage(text, MaterialTheme.colorScheme.onSurface, MaterialTheme.colorScheme.primary)
+        }
     }
 }
 

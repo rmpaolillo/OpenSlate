@@ -1,0 +1,97 @@
+<!doctype html>
+<!--
+  Una risposta della chat AI nelle app per telefono: Markdown e formule, come
+  nella chat della desktop (src/web/chat.html, stesse librerie di vendor/).
+  L'app chiama show(testo, finito, colori) e riceve l'altezza del contenuto
+  (Android: OpenSlate.height; iOS: messageHandlers.height). Quello che arriva
+  dal modello passa da DOMPurify: niente script; i link li apre l'app.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="vendor/katex.min.css">
+<script src="vendor/katex.min.js"></script>
+<script src="vendor/marked.min.js"></script>
+<script src="vendor/purify.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body { font: 16px/1.45 -apple-system, system-ui, Roboto, sans-serif; color: var(--fg, #1c1b1f); overflow-wrap: anywhere; -webkit-text-size-adjust: 100%; }
+  #m > :first-child { margin-top: 0; }
+  #m > :last-child { margin-bottom: 0; }
+  p { margin: 0 0 .6em; }
+  h1, h2, h3, h4 { margin: .8em 0 .4em; line-height: 1.25; }
+  h1 { font-size: 1.3em; } h2 { font-size: 1.18em; } h3, h4 { font-size: 1.05em; }
+  ul, ol { margin: 0 0 .6em; padding-left: 1.4em; }
+  li { margin: .15em 0; }
+  a { color: var(--link, #4f46e5); }
+  code { font: .9em ui-monospace, Menlo, monospace; background: rgba(127,127,127,.15); padding: .05em .3em; border-radius: 4px; }
+  pre { background: rgba(127,127,127,.12); padding: .6em .7em; border-radius: 8px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  blockquote { margin: 0 0 .6em; padding-left: .8em; border-left: 3px solid rgba(127,127,127,.4); opacity: .9; }
+  table { border-collapse: collapse; margin: 0 0 .6em; display: block; overflow-x: auto; }
+  th, td { border: 1px solid rgba(127,127,127,.35); padding: .25em .5em; }
+  hr { border: 0; border-top: 1px solid rgba(127,127,127,.35); }
+  img { max-width: 100%; }
+  .katex { font-size: 1.08em; }
+  .katex-display { margin: .5em 0; overflow-x: auto; overflow-y: hidden; padding: .1em 0; }
+</style>
+</head>
+<body>
+<div id="m"></div>
+<script>
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function tex(src, display) {
+  if (!window.katex) return esc(display ? "$$" + src + "$$" : "$" + src + "$");
+  try { return katex.renderToString(src, { displayMode: display, throwOnError: false, strict: "ignore" }); } catch (e) { return esc(src); }
+}
+function clean(html) {
+  if (!window.DOMPurify) return "<div style='white-space:pre-wrap'>" + esc(html.replace(/<[^>]*>/g, "")) + "</div>";
+  return DOMPurify.sanitize(html, { USE_PROFILES: { html: true, svg: true, mathMl: true }, ADD_TAGS: ["semantics", "annotation"], ADD_ATTR: ["encoding"] });
+}
+// come renderMd di src/web/chat.html: prima i pezzi di codice e le formule,
+// poi il Markdown; `settled` = falso mentre la risposta arriva
+function renderMd(src, settled) {
+  src = src || "";
+  if (!window.marked) return "<div style='white-space:pre-wrap'>" + esc(src) + "</div>";
+  const code = [], math = [];
+  const keep = (html) => "%%M" + (math.push(html) - 1) + "%%";
+  src = src.replace(/```[\s\S]*?(```|$)|`[^`\n]+`/g, (m) => "%%C" + (code.push(m) - 1) + "%%");
+  src = src.replace(/\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]/g, (m, a, b) => keep(tex(a ?? b, true)));
+  src = src.replace(/\\\(([\s\S]+?)\\\)/g, (m, a) => keep(tex(a, false)));
+  src = src.replace(/(^|[^\\$])\$([^\s$](?:[^$\n]*?[^\s\\$])?)\$(?!\d)/g, (m, pre, a) => pre + keep(tex(a, false)));
+  if (!settled) src = src.replace(/\$\$[^$]*$/, (m) => "`" + m.replace(/`/g, "") + "`");
+  src = src.replace(/%%C(\d+)%%/g, (m, i) => code[+i]);
+  return clean(marked.parse(src, { breaks: true }).replace(/%%M(\d+)%%/g, (m, i) => math[+i]));
+}
+const box = document.getElementById("m");
+let last = -1;
+function report() {
+  const h = Math.ceil(box.getBoundingClientRect().height);
+  if (h === last) return;
+  last = h;
+  if (window.OpenSlate && OpenSlate.height) OpenSlate.height(h);
+  else if (window.webkit && webkit.messageHandlers && webkit.messageHandlers.height) webkit.messageHandlers.height.postMessage(h);
+}
+// colors: { fg, link, page }
+function show(text, settled, colors) {
+  if (colors) {
+    if (colors.fg) document.body.style.setProperty("--fg", colors.fg);
+    if (colors.link) document.body.style.setProperty("--link", colors.link);
+    // una pagina intera (l'anteprima di una nota): un po' di margine
+    if (colors.page) document.body.style.padding = "14px 16px 40px";
+  }
+  box.innerHTML = renderMd(text, settled);
+  report();
+}
+// il link sotto un tocco (l'app riceve i tocchi lei, per lasciar scorrere la chat)
+function linkAt(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const a = el && el.closest ? el.closest("a[href]") : null;
+  return a ? a.href : "";
+}
+if (window.ResizeObserver) new ResizeObserver(report).observe(box);
+window.addEventListener("load", report);
+</script>
+</body>
+</html>

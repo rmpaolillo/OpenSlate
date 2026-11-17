@@ -43,6 +43,19 @@ android {
     // Generati da build-rust.sh (task buildRust, prima di preBuild).
     sourceSets["main"].kotlin.directories.add("build/generated/rust/kotlin")
     sourceSets["main"].jniLibs.directories.add("build/generated/rust/jniLibs")
+    // La pagina delle risposte della chat (Markdown e formule): task chatWeb.
+    sourceSets["main"].assets.directories.add("build/generated/chatweb")
+}
+
+// mobile/web/msg.html con le librerie della chat della desktop (src/web/vendor:
+// KaTeX, marked, DOMPurify), in assets/chat/.
+val chatWeb = tasks.register<Sync>("chatWeb") {
+    into(layout.buildDirectory.dir("generated/chatweb/chat"))
+    from(rootProject.file("../mobile/web/msg.html"))
+    from(rootProject.file("../src/web/vendor")) {
+        into("vendor")
+        include("*.js", "*.css", "fonts/**", "LICENSE-*")
+    }
 }
 
 // Il cuore Rust: mobile/core (condiviso con iOS) più i file condivisi con la desktop (src/).
@@ -60,7 +73,7 @@ val buildRust = tasks.register<Exec>("buildRust") {
     inputs.dir(rootProject.file("../src"))
     outputs.dir(rustOut)
 }
-tasks.named("preBuild") { dependsOn(buildRust) }
+tasks.named("preBuild") { dependsOn(buildRust, chatWeb) }
 
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))

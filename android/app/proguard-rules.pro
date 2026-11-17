@@ -5,3 +5,7 @@
 -dontwarn java.awt.**
 -dontwarn com.sun.jna.**
 -keep class com.journeyapps.barcodescanner.** { *; }
+# La pagina delle risposte della chat (ChatWeb.kt) chiama i metodi @JavascriptInterface per nome.
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}

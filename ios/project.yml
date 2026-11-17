@@ -29,6 +29,13 @@ targets:
       - path: OpenSlate
       - path: Generated/swift/openslate_mobile.swift
         optional: true
+      # la pagina delle risposte della chat (Markdown e formule) e le librerie
+      # della chat della desktop (KaTeX, marked, DOMPurify)
+      - path: ../mobile/web/msg.html
+        buildPhase: resources
+      - path: ../src/web/vendor
+        type: folder
+        buildPhase: resources
     dependencies:
       - target: RustCore
       - framework: Generated/OpenSlateCore.xcframework

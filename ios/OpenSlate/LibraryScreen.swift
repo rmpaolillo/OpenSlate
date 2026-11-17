@@ -158,10 +158,24 @@ struct NoteScreen: View {
     @Environment(\.dismiss) private var dismiss
     let item: NoteItem
     @State private var text = ""
+    /// Si apre impaginata (formule comprese); «Modifica» per correggerla.
+    @State private var editing = false
 
     var body: some View {
         NavigationStack {
-            TextEditor(text: $text).font(.system(.body, design: .monospaced)).padding(8)
+            VStack(spacing: 0) {
+                Picker("", selection: $editing) {
+                    Text(L("Anteprima", "Preview")).tag(false)
+                    Text(L("Modifica", "Edit")).tag(true)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal).padding(.top, 6)
+                if editing {
+                    TextEditor(text: $text).font(.system(.body, design: .monospaced)).padding(8)
+                } else {
+                    MarkdownPage(text: text)
+                }
+            }
                 .navigationTitle(item.title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -177,7 +191,10 @@ struct NoteScreen: View {
                     }
                 }
         }
-        .onAppear { text = item.text }
+        .onAppear {
+            text = item.text
+            editing = item.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
     }
 }
 

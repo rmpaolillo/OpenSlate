@@ -228,7 +228,7 @@ struct ChatScreen: View {
                                        "Ask anything. With “Attach the page” the AI also sees the board and can write on it: check an exercise, underline, summarise…"))
                                     .foregroundStyle(.secondary).padding(.vertical)
                             }
-                            ForEach(chat.msgs) { m in Bubble(msg: m).id(m.id) }
+                            ForEach(chat.msgs) { m in Bubble(msg: m, settled: !(chat.running && m.id == chat.msgs.last?.id)).id(m.id) }
                         }
                         .padding(.horizontal)
                     }
@@ -321,6 +321,8 @@ struct ChatScreen: View {
 struct Bubble: View {
     @EnvironmentObject var app: AppModel
     @ObservedObject var msg: UiMsg
+    /// Falso mentre la risposta arriva (le formule a metà restano testo).
+    var settled = true
     @State private var showThinking = false
 
     var body: some View {
@@ -332,7 +334,12 @@ struct Bubble: View {
                     if showThinking { Text(msg.thinking).font(.caption).foregroundStyle(.secondary) }
                 }
                 ForEach(msg.steps, id: \.self) { s in Text("✓ " + s).font(.caption).foregroundStyle(.secondary) }
-                Text(msg.text.isEmpty ? "…" : msg.text).textSelection(.enabled)
+                if !mine && !msg.error && looksRich(msg.text) {
+                    // Markdown e formule, come nella chat della desktop
+                    RichText(text: msg.text, settled: settled)
+                } else {
+                    Text(msg.text.isEmpty ? "…" : msg.text).textSelection(.enabled)
+                }
                 if msg.withPage { Text("📄 " + L("foglio allegato", "page attached")).font(.caption2) }
                 if msg.boardChanged { Button(L("Vedi il foglio", "See the page")) { app.tab = .board }.font(.callout) }
             }
