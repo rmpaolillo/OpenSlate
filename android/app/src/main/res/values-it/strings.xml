@@ -163,6 +163,10 @@
     <string name="screen_pen_hint">Una penna attiva (S Pen, Wacom e simili) scrive sul foglio come lo Slate, con la stessa penna, colore e spessore. Le dita continuano a spostare e ingrandire il foglio.</string>
     <string name="touch_pen">Anche col dito o con una penna normale</string>
     <string name="touch_pen_hint">Per le penne con la punta di gomma, che il telefono vede come un dito. Un dito scrive; due dita spostano e ingrandiscono il foglio.</string>
+    <string name="live_on">Mostra in diretta sul computer</string>
+    <string name="live_hint">Quello che scrivi sulla lavagna compare sul computer, nella finestra «Dal telefono», mentre lo scrivi. Solo con l\'app aperta.</string>
+    <string name="live_connected">In diretta su %1$s</string>
+    <string name="live_waiting">Cerco il computer… (OpenSlate deve essere aperto lì, sulla stessa rete Wi‑Fi)</string>
     <string name="dictate">Detta</string>
     <string name="dictation_listening">Ti ascolto… parla pure</string>
     <string name="dictation_no_permission">Per dettare, consenti a OpenSlate di usare il microfono.</string>

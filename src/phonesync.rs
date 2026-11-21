@@ -7,7 +7,7 @@
 //! usa il telefono non apre niente sulla rete.
 
 use crate::actor::UiEvent;
-use crate::sync::{self, crypto, pair, server, store::FsStore};
+use crate::sync::{self, crypto, live, pair, server, store::FsStore};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::path::PathBuf;
@@ -48,6 +48,8 @@ struct Shared {
 
 pub struct PhoneSync {
     shared: Arc<Mutex<Shared>>,
+    /// La pagina del telefono in diretta (`sync::live`), per la finestra «Dal telefono».
+    pub mirror: Arc<Mutex<live::Mirror>>,
     evt: UnboundedSender<UiEvent>,
     running: bool,
     _mdns: Option<mdns_sd::ServiceDaemon>,
@@ -95,13 +97,34 @@ impl PhoneSync {
     pub fn new(evt: UnboundedSender<UiEvent>) -> PhoneSync {
         let file = load();
         let root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        let server = server::Server::new(&file.desk_id, &computer_name());
+        let mut server = server::Server::new(&file.desk_id, &computer_name());
+        let mirror = Arc::new(Mutex::new(live::Mirror::default()));
+        {
+            let (mirror, evt) = (mirror.clone(), evt.clone());
+            server.live = Some(Box::new(move |peer, what, body| {
+                let Ok(mut m) = mirror.lock() else { return 500 };
+                let ok = if what == "live" {
+                    match serde_json::from_slice::<live::Msg>(body) {
+                        Ok(msg) => m.apply(peer, msg, sync::now()),
+                        Err(_) => return 400,
+                    }
+                } else {
+                    m.set_bg(peer, body)
+                };
+                if !ok {
+                    return 409;
+                }
+                let _ = evt.send(UiEvent::PhoneLive);
+                200
+            }));
+        }
         let any = !file.phones.is_empty();
         let mut store = FsStore::desktop(&root);
         // le impostazioni AI, con le chiavi (solo in memoria e cifrate in rete)
         store.set_ai(Box::new(crate::aiconfig::PhoneAi::default()));
         let mut me = PhoneSync {
             shared: Arc::new(Mutex::new(Shared { file, server, store, changed: Default::default() })),
+            mirror,
             evt,
             running: false,
             _mdns: None,

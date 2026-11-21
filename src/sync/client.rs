@@ -25,7 +25,8 @@ pub struct Report {
     pub changed: BTreeSet<&'static str>,
 }
 
-struct Conn {
+/// Un collegamento con la desktop (ogni richiesta cifrata col segreto).
+pub struct Conn {
     base: String,
     peer: String,
     key: Secret,
@@ -33,17 +34,19 @@ struct Conn {
 }
 
 impl Conn {
-    fn new(host: &str, port: u16, peer: &str, key: Secret, connect: Duration) -> Conn {
+    fn new(host: &str, port: u16, peer: &str, key: Secret, connect: Duration, read: Duration) -> Conn {
         let host = if host.contains(':') && !host.starts_with('[') { format!("[{host}]") } else { host.to_string() };
         Conn {
             base: format!("http://{host}:{port}"),
             peer: peer.into(),
             key,
-            agent: ureq::AgentBuilder::new().timeout_connect(connect).timeout_read(Duration::from_secs(120)).timeout_write(Duration::from_secs(120)).build(),
+            agent: ureq::AgentBuilder::new().timeout_connect(connect).timeout_read(read).timeout_write(read).build(),
         }
     }
 
-    fn call(&self, method: &str, path: &str, mtime: i64, body: &[u8]) -> Result<Vec<u8>, String> {
+    /// Una richiesta; l'errore comincia col codice HTTP quando la desktop
+    /// ha risposto (`409: …`).
+    pub fn call(&self, method: &str, path: &str, mtime: i64, body: &[u8]) -> Result<Vec<u8>, String> {
         let time = super::now();
         let aad = crypto::req_aad(method, path, time, &self.peer, mtime);
         let env = crypto::seal(&self.key, &aad, body);
@@ -83,31 +86,35 @@ fn read_all(r: impl Read) -> Result<Vec<u8>, String> {
     Ok(v)
 }
 
-/// Sincronizza con la desktop di `pairing`. `found` sono indirizzi trovati
-/// adesso sulla rete (Bonjour), provati prima di quelli del QR; `device` il
-/// nome del telefono (lo si vede sulla desktop).
-pub fn run(pairing: &Pairing, found: &[String], device: &str, store: &mut dyn Store, state: &std::path::Path) -> Result<Report, String> {
+/// Trova la desktop di `pairing`: prima gli indirizzi `found` (Bonjour),
+/// poi quelli del QR. Ritorna l'indirizzo che ha risposto e il collegamento.
+pub fn connect(pairing: &Pairing, found: &[String], device: &str, connect: Duration, read: Duration) -> Result<(String, Conn), String> {
     let key = pairing.key()?;
     let mut hosts: Vec<&String> = found.iter().chain(pairing.hosts.iter()).collect();
     hosts.dedup();
     // il primo indirizzo che risponde, ed è proprio quella desktop
-    let mut conn = None;
     let mut last_err = String::from("computer non raggiungibile");
     for h in hosts {
-        let c = Conn::new(h, pairing.port, &pairing.peer_id, key, Duration::from_secs(3));
+        let c = Conn::new(h, pairing.port, &pairing.peer_id, key, connect, read);
         match c.call("GET", "/sync/v1/hello", 0, device.as_bytes()) {
             Ok(b) => {
                 let v: serde_json::Value = serde_json::from_slice(&b).unwrap_or_default();
                 if v["id"].as_str() == Some(pairing.desk_id.as_str()) {
-                    conn = Some((h.clone(), c));
-                    break;
+                    return Ok((h.clone(), c));
                 }
                 last_err = "a quell'indirizzo c'è un altro computer".into();
             }
             Err(e) => last_err = e,
         }
     }
-    let Some((host, c)) = conn else { return Err(last_err) };
+    Err(last_err)
+}
+
+/// Sincronizza con la desktop di `pairing`. `found` sono indirizzi trovati
+/// adesso sulla rete (Bonjour), provati prima di quelli del QR; `device` il
+/// nome del telefono (lo si vede sulla desktop).
+pub fn run(pairing: &Pairing, found: &[String], device: &str, store: &mut dyn Store, state: &std::path::Path) -> Result<Report, String> {
+    let (host, c) = connect(pairing, found, device, Duration::from_secs(3), Duration::from_secs(120))?;
     let mut rep = Report { host, ..Default::default() };
 
     let base_file = state.join("base.json");

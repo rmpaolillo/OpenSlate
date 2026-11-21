@@ -1384,5 +1384,11 @@
  "A mano, inclinata": "손글씨, 기울임",
  "A mano, naturale": "손글씨, 자연스러움",
  "A mano, rotonda": "손글씨, 둥근",
- "A mano, ariosa": "손글씨, 넉넉함"
+ "A mano, ariosa": "손글씨, 넉넉함",
+ "Telefono": "휴대폰",
+ "Dal telefono": "휴대폰에서",
+ "in diretta": "실시간",
+ "non è più in diretta": "더 이상 실시간 아님",
+ "Mostra la pagina del telefono": "휴대폰 페이지 보기",
+ "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "휴대폰 앱에서 «컴퓨터에 실시간으로 보기»를 켜면 휴대폰에 쓰는 내용이 쓰는 동안 이곳 창에 나타납니다."
 }

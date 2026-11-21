@@ -18,9 +18,11 @@
 //! - Cosa copiare lo decide `plan`, confrontando le due parti con com'erano
 //!   all'ultima sincronizzazione: niente si perde, quello che si toglie o si
 //!   sovrascrive va nel cestino.
+//! - `live`: la pagina del telefono in diretta su una finestra della desktop.
 
 pub mod client;
 pub mod crypto;
+pub mod live;
 pub mod pair;
 pub mod plan;
 pub mod server;

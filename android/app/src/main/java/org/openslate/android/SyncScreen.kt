@@ -3,13 +3,16 @@ package org.openslate.android
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -17,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -64,6 +68,22 @@ fun SyncScreen(sync: PhoneSync, onBack: () -> Unit) {
                     Text(stringResource(R.string.sync_error, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
                 Button(onClick = { sync.syncSoon(0) }, enabled = !sync.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.sync_now)) }
+                // la lavagna in diretta sul computer, mentre la si scrive
+                Row(Modifier.fillMaxWidth().clickable { sync.setLive(!sync.liveOn) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.live_on))
+                        Text(
+                            when {
+                                !sync.liveOn -> stringResource(R.string.live_hint)
+                                sync.liveConnected -> stringResource(R.string.live_connected, desk)
+                                else -> stringResource(R.string.live_waiting)
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = sync.liveOn, onCheckedChange = { sync.setLive(it) })
+                }
                 OutlinedButton(onClick = { sync.unpair() }, Modifier.fillMaxWidth()) { Text(stringResource(R.string.sync_unpair)) }
             }
             if (msg.isNotEmpty()) Text(msg, color = MaterialTheme.colorScheme.error)

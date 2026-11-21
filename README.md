@@ -57,7 +57,7 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   in plain text.
 - **Talk to the chat.** Dictate with the microphone: Whisper transcribes on your computer, offline.
 - **The tutor talks back.** Answers can be read aloud with the system voices.
-- **Android and iPhone/iPad apps** (first version, built from source) on the same Rust core: live board, pad downloads, AI chat, signing and stamps. Optionally an active pen (S Pen, Apple Pencil) writes straight on the screen, like the Slate.
+- **Android and iPhone/iPad apps** (first version, built from source) on the same Rust core: live board, pad downloads, AI chat, signing and stamps. Optionally an active pen (S Pen, Apple Pencil) writes straight on the screen, like the Slate. The page can also be shown live on the computer while you write («From the phone» window).
 - **Free and open source**, in nine languages, for macOS (main platform), Linux and Windows.
 
 ## Features

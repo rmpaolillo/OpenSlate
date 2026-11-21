@@ -252,6 +252,11 @@ pub struct BoardModel {
 }
 
 impl BoardModel {
+    /// I tratti di adesso, senza copiarli (per la diretta sul computer).
+    pub(crate) fn with_strokes<R>(&self, f: impl FnOnce(&[Stroke]) -> R) -> R {
+        f(&self.inner.lock().unwrap().strokes)
+    }
+
     /// Per il tutor: i tratti, lo spessore della penna, il colore dell'evidenziatore.
     pub(crate) fn snapshot(&self) -> (Vec<Stroke>, f32, Rgb) {
         let s = self.inner.lock().unwrap();

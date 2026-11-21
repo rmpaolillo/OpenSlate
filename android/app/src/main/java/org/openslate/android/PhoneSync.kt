@@ -12,6 +12,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import org.json.JSONArray
 import org.json.JSONObject
+import uniffi.openslate_mobile.BoardModel
+import uniffi.openslate_mobile.LiveMirror
 import uniffi.openslate_mobile.SyncAi
 import uniffi.openslate_mobile.SyncPairing
 import uniffi.openslate_mobile.syncParseQr
@@ -60,6 +62,53 @@ class PhoneSync(
 
     val paired get() = deskName != null
 
+    /** «Mostra in diretta sul computer»: la lavagna compare sul computer mentre la si scrive. */
+    var liveOn by mutableStateOf(prefs.getBoolean("live_on", false))
+        private set
+    /** Il computer riceve la diretta. */
+    var liveConnected by mutableStateOf(false)
+        private set
+    /** La diretta in corso (solo con l'app in primo piano). */
+    var live: LiveMirror? = null
+        private set
+    private var liveBoard: BoardModel? = null
+
+    fun setLive(on: Boolean) {
+        liveOn = on
+        prefs.edit().putBoolean("live_on", on).apply()
+        if (on) liveBoard?.let(::startLive) else stopLive()
+    }
+
+    /** Fa partire la diretta (se è accesa e il telefono è abbinato). */
+    fun startLive(board: BoardModel) {
+        liveBoard = board
+        if (!liveOn || live != null) return
+        val p = pairing() ?: return
+        live = LiveMirror(board, p, listOfNotNull(prefs.getString("last_host", null)), deviceName())
+        onLiveStart?.invoke()
+        main.removeCallbacks(livePoll)
+        main.post(livePoll)
+    }
+
+    fun stopLive() {
+        live?.stop()
+        live?.destroy()
+        live = null
+        liveConnected = false
+        main.removeCallbacks(livePoll)
+    }
+
+    /** Appena parte una diretta: l'app le dice com'è il foglio. */
+    var onLiveStart: (() -> Unit)? = null
+
+    private val livePoll: Runnable = object : Runnable {
+        override fun run() {
+            val l = live ?: return
+            liveConnected = l.connected()
+            main.postDelayed(this, 1000)
+        }
+    }
+
     fun lastLabel(): String? = lastOk.takeIf { it > 0 }?.let {
         DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(it))
     }
@@ -91,6 +140,8 @@ class PhoneSync(
     }
 
     fun unpair() {
+        stopLive()
+        liveOn = false
         prefs.edit().clear().apply()
         deskName = null
         lastOk = 0L
@@ -150,7 +201,10 @@ class PhoneSync(
                 r.onSuccess { rep ->
                     lastOk = System.currentTimeMillis()
                     lastError = null
+                    val moved = prefs.getString("last_host", null) != rep.host
                     prefs.edit().putString("last_host", rep.host).putLong("last_ok", lastOk).apply()
+                    // il computer ha cambiato indirizzo: la diretta riparte verso quello nuovo
+                    if (moved && live != null) liveBoard?.let { stopLive(); startLive(it) }
                     rep.ai?.let { runCatching { aiImport(it) } }
                     if (rep.changed.isNotEmpty()) onChanged(rep.changed)
                 }.onFailure { lastError = it.message }

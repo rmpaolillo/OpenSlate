@@ -27,12 +27,54 @@ final class PhoneSync: ObservableObject {
 
     var paired: Bool { deskName != nil }
 
+    /// «Mostra in diretta sul computer»: la lavagna compare sul computer mentre la si scrive.
+    @Published private(set) var liveOn = false
+    /// Il computer riceve la diretta.
+    @Published private(set) var liveConnected = false
+    /// La diretta in corso (solo con l'app attiva).
+    private(set) var live: LiveMirror?
+    private var liveBoard: BoardModel?
+    private var liveTimer: Timer?
+    /// Ogni tanto, durante la diretta: l'app le dice com'è il foglio (`fresh`: diretta appena partita).
+    var onLiveTick: (_ fresh: Bool) -> Void = { _ in }
+
+    func setLive(_ on: Bool) {
+        liveOn = on
+        defaults.set(on, forKey: "live_on")
+        if on { if let b = liveBoard { startLive(b) } } else { stopLive() }
+    }
+
+    /// Fa partire la diretta (se è accesa e il telefono è abbinato).
+    func startLive(_ board: BoardModel) {
+        liveBoard = board
+        guard liveOn, live == nil, let p = pairing() else { return }
+        let found = defaults.string(forKey: "last_host").map { [$0] } ?? []
+        live = LiveMirror(board: board, pairing: p, found: found, device: UIDevice.current.name)
+        onLiveTick(true)
+        liveTimer?.invalidate()
+        liveTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
+            guard let self, let l = self.live else { return }
+            let c = l.connected()
+            if c != self.liveConnected { self.liveConnected = c }
+            self.onLiveTick(false)
+        }
+    }
+
+    func stopLive() {
+        live?.stop()
+        live = nil
+        liveConnected = false
+        liveTimer?.invalidate()
+        liveTimer = nil
+    }
+
     init(dataDir: String, libDir: String) {
         self.dataDir = dataDir
         self.libDir = libDir
         deskName = defaults.string(forKey: "desk_name")
         let t = defaults.double(forKey: "last_ok")
         lastOk = t > 0 ? Date(timeIntervalSince1970: t) : nil
+        liveOn = defaults.bool(forKey: "live_on")
     }
 
     var lastLabel: String? {
@@ -64,7 +106,9 @@ final class PhoneSync: ObservableObject {
     }
 
     func unpair() {
-        for k in ["pairing", "desk_name", "last_host", "last_ok"] { defaults.removeObject(forKey: k) }
+        stopLive()
+        liveOn = false
+        for k in ["pairing", "desk_name", "last_host", "last_ok", "live_on"] { defaults.removeObject(forKey: k) }
         Keychain.delete(Self.keychainId)
         deskName = nil
         lastOk = nil
@@ -114,7 +158,10 @@ final class PhoneSync: ObservableObject {
                 case .success(let rep):
                     self.lastOk = Date()
                     self.lastError = nil
+                    let moved = self.defaults.string(forKey: "last_host") != rep.host
                     self.defaults.set(rep.host, forKey: "last_host")
+                    // il computer ha cambiato indirizzo: la diretta riparte verso quello nuovo
+                    if moved, self.live != nil, let b = self.liveBoard { self.stopLive(); self.startLive(b) }
                     self.defaults.set(self.lastOk!.timeIntervalSince1970, forKey: "last_ok")
                     if let a = rep.ai { self.aiImport(a) }
                     if !rep.changed.isEmpty { self.onChanged(rep.changed) }
@@ -187,6 +234,16 @@ struct SyncScreen: View {
                     }
                     Button { sync.syncSoon(0) } label: { Label(L("Sincronizza adesso", "Sync now"), systemImage: "arrow.triangle.2.circlepath") }
                         .disabled(sync.busy)
+                    Toggle(isOn: Binding(get: { sync.liveOn }, set: { sync.setLive($0) })) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(L("Mostra in diretta sul computer", "Show live on the computer"))
+                            Text(!sync.liveOn ? L("Quello che scrivi sulla lavagna compare sul computer, nella finestra «Dal telefono», mentre lo scrivi. Solo con l'app aperta.",
+                                                  "What you write on the board appears on the computer, in the «From the phone» window, as you write it. Only while the app is open.")
+                                 : sync.liveConnected ? L("In diretta su ", "Live on ") + desk
+                                 : L("Cerco il computer… (OpenSlate deve essere aperto lì, sulla stessa rete Wi‑Fi)", "Looking for the computer… (OpenSlate must be open there, on the same Wi‑Fi)"))
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
                     Button(role: .destructive) { sync.unpair() } label: { Label(L("Scollega", "Disconnect"), systemImage: "xmark.circle") }
                 }
             } else {

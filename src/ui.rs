@@ -940,6 +940,7 @@ impl App {
                 UiEvent::DocChanged(dir) => self.doc_changed_by_ai(dir),
                 UiEvent::ChatLib(req, reply) => self.chat_lib.push((req, reply)),
                 UiEvent::PhoneSynced { name, changed } => self.phone_synced(name, changed),
+                UiEvent::PhoneLive => self.phone.live_changed(),
                 UiEvent::UpdateDone(r) => {
                     self.update_phase = None;
                     match r {
@@ -2442,6 +2443,7 @@ impl eframe::App for App {
         self.voice_tick(ctx);
         self.inbella_tick(ctx);
         self.train_window(ctx);
+        self.phone.mirror_window(ctx);
         self.chat_lib_requests(ctx);
         self.doc_tick(ctx);
         self.sync_chat_note();

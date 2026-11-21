@@ -1,5 +1,6 @@
 //! Opzioni › Telefono: collegare un telefono col QR (a richiesta, per un
-//! minuto) e vedere o scollegare i telefoni abbinati.
+//! minuto) e vedere o scollegare i telefoni abbinati. E la finestra «Dal
+//! telefono»: la pagina del telefono in diretta (`sync::live`), da guardare.
 
 use crate::i18n;
 use crate::phonesync::PhoneSync;
@@ -10,16 +11,115 @@ use std::time::{Duration, Instant};
 /// Quanto resta visibile il QR.
 const QR_TIME: Duration = Duration::from_secs(60);
 
+/// Dopo quanto senza notizie la diretta si dice ferma (il telefono dà un
+/// segno di vita ogni pochi secondi).
+const LIVE_QUIET: i64 = 12;
+
 pub(super) struct PhoneUi {
     pub sync: PhoneSync,
     /// Il QR mostrato: moduli, lato, quando chiuderlo, quanti telefoni c'erano.
     qr: Option<(Vec<bool>, usize, Instant, usize)>,
     msg: String,
+    /// La finestra «Dal telefono» è aperta.
+    mirror_open: bool,
+    /// La diretta (generazione) per cui l'utente l'ha chiusa: non si riapre
+    /// da sola finché il telefono non ricomincia.
+    mirror_closed: u64,
+    /// La pagina del documento sotto i tratti, per `bg_rev`.
+    mirror_tex: Option<(u64, egui::TextureHandle)>,
+    mirror_zoom: super::zoom::ZoomView,
 }
 
 impl PhoneUi {
     pub fn new(sync: PhoneSync) -> Self {
-        PhoneUi { sync, qr: None, msg: String::new() }
+        PhoneUi {
+            sync,
+            qr: None,
+            msg: String::new(),
+            mirror_open: false,
+            mirror_closed: 0,
+            mirror_tex: None,
+            mirror_zoom: Default::default(),
+        }
+    }
+
+    /// Il telefono ha mandato qualcosa: la finestra si apre da sola (se non
+    /// la si è chiusa per questa diretta).
+    pub fn live_changed(&mut self) {
+        let m = self.sync.mirror.lock().unwrap_or_else(|e| e.into_inner());
+        if !self.mirror_open && !m.ended && m.gen != self.mirror_closed {
+            self.mirror_open = true;
+            self.mirror_zoom.fit();
+        }
+    }
+
+    /// La finestra «Dal telefono» (una finestra vera, da spostare anche su
+    /// un altro schermo).
+    pub fn mirror_window(&mut self, ctx: &egui::Context) {
+        if !self.mirror_open {
+            return;
+        }
+        let mirror = self.sync.mirror.clone();
+        let m = mirror.lock().unwrap_or_else(|e| e.into_inner());
+        let name = self.sync.phones().into_iter().find(|p| p.id == m.peer).map(|p| p.name).filter(|n| !n.is_empty());
+        let who = name.unwrap_or_else(|| i18n::t("Telefono").to_string());
+        let quiet = m.ended || crate::sync::now() - m.last > LIVE_QUIET;
+        // la texture dello sfondo, rifatta quando cambia
+        if self.mirror_tex.as_ref().map(|t| t.0) != Some(m.bg_rev) {
+            self.mirror_tex = m.bg.as_ref().and_then(|(img, _)| {
+                let pm = tiny_skia::Pixmap::decode_png(img).ok()?;
+                let ci = egui::ColorImage::from_rgba_premultiplied([pm.width() as usize, pm.height() as usize], pm.data());
+                Some((m.bg_rev, ctx.load_texture("phone-live-bg", ci, egui::TextureOptions::LINEAR)))
+            });
+        }
+        let tex = self.mirror_tex.as_ref().filter(|t| t.0 == m.bg_rev).map(|t| t.1.id());
+        let bg = tex.zip(m.bg.as_ref().map(|b| b.1));
+        let meta = m.meta.clone();
+        let drawing = crate::stroke::Drawing { strokes: m.strokes.clone(), width: meta.pad_w.max(1.0), height: meta.pad_h.max(1.0) };
+        let gen = m.gen;
+        drop(m);
+        let view = crate::scene::View { rot: ((4 - meta.quarter % 4) % 4) as i32, flip_x: false, flip_y: false };
+        let paper = (!meta.paper.is_empty()).then(|| (super::paper::Paper::from_code(&meta.paper), meta.margin));
+        let title = if meta.title.is_empty() { who.clone() } else { format!("{who} — {}", meta.title) };
+        let zoom = &mut self.mirror_zoom;
+        let mut close = false;
+        ctx.show_viewport_immediate(
+            egui::ViewportId::from_hash_of("openslate-dal-telefono"),
+            egui::ViewportBuilder::default().with_title(format!("{} — {title}", i18n::t("Dal telefono"))).with_inner_size([560.0, 760.0]).with_min_inner_size([240.0, 280.0]),
+            |ui, _| {
+                let t = super::theme::Tokens::get(ui.ctx());
+                let full = ui.max_rect();
+                let bar = 26.0;
+                let (top, body) = (egui::Rect::from_min_max(full.min, egui::pos2(full.max.x, full.min.y + bar)), egui::Rect::from_min_max(egui::pos2(full.min.x, full.min.y + bar), full.max));
+                ui.painter().rect_filled(top, 0.0, t.canvas);
+                let state = if quiet { i18n::t("non è più in diretta") } else { i18n::t("in diretta") };
+                let dot = if quiet { egui::Color32::GRAY } else { egui::Color32::from_rgb(220, 40, 40) };
+                ui.painter().circle_filled(top.left_center() + egui::vec2(14.0, 0.0), 5.0, dot);
+                ui.painter().text(
+                    top.left_center() + egui::vec2(26.0, 0.0),
+                    egui::Align2::LEFT_CENTER,
+                    format!("{title} · {state}"),
+                    egui::FontId::proportional(13.0),
+                    t.text_dim,
+                );
+                let resp = ui.interact(body, ui.id().with("phone-live"), egui::Sense::click_and_drag());
+                zoom.handle_input(ui, &resp, true);
+                if resp.double_clicked() {
+                    zoom.fit();
+                }
+                let bg = bg.map(|(tex, rect)| super::BgImage { tex, paper: false, rect, baked: false, keep: None, detail: None });
+                super::paint_page(&ui.painter_at(body), body, &drawing, view, bg, zoom, paper);
+                if ui.ctx().input(|i| i.viewport().close_requested()) {
+                    close = true;
+                }
+            },
+        );
+        if close {
+            self.mirror_open = false;
+            self.mirror_closed = gen;
+        }
+        // la scritta «non è più in diretta» arriva anche senza messaggi
+        ctx.request_repaint_after(Duration::from_secs(2));
     }
 
     /// Dopo la sincronizzazione di un telefono (chiude il QR se era il nuovo).
@@ -90,6 +190,11 @@ impl PhoneUi {
 
         ui.add_space(14.0);
         ui.label(egui::RichText::new(i18n::t("Telefoni collegati")).strong());
+        weak(ui, "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.");
+        let has_live = self.sync.mirror.lock().map(|m| m.gen != 0).unwrap_or(false);
+        if has_live && !self.mirror_open && ui.button(format!("{}  {}", ic::DEVICE_MOBILE, i18n::t("Mostra la pagina del telefono"))).clicked() {
+            self.mirror_open = true;
+        }
         let phones = self.sync.phones();
         if phones.is_empty() {
             weak(ui, "Nessuno.");

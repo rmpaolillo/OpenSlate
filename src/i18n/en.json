@@ -1384,5 +1384,11 @@
  "A mano, inclinata": "Handwriting, slanted",
  "A mano, naturale": "Handwriting, natural",
  "A mano, rotonda": "Handwriting, round",
- "A mano, ariosa": "Handwriting, airy"
+ "A mano, ariosa": "Handwriting, airy",
+ "Telefono": "Phone",
+ "Dal telefono": "From the phone",
+ "in diretta": "live",
+ "non è più in diretta": "no longer live",
+ "Mostra la pagina del telefono": "Show the phone's page",
+ "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "In the phone app you can turn on «Show live on the computer»: what you write on the phone appears here in a window, as you write it."
 }

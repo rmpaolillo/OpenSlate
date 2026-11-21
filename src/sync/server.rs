@@ -7,6 +7,8 @@
 //! - `PUT  /sync/v1/f/<p>`     scrive un file
 //! - `DELETE /sync/v1/f/<p>`   toglie un file (nel cestino)
 //! - `POST /sync/v1/done`      fine della sincronizzazione
+//! - `POST /sync/v1/live`      la pagina del telefono in diretta (`live`)
+//! - `POST /sync/v1/live/bg`   …e la pagina del documento sotto i tratti
 //!
 //! Ogni richiesta ha `X-OS-Peer` (il telefono), `X-OS-Time` (secondi Unix) e
 //! `X-OS-Mtime`; il corpo è una busta cifrata col segreto del telefono, anche
@@ -52,12 +54,18 @@ impl Response {
     }
 }
 
+/// Chi riceve la diretta: (telefono, `live` o `live/bg`, corpo) → stato HTTP
+/// (200, o 409 = «rimanda tutto»).
+pub type LiveSink = Box<dyn FnMut(&str, &str, &[u8]) -> u16 + Send>;
+
 /// Ricorda i nonce già visti (una busta ripetuta si rifiuta).
 #[derive(Default)]
 pub struct Server {
     seen: HashMap<[u8; crypto::NONCE_LEN], i64>,
     pub desk_id: String,
     pub desk_name: String,
+    /// La diretta dal telefono (se la desktop la vuole).
+    pub live: Option<LiveSink>,
 }
 
 /// Quanto può essere sbagliato l'orologio del telefono.
@@ -65,7 +73,7 @@ const SKEW: i64 = 300;
 
 impl Server {
     pub fn new(desk_id: &str, desk_name: &str) -> Server {
-        Server { seen: HashMap::new(), desk_id: desk_id.into(), desk_name: desk_name.into() }
+        Server { seen: HashMap::new(), desk_id: desk_id.into(), desk_name: desk_name.into(), live: None }
     }
 
     pub fn handle(&mut self, peers: &[PeerKey], store: &mut dyn Store, req: Request, now: i64) -> Response {
@@ -104,6 +112,13 @@ impl Server {
             ("GET", "manifest") => match store.manifest() {
                 Ok(m) => ok(serde_json::to_vec(&m).unwrap_or_default()),
                 Err(e) => err(500, e.to_string()),
+            },
+            ("POST", "live" | "live/bg") => match self.live.as_mut() {
+                Some(sink) => match sink(req.peer, rest, plain) {
+                    200 => ok(Vec::new()),
+                    code => err(code, "rimanda la pagina intera".into()),
+                },
+                None => err(404, "?".into()),
             },
             ("POST", "done") => {
                 let mut r = ok(Vec::new());

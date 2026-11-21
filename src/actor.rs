@@ -95,6 +95,8 @@ pub enum UiEvent {
     /// Un telefono ha finito di sincronizzarsi; `changed` = cosa è cambiato
     /// qui ("lib", "notes", "stamps"), da ricaricare.
     PhoneSynced { name: String, changed: Vec<&'static str> },
+    /// La pagina del telefono in diretta è cambiata (`PhoneSync::mirror`).
+    PhoneLive,
     /// La chat AI chiede qualcosa all'archivio (vedi `libagent`).
     ChatLib(crate::libagent::Req, crate::libagent::Reply),
 }

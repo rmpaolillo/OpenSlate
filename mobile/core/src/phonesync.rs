@@ -162,3 +162,66 @@ pub fn notes_list(data_dir: String) -> Vec<String> {
     v.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
     v.into_iter().map(|(_, n)| n).collect()
 }
+
+// ---------------------------------------------------------------------------
+// La pagina in diretta sul computer (`sync::live`)
+// ---------------------------------------------------------------------------
+
+/// Manda la lavagna del telefono al computer mentre la si scrive: il computer
+/// la mostra nella finestra «Dal telefono». Si crea quando l'app è in primo
+/// piano con l'opzione accesa, si ferma con `stop` (o quando sparisce).
+#[derive(uniffi::Object)]
+pub struct LiveMirror {
+    feed: std::sync::Arc<Mutex<crate::sync::live::Feed>>,
+}
+
+#[uniffi::export]
+impl LiveMirror {
+    /// Parte subito, in un thread suo. `found` = indirizzi trovati adesso
+    /// sulla rete (Bonjour), `device` il nome del telefono.
+    #[uniffi::constructor]
+    pub fn new(board: std::sync::Arc<crate::board::BoardModel>, pairing: SyncPairing, found: Vec<String>, device: String) -> std::sync::Arc<Self> {
+        let feed = std::sync::Arc::new(Mutex::new(crate::sync::live::Feed::default()));
+        let f = feed.clone();
+        let p: pair::Pairing = pairing.into();
+        let _ = std::thread::Builder::new().name("diretta-computer".into()).spawn(move || {
+            crate::sync::live::send_loop(&p, &found, &device, &f, &mut |t, meta, beat| board.with_strokes(|s| t.next(s, meta, beat)));
+        });
+        std::sync::Arc::new(LiveMirror { feed })
+    }
+
+    /// Com'è il foglio: titolo, area del pad, rotazione, foglio (`""` sotto
+    /// un documento) e margini.
+    pub fn set_meta(&self, title: String, pad_w: f32, pad_h: f32, quarter: u32, paper: String, margin: bool) {
+        let meta = crate::sync::live::Meta { title, pad_w, pad_h, quarter, paper, margin };
+        self.feed.lock().unwrap_or_else(|e| e.into_inner()).meta = meta;
+    }
+
+    /// La pagina del documento sotto i tratti (PNG) e dove sta (u, v,
+    /// larghezza, altezza in 0..1); `png` vuoto = nessuna.
+    pub fn set_background(&self, png: Vec<u8>, rect: Vec<f32>) {
+        let mut f = self.feed.lock().unwrap_or_else(|e| e.into_inner());
+        let r = [0, 1, 2, 3].map(|i| rect.get(i).copied().unwrap_or(if i >= 2 { 1.0 } else { 0.0 }));
+        let bg = (!png.is_empty()).then_some((png, r));
+        if f.bg != bg {
+            f.bg = bg;
+            f.bg_dirty = true;
+        }
+    }
+
+    /// Il computer risponde.
+    pub fn connected(&self) -> bool {
+        self.feed.lock().map(|f| f.connected).unwrap_or(false)
+    }
+
+    /// Basta diretta (il computer lo sa subito).
+    pub fn stop(&self) {
+        self.feed.lock().unwrap_or_else(|e| e.into_inner()).stop = true;
+    }
+}
+
+impl Drop for LiveMirror {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}

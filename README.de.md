@@ -55,7 +55,7 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   im Klartext gespeichert.
 - **Mit dem Chat sprechen.** Diktieren per Mikrofon: Whisper transkribiert auf deinem Computer, offline.
 - **Der Tutor antwortet laut** mit den Stimmen des Systems.
-- **Apps für Android und iPhone/iPad** (erste Version, aus dem Quellcode zu bauen) mit demselben Rust-Kern: Live-Tafel, Seiten vom Pad, KI-Chat, Unterschreiben und Stempel. Auf Wunsch schreibt ein aktiver Stift (S Pen, Apple Pencil) direkt auf dem Bildschirm, wie das Slate.
+- **Apps für Android und iPhone/iPad** (erste Version, aus dem Quellcode zu bauen) mit demselben Rust-Kern: Live-Tafel, Seiten vom Pad, KI-Chat, Unterschreiben und Stempel. Auf Wunsch schreibt ein aktiver Stift (S Pen, Apple Pencil) direkt auf dem Bildschirm, wie das Slate. Die Seite kann auch live auf dem Computer erscheinen, während man schreibt (Fenster «Vom Telefon»).
 - **Frei und Open Source**, in neun Sprachen, für macOS (Hauptplattform), Linux und Windows.
 
 ## Funktionen

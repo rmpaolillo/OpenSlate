@@ -1384,5 +1384,11 @@
  "A mano, inclinata": "Manuscrite, penchée",
  "A mano, naturale": "Manuscrite, naturelle",
  "A mano, rotonda": "Manuscrite, ronde",
- "A mano, ariosa": "Manuscrite, aérée"
+ "A mano, ariosa": "Manuscrite, aérée",
+ "Telefono": "Téléphone",
+ "Dal telefono": "Depuis le téléphone",
+ "in diretta": "en direct",
+ "non è più in diretta": "n’est plus en direct",
+ "Mostra la pagina del telefono": "Afficher la page du téléphone",
+ "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "Dans l’app pour téléphone, on peut activer « Afficher en direct sur l’ordinateur » : ce que tu écris sur le téléphone apparaît ici dans une fenêtre, pendant que tu l’écris."
 }

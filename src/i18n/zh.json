@@ -1384,5 +1384,11 @@
  "A mano, inclinata": "手写，倾斜",
  "A mano, naturale": "手写，自然",
  "A mano, rotonda": "手写，圆润",
- "A mano, ariosa": "手写，舒展"
+ "A mano, ariosa": "手写，舒展",
+ "Telefono": "手机",
+ "Dal telefono": "来自手机",
+ "in diretta": "实时",
+ "non è più in diretta": "已不再实时",
+ "Mostra la pagina del telefono": "显示手机上的页面",
+ "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "在手机应用中可以打开“在电脑上实时显示”：你在手机上写的内容会在书写时出现在这里的窗口中。"
 }

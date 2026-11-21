@@ -166,6 +166,10 @@
     <string name="screen_pen_hint">An active pen (S Pen, Wacom and similar) writes on the page like the Slate, with the same pen, colour and thickness. Fingers still move and zoom the page.</string>
     <string name="touch_pen">Also with a finger or an ordinary stylus</string>
     <string name="touch_pen_hint">For rubber-tipped styluses, which the phone sees as a finger. One finger writes; two fingers move and zoom the page.</string>
+    <string name="live_on">Show live on the computer</string>
+    <string name="live_hint">What you write on the board appears on the computer, in the «From the phone» window, as you write it. Only while the app is open.</string>
+    <string name="live_connected">Live on %1$s</string>
+    <string name="live_waiting">Looking for the computer… (OpenSlate must be open there, on the same Wi‑Fi)</string>
     <string name="dictate">Dictate</string>
     <string name="dictation_listening">Listening… speak now</string>
     <string name="dictation_no_permission">To dictate, allow OpenSlate to use the microphone.</string>

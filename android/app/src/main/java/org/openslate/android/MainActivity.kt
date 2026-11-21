@@ -68,6 +68,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -599,11 +601,42 @@ class MainActivity : ComponentActivity(), LinkListener {
     override fun onResume() {
         super.onResume()
         phoneSync.resume()
+        phoneSync.onLiveStart = { liveBg = null; liveUpdate() }
+        phoneSync.startLive(board.model)
     }
 
     override fun onPause() {
+        phoneSync.stopLive()
         phoneSync.pause()
         super.onPause()
+    }
+
+    /** Lo sfondo già dato alla diretta (immagine e riquadro). */
+    private var liveBg: Pair<Any?, List<Float>>? = null
+
+    /** La diretta sul computer: com'è il foglio e, su un documento, la sua pagina. */
+    private fun liveUpdate() {
+        val live = phoneSync.live ?: return
+        val d = doc
+        live.setMeta(d?.title ?: board.title, padSize.width, padSize.height, quarter.toUInt(), if (d == null) paperCode else "", paperMargin)
+        val img = d?.image
+        val rect = if (d != null && img != null) d.rect(view()) else emptyList()
+        val key = img to rect
+        if (key == liveBg) return
+        liveBg = key
+        if (img == null) {
+            live.setBackground(ByteArray(0), emptyList())
+            return
+        }
+        val bmp = img.asAndroidBitmap()
+        kotlin.concurrent.thread(name = "diretta-sfondo") {
+            // basta una pagina leggera: sul computer è solo da guardare
+            val k = minOf(1f, 1600f / maxOf(bmp.width, bmp.height))
+            val small = if (k < 1f) android.graphics.Bitmap.createScaledBitmap(bmp, (bmp.width * k).toInt(), (bmp.height * k).toInt(), true) else bmp
+            val out = java.io.ByteArrayOutputStream()
+            small.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+            live.setBackground(out.toByteArray(), rect)
+        }
     }
 
     /** Arrivato qualcosa dal computer: si ricarica quello che è cambiato. */
@@ -831,6 +864,8 @@ class MainActivity : ComponentActivity(), LinkListener {
         }
         val d = doc
         board.version // i pulsanti seguono la lavagna
+        // la diretta sul computer segue il foglio (titolo, rotazione, pagina del documento)
+        SideEffect { liveUpdate() }
         val empty = board.isEmpty
         val statusLine = statusText(if (denied) null else s)
 

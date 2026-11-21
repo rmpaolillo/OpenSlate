@@ -1384,5 +1384,11 @@
  "A mano, inclinata": "手書き・斜め",
  "A mano, naturale": "手書き・自然",
  "A mano, rotonda": "手書き・丸文字",
- "A mano, ariosa": "手書き・ゆったり"
+ "A mano, ariosa": "手書き・ゆったり",
+ "Telefono": "スマートフォン",
+ "Dal telefono": "スマートフォンから",
+ "in diretta": "ライブ",
+ "non è più in diretta": "ライブではありません",
+ "Mostra la pagina del telefono": "スマートフォンのページを表示",
+ "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "スマートフォンのアプリで「コンピューターにライブ表示」をオンにすると、スマートフォンに書いた内容が書いている間にここのウィンドウに表示されます。"
 }

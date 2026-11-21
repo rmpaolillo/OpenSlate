@@ -275,6 +275,43 @@ final class AppModel: ObservableObject, LinkListener {
 
     var view: BoardView { BoardView(quarter: UInt32(quarter), padW: Float(padSize.width), padH: Float(padSize.height)) }
 
+    // --- la lavagna in diretta sul computer (`PhoneSync.live`)
+
+    /// Lo sfondo già dato alla diretta: l'immagine e il riquadro.
+    private var liveBgImage: UIImage?
+    private var liveBgRect: [Float] = []
+
+    func startLive() {
+        sync.onLiveTick = { [weak self] fresh in self?.liveUpdate(fresh: fresh) }
+        sync.startLive(board.model)
+    }
+
+    /// Com'è il foglio e, su un documento, la sua pagina sotto i tratti.
+    func liveUpdate(fresh: Bool) {
+        guard let live = sync.live else { return }
+        let d = doc
+        live.setMeta(title: d?.title ?? board.title, padW: Float(padSize.width), padH: Float(padSize.height), quarter: UInt32(quarter),
+                     paper: d == nil ? paperCode : "", margin: paperMargin)
+        let img = d?.image
+        let rect = (d != nil && img != nil) ? d!.rect(view) : []
+        if !fresh && img === liveBgImage && rect == liveBgRect { return }
+        liveBgImage = img
+        liveBgRect = rect
+        guard let img else {
+            live.setBackground(png: Data(), rect: [])
+            return
+        }
+        DispatchQueue.global(qos: .utility).async {
+            // basta una pagina leggera: sul computer è solo da guardare
+            let k = min(1, 1600 / max(img.size.width, img.size.height))
+            let size = CGSize(width: img.size.width * k, height: img.size.height * k)
+            let fmt = UIGraphicsImageRendererFormat()
+            fmt.scale = 1
+            let small = UIGraphicsImageRenderer(size: size, format: fmt).image { _ in img.draw(in: CGRect(origin: .zero, size: size)) }
+            live.setBackground(png: small.pngData() ?? Data(), rect: rect)
+        }
+    }
+
     func setPadSize(_ w: Float, _ h: Float) {
         padSize = CGSize(width: CGFloat(w), height: CGFloat(h))
         board.model.setPageSize(width: w, height: h)

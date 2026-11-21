@@ -13,9 +13,9 @@ struct OpenSlateApp: App {
                 .environmentObject(app)
                 // come la desktop: nulla si perde, uscendo la lavagna va nell'archivio
                 .onChange(of: phase) { p in
-                    if p != .active { app.saveBoardIfNeeded(); app.sync.pause() } else { app.sync.resume() }
+                    if p != .active { app.saveBoardIfNeeded(); app.sync.pause(); app.sync.stopLive() } else { app.sync.resume(); app.startLive() }
                 }
-                .onAppear { app.sync.resume() }
+                .onAppear { app.sync.resume(); app.startLive() }
         }
     }
 }
