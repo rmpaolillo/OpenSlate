@@ -94,37 +94,76 @@ final class SheetUIView: UIView {
 
     // --- la penna sullo schermo
 
+    /// Con la penna sullo schermo scrive anche un dito (o una penna passiva, che
+    /// l'iPhone vede come un dito): due dita restano zoom e spostamento.
+    var touchPen = false
     private var penOn: Bool { onPenPoints != nil && !selecting && seal == nil }
+    /// Col dito si aspetta un attimo prima di scrivere: se arriva un secondo dito è uno zoom.
+    private var held: [PenPoint] = []
+    private var writing = false
+    private var penStart: (CGPoint, TimeInterval) = (.zero, 0)
+
+    /// Il dito che scrive non deve anche spostare il foglio: allora lo spostamento vuole due dita.
+    func refreshGestures() {
+        let fingerWrites = penOn && touchPen
+        gestureRecognizers?.compactMap { $0 as? UIPanGestureRecognizer }.forEach { $0.minimumNumberOfTouches = fingerWrites ? 2 : 1 }
+    }
 
     private func penPoint(_ t: UITouch, _ phase: Phase) -> PenPoint {
         let q = toPad(t.location(in: self))
-        let f = t.maximumPossibleForce > 0 ? Float(t.force / t.maximumPossibleForce) : 0.5
+        // il dito non ha una pressione vera: metà corsa
+        let f = t.type == .pencil && t.maximumPossibleForce > 0 ? Float(t.force / t.maximumPossibleForce) : 0.5
         return PenPoint(x: Float(q.x), y: Float(q.y), pressure: phase == .up ? 0 : min(max(f, 0), 1), phase: phase)
     }
 
+    private func send(_ pts: [PenPoint]) {
+        if writing { onPenPoints?(pts); return }
+        held += pts
+    }
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard penOn, penTouch == nil, let t = touches.first(where: { $0.type == .pencil }) else { return super.touchesBegan(touches, with: event) }
+        if let t = penTouch, !writing, t.type != .pencil, touches.contains(where: { $0 !== t && $0.type != .pencil }) {
+            // un secondo dito prima di cominciare a scrivere: è uno zoom
+            penTouch = nil
+            held = []
+        }
+        guard penOn, penTouch == nil,
+              let t = touches.first(where: { $0.type == .pencil }) ?? (touchPen && touches.count == 1 && (event?.allTouches?.count ?? 1) == 1 ? touches.first : nil)
+        else { return super.touchesBegan(touches, with: event) }
         penTouch = t
-        onPenPoints?([penPoint(t, .down)])
+        held = []
+        writing = t.type == .pencil
+        penStart = (t.location(in: self), t.timestamp)
+        send([penPoint(t, .down)])
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let t = penTouch, touches.contains(t) else { return super.touchesMoved(touches, with: event) }
         // i punti intermedi raccolti tra un fotogramma e l'altro
         let all = event?.coalescedTouches(for: t) ?? [t]
-        onPenPoints?(all.map { penPoint($0, .move) })
+        send(all.map { penPoint($0, .move) })
+        let p = t.location(in: self)
+        if !writing && (hypot(p.x - penStart.0.x, p.y - penStart.0.y) > 10 || t.timestamp - penStart.1 > 0.12) {
+            writing = true
+            onPenPoints?(held)
+            held = []
+        }
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let t = penTouch, touches.contains(t) else { return super.touchesEnded(touches, with: event) }
         penTouch = nil
+        writing = true
+        if !held.isEmpty { onPenPoints?(held); held = [] }
         onPenPoints?([penPoint(t, .up)])
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let t = penTouch, touches.contains(t) else { return super.touchesCancelled(touches, with: event) }
         penTouch = nil
-        onPenPoints?([penPoint(t, .up)])
+        held = []
+        // annullato da un gesto (zoom): il tratto già cominciato si chiude
+        if writing { onPenPoints?([penPoint(t, .up)]) }
     }
 
     @objc private func onDouble() {
@@ -290,6 +329,7 @@ struct Sheet: UIViewRepresentable {
     var sealArt: UIImage?
     var onSealRect: (([Float]) -> Void)?
     var onPen: (([PenPoint]) -> Void)?
+    var touchPen = false
 
     func makeUIView(context: Context) -> SheetUIView { SheetUIView() }
 
@@ -310,9 +350,11 @@ struct Sheet: UIViewRepresentable {
         v.preview = preview
         v.onSealRect = onSealRect
         v.onPenPoints = onPen
+        v.touchPen = touchPen
         if v.seal?.0 != seal?.0 || v.seal?.1 != seal?.1 { v.seal = seal }
         if v.sealArt !== sealArt { v.sealArt = sealArt }
         v.strokes = strokes
+        v.refreshGestures()
     }
 }
 
@@ -346,7 +388,8 @@ struct BoardScreen: View {
                   seal: app.sealJob.map { ($0.spec, $0.rect) } ?? app.sigJob.map { (nil, $0.rect) },
                   sealArt: app.sigJob?.art,
                   onSealRect: { r in if app.sealJob != nil { app.sealJob?.rect = r } else { app.sigJob?.rect = r } },
-                  onPen: app.screenPen ? { pts in board.pen(pts) } : nil)
+                  onPen: app.screenPen ? { pts in board.pen(pts) } : nil,
+                  touchPen: app.touchPen)
             if app.sealJob != nil { SealBar() }
             else if app.sigJob != nil { SigBar() }
             else if app.sigCapture != nil { SigCaptureBar(board: board) }

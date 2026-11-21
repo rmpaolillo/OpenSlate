@@ -235,9 +235,12 @@ struct SettingsScreen: View {
                 }
                 Section {
                     Toggle(L("Scrivi con la penna sullo schermo", "Write with the pen on the screen"), isOn: $app.screenPen)
+                    if app.screenPen {
+                        Toggle(L("Anche col dito o con una penna normale", "Also with a finger or an ordinary stylus"), isOn: $app.touchPen)
+                    }
                 } footer: {
-                    Text(L("L'Apple Pencil scrive sul foglio come lo Slate, con la stessa penna, colore e spessore. Le dita continuano a spostare e ingrandire il foglio.",
-                           "The Apple Pencil writes on the page like the Slate, with the same pen, colour and thickness. Fingers still move and zoom the page."))
+                    Text(L("L'Apple Pencil scrive sul foglio come lo Slate, con la stessa penna, colore e spessore. Le dita continuano a spostare e ingrandire il foglio. «Anche col dito»: per le penne con la punta di gomma, che l'iPhone vede come un dito; un dito scrive, due dita spostano e ingrandiscono.",
+                           "The Apple Pencil writes on the page like the Slate, with the same pen, colour and thickness. Fingers still move and zoom the page. «Also with a finger»: for rubber-tipped styluses, which the iPhone sees as a finger; one finger writes, two fingers move and zoom."))
                 }
                 Section {
                     Toggle(L("Lo zig-zag cancella", "Zig-zag erases"), isOn: Binding(get: { app.zigzag }, set: { app.zigzag = $0; app.applyTools() }))

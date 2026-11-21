@@ -219,6 +219,8 @@ final class AppModel: ObservableObject, LinkListener {
     @AppStorage("natural_ink") var naturalInk = true
     /// L'Apple Pencil sullo schermo scrive sul foglio come lo Slate.
     @AppStorage("screen_pen") var screenPen = false
+    /// …e anche un dito o una penna passiva (l'iPhone la vede come un dito).
+    @AppStorage("touch_pen") var touchPen = false
     /// La bella copia va subito sulle righe del foglio.
     @AppStorage("fair_on_rules") var fairOnRules = false
     /// Bella copia: quanto larghe le lettere (volte il carattere; 0 = come la tua scrittura).

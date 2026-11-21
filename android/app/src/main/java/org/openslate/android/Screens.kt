@@ -126,6 +126,8 @@ fun Sheet(
     seal: SealPlace? = null,
     /** Penna sullo schermo (S Pen e simili): i suoi punti, in unità del pad, come quelli dello Slate. */
     pen: ((List<PenPoint>) -> Unit)? = null,
+    /** Con la penna sullo schermo scrive anche un dito (o una penna passiva). */
+    touchPen: Boolean = false,
 ) {
     var zoom by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -160,6 +162,7 @@ fun Sheet(
     val currentZone by rememberUpdatedState(zone)
     val currentSeal by rememberUpdatedState(seal)
     val currentPen by rememberUpdatedState(pen)
+    val currentTouchPen by rememberUpdatedState(touchPen)
     val pagePaint = remember { android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG or android.graphics.Paint.ANTI_ALIAS_FLAG) }
     /** Punto dello schermo → frazioni della pagina vista (0..1). */
     fun toUnit(p: Offset): Offset {
@@ -184,31 +187,50 @@ fun Sheet(
             .pointerInput(quarter, padW, padH) {
                 awaitEachGesture {
                     val first = awaitFirstDown(requireUnconsumed = false)
-                    // la penna scrive sul foglio come lo Slate; le dita spostano e ingrandiscono
+                    // la penna scrive sul foglio come lo Slate; le dita spostano e ingrandiscono.
+                    // Con `touchPen` scrive anche un dito (o una penna passiva, che il telefono
+                    // vede come un dito): due dita restano zoom e spostamento.
                     val penOut = currentPen
-                    if (penOut != null && first.type == PointerType.Stylus && currentZone == null && currentSeal == null) {
+                    val stylus = first.type == PointerType.Stylus
+                    if (penOut != null && (stylus || currentTouchPen) && currentZone == null && currentSeal == null) {
                         fun pt(at: Offset, pressure: Float, phase: Phase): PenPoint {
                             val q = toPad(at)
-                            return PenPoint(q.x, q.y, pressure.coerceIn(0f, 1f), phase)
+                            // il dito non ha una pressione vera: metà corsa
+                            return PenPoint(q.x, q.y, if (stylus) pressure.coerceIn(0f, 1f) else 0.5f, phase)
                         }
-                        penOut(listOf(pt(first.position, first.pressure, Phase.DOWN)))
+                        // col dito si aspetta un attimo: se arriva un secondo dito è uno zoom
+                        val held = mutableListOf(pt(first.position, first.pressure, Phase.DOWN))
+                        var writing = stylus
+                        if (writing) { penOut(held.toList()); held.clear() }
                         first.consume()
                         var at = first.position
+                        var gesture = false
                         while (true) {
                             val ev = awaitPointerEvent()
+                            if (!writing && ev.changes.count { it.pressed } >= 2) { gesture = true; break }
                             val c = ev.changes.firstOrNull { it.id == first.id }
                             if (c == null || !c.pressed) {
+                                if (held.isNotEmpty()) penOut(held.toList())
                                 penOut(listOf(pt(at, 0f, Phase.UP)))
                                 c?.consume()
                                 break
                             }
                             // i punti intermedi che Android raccoglie tra un fotogramma e l'altro
                             val pts = c.historical.map { pt(it.position, c.pressure, Phase.MOVE) } + pt(c.position, c.pressure, Phase.MOVE)
-                            penOut(pts)
+                            if (writing) {
+                                penOut(pts)
+                            } else {
+                                held += pts
+                                if ((c.position - first.position).getDistance() > 10f * density || c.uptimeMillis - first.uptimeMillis > 120) {
+                                    writing = true
+                                    penOut(held.toList())
+                                    held.clear()
+                                }
+                            }
                             at = c.position
                             c.consume()
                         }
-                        return@awaitEachGesture
+                        if (!gesture) return@awaitEachGesture
                     }
                     var last = first.position
                     var fingers = 1
