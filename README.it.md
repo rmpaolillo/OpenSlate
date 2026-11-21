@@ -26,7 +26,8 @@ Non è un prodotto Wacom e non è collegata a Wacom.
 - **Il tutor ti risponde a voce** con le voci del sistema.
 - **L'AI che vuoi tu**: modelli locali (LM Studio, Ollama) o in cloud; le chiavi API mai in chiaro.
 - **App per Android e iPhone/iPad** (prima versione, da compilare) con lo stesso cuore Rust: lavagna
-  live, pagine dal pad, chat AI, firma e timbri.
+  live, pagine dal pad, chat AI, firma e timbri. Se lo chiedi, una penna attiva (S Pen, Apple Pencil)
+  scrive direttamente sullo schermo, come lo Slate.
 - **Libera e open source**, in nove lingue, per macOS (piattaforma principale), Linux e Windows.
 
 Le immagini mostrano l'interfaccia in inglese. La scrittura, i documenti e le risposte dell'AI

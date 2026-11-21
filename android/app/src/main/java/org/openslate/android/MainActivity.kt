@@ -283,6 +283,8 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var printPaper by mutableStateOf(false)
     private var zigzag by mutableStateOf(false)
     private var naturalInk by mutableStateOf(true)
+    /** La penna sullo schermo (S Pen e simili) scrive sul foglio come lo Slate. */
+    private var screenPen by mutableStateOf(false)
     /** La bella copia va subito sulle righe del foglio. */
     private var fairOnRules by mutableStateOf(false)
     /** Bella copia: quanto larghe le lettere (volte il carattere; 0 = come la tua scrittura). */
@@ -327,6 +329,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         printPaper = prefs.getBoolean("print_paper", printPaper)
         zigzag = prefs.getBoolean("zigzag", zigzag)
         naturalInk = prefs.getBoolean("natural_ink", naturalInk)
+        screenPen = prefs.getBoolean("screen_pen", screenPen)
         fairOnRules = prefs.getBoolean("fair_on_rules", fairOnRules)
         fairWidth = prefs.getFloat("fair_width", fairWidth)
         fairLeft = prefs.getBoolean("fair_left", fairLeft)
@@ -352,6 +355,7 @@ class MainActivity : ComponentActivity(), LinkListener {
             .putBoolean("print_paper", printPaper)
             .putBoolean("zigzag", zigzag)
             .putBoolean("natural_ink", naturalInk)
+            .putBoolean("screen_pen", screenPen)
             .putBoolean("fair_on_rules", fairOnRules)
             .putFloat("fair_width", fairWidth)
             .putBoolean("fair_left", fairLeft)
@@ -1005,6 +1009,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                     },
                     seal = sealJob?.let { j -> SealPlace(j.spec, j.rect) { r -> sealJob = sealJob?.copy(rect = r) } }
                         ?: sigJob?.let { j -> SealPlace(null, j.rect, j.art) { r -> sigJob = sigJob?.copy(rect = r) } },
+                    pen = if (screenPen) { pts -> board.pen(pts) } else null,
                 )
             }
             when {
@@ -1565,6 +1570,15 @@ class MainActivity : ComponentActivity(), LinkListener {
                     Text(stringResource(R.string.natural_ink_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Switch(checked = naturalInk, onCheckedChange = { naturalInk = it; applyTools() })
+            }
+            Row(Modifier.fillMaxWidth().clickable { screenPen = !screenPen; applyTools() }.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Edit, null)
+                Column(Modifier.weight(1f).padding(start = 16.dp)) {
+                    Text(stringResource(R.string.screen_pen))
+                    Text(stringResource(R.string.screen_pen_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = screenPen, onCheckedChange = { screenPen = it; applyTools() })
             }
             Row(Modifier.fillMaxWidth().clickable { fairOnRules = !fairOnRules; applyTools() }.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically) {

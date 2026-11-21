@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -57,6 +58,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import uniffi.openslate_mobile.Page
 import uniffi.openslate_mobile.PageStroke
+import uniffi.openslate_mobile.PenPoint
+import uniffi.openslate_mobile.Phase
 import uniffi.openslate_mobile.libraryList
 import uniffi.openslate_mobile.libraryLoad
 import uniffi.openslate_mobile.libraryRename
@@ -121,6 +124,8 @@ fun Sheet(
     overlay: SheetOverlay? = null,
     /** Un timbro da posare: un dito lo sposta, l'angolo lo ingrandisce. */
     seal: SealPlace? = null,
+    /** Penna sullo schermo (S Pen e simili): i suoi punti, in unità del pad, come quelli dello Slate. */
+    pen: ((List<PenPoint>) -> Unit)? = null,
 ) {
     var zoom by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -154,6 +159,7 @@ fun Sheet(
     val currentEraser by rememberUpdatedState(eraser)
     val currentZone by rememberUpdatedState(zone)
     val currentSeal by rememberUpdatedState(seal)
+    val currentPen by rememberUpdatedState(pen)
     val pagePaint = remember { android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG or android.graphics.Paint.ANTI_ALIAS_FLAG) }
     /** Punto dello schermo → frazioni della pagina vista (0..1). */
     fun toUnit(p: Offset): Offset {
@@ -178,6 +184,32 @@ fun Sheet(
             .pointerInput(quarter, padW, padH) {
                 awaitEachGesture {
                     val first = awaitFirstDown(requireUnconsumed = false)
+                    // la penna scrive sul foglio come lo Slate; le dita spostano e ingrandiscono
+                    val penOut = currentPen
+                    if (penOut != null && first.type == PointerType.Stylus && currentZone == null && currentSeal == null) {
+                        fun pt(at: Offset, pressure: Float, phase: Phase): PenPoint {
+                            val q = toPad(at)
+                            return PenPoint(q.x, q.y, pressure.coerceIn(0f, 1f), phase)
+                        }
+                        penOut(listOf(pt(first.position, first.pressure, Phase.DOWN)))
+                        first.consume()
+                        var at = first.position
+                        while (true) {
+                            val ev = awaitPointerEvent()
+                            val c = ev.changes.firstOrNull { it.id == first.id }
+                            if (c == null || !c.pressed) {
+                                penOut(listOf(pt(at, 0f, Phase.UP)))
+                                c?.consume()
+                                break
+                            }
+                            // i punti intermedi che Android raccoglie tra un fotogramma e l'altro
+                            val pts = c.historical.map { pt(it.position, c.pressure, Phase.MOVE) } + pt(c.position, c.pressure, Phase.MOVE)
+                            penOut(pts)
+                            at = c.position
+                            c.consume()
+                        }
+                        return@awaitEachGesture
+                    }
                     var last = first.position
                     var fingers = 1
                     var erased = false

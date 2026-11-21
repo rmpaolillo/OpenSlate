@@ -217,6 +217,8 @@ final class AppModel: ObservableObject, LinkListener {
     @AppStorage("print_paper") var printPaper = false
     @AppStorage("zigzag") var zigzag = false
     @AppStorage("natural_ink") var naturalInk = true
+    /// L'Apple Pencil sullo schermo scrive sul foglio come lo Slate.
+    @AppStorage("screen_pen") var screenPen = false
     /// La bella copia va subito sulle righe del foglio.
     @AppStorage("fair_on_rules") var fairOnRules = false
     /// Bella copia: quanto larghe le lettere (volte il carattere; 0 = come la tua scrittura).

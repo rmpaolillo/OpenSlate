@@ -29,6 +29,18 @@ final class SheetUIView: UIView {
     var onSealRect: (([Float]) -> Void)?
     /// 0 = niente, 1 = sposta, 2 = grandezza.
     private var sealMode = 0
+    /// La penna sullo schermo (Apple Pencil) scrive come lo Slate: i suoi punti, in unità del pad.
+    /// Allora i gesti (zoom, spostamento) restano alle dita.
+    var onPenPoints: (([PenPoint]) -> Void)? {
+        didSet {
+            guard (oldValue == nil) != (onPenPoints == nil) else { return }
+            let types: [NSNumber] = onPenPoints == nil
+                ? [UITouch.TouchType.direct, .pencil].map { NSNumber(value: $0.rawValue) }
+                : [NSNumber(value: UITouch.TouchType.direct.rawValue)]
+            gestureRecognizers?.forEach { $0.allowedTouchTypes = types }
+        }
+    }
+    private var penTouch: UITouch?
 
     private var zoom: CGFloat = 1
     private var offset = CGPoint.zero
@@ -78,6 +90,41 @@ final class SheetUIView: UIView {
         let (_, ox, oy, pw, ph) = fit()
         let u = ((p.x - offset.x) / zoom - ox) / pw, v = ((p.y - offset.y) / zoom - oy) / ph
         return CGPoint(x: min(max(u, 0), 1), y: min(max(v, 0), 1))
+    }
+
+    // --- la penna sullo schermo
+
+    private var penOn: Bool { onPenPoints != nil && !selecting && seal == nil }
+
+    private func penPoint(_ t: UITouch, _ phase: Phase) -> PenPoint {
+        let q = toPad(t.location(in: self))
+        let f = t.maximumPossibleForce > 0 ? Float(t.force / t.maximumPossibleForce) : 0.5
+        return PenPoint(x: Float(q.x), y: Float(q.y), pressure: phase == .up ? 0 : min(max(f, 0), 1), phase: phase)
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard penOn, penTouch == nil, let t = touches.first(where: { $0.type == .pencil }) else { return super.touchesBegan(touches, with: event) }
+        penTouch = t
+        onPenPoints?([penPoint(t, .down)])
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let t = penTouch, touches.contains(t) else { return super.touchesMoved(touches, with: event) }
+        // i punti intermedi raccolti tra un fotogramma e l'altro
+        let all = event?.coalescedTouches(for: t) ?? [t]
+        onPenPoints?(all.map { penPoint($0, .move) })
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let t = penTouch, touches.contains(t) else { return super.touchesEnded(touches, with: event) }
+        penTouch = nil
+        onPenPoints?([penPoint(t, .up)])
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let t = penTouch, touches.contains(t) else { return super.touchesCancelled(touches, with: event) }
+        penTouch = nil
+        onPenPoints?([penPoint(t, .up)])
     }
 
     @objc private func onDouble() {
@@ -242,6 +289,7 @@ struct Sheet: UIViewRepresentable {
     var seal: (StampSpec?, [Float])?
     var sealArt: UIImage?
     var onSealRect: (([Float]) -> Void)?
+    var onPen: (([PenPoint]) -> Void)?
 
     func makeUIView(context: Context) -> SheetUIView { SheetUIView() }
 
@@ -261,6 +309,7 @@ struct Sheet: UIViewRepresentable {
         v.veil = veil
         v.preview = preview
         v.onSealRect = onSealRect
+        v.onPenPoints = onPen
         if v.seal?.0 != seal?.0 || v.seal?.1 != seal?.1 { v.seal = seal }
         if v.sealArt !== sealArt { v.sealArt = sealArt }
         v.strokes = strokes
@@ -296,7 +345,8 @@ struct BoardScreen: View {
                   preview: app.zoneJob?.preview?.strokes,
                   seal: app.sealJob.map { ($0.spec, $0.rect) } ?? app.sigJob.map { (nil, $0.rect) },
                   sealArt: app.sigJob?.art,
-                  onSealRect: { r in if app.sealJob != nil { app.sealJob?.rect = r } else { app.sigJob?.rect = r } })
+                  onSealRect: { r in if app.sealJob != nil { app.sealJob?.rect = r } else { app.sigJob?.rect = r } },
+                  onPen: app.screenPen ? { pts in board.pen(pts) } : nil)
             if app.sealJob != nil { SealBar() }
             else if app.sigJob != nil { SigBar() }
             else if app.sigCapture != nil { SigCaptureBar(board: board) }

@@ -55,7 +55,7 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   en texto plano.
 - **Habla con el chat.** Dicta con el micrófono: Whisper transcribe en tu ordenador, sin conexión.
 - **El tutor te responde en voz alta** con las voces del sistema.
-- **Apps para Android e iPhone/iPad** (primera versión, para compilar desde el código) con el mismo núcleo en Rust: pizarra en directo, páginas del pad, chat de IA, firma y sellos.
+- **Apps para Android e iPhone/iPad** (primera versión, para compilar desde el código) con el mismo núcleo en Rust: pizarra en directo, páginas del pad, chat de IA, firma y sellos. Si se activa, un lápiz activo (S Pen, Apple Pencil) escribe directamente en la pantalla, como el Slate.
 - **Libre y de código abierto**, en nueve idiomas, para macOS (plataforma principal), Linux y Windows.
 
 ## Funciones

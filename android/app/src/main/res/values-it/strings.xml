@@ -159,6 +159,8 @@
     <string name="empty_page">prima salva la pagina</string>
     <string name="natural_ink">Tratto naturale</string>
     <string name="natural_ink_hint">Lo spessore segue la pressione della penna e le punte si affusolano, come l\'inchiostro vero. Spento: spessore sempre uguale, come un pennarello.</string>
+    <string name="screen_pen">Scrivi con la penna sullo schermo</string>
+    <string name="screen_pen_hint">Una penna attiva (S Pen, Wacom e simili) scrive sul foglio come lo Slate, con la stessa penna, colore e spessore. Le dita continuano a spostare e ingrandire il foglio.</string>
     <string name="dictate">Detta</string>
     <string name="dictation_listening">Ti ascolto… parla pure</string>
     <string name="dictation_no_permission">Per dettare, consenti a OpenSlate di usare il microfono.</string>

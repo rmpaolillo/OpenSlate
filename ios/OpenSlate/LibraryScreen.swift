@@ -234,6 +234,12 @@ struct SettingsScreen: View {
                            "The thickness follows the pen pressure and the ends taper, like real ink. Off: always the same thickness, like a felt-tip marker."))
                 }
                 Section {
+                    Toggle(L("Scrivi con la penna sullo schermo", "Write with the pen on the screen"), isOn: $app.screenPen)
+                } footer: {
+                    Text(L("L'Apple Pencil scrive sul foglio come lo Slate, con la stessa penna, colore e spessore. Le dita continuano a spostare e ingrandire il foglio.",
+                           "The Apple Pencil writes on the page like the Slate, with the same pen, colour and thickness. Fingers still move and zoom the page."))
+                }
+                Section {
                     Toggle(L("Lo zig-zag cancella", "Zig-zag erases"), isOn: Binding(get: { app.zigzag }, set: { app.zigzag = $0; app.applyTools() }))
                 } footer: {
                     Text(L("Uno zig-zag sopra lo scritto lo cancella (spento di serie: le firme sono spesso zig-zag).",

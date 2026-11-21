@@ -55,7 +55,7 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   en clair.
 - **Parlez au chat.** Dictez au microphone : Whisper transcrit sur votre ordinateur, hors ligne.
 - **Le tuteur vous répond à voix haute** avec les voix du système.
-- **Apps Android et iPhone/iPad** (première version, à compiler depuis les sources) sur le même cœur Rust : tableau en direct, pages du pad, chat IA, signature et tampons.
+- **Apps Android et iPhone/iPad** (première version, à compiler depuis les sources) sur le même cœur Rust : tableau en direct, pages du pad, chat IA, signature et tampons. En option, un stylet actif (S Pen, Apple Pencil) écrit directement sur l’écran, comme le Slate.
 - **Libre et open source**, en neuf langues, pour macOS (plateforme principale), Linux et Windows.
 
 ## Fonctionnalités
