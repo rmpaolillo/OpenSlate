@@ -37,7 +37,16 @@ jobs:
             pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev libasound2-dev cmake \
             libjavascriptcoregtk-4.1-dev libdbus-1-dev libxkbcommon-dev
 
+      # la cache si rifà quando cambia l'immagine del runner: altrimenti CMake
+      # (whisper.cpp) cerca un compilatore che non c'è più (es. MSVC 14.51 → 14.52)
+      - name: Runner image
+        id: image
+        shell: bash
+        run: echo "version=${ImageOS:-os}-${ImageVersion:-0}" >> "$GITHUB_OUTPUT"
+
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ steps.image.outputs.version }}
 
       - name: Swift helpers (macOS)
         if: runner.os == 'macOS'
@@ -64,7 +73,16 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      # la cache si rifà quando cambia l'immagine del runner: altrimenti CMake
+      # (whisper.cpp) cerca un compilatore che non c'è più (es. MSVC 14.51 → 14.52)
+      - name: Runner image
+        id: image
+        shell: bash
+        run: echo "version=${ImageOS:-os}-${ImageVersion:-0}" >> "$GITHUB_OUTPUT"
+
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ steps.image.outputs.version }}
 
       - name: Check
         run: cargo check --locked
