@@ -1391,5 +1391,7 @@
  "non è più in diretta": "no longer live",
  "Mostra la pagina del telefono": "Show the phone's page",
  "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "In the phone app you can turn on «Show live on the computer»: what you write on the phone appears here in a window, as you write it.",
- "⚠ Trascritto da {} perché prima non ha risposto {}. Il ripiego può leggere peggio formule e scrittura: se serve, ripeti «Trascrivi».": "⚠ Transcribed by {} because {} did not answer first. The fallback may read formulas and handwriting less well: if needed, run «Transcribe» again."
+ "⚠ Trascritto da {} perché prima non ha risposto {}. Il ripiego può leggere peggio formule e scrittura: se serve, ripeti «Trascrivi».": "⚠ Transcribed by {} because {} did not answer first. The fallback may read formulas and handwriting less well: if needed, run «Transcribe» again.",
+ "Apponi sul foglio": "Place on the page",
+ "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "The company stamp: create it once, then place it on the board or the document"
 }

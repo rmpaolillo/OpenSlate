@@ -489,12 +489,12 @@ impl App {
                 actions.push(doc(DocAction::InsertSignature));
             }
             let stamps = &self.stampui.list;
-            let r = big_ex(ui, ic::SEAL_CHECK, "Timbro", "Il timbro aziendale: crealo una volta, poi posalo sul documento e rendilo realistico", true, false, true);
+            let r = big_ex(ui, ic::SEAL_CHECK, "Timbro", "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento", true, false, true);
             egui::Popup::menu(&r).show(|ui| {
                 ui.set_min_width(260.0);
                 for (i, t) in stamps.iter().enumerate() {
                     let name = if t.name.trim().is_empty() { t.spec.company.name.as_str() } else { t.name.as_str() };
-                    if menu_item(ui, open, ic::STAMP, name, "") {
+                    if menu_item(ui, true, ic::STAMP, name, "") {
                         actions.push(doc(DocAction::PlaceSeal(i)));
                     }
                 }

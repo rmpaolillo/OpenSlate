@@ -153,7 +153,6 @@ impl App {
         if self.stampui.editor.is_none() {
             return;
         }
-        let can_place = self.docui.doc.is_some();
         let mut open = true;
         let mut close = false;
         let StampUi { list, editor } = &mut self.stampui;
@@ -267,8 +266,7 @@ impl App {
                                 save = true;
                             }
                             if ui
-                                .add_enabled(ok && can_place, egui::Button::new(format!("{} {}", ic::STAMP, tr("Apponi sul documento"))))
-                                .on_disabled_hover_text(tr("Apri prima un documento"))
+                                .add_enabled(ok, egui::Button::new(format!("{} {}", ic::STAMP, tr("Apponi sul foglio"))))
                                 .clicked()
                             {
                                 place = true;
