@@ -16,6 +16,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -321,6 +322,8 @@ class MainActivity : ComponentActivity(), LinkListener {
     /** Timbri aziendali salvati, quello che si sta posando, la finestra dei timbri (su quale). */
     private var stamps by mutableStateOf<List<SavedStamp>>(emptyList())
     private var sealJob by mutableStateOf<SealJob?>(null)
+    /** Le regolazioni del timbro aperte (di solito chiuse: il foglio resta grande per posarlo). */
+    private var sealLook by mutableStateOf(false)
     /** La firma che si sta posando. */
     private var sigJob by mutableStateOf<SigJob?>(null)
     /** Si sta registrando la firma: i tratti del foglio messi da parte. */
@@ -1254,15 +1257,25 @@ class MainActivity : ComponentActivity(), LinkListener {
                 Text(stringResource(R.string.stamp_place_title), Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.titleSmall)
                 Text(stringResource(R.string.stamp_place_hint), Modifier.padding(horizontal = 12.dp, vertical = 2.dp), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) { InkDots(st.color) { c -> style { it.copy(color = c) } } }
-                Box(Modifier.padding(horizontal = 12.dp)) { FrameChips(st.frame) { f -> style { it.copy(frame = f) } } }
-                slider(R.string.stamp_opacity, st.opacity, 0.3f..1f) { v -> style { it.copy(opacity = v) } }
-                slider(R.string.stamp_grain, st.grain, 0f..1f) { v -> style { it.copy(grain = v) } }
-                slider(R.string.stamp_uneven, st.uneven, 0f..1f) { v -> style { it.copy(uneven = v) } }
-                slider(R.string.stamp_tilt, st.tilt, -15f..15f) { v -> style { it.copy(tilt = v) } }
+                // colore, cornice e realismo solo a richiesta, e al più per un pezzo di schermo
+                if (sealLook) {
+                    Column(Modifier.heightIn(max = 220.dp).verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+                        Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) { InkDots(st.color) { c -> style { it.copy(color = c) } } }
+                        Box(Modifier.padding(horizontal = 12.dp)) { FrameChips(st.frame) { f -> style { it.copy(frame = f) } } }
+                        slider(R.string.stamp_opacity, st.opacity, 0.3f..1f) { v -> style { it.copy(opacity = v) } }
+                        slider(R.string.stamp_grain, st.grain, 0f..1f) { v -> style { it.copy(grain = v) } }
+                        slider(R.string.stamp_uneven, st.uneven, 0f..1f) { v -> style { it.copy(uneven = v) } }
+                        slider(R.string.stamp_tilt, st.tilt, -15f..15f) { v -> style { it.copy(tilt = v) } }
+                        TextButton(onClick = { sealEdit(stampReseed(j.spec)) }, Modifier.padding(horizontal = 4.dp)) { Text(stringResource(R.string.stamp_reseed)) }
+                    }
+                }
                 ActionRow {
                     Button(onClick = { sealAccept() }) { Text(stringResource(R.string.stamp_apply)) }
-                    OutlinedButton(onClick = { sealEdit(stampReseed(j.spec)) }) { Text(stringResource(R.string.stamp_reseed)) }
+                    OutlinedButton(onClick = { sealLook = !sealLook }) {
+                        Icon(if (sealLook) Icons.Filled.KeyboardArrowDown else Icons.Filled.Tune, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.stamp_look))
+                    }
                     TextButton(onClick = { sealJob = null }) { Text(stringResource(R.string.cancel)) }
                 }
             }

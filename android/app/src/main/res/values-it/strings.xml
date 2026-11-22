@@ -231,7 +231,7 @@
     <string name="stamp_size">Grandezza vera: %1$.1f × %2$.1f cm. Grana, intensità e inclinazione si regolano dopo averlo posato sul documento.</string>
     <string name="stamp_place">Apponi sul documento</string>
     <string name="stamp_place_title">Timbro aziendale</string>
-    <string name="stamp_place_hint">Tocca o trascina col dito dove vuoi il timbro, tira l\'angolo per la grandezza, rendilo realistico, poi Applica.</string>
+    <string name="stamp_place_hint">Tocca o trascina col dito dove vuoi il timbro, tira l\'angolo per la grandezza, poi Applica.</string>
     <string name="stamp_opacity">Intensità</string>
     <string name="stamp_grain">Grana</string>
     <string name="stamp_uneven">Inchiostro irregolare</string>
@@ -282,4 +282,5 @@
     <string name="reply_copied">Risposta copiata.</string>
     <string name="note_preview">Anteprima</string>
     <string name="note_edit">Modifica</string>
+    <string name="stamp_look">Aspetto</string>
 </resources>

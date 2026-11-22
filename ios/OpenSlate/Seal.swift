@@ -253,24 +253,36 @@ struct StampEditor: View {
 /// La barra mentre si posa un timbro, al posto degli strumenti.
 struct SealBar: View {
     @EnvironmentObject var app: AppModel
+    /// Colore, cornice e realismo: di solito chiusi, così il foglio resta grande per posare il timbro.
+    @State private var look = false
 
     var body: some View {
         if let j = app.sealJob {
             let st = j.spec.style
             VStack(alignment: .leading, spacing: 4) {
                 Text(L("Timbro aziendale", "Company stamp")).font(.subheadline.bold())
-                Text(L("Tocca o trascina col dito dove vuoi il timbro, tira l'angolo per la grandezza, rendilo realistico, poi Applica.",
-                       "Tap or drag where you want the stamp, pull the corner to resize it, make it look real, then Apply."))
+                Text(L("Tocca o trascina col dito dove vuoi il timbro, tira l'angolo per la grandezza, poi Applica.",
+                       "Tap or drag where you want the stamp, pull the corner to resize it, then Apply."))
                     .font(.caption).foregroundStyle(.secondary)
-                InkDots(selected: st.color) { c in var s = j.spec; s.style.color = c; app.sealEdit(s) }
-                FramePicker(selected: st.frame) { f in var s = j.spec; s.style.frame = f; app.sealEdit(s) }
-                slider(L("Intensità", "Intensity"), st.opacity, 0.3...1) { v in var s = j.spec; s.style.opacity = v; app.sealEdit(s) }
-                slider(L("Grana", "Grain"), st.grain, 0...1) { v in var s = j.spec; s.style.grain = v; app.sealEdit(s) }
-                slider(L("Inchiostro irregolare", "Uneven ink"), st.uneven, 0...1) { v in var s = j.spec; s.style.uneven = v; app.sealEdit(s) }
-                slider(L("Inclinazione", "Tilt"), st.tilt, -15...15) { v in var s = j.spec; s.style.tilt = v; app.sealEdit(s) }
+                if look {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 4) {
+                            InkDots(selected: st.color) { c in var s = j.spec; s.style.color = c; app.sealEdit(s) }
+                            FramePicker(selected: st.frame) { f in var s = j.spec; s.style.frame = f; app.sealEdit(s) }
+                            slider(L("Intensità", "Intensity"), st.opacity, 0.3...1) { v in var s = j.spec; s.style.opacity = v; app.sealEdit(s) }
+                            slider(L("Grana", "Grain"), st.grain, 0...1) { v in var s = j.spec; s.style.grain = v; app.sealEdit(s) }
+                            slider(L("Inchiostro irregolare", "Uneven ink"), st.uneven, 0...1) { v in var s = j.spec; s.style.uneven = v; app.sealEdit(s) }
+                            slider(L("Inclinazione", "Tilt"), st.tilt, -15...15) { v in var s = j.spec; s.style.tilt = v; app.sealEdit(s) }
+                            Button(L("Nuova grana", "New grain")) { app.sealEdit(stampReseed(spec: j.spec)) }.buttonStyle(.borderless)
+                        }
+                    }
+                    .frame(maxHeight: 220)
+                }
                 HStack {
                     Button(L("Applica", "Apply")) { app.sealAccept() }.buttonStyle(.borderedProminent)
-                    Button(L("Nuova grana", "New grain")) { app.sealEdit(stampReseed(spec: j.spec)) }.buttonStyle(.bordered)
+                    Button { look.toggle() } label: {
+                        Label(L("Aspetto", "Look"), systemImage: look ? "chevron.down" : "slider.horizontal.3")
+                    }.buttonStyle(.bordered)
                     Spacer()
                     Button(L("Annulla", "Cancel"), role: .cancel) { app.sealJob = nil }
                 }

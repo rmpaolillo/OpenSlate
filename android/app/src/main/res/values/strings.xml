@@ -234,7 +234,7 @@
     <string name="stamp_size">Real size: %1$.1f × %2$.1f cm. Grain, opacity and tilt are adjusted after placing it on the document.</string>
     <string name="stamp_place">Place on the document</string>
     <string name="stamp_place_title">Company stamp</string>
-    <string name="stamp_place_hint">Tap or drag where you want the stamp, pull the corner to resize it, make it look real, then Apply.</string>
+    <string name="stamp_place_hint">Tap or drag where you want the stamp, pull the corner to resize it, then Apply.</string>
     <string name="stamp_opacity">Intensity</string>
     <string name="stamp_grain">Grain</string>
     <string name="stamp_uneven">Uneven ink</string>
@@ -285,4 +285,5 @@
     <string name="reply_copied">Reply copied.</string>
     <string name="note_preview">Preview</string>
     <string name="note_edit">Edit</string>
+    <string name="stamp_look">Look</string>
 </resources>
