@@ -8,7 +8,7 @@ struct SigJob {
 }
 
 /// La firma registrata, come sulla desktop (stesso file, si sincronizza):
-/// si registra una volta scrivendo sul foglio, poi si posa sui documenti.
+/// si registra una volta scrivendo sul foglio, poi si posa sui documenti o sulla lavagna.
 extension AppModel {
     func sigCaptureStart() {
         if let d = doc { keepDoc(d) }
@@ -33,12 +33,12 @@ extension AppModel {
         }
         sigCapture = nil
         if let d = doc { d.show(d.index, board) } else { board.openStrokes(stash) }
-        if save && doc != nil { sigStart() }
+        // appena registrata la si posa, sul documento o sulla lavagna
+        if save { sigStart() }
     }
 
     /// Posa la firma registrata: compare a grandezza naturale in basso a destra, poi si sposta.
     func sigStart() {
-        guard doc != nil else { return }
         let rect = sigNaturalRect(dataDir: dataDir, view: view, cu: 0.68, cv: 0.84)
         guard rect.count == 4 else { show(L("Nessuna firma: prima registrala.", "No signature yet: record it first.")); return }
         // l'anteprima larga 600 px: il foglio visto, in quei pixel, è alto così

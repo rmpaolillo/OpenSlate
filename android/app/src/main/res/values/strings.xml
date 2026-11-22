@@ -232,7 +232,7 @@
     <string name="stamp_red">Red</string>
     <string name="stamp_violet">Violet</string>
     <string name="stamp_size">Real size: %1$.1f × %2$.1f cm. Grain, opacity and tilt are adjusted after placing it on the document.</string>
-    <string name="stamp_place">Place on the document</string>
+    <string name="stamp_place">Place on the page</string>
     <string name="stamp_place_title">Company stamp</string>
     <string name="stamp_place_hint">Tap or drag where you want the stamp, pull the corner to resize it, then Apply.</string>
     <string name="stamp_opacity">Intensity</string>

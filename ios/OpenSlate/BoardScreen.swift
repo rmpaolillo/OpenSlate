@@ -465,6 +465,7 @@ struct BoardScreen: View {
     @State private var shareURL: URL?
     @State private var choosingMore = false
     @State private var note: NoteItem?
+    @State private var editingStamps: DocBar.EditStamps?
 
     var body: some View {
         let d = app.doc
@@ -506,6 +507,7 @@ struct BoardScreen: View {
             }
         }
         .sheet(item: $note) { n in NoteScreen(item: n) }
+        .sheet(item: $editingStamps) { e in StampEditor(sel: e.sel).environmentObject(app) }
     }
 
     /// La lavagna com'è adesso negli appunti, come immagine.
@@ -555,6 +557,26 @@ struct BoardScreen: View {
                         .disabled(board.isEmpty || app.doc != nil)
                     Button { app.startNeat(.rules) } label: { Label(L("Disponi sulle righe", "Arrange on lines"), systemImage: "text.alignleft") }
                         .disabled(board.isEmpty || app.doc != nil || !paperHasRows(paper: app.paperCode))
+                }
+                // firma e timbro sulla lavagna (sul documento stanno nella sua barra)
+                if app.doc == nil {
+                    let placing = app.sealJob != nil || app.sigJob != nil || app.sigCapture != nil
+                    Section(L("Firma e timbro", "Signature and stamp")) {
+                        Button { app.sigStart() } label: { Label(L("Inserisci la firma", "Insert the signature"), systemImage: "signature") }
+                            .disabled(placing || !sigExists(dataDir: app.dataDir))
+                        Button { app.sigCaptureStart() } label: { Label(L("Registra la firma…", "Record the signature…"), systemImage: "pencil.and.scribble") }
+                            .disabled(placing)
+                        Menu {
+                            ForEach(Array(app.stamps.enumerated()), id: \.offset) { i, s in
+                                Button { app.startSeal(i) } label: { Label(s.name.isEmpty ? s.spec.company.name : s.name, systemImage: "seal") }
+                            }
+                            Divider()
+                            Button { editingStamps = DocBar.EditStamps(sel: app.stamps.isEmpty ? nil : 0) } label: {
+                                Label(app.stamps.isEmpty ? L("Crea un timbro…", "Create a stamp…") : L("Crea o modifica i timbri…", "Create or edit stamps…"), systemImage: "pencil")
+                            }
+                        } label: { Label(L("Timbro", "Stamp"), systemImage: "seal") }
+                        .disabled(placing)
+                    }
                 }
                 Section(L("Condividi", "Share")) {
                     if app.doc == nil && app.paperCode != "bianco" {

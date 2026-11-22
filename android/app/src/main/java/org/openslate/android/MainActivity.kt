@@ -975,6 +975,16 @@ class MainActivity : ComponentActivity(), LinkListener {
                             enabled = !empty && d == null, onClick = { pageMenu = false; startNeat(NeatKind.FAIR) })
                         DropdownMenuItem(text = { Text(stringResource(R.string.neat_rules)) }, leadingIcon = { Icon(Icons.Filled.FormatAlignLeft, null) },
                             enabled = !empty && d == null && paperHasRows(paperCode), onClick = { pageMenu = false; startNeat(NeatKind.RULES) })
+                        // firma e timbro sulla lavagna (sul documento stanno nella sua barra)
+                        if (d == null) {
+                            val placing = sealJob != null || sigJob != null || sigCapture != null
+                            DropdownMenuItem(text = { Text(stringResource(R.string.sig_insert)) }, leadingIcon = { Icon(Icons.Filled.HistoryEdu, null) },
+                                enabled = !placing && sigExists(filesDir.path), onClick = { pageMenu = false; sigStart() })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.sig_record)) }, leadingIcon = { Icon(Icons.Filled.Draw, null) },
+                                enabled = !placing, onClick = { pageMenu = false; sigCaptureStart() })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.stamp) + "…") }, leadingIcon = { Icon(Icons.Filled.Approval, null) },
+                                enabled = !placing, onClick = { pageMenu = false; openStampDialog(if (stamps.isEmpty()) null else 0) })
+                        }
                         HorizontalDivider()
                         MenuHeader(stringResource(R.string.grp_share))
                         if (d == null && paperCode != "bianco") {
@@ -1091,7 +1101,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         if (sigCapture != null) BackHandler { sigCaptureEnd(save = false) }
         if (stampDialogOpen) {
             StampDialog(
-                stamps, stampDialog, canPlace = doc != null,
+                stamps, stampDialog, canPlace = true,
                 onSave = { sel, s -> saveStamp(sel, s) },
                 onDelete = { i -> deleteStamp(i) },
                 onPlace = { i -> stampDialogOpen = false; startSeal(i) },
@@ -1124,12 +1134,12 @@ class MainActivity : ComponentActivity(), LinkListener {
         sigCapture = null
         val d = doc
         if (d != null) d.show(d.index, board) else board.openStrokes(stash)
-        if (save && d != null) sigStart()
+        // appena registrata la si posa, sul documento o sulla lavagna
+        if (save) sigStart()
     }
 
     /** Posa la firma registrata: compare a grandezza naturale in basso a destra, poi si sposta. */
     private fun sigStart() {
-        if (doc == null) return
         val rect = sigNaturalRect(filesDir.path, view(), 0.68f, 0.84f)
         if (rect.size < 4) {
             toast(getString(R.string.sig_none))
@@ -1213,7 +1223,6 @@ class MainActivity : ComponentActivity(), LinkListener {
     /** Posa il timbro n. `i`: compare a grandezza naturale, poi si regola. */
     private fun startSeal(i: Int) {
         val st = stamps.getOrNull(i) ?: return
-        if (doc == null) return
         sealJob = SealJob(st.spec, i, stampNaturalRect(st.spec, view(), 0.3f, 0.84f))
     }
 

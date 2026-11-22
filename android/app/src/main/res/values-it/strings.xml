@@ -229,7 +229,7 @@
     <string name="stamp_red">Rosso</string>
     <string name="stamp_violet">Viola</string>
     <string name="stamp_size">Grandezza vera: %1$.1f × %2$.1f cm. Grana, intensità e inclinazione si regolano dopo averlo posato sul documento.</string>
-    <string name="stamp_place">Apponi sul documento</string>
+    <string name="stamp_place">Apponi sul foglio</string>
     <string name="stamp_place_title">Timbro aziendale</string>
     <string name="stamp_place_hint">Tocca o trascina col dito dove vuoi il timbro, tira l\'angolo per la grandezza, poi Applica.</string>
     <string name="stamp_opacity">Intensità</string>

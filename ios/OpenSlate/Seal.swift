@@ -140,7 +140,7 @@ extension AppModel {
 
     /// Posa il timbro n. `i`: compare a grandezza naturale, poi si regola.
     func startSeal(_ i: Int) {
-        guard doc != nil, stamps.indices.contains(i) else { return }
+        guard stamps.indices.contains(i) else { return }
         let spec = stamps[i].spec
         eraserOn = false
         applyTools()
@@ -220,11 +220,11 @@ struct StampEditor: View {
                 Section {
                     let ok = !draft.spec.company.name.trimmingCharacters(in: .whitespaces).isEmpty
                     Button(L("Salva", "Save")) { sel = app.saveStamp(sel, draft) }.disabled(!ok)
-                    Button(L("Apponi sul documento", "Place on the document")) {
+                    Button(L("Apponi sul foglio", "Place on the page")) {
                         let i = app.saveStamp(sel, draft)
                         dismiss()
                         app.startSeal(i)
-                    }.disabled(!ok || app.doc == nil)
+                    }.disabled(!ok)
                     if let i = sel {
                         Button(L("Elimina", "Delete"), role: .destructive) { app.deleteStamp(i); sel = nil; draft = stampNew() }
                     }
