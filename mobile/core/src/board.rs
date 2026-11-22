@@ -90,6 +90,7 @@ fn to_event(p: &PenPoint) -> PenEvent {
             Phase::Move => PenPhase::Move,
             Phase::Up => PenPhase::Up,
             Phase::Hover => PenPhase::Hover,
+            Phase::Away => PenPhase::Away,
         },
     }
 }
@@ -104,6 +105,7 @@ fn to_point(e: &PenEvent) -> PenPoint {
             PenPhase::Move => Phase::Move,
             PenPhase::Up => Phase::Up,
             PenPhase::Hover => Phase::Hover,
+            PenPhase::Away => Phase::Away,
         },
     }
 }
@@ -183,7 +185,7 @@ impl Inner {
                     out.push(DrawOp::Up { point: to_point(&ev) });
                 }
             }
-            PenPhase::Hover => {}
+            PenPhase::Hover | PenPhase::Away => {}
         }
     }
 

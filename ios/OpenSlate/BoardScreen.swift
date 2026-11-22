@@ -42,6 +42,64 @@ final class SheetUIView: UIView {
     }
     private var penTouch: UITouch?
 
+    /// Dov'è la penna dello Slate (anche in aria): un pallino sottile e, mentre
+    /// scrive, la pressione in piccolo accanto. Sono due livelli sopra il
+    /// foglio: si spostano senza ridisegnarlo.
+    var tip: PenPoint? { didSet { placeTip() } }
+    private lazy var tipRing: CAShapeLayer = {
+        let l = CAShapeLayer()
+        let r: CGFloat = 4.5
+        l.path = UIBezierPath(ovalIn: CGRect(x: -r, y: -r, width: 2 * r, height: 2 * r)).cgPath
+        l.fillColor = nil
+        l.strokeColor = UIColor(white: 0.24, alpha: 0.6).cgColor
+        l.lineWidth = 1
+        l.isHidden = true
+        layer.addSublayer(l)
+        return l
+    }()
+    private lazy var tipText: CATextLayer = {
+        let l = CATextLayer()
+        l.font = UIFont.systemFont(ofSize: 9, weight: .light)
+        l.fontSize = 9
+        l.foregroundColor = UIColor(white: 0.35, alpha: 0.67).cgColor
+        l.contentsScale = UIScreen.main.scale
+        l.anchorPoint = CGPoint(x: 0, y: 1)
+        l.bounds = CGRect(x: 0, y: 0, width: 32, height: 11)
+        l.isHidden = true
+        layer.addSublayer(l)
+        return l
+    }()
+
+    private func placeTip() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+        guard let p = tip else {
+            tipRing.isHidden = true
+            tipText.isHidden = true
+            return
+        }
+        let (k, ox, oy, _, _) = fit()
+        // dal pad al foglio girato (l'inverso di `toPad`)
+        let (x, y): (Float, Float)
+        switch quarter {
+        case 0: (x, y) = (p.x, p.y)
+        case 1: (x, y) = (padH - p.y, p.x)
+        case 2: (x, y) = (padW - p.x, padH - p.y)
+        default: (x, y) = (p.y, padW - p.x)
+        }
+        let at = CGPoint(x: offset.x + (ox + CGFloat(x) * k) * zoom, y: offset.y + (oy + CGFloat(y) * k) * zoom)
+        tipRing.position = at
+        tipRing.isHidden = false
+        if p.pressure > 0 {
+            tipText.string = "\(min(max(Int((p.pressure * 100).rounded()), 1), 100))%"
+            tipText.position = CGPoint(x: at.x + 7, y: at.y - 4)
+            tipText.isHidden = false
+        } else {
+            tipText.isHidden = true
+        }
+    }
+
     private var zoom: CGFloat = 1
     private var offset = CGPoint.zero
     private var marks: [PaperMark] = []
@@ -237,6 +295,8 @@ final class SheetUIView: UIView {
     }
 
     override func draw(_ rect: CGRect) {
+        // il foglio si è spostato o ingrandito: il pallino lo segue
+        defer { placeTip() }
         guard let c = UIGraphicsGetCurrentContext() else { return }
         let (_, ox, oy, pw, ph) = fit()
         let (rw, rh) = Ink.rotated(padW, padH, quarter)
@@ -330,6 +390,8 @@ struct Sheet: UIViewRepresentable {
     var onSealRect: (([Float]) -> Void)?
     var onPen: (([PenPoint]) -> Void)?
     var touchPen = false
+    /// Di chi è la punta della penna da mostrare (lo Slate della lavagna).
+    var tipOf: Board?
 
     func makeUIView(context: Context) -> SheetUIView { SheetUIView() }
 
@@ -355,6 +417,7 @@ struct Sheet: UIViewRepresentable {
         if v.sealArt !== sealArt { v.sealArt = sealArt }
         v.strokes = strokes
         v.refreshGestures()
+        if let b = tipOf, b.tipView !== v { b.tipView = v }
     }
 }
 
@@ -389,7 +452,8 @@ struct BoardScreen: View {
                   sealArt: app.sigJob?.art,
                   onSealRect: { r in if app.sealJob != nil { app.sealJob?.rect = r } else { app.sigJob?.rect = r } },
                   onPen: app.screenPen ? { pts in board.pen(pts) } : nil,
-                  touchPen: app.touchPen)
+                  touchPen: app.touchPen,
+                  tipOf: board)
             if app.sealJob != nil { SealBar() }
             else if app.sigJob != nil { SigBar() }
             else if app.sigCapture != nil { SigCaptureBar(board: board) }

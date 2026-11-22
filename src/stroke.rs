@@ -14,6 +14,8 @@ pub enum PenPhase {
     Up,
     /// La penna è vicina ma non tocca (hover): non disegna.
     Hover,
+    /// La penna si è allontanata dal pad (non è più vicina): non disegna.
+    Away,
 }
 
 /// Un singolo campione penna in coordinate del pad.

@@ -4,6 +4,7 @@
 //! Formato (caratteristica LIVE 0x1524):
 //!   `a2 len <timestamp>`   la penna entra in prossimità
 //!   `a1 len <punti…>`      punti da 6 byte: x u16 LE, y u16 LE, pressione u16 LE
+//!                          (pressione 0 = la penna è in aria, vicina al pad)
 //!                          `ff ff ff ff ff ff` = la penna esce dalla prossimità
 //!   `10 …`                 pressione/pulsanti (ignorato)
 //! Le coordinate sono in punti del pad; la pressione arriva a 2047 (Slate).
@@ -61,6 +62,9 @@ impl LiveDecoder {
                 for chunk in raw[2..end].chunks_exact(POINT_SIZE) {
                     if chunk == [0xff; POINT_SIZE] {
                         self.lift(&mut out); // penna fuori prossimità
+                        if let Some((x, y)) = self.last {
+                            out.push(PenEvent { x, y, pressure: 0.0, phase: PenPhase::Away });
+                        }
                         continue;
                     }
                     let x = u16::from_le_bytes([chunk[0], chunk[1]]) as f32;
@@ -87,7 +91,13 @@ impl LiveDecoder {
                             pressure: 0.0,
                             phase: PenPhase::Up,
                         }),
-                        (false, false) => {} // in aria: niente
+                        // in aria, vicina al pad: non scrive, ma si vede dov'è
+                        (false, false) => out.push(PenEvent {
+                            x,
+                            y,
+                            pressure: 0.0,
+                            phase: PenPhase::Hover,
+                        }),
                     }
                     self.was_down = is_down;
                     self.last = Some((x, y));
@@ -107,9 +117,25 @@ mod tests {
     fn ff_chiude_il_tratto_senza_punti_fantasma() {
         let mut d = LiveDecoder::new();
         let ev = d.decode(&[0xa1, 0x0c, 0x10, 0x00, 0x20, 0x00, 0x05, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]);
-        assert_eq!(ev.len(), 2);
+        assert_eq!(ev.len(), 3);
         assert_eq!(ev[0].phase, PenPhase::Down);
         assert_eq!(ev[1].phase, PenPhase::Up);
         assert_eq!((ev[1].x, ev[1].y), (16.0, 32.0)); // nessun punto a 65535
+        // e poi la penna si allontana, sempre dall'ultimo punto vero
+        assert_eq!(ev[2].phase, PenPhase::Away);
+        assert_eq!((ev[2].x, ev[2].y), (16.0, 32.0));
+    }
+
+    #[test]
+    fn la_penna_in_aria_si_vede() {
+        let mut d = LiveDecoder::new();
+        // in aria (pressione 0), poi giù, poi di nuovo in aria
+        let ev = d.decode(&[0xa1, 0x12, 0x10, 0x00, 0x20, 0x00, 0x00, 0x00, 0x11, 0x00, 0x21, 0x00, 0xff, 0x03, 0x12, 0x00, 0x22, 0x00, 0x00, 0x00]);
+        let phases: Vec<PenPhase> = ev.iter().map(|e| e.phase).collect();
+        assert_eq!(phases, [PenPhase::Hover, PenPhase::Down, PenPhase::Up]);
+        assert!((ev[1].pressure - 1023.0 / PRESSURE_MAX).abs() < 1e-6);
+        let ev = d.decode(&[0xa1, 0x06, 0x13, 0x00, 0x23, 0x00, 0x00, 0x00]);
+        assert_eq!(ev[0].phase, PenPhase::Hover);
+        assert_eq!((ev[0].x, ev[0].y), (19.0, 35.0));
     }
 }

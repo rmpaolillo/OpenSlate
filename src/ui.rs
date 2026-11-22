@@ -589,6 +589,26 @@ pub(super) struct BgImage {
     pub detail: Option<(egui::TextureId, [f32; 4], f32)>,
 }
 
+/// La punta della penna dello Slate sul foglio: un pallino sottile (anche
+/// con la penna in aria, vicina al pad) e, mentre scrive, la pressione in
+/// piccolo accanto («50%»).
+fn paint_tip(painter: &egui::Painter, page: egui::Rect, g: &PageGeom, tip: crate::scene::Tip) {
+    let (u, v) = g.unit(tip.x, tip.y);
+    let p = egui::pos2(page.left() + u * page.width(), page.top() + v * page.height());
+    let ink = egui::Color32::from_rgba_unmultiplied(60, 60, 60, 150);
+    painter.circle_stroke(p, 4.5, egui::Stroke::new(1.0, ink));
+    if tip.pressure > 0.0 {
+        let pct = (tip.pressure * 100.0).round().clamp(1.0, 100.0);
+        painter.text(
+            p + egui::vec2(7.0, -6.0),
+            egui::Align2::LEFT_BOTTOM,
+            format!("{pct:.0}%"),
+            egui::FontId::proportional(9.0),
+            egui::Color32::from_rgba_unmultiplied(90, 90, 90, 170),
+        );
+    }
+}
+
 fn paint_page(
     painter: &egui::Painter,
     rect: egui::Rect,
@@ -2374,7 +2394,11 @@ impl App {
                 self.paint_doc_overlay(&painter, page, &scene);
                 {
                     let (pw, ph) = crate::scene::page_dims(&scene.drawing);
-                    self.fair_paint(&painter, page, &PageGeom::new(scene.view, pw, ph));
+                    let g = PageGeom::new(scene.view, pw, ph);
+                    self.fair_paint(&painter, page, &g);
+                    if let Some(tip) = scene.tip_now() {
+                        paint_tip(&painter.with_clip_rect(page), page, &g, tip);
+                    }
                 }
                 // Alt + passaggio del mouse: segna l'evidenziatura; Alt+clic la toglie.
                 if ui.input(|i| i.modifiers.alt) {

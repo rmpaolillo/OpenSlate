@@ -2,6 +2,7 @@ package org.openslate.android
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
+import kotlin.math.roundToInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -128,6 +129,9 @@ fun Sheet(
     pen: ((List<PenPoint>) -> Unit)? = null,
     /** Con la penna sullo schermo scrive anche un dito (o una penna passiva). */
     touchPen: Boolean = false,
+    /** Dov'è la penna dello Slate (anche in aria): un pallino e, mentre scrive, la pressione. Si legge solo
+     *  disegnando, così a ogni movimento si ridisegna il pallino e non tutto il foglio. */
+    tip: () -> PenPoint? = { null },
 ) {
     var zoom by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -171,254 +175,280 @@ fun Sheet(
         val v = ((p.y - offset.y) / zoom - oy) / (rh * k)
         return Offset(u.coerceIn(0f, 1f), v.coerceIn(0f, 1f))
     }
-    Canvas(
-        Modifier
-            .fillMaxSize()
-            .background(Color(0xFFE6E6E6))
-            .clipToBounds()
-            // la misura si prende qui: scriverla mentre si disegna ridisegnerebbe all'infinito
-            .onSizeChanged { canvasSize = Size(it.width.toFloat(), it.height.toFloat()) }
-            .pointerInput(Unit) {
-                detectTapGestures(onDoubleTap = {
-                    zoom = 1f
-                    offset = Offset.Zero
-                })
-            }
-            .pointerInput(quarter, padW, padH) {
-                awaitEachGesture {
-                    val first = awaitFirstDown(requireUnconsumed = false)
-                    // la penna scrive sul foglio come lo Slate; le dita spostano e ingrandiscono.
-                    // Con `touchPen` scrive anche un dito (o una penna passiva, che il telefono
-                    // vede come un dito): due dita restano zoom e spostamento.
-                    val penOut = currentPen
-                    val stylus = first.type == PointerType.Stylus
-                    if (penOut != null && (stylus || currentTouchPen) && currentZone == null && currentSeal == null) {
-                        fun pt(at: Offset, pressure: Float, phase: Phase): PenPoint {
-                            val q = toPad(at)
-                            // il dito non ha una pressione vera: metà corsa
-                            return PenPoint(q.x, q.y, if (stylus) pressure.coerceIn(0f, 1f) else 0.5f, phase)
+    Box(Modifier.fillMaxSize()) {
+        Canvas(
+            Modifier
+                .fillMaxSize()
+                .background(Color(0xFFE6E6E6))
+                .clipToBounds()
+                // la misura si prende qui: scriverla mentre si disegna ridisegnerebbe all'infinito
+                .onSizeChanged { canvasSize = Size(it.width.toFloat(), it.height.toFloat()) }
+                .pointerInput(Unit) {
+                    detectTapGestures(onDoubleTap = {
+                        zoom = 1f
+                        offset = Offset.Zero
+                    })
+                }
+                .pointerInput(quarter, padW, padH) {
+                    awaitEachGesture {
+                        val first = awaitFirstDown(requireUnconsumed = false)
+                        // la penna scrive sul foglio come lo Slate; le dita spostano e ingrandiscono.
+                        // Con `touchPen` scrive anche un dito (o una penna passiva, che il telefono
+                        // vede come un dito): due dita restano zoom e spostamento.
+                        val penOut = currentPen
+                        val stylus = first.type == PointerType.Stylus
+                        if (penOut != null && (stylus || currentTouchPen) && currentZone == null && currentSeal == null) {
+                            fun pt(at: Offset, pressure: Float, phase: Phase): PenPoint {
+                                val q = toPad(at)
+                                // il dito non ha una pressione vera: metà corsa
+                                return PenPoint(q.x, q.y, if (stylus) pressure.coerceIn(0f, 1f) else 0.5f, phase)
+                            }
+                            // col dito si aspetta un attimo: se arriva un secondo dito è uno zoom
+                            val held = mutableListOf(pt(first.position, first.pressure, Phase.DOWN))
+                            var writing = stylus
+                            if (writing) { penOut(held.toList()); held.clear() }
+                            first.consume()
+                            var at = first.position
+                            var gesture = false
+                            while (true) {
+                                val ev = awaitPointerEvent()
+                                if (!writing && ev.changes.count { it.pressed } >= 2) { gesture = true; break }
+                                val c = ev.changes.firstOrNull { it.id == first.id }
+                                if (c == null || !c.pressed) {
+                                    if (held.isNotEmpty()) penOut(held.toList())
+                                    penOut(listOf(pt(at, 0f, Phase.UP)))
+                                    c?.consume()
+                                    break
+                                }
+                                // i punti intermedi che Android raccoglie tra un fotogramma e l'altro
+                                val pts = c.historical.map { pt(it.position, c.pressure, Phase.MOVE) } + pt(c.position, c.pressure, Phase.MOVE)
+                                if (writing) {
+                                    penOut(pts)
+                                } else {
+                                    held += pts
+                                    if ((c.position - first.position).getDistance() > 10f * density || c.uptimeMillis - first.uptimeMillis > 120) {
+                                        writing = true
+                                        penOut(held.toList())
+                                        held.clear()
+                                    }
+                                }
+                                at = c.position
+                                c.consume()
+                            }
+                            if (!gesture) return@awaitEachGesture
                         }
-                        // col dito si aspetta un attimo: se arriva un secondo dito è uno zoom
-                        val held = mutableListOf(pt(first.position, first.pressure, Phase.DOWN))
-                        var writing = stylus
-                        if (writing) { penOut(held.toList()); held.clear() }
-                        first.consume()
-                        var at = first.position
-                        var gesture = false
+                        var last = first.position
+                        var fingers = 1
+                        var erased = false
+                        val zoneStart = currentZone?.let { toUnit(first.position) }
+                        var zoneRect: FloatArray? = null
+                        // il timbro: preso nel riquadro (sposta) o sull'angolo (grandezza)
+                        val sealMode = currentSeal?.let { sp ->
+                            val (k, ox, oy) = fit(canvasSize)
+                            val (pw, ph) = rw * k to rh * k
+                            val r = sp.rect
+                            val l = offset.x + (ox + r[0] * pw) * zoom
+                            val t = offset.y + (oy + r[1] * ph) * zoom
+                            val rr = offset.x + (ox + (r[0] + r[2]) * pw) * zoom
+                            val b = offset.y + (oy + (r[1] + r[3]) * ph) * zoom
+                            val p = first.position
+                            val grip = 28f * density
+                            when {
+                                kotlin.math.abs(p.x - rr) < grip && kotlin.math.abs(p.y - b) < grip -> 2
+                                p.x in l - 8f..rr + 8f && p.y in t - 8f..b + 8f -> 1
+                                else -> 0
+                            }
+                        } ?: 0
                         while (true) {
                             val ev = awaitPointerEvent()
-                            if (!writing && ev.changes.count { it.pressed } >= 2) { gesture = true; break }
-                            val c = ev.changes.firstOrNull { it.id == first.id }
-                            if (c == null || !c.pressed) {
-                                if (held.isNotEmpty()) penOut(held.toList())
-                                penOut(listOf(pt(at, 0f, Phase.UP)))
-                                c?.consume()
-                                break
+                            val down = ev.changes.filter { it.pressed }
+                            if (down.isEmpty()) break
+                            if (down.size != fingers) {
+                                // cambia il numero di dita: si riparte da qui, senza salti
+                                fingers = down.size
+                                last = down[0].position
+                                continue
                             }
-                            // i punti intermedi che Android raccoglie tra un fotogramma e l'altro
-                            val pts = c.historical.map { pt(it.position, c.pressure, Phase.MOVE) } + pt(c.position, c.pressure, Phase.MOVE)
-                            if (writing) {
-                                penOut(pts)
+                            if (down.size >= 2) {
+                                val z = (zoom * ev.calculateZoom()).coerceIn(1f, 8f)
+                                val c = ev.calculateCentroid()
+                                offset = c - (c - offset) * (z / zoom) + ev.calculatePan()
+                                zoom = z
+                                if (zoom == 1f) offset = Offset.Zero
+                                ev.changes.forEach { it.consume() }
                             } else {
-                                held += pts
-                                if ((c.position - first.position).getDistance() > 10f * density || c.uptimeMillis - first.uptimeMillis > 120) {
-                                    writing = true
-                                    penOut(held.toList())
-                                    held.clear()
+                                val p = down[0].position
+                                val er = currentEraser
+                                val zs = currentZone
+                                val sp = currentSeal
+                                if (sp != null && sealMode != 0) {
+                                    val (k, _, _) = fit(canvasSize)
+                                    val du = (p.x - last.x) / (rw * k * zoom)
+                                    val dv = (p.y - last.y) / (rh * k * zoom)
+                                    val r = sp.rect
+                                    if (sealMode == 1) {
+                                        sp.onRect(listOf(r[0] + du, r[1] + dv, r[2], r[3]))
+                                    } else {
+                                        val f = ((r[2] + du) / r[2]).coerceIn(0.5f, 2f)
+                                        if (r[2] * f > 0.03f && r[2] * f < 1.2f) sp.onRect(listOf(r[0], r[1], r[2] * f, r[3] * f))
+                                    }
+                                    down[0].consume()
+                                } else if (zs != null && zoneStart != null) {
+                                    val b = toUnit(p)
+                                    zoneRect = floatArrayOf(min(zoneStart.x, b.x), min(zoneStart.y, b.y), maxOf(zoneStart.x, b.x), maxOf(zoneStart.y, b.y))
+                                    zs.onDrag(zoneRect)
+                                    down[0].consume()
+                                } else if (er != null) {
+                                    val a = toPad(last)
+                                    val b = toPad(p)
+                                    val (k, _, _) = fit(canvasSize)
+                                    er.erase(a.x, a.y, b.x, b.y, 14f * density / (k * zoom), rh)
+                                    erased = true
+                                    down[0].consume()
+                                } else if (zoom > 1f) {
+                                    offset += p - last
+                                    down[0].consume()
                                 }
+                                last = p
                             }
-                            at = c.position
-                            c.consume()
                         }
-                        if (!gesture) return@awaitEachGesture
-                    }
-                    var last = first.position
-                    var fingers = 1
-                    var erased = false
-                    val zoneStart = currentZone?.let { toUnit(first.position) }
-                    var zoneRect: FloatArray? = null
-                    // il timbro: preso nel riquadro (sposta) o sull'angolo (grandezza)
-                    val sealMode = currentSeal?.let { sp ->
-                        val (k, ox, oy) = fit(canvasSize)
-                        val (pw, ph) = rw * k to rh * k
-                        val r = sp.rect
-                        val l = offset.x + (ox + r[0] * pw) * zoom
-                        val t = offset.y + (oy + r[1] * ph) * zoom
-                        val rr = offset.x + (ox + (r[0] + r[2]) * pw) * zoom
-                        val b = offset.y + (oy + (r[1] + r[3]) * ph) * zoom
-                        val p = first.position
-                        val grip = 28f * density
-                        when {
-                            kotlin.math.abs(p.x - rr) < grip && kotlin.math.abs(p.y - b) < grip -> 2
-                            p.x in l - 8f..rr + 8f && p.y in t - 8f..b + 8f -> 1
-                            else -> 0
-                        }
-                    } ?: 0
-                    while (true) {
-                        val ev = awaitPointerEvent()
-                        val down = ev.changes.filter { it.pressed }
-                        if (down.isEmpty()) break
-                        if (down.size != fingers) {
-                            // cambia il numero di dita: si riparte da qui, senza salti
-                            fingers = down.size
-                            last = down[0].position
-                            continue
-                        }
-                        if (down.size >= 2) {
-                            val z = (zoom * ev.calculateZoom()).coerceIn(1f, 8f)
-                            val c = ev.calculateCentroid()
-                            offset = c - (c - offset) * (z / zoom) + ev.calculatePan()
-                            zoom = z
-                            if (zoom == 1f) offset = Offset.Zero
-                            ev.changes.forEach { it.consume() }
-                        } else {
-                            val p = down[0].position
-                            val er = currentEraser
-                            val zs = currentZone
-                            val sp = currentSeal
-                            if (sp != null && sealMode != 0) {
-                                val (k, _, _) = fit(canvasSize)
-                                val du = (p.x - last.x) / (rw * k * zoom)
-                                val dv = (p.y - last.y) / (rh * k * zoom)
-                                val r = sp.rect
-                                if (sealMode == 1) {
-                                    sp.onRect(listOf(r[0] + du, r[1] + dv, r[2], r[3]))
-                                } else {
-                                    val f = ((r[2] + du) / r[2]).coerceIn(0.5f, 2f)
-                                    if (r[2] * f > 0.03f && r[2] * f < 1.2f) sp.onRect(listOf(r[0], r[1], r[2] * f, r[3] * f))
-                                }
-                                down[0].consume()
-                            } else if (zs != null && zoneStart != null) {
-                                val b = toUnit(p)
-                                zoneRect = floatArrayOf(min(zoneStart.x, b.x), min(zoneStart.y, b.y), maxOf(zoneStart.x, b.x), maxOf(zoneStart.y, b.y))
-                                zs.onDrag(zoneRect)
-                                down[0].consume()
-                            } else if (er != null) {
-                                val a = toPad(last)
-                                val b = toPad(p)
-                                val (k, _, _) = fit(canvasSize)
-                                er.erase(a.x, a.y, b.x, b.y, 14f * density / (k * zoom), rh)
-                                erased = true
-                                down[0].consume()
-                            } else if (zoom > 1f) {
-                                offset += p - last
-                                down[0].consume()
-                            }
-                            last = p
+                        if (erased) currentEraser?.end()
+                        currentZone?.let { zs ->
+                            val r = zoneRect
+                            if (r != null && r[2] - r[0] > 0.01f && r[3] - r[1] > 0.01f) zs.onZone(r) else zs.onDrag(null)
                         }
                     }
-                    if (erased) currentEraser?.end()
-                    currentZone?.let { zs ->
-                        val r = zoneRect
-                        if (r != null && r[2] - r[0] > 0.01f && r[3] - r[1] > 0.01f) zs.onZone(r) else zs.onDrag(null)
-                    }
-                }
-            },
-    ) {
-        version // si ridisegna a ogni cambiamento
-        val (k, ox, oy) = fit(size)
-        val pw = rw * k
-        val ph = rh * k
-        // il foglio bianco
-        translate(offset.x, offset.y) {
-            scale(zoom, Offset.Zero) {
-                drawRect(Color.White, Offset(ox, oy), Size(pw, ph))
-            }
-        }
-        // la rigatura a spessore fisso, sopra il bianco e sotto i tratti
-        if (marks.isNotEmpty()) {
-            val kind = PaperDraw.kind(paper!!.code)
-            drawIntoCanvas {
-                val c = it.nativeCanvas
-                c.save()
-                c.clipRect(offset.x + ox * zoom, offset.y + oy * zoom, offset.x + (ox + pw) * zoom, offset.y + (oy + ph) * zoom)
-                PaperDraw.draw(c, marks, kind, offset.x + ox * zoom, offset.y + oy * zoom, pw * zoom / (rw / 1000f), density) { t ->
-                    when (t) {
-                        "Parole chiave" -> labelKeywords
-                        "Appunti" -> labelNotes
-                        "Riassunto" -> labelSummary
-                        else -> t
-                    }
-                }
-                c.restore()
-            }
-        }
-        translate(offset.x, offset.y) {
-            scale(zoom, Offset.Zero) {
-                translate(ox, oy) {
-                    // la pagina al posto esatto (non arrotondato a numeri interi prima dello
-                    // zoom: ingrandito, l'arrotondamento sfasava testo e inchiostro di qualche pixel)
-                    background?.let { (img, r) ->
-                        drawIntoCanvas {
-                            it.nativeCanvas.drawBitmap(
-                                img.asAndroidBitmap(), null,
-                                android.graphics.RectF(r[0] * pw, r[1] * ph, (r[0] + r[2]) * pw, (r[1] + r[3]) * ph),
-                                pagePaint,
-                            )
-                        }
-                    }
-                    drawIntoCanvas { Ink.draw(it.nativeCanvas, strokes, padW, padH, quarter, pw, ph) }
+                },
+        ) {
+            version // si ridisegna a ogni cambiamento
+            val (k, ox, oy) = fit(size)
+            val pw = rw * k
+            val ph = rh * k
+            // il foglio bianco
+            translate(offset.x, offset.y) {
+                scale(zoom, Offset.Zero) {
+                    drawRect(Color.White, Offset(ox, oy), Size(pw, ph))
                 }
             }
-        }
-        // il timbro da posare, con il bordo tratteggiato e l'angolo da tirare
-        seal?.let { sp ->
-            val r = sp.rect
-            val l = offset.x + (ox + r[0] * pw) * zoom
-            val t = offset.y + (oy + r[1] * ph) * zoom
-            val rr = offset.x + (ox + (r[0] + r[2]) * pw) * zoom
-            val b = offset.y + (oy + (r[1] + r[3]) * ph) * zoom
-            drawIntoCanvas {
-                val art = sp.art
-                if (art != null) it.nativeCanvas.drawBitmap(art, null, android.graphics.RectF(l, t, rr, b), SealArt.paint)
-                else sp.spec?.let { spec -> SealArt.draw(it.nativeCanvas, spec, 0, l, t, rr, b) }
-            }
-            val accent = Color(0xFF2868DC)
-            val g = 6f * density
-            drawRect(
-                accent, Offset(l - g, t - g), Size(rr - l + 2 * g, b - t + 2 * g),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(
-                    width = 1.5f * density,
-                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6f * density, 4f * density)),
-                ),
-            )
-            drawRect(accent, Offset(rr - 7f * density, b - 7f * density), Size(14f * density, 14f * density))
-        }
-        // la zona scelta, o l'anteprima sotto un velo
-        overlay?.let { o ->
-            val accent = Color(0xFF2868DC)
-            fun screen(r: FloatArray) = androidx.compose.ui.geometry.Rect(
-                offset.x + (ox + r[0] * pw) * zoom, offset.y + (oy + r[1] * ph) * zoom,
-                offset.x + (ox + r[2] * pw) * zoom, offset.y + (oy + r[3] * ph) * zoom,
-            )
-            val dash = androidx.compose.ui.graphics.drawscope.Stroke(
-                width = 1.5f * density,
-                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6f * density, 4f * density)),
-            )
-            o.veil?.let { v ->
-                val r = screen(v)
-                drawRect(Color.White.copy(alpha = 0.88f), r.topLeft, r.size)
+            // la rigatura a spessore fisso, sopra il bianco e sotto i tratti
+            if (marks.isNotEmpty()) {
+                val kind = PaperDraw.kind(paper!!.code)
                 drawIntoCanvas {
                     val c = it.nativeCanvas
                     c.save()
-                    c.clipRect(r.left, r.top, r.right, r.bottom)
-                    if (marks.isNotEmpty()) {
-                        PaperDraw.draw(c, marks, PaperDraw.kind(paper!!.code), offset.x + ox * zoom, offset.y + oy * zoom, pw * zoom / (rw / 1000f), density) { t -> t }
+                    c.clipRect(offset.x + ox * zoom, offset.y + oy * zoom, offset.x + (ox + pw) * zoom, offset.y + (oy + ph) * zoom)
+                    PaperDraw.draw(c, marks, kind, offset.x + ox * zoom, offset.y + oy * zoom, pw * zoom / (rw / 1000f), density) { t ->
+                        when (t) {
+                            "Parole chiave" -> labelKeywords
+                            "Appunti" -> labelNotes
+                            "Riassunto" -> labelSummary
+                            else -> t
+                        }
                     }
-                    c.translate(offset.x + ox * zoom, offset.y + oy * zoom)
-                    c.scale(zoom, zoom)
-                    o.preview?.let { Ink.draw(c, it, padW, padH, quarter, pw, ph) }
                     c.restore()
                 }
-                drawRect(accent, r.topLeft, r.size, style = dash)
             }
-            o.rect?.let { z ->
-                val r = screen(z)
-                drawRect(accent.copy(alpha = 0.09f), r.topLeft, r.size)
-                drawRect(accent, r.topLeft, r.size, style = dash)
+            translate(offset.x, offset.y) {
+                scale(zoom, Offset.Zero) {
+                    translate(ox, oy) {
+                        // la pagina al posto esatto (non arrotondato a numeri interi prima dello
+                        // zoom: ingrandito, l'arrotondamento sfasava testo e inchiostro di qualche pixel)
+                        background?.let { (img, r) ->
+                            drawIntoCanvas {
+                                it.nativeCanvas.drawBitmap(
+                                    img.asAndroidBitmap(), null,
+                                    android.graphics.RectF(r[0] * pw, r[1] * ph, (r[0] + r[2]) * pw, (r[1] + r[3]) * ph),
+                                    pagePaint,
+                                )
+                            }
+                        }
+                        drawIntoCanvas { Ink.draw(it.nativeCanvas, strokes, padW, padH, quarter, pw, ph) }
+                    }
+                }
+            }
+            // il timbro da posare, con il bordo tratteggiato e l'angolo da tirare
+            seal?.let { sp ->
+                val r = sp.rect
+                val l = offset.x + (ox + r[0] * pw) * zoom
+                val t = offset.y + (oy + r[1] * ph) * zoom
+                val rr = offset.x + (ox + (r[0] + r[2]) * pw) * zoom
+                val b = offset.y + (oy + (r[1] + r[3]) * ph) * zoom
+                drawIntoCanvas {
+                    val art = sp.art
+                    if (art != null) it.nativeCanvas.drawBitmap(art, null, android.graphics.RectF(l, t, rr, b), SealArt.paint)
+                    else sp.spec?.let { spec -> SealArt.draw(it.nativeCanvas, spec, 0, l, t, rr, b) }
+                }
+                val accent = Color(0xFF2868DC)
+                val g = 6f * density
+                drawRect(
+                    accent, Offset(l - g, t - g), Size(rr - l + 2 * g, b - t + 2 * g),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(
+                        width = 1.5f * density,
+                        pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6f * density, 4f * density)),
+                    ),
+                )
+                drawRect(accent, Offset(rr - 7f * density, b - 7f * density), Size(14f * density, 14f * density))
+            }
+            // la zona scelta, o l'anteprima sotto un velo
+            overlay?.let { o ->
+                val accent = Color(0xFF2868DC)
+                fun screen(r: FloatArray) = androidx.compose.ui.geometry.Rect(
+                    offset.x + (ox + r[0] * pw) * zoom, offset.y + (oy + r[1] * ph) * zoom,
+                    offset.x + (ox + r[2] * pw) * zoom, offset.y + (oy + r[3] * ph) * zoom,
+                )
+                val dash = androidx.compose.ui.graphics.drawscope.Stroke(
+                    width = 1.5f * density,
+                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6f * density, 4f * density)),
+                )
+                o.veil?.let { v ->
+                    val r = screen(v)
+                    drawRect(Color.White.copy(alpha = 0.88f), r.topLeft, r.size)
+                    drawIntoCanvas {
+                        val c = it.nativeCanvas
+                        c.save()
+                        c.clipRect(r.left, r.top, r.right, r.bottom)
+                        if (marks.isNotEmpty()) {
+                            PaperDraw.draw(c, marks, PaperDraw.kind(paper!!.code), offset.x + ox * zoom, offset.y + oy * zoom, pw * zoom / (rw / 1000f), density) { t -> t }
+                        }
+                        c.translate(offset.x + ox * zoom, offset.y + oy * zoom)
+                        c.scale(zoom, zoom)
+                        o.preview?.let { Ink.draw(c, it, padW, padH, quarter, pw, ph) }
+                        c.restore()
+                    }
+                    drawRect(accent, r.topLeft, r.size, style = dash)
+                }
+                o.rect?.let { z ->
+                    val r = screen(z)
+                    drawRect(accent.copy(alpha = 0.09f), r.topLeft, r.size)
+                    drawRect(accent, r.topLeft, r.size, style = dash)
+                }
+            }
+        }
+        // la punta della penna dello Slate, sopra il foglio (un disegno a parte: si muove spesso)
+        Canvas(Modifier.matchParentSize()) {
+            val p = tip() ?: return@Canvas
+            val (k, ox, oy) = fit(size)
+            // dal pad al foglio girato (l'inverso di `toPad`)
+            val (x, y) = when (quarter) {
+                0 -> p.x to p.y
+                1 -> (padH - p.y) to p.x
+                2 -> (padW - p.x) to (padH - p.y)
+                else -> p.y to (padW - p.x)
+            }
+            val at = Offset(offset.x + (ox + x * k) * zoom, offset.y + (oy + y * k) * zoom)
+            drawCircle(Color(0x963C3C3C), 4.5f * density, at, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f * density))
+            if (p.pressure > 0f) {
+                val pct = (p.pressure * 100f).roundToInt().coerceIn(1, 100)
+                drawIntoCanvas { it.nativeCanvas.drawText("$pct%", at.x + 7f * density, at.y - 6f * density, tipPaint) }
             }
         }
     }
+}
+
+/** Il numerino della pressione accanto alla punta: piccolissimo e sottile. */
+private val tipPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+    color = android.graphics.Color.argb(170, 90, 90, 90)
+    textSize = 9f * android.content.res.Resources.getSystem().displayMetrics.scaledDensity
 }
 
 /** L'archivio: le pagine raggruppate per giorno, dalla più recente. */

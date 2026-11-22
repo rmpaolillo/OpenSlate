@@ -98,7 +98,24 @@ pub struct Scene {
     /// Evidenziatore col mouse in corso: indice del tratto e punto di
     /// partenza (u, v sulla pagina visualizzata).
     mouse_hl: Option<(usize, (f32, f32))>,
+    /// Dove è la punta della penna dello Slate (anche in aria, vicina al
+    /// pad), per il pallino sul foglio; `None` = lontana.
+    pub tip: Option<Tip>,
 }
+
+/// La punta della penna: posizione (unità del pad), pressione 0..1 (0 = in
+/// aria) e quando è arrivata.
+#[derive(Clone, Copy, Debug)]
+pub struct Tip {
+    pub x: f32,
+    pub y: f32,
+    pub pressure: f32,
+    pub at: std::time::Instant,
+}
+
+/// Senza notizie per tanto la punta non si mostra più (il pad spento o fuori
+/// portata non dice che la penna si è allontanata).
+pub const TIP_STALE: std::time::Duration = std::time::Duration::from_secs(3);
 
 impl Scene {
     pub fn new(s: &Settings) -> Self {
@@ -133,6 +150,7 @@ impl Scene {
             last_erased: None,
             mouse_erase: None,
             mouse_hl: None,
+            tip: None,
         }
     }
 
@@ -215,6 +233,11 @@ impl Scene {
 
     /// Come `pen_event`, con l'istante dell'evento (per i test).
     pub fn pen_event_at(&mut self, ev: PenEvent, now: std::time::Instant) -> Change {
+        self.tip = match ev.phase {
+            PenPhase::Away => None,
+            PenPhase::Up | PenPhase::Hover => Some(Tip { x: ev.x, y: ev.y, pressure: 0.0, at: now }),
+            PenPhase::Down | PenPhase::Move => Some(Tip { x: ev.x, y: ev.y, pressure: ev.pressure, at: now }),
+        };
         let g = self.geom();
         match ev.phase {
             PenPhase::Down => self.start_stroke(ev, &g, now),
@@ -260,8 +283,13 @@ impl Scene {
                     Change::Up
                 }
             }
-            PenPhase::Hover => Change::None,
+            PenPhase::Hover | PenPhase::Away => Change::None,
         }
+    }
+
+    /// La punta da mostrare adesso, se c'è (e non è vecchia).
+    pub fn tip_now(&self) -> Option<Tip> {
+        self.tip.filter(|t| t.at.elapsed() < TIP_STALE)
     }
 
     fn is_long_press(&self, now: std::time::Instant) -> bool {
@@ -403,7 +431,7 @@ impl Scene {
                 }
                 Change::Up
             }
-            PenPhase::Hover => Change::None,
+            PenPhase::Hover | PenPhase::Away => Change::None,
         }
     }
 

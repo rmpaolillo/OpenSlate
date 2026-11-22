@@ -142,7 +142,10 @@ pub enum Phase {
     Down,
     Move,
     Up,
+    /// In aria, vicina al pad (non scrive).
     Hover,
+    /// La penna si è allontanata dal pad.
+    Away,
 }
 
 /// Un punto penna in coordinate del pad, pressione 0..=1.
@@ -641,6 +644,7 @@ impl SlateSession {
                     PenPhase::Move => Phase::Move,
                     PenPhase::Up => Phase::Up,
                     PenPhase::Hover => Phase::Hover,
+                    PenPhase::Away => Phase::Away,
                 },
             })
             .collect()
@@ -847,8 +851,10 @@ mod tests {
     fn punti_live() {
         let s = SlateSession::new();
         let p = s.on_live(vec![0xa1, 0x0c, 0x10, 0x00, 0x20, 0x00, 0x05, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]);
-        assert_eq!(p.len(), 2);
+        assert_eq!(p.len(), 3);
         assert_eq!(p[0].phase, Phase::Down);
         assert_eq!(p[1].phase, Phase::Up);
+        // e la penna si allontana (via il pallino)
+        assert_eq!(p[2].phase, Phase::Away);
     }
 }

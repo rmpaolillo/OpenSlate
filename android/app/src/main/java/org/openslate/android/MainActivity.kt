@@ -156,8 +156,26 @@ class Board {
         savedRev = model.rev()
     }
 
+    /** La punta della penna dello Slate (anche in aria, vicina al pad), per il pallino; null = lontana. */
+    var tip by mutableStateOf<PenPoint?>(null)
+        private set
+    private val tipTimer = android.os.Handler(android.os.Looper.getMainLooper())
+    /** Il pad spento o fuori portata non dice che la penna si è allontanata. */
+    private val tipStale = Runnable { tip = null }
+
+    /** Dov'è la penna dello Slate (l'ultimo punto arrivato). */
+    fun slateTip(points: List<PenPoint>) {
+        val p = points.lastOrNull() ?: return
+        tip = p.takeIf { it.phase != uniffi.openslate_mobile.Phase.AWAY }
+        tipTimer.removeCallbacks(tipStale)
+        if (tip != null) tipTimer.postDelayed(tipStale, 3000)
+    }
+
     fun pen(points: List<PenPoint>) {
-        for (op in model.pen(points)) {
+        val ops = model.pen(points)
+        // la penna in aria non cambia il foglio: non lo si ridisegna
+        if (ops.isEmpty()) return
+        for (op in ops) {
             when (op) {
                 is DrawOp.Down -> strokes += PageStroke(op.color, op.width, op.highlight, arrayListOf(op.point), null)
                 is DrawOp.Move -> (strokes.lastOrNull()?.points as? ArrayList<PenPoint>)?.add(op.point)
@@ -801,7 +819,10 @@ class MainActivity : ComponentActivity(), LinkListener {
         else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
-    override fun onPen(points: List<PenPoint>) = board.pen(points)
+    override fun onPen(points: List<PenPoint>) {
+        board.slateTip(points)
+        board.pen(points)
+    }
 
     /**
      * Una pagina scaricata: prima la copia grezza (come la desktop, è la copia
@@ -1050,6 +1071,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                         ?: sigJob?.let { j -> SealPlace(null, j.rect, j.art) { r -> sigJob = sigJob?.copy(rect = r) } },
                     pen = if (screenPen) { pts -> board.pen(pts) } else null,
                     touchPen = touchPen,
+                    tip = { board.tip },
                 )
             }
             when {

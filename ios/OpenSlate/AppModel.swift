@@ -24,8 +24,29 @@ final class Board: ObservableObject {
     var dirty: Bool { model.rev() != savedRev && !model.isEmpty() }
     func markSaved() { savedRev = model.rev() }
 
+    /// Dov'è la penna dello Slate (anche in aria, vicina al pad): il pallino sul
+    /// foglio. Va dritto al foglio, senza ridisegnare la lavagna (arriva spesso).
+    private(set) var tip: PenPoint? { didSet { tipView?.tip = tip } }
+    weak var tipView: SheetUIView? { didSet { tipView?.tip = tip } }
+    /// Il pad spento o fuori portata non dice che la penna si è allontanata.
+    private var tipStale: DispatchWorkItem?
+
+    func slateTip(_ points: [PenPoint]) {
+        guard let p = points.last else { return }
+        tip = p.phase == .away ? nil : p
+        tipStale?.cancel()
+        tipStale = nil
+        guard tip != nil else { return }
+        let w = DispatchWorkItem { [weak self] in self?.tip = nil }
+        tipStale = w
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3, execute: w)
+    }
+
     func pen(_ points: [PenPoint]) {
-        for op in model.pen(points: points) {
+        let ops = model.pen(points: points)
+        // la penna in aria non cambia il foglio: non lo si ridisegna
+        if ops.isEmpty { return }
+        for op in ops {
             switch op {
             case .down(let color, let width, let highlight, let point):
                 strokes.append(PageStroke(color: color, width: width, highlight: highlight, points: [point], stamp: nil))
@@ -518,7 +539,10 @@ final class AppModel: ObservableObject, LinkListener {
         UIApplication.shared.isIdleTimerDisabled = s.isOn
     }
 
-    func onPen(_ points: [PenPoint]) { board.pen(points) }
+    func onPen(_ points: [PenPoint]) {
+        board.slateTip(points)
+        board.pen(points)
+    }
 
     /// Prima la copia grezza (la copia di sicurezza, come la desktop), poi la
     /// pagina nell'archivio. Al sicuro (e quindi da togliere dal pad) solo se
