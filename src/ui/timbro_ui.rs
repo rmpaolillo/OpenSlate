@@ -25,6 +25,8 @@ pub(super) enum SealEdit {
     Grain(f32),
     Uneven(f32),
     Tilt(f32),
+    /// Sempre identico, senza le piccole variazioni di ogni timbrata.
+    Fixed(bool),
     /// Grana nuova (e il lato scarico da un'altra parte).
     Reseed,
 }
@@ -39,6 +41,7 @@ impl SealEdit {
             SealEdit::Grain(v) => st.grain = v.clamp(0.0, 1.0),
             SealEdit::Uneven(v) => st.uneven = v.clamp(0.0, 1.0),
             SealEdit::Tilt(v) => st.tilt = v.clamp(-15.0, 15.0),
+            SealEdit::Fixed(v) => st.fixed = v,
             SealEdit::Reseed => {
                 st.seed = stamp::new_seed(st.seed);
                 st.uneven_dir = (st.seed % 360) as f32;
@@ -381,6 +384,14 @@ impl App {
             column(ui, |ui| {
                 ui.spacing_mut().slider_width = 110.0;
                 slider(ui, "Inclinazione", "Ruota il timbro di qualche grado, come messo a mano", st.tilt, -15.0..=15.0, "°", SealEdit::Tilt, actions);
+                let mut fixed = st.fixed;
+                if ui
+                    .checkbox(&mut fixed, egui::RichText::new(tr("Sempre identico")).size(11.5))
+                    .on_hover_text(tr("Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale."))
+                    .changed()
+                {
+                    actions.push(edit(SealEdit::Fixed(fixed)));
+                }
             });
         });
     }

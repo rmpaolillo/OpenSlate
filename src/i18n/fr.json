@@ -1393,5 +1393,7 @@
  "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "Dans l’app pour téléphone, on peut activer « Afficher en direct sur l’ordinateur » : ce que tu écris sur le téléphone apparaît ici dans une fenêtre, pendant que tu l’écris.",
  "⚠ Trascritto da {} perché prima non ha risposto {}. Il ripiego può leggere peggio formule e scrittura: se serve, ripeti «Trascrivi».": "⚠ Transcrit par {} car {} n'a pas répondu d'abord. Le service de secours peut moins bien lire les formules et l'écriture : si besoin, relance « Transcrire ».",
  "Apponi sul foglio": "Apposer sur la page",
- "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "Le tampon de l'entreprise : créez-le une fois, puis posez-le sur le tableau ou le document"
+ "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "Le tampon de l'entreprise : créez-le une fois, puis posez-le sur le tableau ou le document",
+ "Sempre identico": "Toujours identique",
+ "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale.": "Désactivé : chaque coup de tampon est un peu différent, comme avec un vrai encreur (inclinaison ±1°, encre et grain). Activé : toujours pareil."
 }

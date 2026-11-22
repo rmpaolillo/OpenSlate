@@ -238,6 +238,8 @@
     <string name="stamp_tilt">Inclinazione</string>
     <string name="stamp_apply">Applica</string>
     <string name="stamp_reseed">Nuova grana</string>
+    <string name="stamp_fixed">Sempre identico</string>
+    <string name="stamp_fixed_hint">Spento: ogni timbrata è un po\' diversa, come col tampone vero.</string>
     <string name="stamp_applied">Timbro apposto: Annulla lo toglie.</string>
     <string name="print">Stampa…</string>
     <string name="print_writing">Stampa solo la scrittura…</string>

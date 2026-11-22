@@ -11,6 +11,8 @@ struct SealJob {
     var saved: Int?
     /// u, v, larghezza, altezza del foglio visto.
     var rect: [Float]
+    /// Com'era comparso (già con le piccole variazioni): si salvano solo le regolazioni fatte a mano.
+    var start: StampStyle
 }
 
 enum SealArt {
@@ -141,15 +143,16 @@ extension AppModel {
     /// Posa il timbro n. `i`: compare a grandezza naturale, poi si regola.
     func startSeal(_ i: Int) {
         guard stamps.indices.contains(i) else { return }
-        let spec = stamps[i].spec
+        // ogni timbrata un po' diversa, come col tampone vero (salvo «Sempre identico»)
+        let spec = stampJitter(spec: stamps[i].spec)
         eraserOn = false
         applyTools()
-        sealJob = SealJob(spec: spec, saved: i, rect: stampNaturalRect(spec: spec, view: view, cu: 0.3, cv: 0.84))
+        sealJob = SealJob(spec: spec, saved: i, rect: stampNaturalRect(spec: spec, view: view, cu: 0.3, cv: 0.84), start: spec.style)
     }
 
     func sealEdit(_ spec: StampSpec) {
         guard let j = sealJob else { return }
-        sealJob = SealJob(spec: spec, saved: j.saved, rect: stampRefit(before: j.spec, after: spec, view: view, rect: j.rect))
+        sealJob = SealJob(spec: spec, saved: j.saved, rect: stampRefit(before: j.spec, after: spec, view: view, rect: j.rect), start: j.start)
     }
 
     /// Conferma: il timbro sul foglio (un passo di annulla); le regolazioni restano per la prossima volta.
@@ -158,8 +161,11 @@ extension AppModel {
         boardAddStamp(board: board.model, view: view, spec: j.spec, rect: j.rect)
         board.reload()
         if let i = j.saved, stamps.indices.contains(i) {
-            stamps[i].spec.style = j.spec.style
-            try? stampSave(dir: stampDir, list: stamps)
+            let keep = stampKeepEdits(base: stamps[i].spec.style, start: j.start, now: j.spec.style)
+            if keep != stamps[i].spec.style {
+                stamps[i].spec.style = keep
+                try? stampSave(dir: stampDir, list: stamps)
+            }
         }
         sealJob = nil
         show(L("Timbro apposto: Annulla lo toglie.", "Stamp applied: Undo removes it."))
@@ -274,6 +280,14 @@ struct SealBar: View {
                             slider(L("Inchiostro irregolare", "Uneven ink"), st.uneven, 0...1) { v in var s = j.spec; s.style.uneven = v; app.sealEdit(s) }
                             slider(L("Inclinazione", "Tilt"), st.tilt, -15...15) { v in var s = j.spec; s.style.tilt = v; app.sealEdit(s) }
                             Button(L("Nuova grana", "New grain")) { app.sealEdit(stampReseed(spec: j.spec)) }.buttonStyle(.borderless)
+                            Toggle(isOn: Binding(get: { st.fixed }, set: { v in var s = j.spec; s.style.fixed = v; app.sealEdit(s) })) {
+                                VStack(alignment: .leading) {
+                                    Text(L("Sempre identico", "Always identical")).font(.caption)
+                                    Text(L("Spento: ogni timbrata è un po' diversa, come col tampone vero.",
+                                           "Off: every impression is slightly different, like a real ink pad."))
+                                        .font(.caption2).foregroundStyle(.secondary)
+                                }
+                            }
                         }
                     }
                     .frame(maxHeight: 220)

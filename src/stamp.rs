@@ -101,11 +101,13 @@ pub struct StampStyle {
     pub tilt: f32,
     /// Seme della grana: lo stesso seme dà la stessa grana.
     pub seed: u32,
+    /// Sempre identico: niente variazioni a ogni timbrata (vedi `jitter`).
+    pub fixed: bool,
 }
 
 impl Default for StampStyle {
     fn default() -> Self {
-        StampStyle { frame: Frame::Rect, color: InkColor::Blue, opacity: 0.85, grain: 0.35, uneven: 0.3, uneven_dir: 20.0, tilt: -2.0, seed: 1 }
+        StampStyle { frame: Frame::Rect, color: InkColor::Blue, opacity: 0.85, grain: 0.35, uneven: 0.3, uneven_dir: 20.0, tilt: -2.0, seed: 1, fixed: false }
     }
 }
 
@@ -632,6 +634,70 @@ pub fn new_seed(old: u32) -> u32 {
     if s == old { s.wrapping_add(1) } else { s }
 }
 
+/// Come un timbro vero, ogni timbrata è un po' diversa: dipende dal tampone,
+/// da quanto si preme e da come si appoggia. Piccole variazioni attorno alle
+/// regolazioni dell'utente: inclinazione ±1°, intensità, grana e lato
+/// scarico appena diversi, grana nuova. Con `fixed` resta identico.
+pub fn jitter(st: &StampStyle) -> StampStyle {
+    if st.fixed {
+        return st.clone();
+    }
+    use std::hash::{BuildHasher, Hasher};
+    // un numero diverso a ogni chiamata, anche due di seguito
+    let rnd = std::collections::hash_map::RandomState::new().build_hasher().finish();
+    let mut seed = new_seed(st.seed ^ rnd as u32 ^ (rnd >> 32) as u32);
+    let mut r = || {
+        seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
+        ((seed >> 8) as f32 / (1u32 << 24) as f32) * 2.0 - 1.0 // -1..1
+    };
+    let mut o = st.clone();
+    o.tilt = (st.tilt + r()).clamp(-15.0, 15.0);
+    o.opacity = (st.opacity + r() * 0.05).clamp(0.3, 1.0);
+    o.grain = (st.grain + r() * 0.06).clamp(0.0, 1.0);
+    o.uneven = (st.uneven + r() * 0.08).clamp(0.0, 1.0);
+    o.uneven_dir = (st.uneven_dir + r() * 60.0).rem_euclid(360.0);
+    o.seed = new_seed(seed);
+    o
+}
+
+/// Cosa resta per la prossima volta dopo una timbrata: le regolazioni di
+/// `base` (quelle salvate), più quello che l'utente ha cambiato a mano
+/// rispetto a `start` (il timbro com'era comparso, già variato). Così le
+/// variazioni casuali non si accumulano da una timbrata all'altra.
+pub fn keep_edits(base: &StampStyle, start: &StampStyle, now: &StampStyle) -> StampStyle {
+    let mut o = base.clone();
+    if now.frame != start.frame {
+        o.frame = now.frame;
+    }
+    if now.color != start.color {
+        o.color = now.color;
+    }
+    if now.opacity != start.opacity {
+        o.opacity = now.opacity;
+    }
+    if now.grain != start.grain {
+        o.grain = now.grain;
+    }
+    if now.uneven != start.uneven {
+        o.uneven = now.uneven;
+    }
+    if now.tilt != start.tilt {
+        o.tilt = now.tilt;
+    }
+    if now.seed != start.seed {
+        o.seed = now.seed;
+        o.uneven_dir = now.uneven_dir;
+    }
+    if now.fixed != start.fixed {
+        o.fixed = now.fixed;
+    }
+    // Sempre identico: quello che si è visto è quello che resta.
+    if o.fixed {
+        return now.clone();
+    }
+    o
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
@@ -780,5 +846,43 @@ pub(crate) mod tests {
             s.style.tilt = -3.0 + i as f32 * 2.0;
             std::fs::write(format!("{out}-{i}.png"), render(&s, 118.0).png()).unwrap();
         }
+    }
+
+    #[test]
+    fn ogni_timbrata_e_un_po_diversa() {
+        let base = StampStyle::default();
+        let a = jitter(&base);
+        let b = jitter(&base);
+        assert_ne!(a.seed, b.seed);
+        for j in [&a, &b] {
+            assert!((j.tilt - base.tilt).abs() <= 1.0);
+            assert!((j.opacity - base.opacity).abs() <= 0.05 + 1e-6);
+            assert!((j.grain - base.grain).abs() <= 0.06 + 1e-6);
+            assert_eq!(j.frame, base.frame);
+            assert_eq!(j.color, base.color);
+        }
+        let fixed = StampStyle { fixed: true, ..base.clone() };
+        assert_eq!(jitter(&fixed), fixed);
+    }
+
+    #[test]
+    fn le_variazioni_non_si_accumulano() {
+        let base = StampStyle::default();
+        let start = jitter(&base);
+        // non tocca niente: resta la base
+        assert_eq!(keep_edits(&base, &start, &start), base);
+        // cambia solo il colore: la base col colore nuovo
+        let mut now = start.clone();
+        now.color = InkColor::Red;
+        let k = keep_edits(&base, &start, &now);
+        assert_eq!(k.color, InkColor::Red);
+        assert_eq!(k.tilt, base.tilt);
+        // inclinazione a mano: resta quella scelta
+        now.tilt = 5.0;
+        assert_eq!(keep_edits(&base, &start, &now).tilt, 5.0);
+        // sempre identico: resta tutto com'era
+        let mut f = start.clone();
+        f.fixed = true;
+        assert_eq!(keep_edits(&base, &start, &f), f);
     }
 }

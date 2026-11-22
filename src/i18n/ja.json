@@ -1393,5 +1393,7 @@
  "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "スマートフォンのアプリで「コンピューターにライブ表示」をオンにすると、スマートフォンに書いた内容が書いている間にここのウィンドウに表示されます。",
  "⚠ Trascritto da {} perché prima non ha risposto {}. Il ripiego può leggere peggio formule e scrittura: se serve, ripeti «Trascrivi».": "⚠ {} が書き起こしました（先に {} が応答しませんでした）。代替サービスは数式や手書きの読み取り精度が低い場合があります。必要なら「書き起こし」をやり直してください。",
  "Apponi sul foglio": "ページに押す",
- "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "会社の印鑑：一度作れば、ボードや文書に押せます"
+ "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "会社の印鑑：一度作れば、ボードや文書に押せます",
+ "Sempre identico": "常に同じ",
+ "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale.": "オフ：本物のスタンプ台のように毎回少しずつ違います（傾き±1°、インク、かすれ）。オン：常に同じ。"
 }

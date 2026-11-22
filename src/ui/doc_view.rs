@@ -25,7 +25,9 @@ pub(super) enum Placing {
     /// La firma registrata.
     Sig(Signature),
     /// Un timbro aziendale (`saved`: quale dell'elenco, per ricordarne le regolazioni).
-    Seal { spec: crate::stamp::StampSpec, saved: Option<usize> },
+    /// `start`: com'era comparso (già con le piccole variazioni di ogni
+    /// timbrata), per salvare solo quello che l'utente cambia a mano.
+    Seal { spec: crate::stamp::StampSpec, saved: Option<usize>, start: crate::stamp::StampStyle },
 }
 
 /// Firma o timbro in corso di posizionamento.
@@ -722,11 +724,15 @@ impl App {
                             self.hub.edit(|s| s.add_strokes(strokes));
                             self.status = "Firma apposta ✓ (Cmd+Z per toglierla).".into();
                         }
-                        Placing::Seal { spec, saved } => {
-                            // le regolazioni restano per la prossima volta
+                        Placing::Seal { spec, saved, start } => {
+                            // le regolazioni cambiate a mano restano per la prossima volta,
+                            // le variazioni casuali no
                             if let Some(t) = saved.and_then(|i| self.stampui.list.get_mut(i)) {
-                                t.spec.style = spec.style.clone();
-                                let _ = self.stampui.save();
+                                let keep = crate::stamp::keep_edits(&t.spec.style, &start, &spec.style);
+                                if keep != t.spec.style {
+                                    t.spec.style = keep;
+                                    let _ = self.stampui.save();
+                                }
                             }
                             let stroke = Stroke::stamp(spec, crate::stamp::corners(st.rect, &g));
                             self.hub.edit(|s| s.add_strokes(vec![stroke]));
@@ -737,7 +743,10 @@ impl App {
             }
             DocAction::PlaceSeal(i) => {
                 let Some(t) = self.stampui.list.get(i) else { return };
-                let spec = t.spec.clone();
+                let mut spec = t.spec.clone();
+                // ogni timbrata un po' diversa, come col tampone vero
+                spec.style = crate::stamp::jitter(&spec.style);
+                let start = spec.style.clone();
                 let g = self.hub.lock().geom();
                 let mut r = crate::stamp::natural_rect(&spec, &g, 0.3, 0.84);
                 // mai più largo di metà pagina
@@ -745,7 +754,7 @@ impl App {
                     let k = 0.5 / r[2];
                     r = [0.3 - r[2] * k / 2.0, 0.84 - r[3] * k / 2.0, r[2] * k, r[3] * k];
                 }
-                self.docui.stamp = Some(Stamp { what: Placing::Seal { spec, saved: Some(i) }, rect: r, drag: None });
+                self.docui.stamp = Some(Stamp { what: Placing::Seal { spec, saved: Some(i), start }, rect: r, drag: None });
                 self.status = "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.".into();
             }
             DocAction::Seal(e) => {

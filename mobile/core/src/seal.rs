@@ -5,7 +5,7 @@
 use crate::board::BoardModel;
 use crate::pages::StoreError;
 use crate::session::PenPoint;
-use crate::stamp::{self, SavedStamp, StampSpec};
+use crate::stamp::{self, SavedStamp, StampSpec, StampStyle};
 use crate::stroke::{PenEvent, PenPhase, Stroke};
 use crate::tutor::BoardView;
 use std::path::Path;
@@ -43,6 +43,22 @@ pub fn stamp_reseed(spec: StampSpec) -> StampSpec {
     s.style.seed = stamp::new_seed(s.style.seed);
     s.style.uneven_dir = (s.style.seed % 360) as f32;
     s
+}
+
+/// Il timbro come compare quando lo si posa: ogni timbrata un po' diversa,
+/// come col tampone vero (`stamp::jitter`), salvo «Sempre identico».
+#[uniffi::export]
+pub fn stamp_jitter(spec: StampSpec) -> StampSpec {
+    let mut s = spec;
+    s.style = stamp::jitter(&s.style);
+    s
+}
+
+/// Cosa salvare dopo una timbrata (`stamp::keep_edits`): le regolazioni
+/// salvate più quello che l'utente ha cambiato a mano, non le variazioni.
+#[uniffi::export]
+pub fn stamp_keep_edits(base: StampStyle, start: StampStyle, now: StampStyle) -> StampStyle {
+    stamp::keep_edits(&base, &start, &now)
 }
 
 /// Le righe del timbro (per controllare che ci sia qualcosa).

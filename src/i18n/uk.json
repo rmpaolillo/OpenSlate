@@ -1393,5 +1393,7 @@
  "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "У застосунку для телефона можна ввімкнути «Показувати наживо на комп’ютері»: те, що ви пишете на телефоні, з’являється тут у вікні, просто під час писання.",
  "⚠ Trascritto da {} perché prima non ha risposto {}. Il ripiego può leggere peggio formule e scrittura: se serve, ripeti «Trascrivi».": "⚠ Розшифровано сервісом {}, бо спершу не відповів {}. Резервний сервіс може гірше читати формули й рукопис: за потреби повторіть «Розшифрувати».",
  "Apponi sul foglio": "Поставити на аркуш",
- "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "Печатка компанії: створіть її один раз, а потім ставте на дошку чи документ"
+ "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "Печатка компанії: створіть її один раз, а потім ставте на дошку чи документ",
+ "Sempre identico": "Завжди однаково",
+ "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale.": "Вимкнено: кожен відбиток трохи інший, як зі справжньою штемпельною подушкою (нахил ±1°, чорнило й зернистість). Увімкнено: завжди однаково."
 }

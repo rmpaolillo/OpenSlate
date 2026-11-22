@@ -113,8 +113,8 @@ class SealPlace(val spec: StampSpec?, val rect: List<Float>, val art: android.gr
 /** La firma che si sta posando: riquadro e anteprima. */
 data class SigJob(val rect: List<Float>, val art: android.graphics.Bitmap)
 
-/** Un timbro in corso di posa. */
-data class SealJob(val spec: StampSpec, val saved: Int?, val rect: List<Float>)
+/** Un timbro in corso di posa; `start`: com'era comparso (già variato), per salvare solo le regolazioni fatte a mano. */
+data class SealJob(val spec: StampSpec, val saved: Int?, val rect: List<Float>, val start: uniffi.openslate_mobile.StampStyle = spec.style)
 
 fun inkColorOf(c: InkColor) = when (c) {
     InkColor.BLUE -> Color(0xFF223E96)

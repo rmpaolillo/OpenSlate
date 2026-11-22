@@ -106,6 +106,8 @@ import uniffi.openslate_mobile.stampList
 import uniffi.openslate_mobile.stampNaturalRect
 import uniffi.openslate_mobile.stampRefit
 import uniffi.openslate_mobile.stampReseed
+import uniffi.openslate_mobile.stampJitter
+import uniffi.openslate_mobile.stampKeepEdits
 import uniffi.openslate_mobile.stampSave
 import uniffi.openslate_mobile.paperHasRows
 import uniffi.openslate_mobile.fairWidthMin
@@ -1229,7 +1231,9 @@ class MainActivity : ComponentActivity(), LinkListener {
     /** Posa il timbro n. `i`: compare a grandezza naturale, poi si regola. */
     private fun startSeal(i: Int) {
         val st = stamps.getOrNull(i) ?: return
-        sealJob = SealJob(st.spec, i, stampNaturalRect(st.spec, view(), 0.3f, 0.84f))
+        // ogni timbrata un po' diversa, come col tampone vero (salvo «Sempre identico»)
+        val spec = stampJitter(st.spec)
+        sealJob = SealJob(spec, i, stampNaturalRect(spec, view(), 0.3f, 0.84f), spec.style)
     }
 
     private fun sealEdit(spec: StampSpec) {
@@ -1245,9 +1249,12 @@ class MainActivity : ComponentActivity(), LinkListener {
         j.saved?.let { i ->
             stamps.getOrNull(i)?.let { st ->
                 val list = stamps.toMutableList()
-                list[i] = st.copy(spec = st.spec.copy(style = j.spec.style))
-                stamps = list
-                runCatching { stampSave(filesDir.path, list) }
+                val keep = stampKeepEdits(st.spec.style, j.start, j.spec.style)
+                if (keep != st.spec.style) {
+                    list[i] = st.copy(spec = st.spec.copy(style = keep))
+                    stamps = list
+                    runCatching { stampSave(filesDir.path, list) }
+                }
             }
         }
         sealJob = null
@@ -1282,6 +1289,14 @@ class MainActivity : ComponentActivity(), LinkListener {
                         slider(R.string.stamp_uneven, st.uneven, 0f..1f) { v -> style { it.copy(uneven = v) } }
                         slider(R.string.stamp_tilt, st.tilt, -15f..15f) { v -> style { it.copy(tilt = v) } }
                         TextButton(onClick = { sealEdit(stampReseed(j.spec)) }, Modifier.padding(horizontal = 4.dp)) { Text(stringResource(R.string.stamp_reseed)) }
+                        Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Switch(st.fixed, { v -> style { it.copy(fixed = v) } })
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(stringResource(R.string.stamp_fixed), style = MaterialTheme.typography.labelMedium)
+                                Text(stringResource(R.string.stamp_fixed_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
                 ActionRow {

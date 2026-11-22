@@ -1393,5 +1393,7 @@
  "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "在手机应用中可以打开“在电脑上实时显示”：你在手机上写的内容会在书写时出现在这里的窗口中。",
  "⚠ Trascritto da {} perché prima non ha risposto {}. Il ripiego può leggere peggio formule e scrittura: se serve, ripeti «Trascrivi».": "⚠ 由 {} 转写（{} 先前没有响应）。备用服务识别公式和手写可能较差：如有需要，请重新「转写」。",
  "Apponi sul foglio": "盖在页面上",
- "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "公司印章：创建一次，然后盖在白板或文档上"
+ "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "公司印章：创建一次，然后盖在白板或文档上",
+ "Sempre identico": "始终相同",
+ "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale.": "关闭：每次盖章都略有不同，就像真实的印台（倾斜±1°、墨色和颗粒）。开启：始终相同。"
 }

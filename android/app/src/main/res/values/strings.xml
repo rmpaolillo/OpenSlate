@@ -241,6 +241,8 @@
     <string name="stamp_tilt">Tilt</string>
     <string name="stamp_apply">Apply</string>
     <string name="stamp_reseed">New grain</string>
+    <string name="stamp_fixed">Always identical</string>
+    <string name="stamp_fixed_hint">Off: every impression is slightly different, like a real ink pad.</string>
     <string name="stamp_applied">Stamp applied: Undo removes it.</string>
     <string name="print">Print…</string>
     <string name="print_writing">Print only the writing…</string>
