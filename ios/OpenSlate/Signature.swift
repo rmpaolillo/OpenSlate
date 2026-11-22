@@ -65,7 +65,7 @@ struct SigBar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(L("Posa la firma", "Place the signature")).font(.headline)
-            Text(L("Trascinala dove serve, tira l'angolo per ingrandirla, poi «Applica».", "Drag it where it belongs, pull the corner to resize it, then «Apply»."))
+            Text(L("Tocca o trascina col dito dove la vuoi, tira l'angolo per ingrandirla, poi «Applica».", "Tap or drag where you want it, pull the corner to resize it, then «Apply»."))
                 .font(.footnote).foregroundStyle(.secondary)
             HStack {
                 Button(L("Applica", "Apply")) { app.sigAccept() }.buttonStyle(.borderedProminent)

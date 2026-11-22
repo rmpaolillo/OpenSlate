@@ -23,7 +23,8 @@ final class SheetUIView: UIView {
     var preview: [PageStroke]? { didSet { setNeedsDisplay() } }
     private var zoneStart: CGPoint?
     /// Il timbro da posare (u, v, larghezza, altezza): un dito lo sposta, l'angolo lo ingrandisce.
-    var seal: (StampSpec?, [Float])? { didSet { setNeedsDisplay() } }
+    var seal: (StampSpec?, [Float])? { didSet { sealTap?.isEnabled = seal != nil; setNeedsDisplay() } }
+    private weak var sealTap: UITapGestureRecognizer?
     /// Al posto del timbro, l'anteprima della firma da posare.
     var sealArt: UIImage? { didSet { setNeedsDisplay() } }
     var onSealRect: (([Float]) -> Void)?
@@ -118,7 +119,15 @@ final class SheetUIView: UIView {
         pan.maximumNumberOfTouches = 2
         let dbl = UITapGestureRecognizer(target: self, action: #selector(onDouble))
         dbl.numberOfTapsRequired = 2
-        [pinch, pan, dbl].forEach(addGestureRecognizer)
+        // un tocco sul foglio mentre si posa un timbro o la firma: va lì
+        let tap = UITapGestureRecognizer(target: self, action: #selector(onTap(_:)))
+        tap.require(toFail: dbl)
+        // acceso solo mentre si posa (non disturba la penna sullo schermo)
+        tap.isEnabled = false
+        tap.cancelsTouchesInView = false
+        tap.delaysTouchesEnded = false
+        sealTap = tap
+        [pinch, pan, dbl, tap].forEach(addGestureRecognizer)
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -240,25 +249,51 @@ final class SheetUIView: UIView {
         setNeedsDisplay()
     }
 
+    /// Il timbro (o la firma) centrato in `p`.
+    private func sealTo(_ p: CGPoint, _ r: [Float]) {
+        let c = toUnit(p)
+        sealSet([Float(c.x) - r[2] / 2, Float(c.y) - r[3] / 2, r[2], r[3]])
+    }
+
+    /// Il riquadro durante il gesto: `seal` torna da SwiftUI solo dopo.
+    private var sealLive: [Float]?
+    private func sealSet(_ r: [Float]) {
+        sealLive = r
+        onSealRect?(r)
+    }
+
+    @objc private func onTap(_ g: UITapGestureRecognizer) {
+        guard let (_, r) = seal, r.count == 4 else { return }
+        sealTo(g.location(in: self), r)
+    }
+
     @objc private func onPan(_ g: UIPanGestureRecognizer) {
         let p = g.location(in: self)
         if g.state == .began { lastPan = p; erased = false }
-        if let (_, r) = seal, r.count == 4 {
+        if let (_, r0) = seal, r0.count == 4 {
             let (_, ox, oy, pw, ph) = fit()
             if g.state == .began {
+                let r = r0
+                sealLive = r0
+                let at = p
                 let l = offset.x + (ox + CGFloat(r[0]) * pw) * zoom, t = offset.y + (oy + CGFloat(r[1]) * ph) * zoom
                 let rr = offset.x + (ox + CGFloat(r[0] + r[2]) * pw) * zoom, b = offset.y + (oy + CGFloat(r[1] + r[3]) * ph) * zoom
-                if abs(p.x - rr) < 28 && abs(p.y - b) < 28 { sealMode = 2 }
-                else if p.x >= l - 8 && p.x <= rr + 8 && p.y >= t - 8 && p.y <= b + 8 { sealMode = 1 }
-                else { sealMode = 0 }
+                if abs(at.x - rr) < 28 && abs(at.y - b) < 28 { sealMode = 2 }
+                else if at.x >= l - 8 && at.x <= rr + 8 && at.y >= t - 8 && at.y <= b + 8 { sealMode = 1 }
+                else if g.numberOfTouches <= 1 {
+                    // un dito fuori dal timbro: il timbro va lì e poi lo segue
+                    sealTo(p, r0)
+                    sealMode = 1
+                } else { sealMode = 0 }
             }
+            let r = sealLive ?? r0
             if sealMode != 0 && g.numberOfTouches <= 1 {
                 let du = Float((p.x - lastPan.x) / (pw * zoom)), dv = Float((p.y - lastPan.y) / (ph * zoom))
                 if sealMode == 1 {
-                    onSealRect?([r[0] + du, r[1] + dv, r[2], r[3]])
+                    sealSet([r[0] + du, r[1] + dv, r[2], r[3]])
                 } else {
                     let f = min(max((r[2] + du) / r[2], 0.5), 2)
-                    if r[2] * f > 0.03 && r[2] * f < 1.2 { onSealRect?([r[0], r[1], r[2] * f, r[3] * f]) }
+                    if r[2] * f > 0.03 && r[2] * f < 1.2 { sealSet([r[0], r[1], r[2] * f, r[3] * f]) }
                 }
                 lastPan = p
                 if g.state == .ended || g.state == .cancelled { sealMode = 0 }

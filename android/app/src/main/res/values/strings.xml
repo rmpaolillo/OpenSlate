@@ -234,7 +234,7 @@
     <string name="stamp_size">Real size: %1$.1f × %2$.1f cm. Grain, opacity and tilt are adjusted after placing it on the document.</string>
     <string name="stamp_place">Place on the document</string>
     <string name="stamp_place_title">Company stamp</string>
-    <string name="stamp_place_hint">Drag the stamp with a finger, pull the corner to resize it, make it look real, then Apply.</string>
+    <string name="stamp_place_hint">Tap or drag where you want the stamp, pull the corner to resize it, make it look real, then Apply.</string>
     <string name="stamp_opacity">Intensity</string>
     <string name="stamp_grain">Grain</string>
     <string name="stamp_uneven">Uneven ink</string>
@@ -275,7 +275,7 @@
     <string name="sig_saved">Signature saved ✓</string>
     <string name="sig_none">No signature yet: record it first.</string>
     <string name="sig_place_title">Place the signature</string>
-    <string name="sig_place_hint">Drag it where it belongs, pull the corner to resize it, then «Apply».</string>
+    <string name="sig_place_hint">Tap or drag where you want it, pull the corner to resize it, then «Apply».</string>
     <string name="sig_apply">Apply</string>
     <string name="sig_applied">Signature placed ✓ (Undo to remove it).</string>
     <string name="font_slanted">Handwriting, slanted</string>

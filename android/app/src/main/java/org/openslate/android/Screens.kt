@@ -242,8 +242,9 @@ fun Sheet(
                         var erased = false
                         val zoneStart = currentZone?.let { toUnit(first.position) }
                         var zoneRect: FloatArray? = null
-                        // il timbro: preso nel riquadro (sposta) o sull'angolo (grandezza)
-                        val sealMode = currentSeal?.let { sp ->
+                        // il timbro: preso nel riquadro (sposta), sull'angolo (grandezza) o altrove
+                        // sul foglio (3: ci salta sotto il dito, appena il dito si muove o si alza)
+                        var sealMode = currentSeal?.let { sp ->
                             val (k, ox, oy) = fit(canvasSize)
                             val (pw, ph) = rw * k to rh * k
                             val r = sp.rect
@@ -256,13 +257,27 @@ fun Sheet(
                             when {
                                 kotlin.math.abs(p.x - rr) < grip && kotlin.math.abs(p.y - b) < grip -> 2
                                 p.x in l - 8f..rr + 8f && p.y in t - 8f..b + 8f -> 1
-                                else -> 0
+                                else -> 3
                             }
                         } ?: 0
+                        // il riquadro durante il gesto (lo stato si aggiorna solo al prossimo disegno)
+                        var sealRect = currentSeal?.rect
+                        fun sealSet(sp: SealPlace, r: List<Float>) {
+                            sealRect = r
+                            sp.onRect(r)
+                        }
+                        /** Il timbro centrato sotto il dito. */
+                        fun sealTo(sp: SealPlace, p: Offset) {
+                            val c = toUnit(p)
+                            val r = sealRect ?: sp.rect
+                            sealSet(sp, listOf(c.x - r[2] / 2, c.y - r[3] / 2, r[2], r[3]))
+                        }
+                        var multi = false
                         while (true) {
                             val ev = awaitPointerEvent()
                             val down = ev.changes.filter { it.pressed }
                             if (down.isEmpty()) break
+                            if (down.size >= 2) multi = true
                             if (down.size != fingers) {
                                 // cambia il numero di dita: si riparte da qui, senza salti
                                 fingers = down.size
@@ -281,16 +296,21 @@ fun Sheet(
                                 val er = currentEraser
                                 val zs = currentZone
                                 val sp = currentSeal
-                                if (sp != null && sealMode != 0) {
+                                if (sp != null && sealMode == 3 && !multi) {
+                                    // un dito fuori dal timbro: il timbro va lì e poi lo segue
+                                    sealTo(sp, p)
+                                    sealMode = 1
+                                    down[0].consume()
+                                } else if (sp != null && sealMode != 0 && sealMode != 3) {
                                     val (k, _, _) = fit(canvasSize)
                                     val du = (p.x - last.x) / (rw * k * zoom)
                                     val dv = (p.y - last.y) / (rh * k * zoom)
-                                    val r = sp.rect
+                                    val r = sealRect ?: sp.rect
                                     if (sealMode == 1) {
-                                        sp.onRect(listOf(r[0] + du, r[1] + dv, r[2], r[3]))
+                                        sealSet(sp, listOf(r[0] + du, r[1] + dv, r[2], r[3]))
                                     } else {
                                         val f = ((r[2] + du) / r[2]).coerceIn(0.5f, 2f)
-                                        if (r[2] * f > 0.03f && r[2] * f < 1.2f) sp.onRect(listOf(r[0], r[1], r[2] * f, r[3] * f))
+                                        if (r[2] * f > 0.03f && r[2] * f < 1.2f) sealSet(sp, listOf(r[0], r[1], r[2] * f, r[3] * f))
                                     }
                                     down[0].consume()
                                 } else if (zs != null && zoneStart != null) {
@@ -312,6 +332,8 @@ fun Sheet(
                                 last = p
                             }
                         }
+                        // un tocco fuori dal timbro, senza muoversi: il timbro va lì
+                        currentSeal?.let { sp -> if (sealMode == 3 && !multi) sealTo(sp, last) }
                         if (erased) currentEraser?.end()
                         currentZone?.let { zs ->
                             val r = zoneRect

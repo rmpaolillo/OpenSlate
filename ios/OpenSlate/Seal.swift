@@ -259,8 +259,8 @@ struct SealBar: View {
             let st = j.spec.style
             VStack(alignment: .leading, spacing: 4) {
                 Text(L("Timbro aziendale", "Company stamp")).font(.subheadline.bold())
-                Text(L("Trascina il timbro col dito, tira l'angolo per la grandezza, rendilo realistico, poi Applica.",
-                       "Drag the stamp with a finger, pull the corner to resize it, make it look real, then Apply."))
+                Text(L("Tocca o trascina col dito dove vuoi il timbro, tira l'angolo per la grandezza, rendilo realistico, poi Applica.",
+                       "Tap or drag where you want the stamp, pull the corner to resize it, make it look real, then Apply."))
                     .font(.caption).foregroundStyle(.secondary)
                 InkDots(selected: st.color) { c in var s = j.spec; s.style.color = c; app.sealEdit(s) }
                 FramePicker(selected: st.frame) { f in var s = j.spec; s.style.frame = f; app.sealEdit(s) }
