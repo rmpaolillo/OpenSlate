@@ -286,4 +286,5 @@
     <string name="note_preview">Preview</string>
     <string name="note_edit">Edit</string>
     <string name="stamp_look">Look</string>
+    <string name="ai_fallback">Transcribed by %1$s because %2$s did not answer first. The fallback may read formulas and handwriting less well: if needed, transcribe again.</string>
 </resources>

@@ -1390,5 +1390,6 @@
  "in diretta": "ライブ",
  "non è più in diretta": "ライブではありません",
  "Mostra la pagina del telefono": "スマートフォンのページを表示",
- "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "スマートフォンのアプリで「コンピューターにライブ表示」をオンにすると、スマートフォンに書いた内容が書いている間にここのウィンドウに表示されます。"
+ "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "スマートフォンのアプリで「コンピューターにライブ表示」をオンにすると、スマートフォンに書いた内容が書いている間にここのウィンドウに表示されます。",
+ "⚠ Trascritto da {} perché prima non ha risposto {}. Il ripiego può leggere peggio formule e scrittura: se serve, ripeti «Trascrivi».": "⚠ {} が書き起こしました（先に {} が応答しませんでした）。代替サービスは数式や手書きの読み取り精度が低い場合があります。必要なら「書き起こし」をやり直してください。"
 }

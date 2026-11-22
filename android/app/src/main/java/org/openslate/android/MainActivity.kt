@@ -125,6 +125,7 @@ import uniffi.openslate_mobile.BoardView
 import uniffi.openslate_mobile.DrawOp
 import uniffi.openslate_mobile.Tool
 import uniffi.openslate_mobile.libraryLoad
+import uniffi.openslate_mobile.aiPagePng
 import uniffi.openslate_mobile.librarySave
 import uniffi.openslate_mobile.nowCreated
 import uniffi.openslate_mobile.padTimeLabel
@@ -467,7 +468,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                             Screen.Chat -> ChatScreen(
                                 chat = chat,
                                 store = aiStore,
-                                page = { Export.pngBytes(board.toPage(padSize.width, padSize.height), quarter) },
+                                page = { runCatching { aiPagePng(board.toPage(padSize.width, padSize.height), quarter.toUInt()) }.getOrNull() },
                                 hasPage = !board.isEmpty,
                                 send = { text, png ->
                                     chat.send(
@@ -561,11 +562,15 @@ class MainActivity : ComponentActivity(), LinkListener {
             screen = Screen.AiSettings(back)
             return
         }
+        // come la desktop: la scrittura ritagliata e grande, non tutto il foglio
+        val png = runCatching { aiPagePng(page, quarter.toUInt()) }.getOrElse { toast(it.message ?: ""); return }
         busy = getString(R.string.transcribing)
-        val png = Export.pngBytes(page, quarter)
         transcribe(this, aiStore, png, onStatus = { busy = getString(R.string.transcribing) + "\n" + it }) { r ->
             busy = null
-            r.onSuccess { text ->
+            r.onSuccess { reply ->
+                val text = reply.text
+                // ha letto un servizio di ripiego: di solito legge peggio, va detto
+                reply.fallback?.let { why -> toastLong(getString(R.string.ai_fallback, reply.provider, why)) }
                 runCatching { File(libDir, "${page.id}.md").writeText(text) }
                 done(text)
             }.onFailure { toast(getString(R.string.ai_failed, it.message ?: "")) }
@@ -806,6 +811,7 @@ class MainActivity : ComponentActivity(), LinkListener {
     }
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+    private fun toastLong(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
 
     // ---------------------------------------------------------------- pad
 

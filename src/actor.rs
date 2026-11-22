@@ -45,6 +45,8 @@ pub struct OcrDone {
     pub markdown: bool,
     /// Chi ha trascritto.
     pub by: String,
+    /// Chi doveva trascrivere prima e non ha risposto (col motivo).
+    pub fallback: Option<String>,
     pub title: String,
     /// Immagine della (prima) pagina, per la chat.
     pub png: Option<Arc<Vec<u8>>>,

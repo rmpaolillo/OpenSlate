@@ -22,6 +22,8 @@ pub struct Recognized {
     pub markdown: bool,
     /// Chi ha risposto, es. «LM Studio · qwen3-vl-8b».
     pub by: String,
+    /// Chi doveva rispondere prima e non l'ha fatto (ha letto un servizio di ripiego).
+    pub fallback: Option<String>,
 }
 
 /// Riconosce la scrittura di un'immagine PNG.
@@ -29,12 +31,13 @@ pub fn recognize(png: &[u8], cfg: &Settings) -> Result<Recognized> {
     match cfg.ocr_engine.trim() {
         "ai" | "" => {
             let r = crate::ai::transcribe(Arc::new(png.to_vec()))?;
-            Ok(Recognized { text: r.text, markdown: true, by: format!("{} · {}", r.provider, r.model) })
+            Ok(Recognized { text: r.text, markdown: true, by: format!("{} · {}", r.provider, r.model), fallback: r.fallback })
         }
         "vision" => Ok(Recognized {
             text: vision(png, &cfg.ocr_langs)?,
             markdown: false,
             by: "Apple Vision".into(),
+            fallback: None,
         }),
         other => bail!("ocr_engine sconosciuto: «{other}» (usa ai oppure vision)"),
     }

@@ -301,7 +301,7 @@ struct ChatScreen: View {
                 } else {
                     Button {
                         dictation.stop()
-                        let png = attach && canAttach ? Export.pngData(app.board.toPage(Float(app.padSize.width), Float(app.padSize.height)), quarter: app.quarter) : nil
+                        let png = attach && canAttach ? (try? aiPagePng(page: app.board.toPage(Float(app.padSize.width), Float(app.padSize.height)), quarter: UInt32(app.quarter))) : nil
                         chat.send(input.trimmingCharacters(in: .whitespacesAndNewlines), page: png, store: app.ai, board: app.board.model, view: app.view) { app.board.reload() }
                         input = ""
                     } label: {

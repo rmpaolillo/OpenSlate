@@ -1390,5 +1390,6 @@
  "in diretta": "наживо",
  "non è più in diretta": "більше не наживо",
  "Mostra la pagina del telefono": "Показати сторінку телефона",
- "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "У застосунку для телефона можна ввімкнути «Показувати наживо на комп’ютері»: те, що ви пишете на телефоні, з’являється тут у вікні, просто під час писання."
+ "Nell'app per telefono si può accendere «Mostra in diretta sul computer»: quello che scrivi sul telefono compare qui in una finestra, mentre lo scrivi.": "У застосунку для телефона можна ввімкнути «Показувати наживо на комп’ютері»: те, що ви пишете на телефоні, з’являється тут у вікні, просто під час писання.",
+ "⚠ Trascritto da {} perché prima non ha risposto {}. Il ripiego può leggere peggio formule e scrittura: se serve, ripeti «Trascrivi».": "⚠ Розшифровано сервісом {}, бо спершу не відповів {}. Резервний сервіс може гірше читати формули й рукопис: за потреби повторіть «Розшифрувати»."
 }

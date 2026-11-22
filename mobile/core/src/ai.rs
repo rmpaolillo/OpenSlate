@@ -123,6 +123,16 @@ pub struct AiReply {
     pub text: String,
     pub provider: String,
     pub model: String,
+    /// Chi c'era prima nella catena e non ha risposto, col motivo: ha
+    /// risposto un servizio di ripiego (come `ai::Reply::fallback` della desktop).
+    pub fallback: Option<String>,
+}
+
+/// I servizi saltati che contano: chi non legge le immagini non doveva
+/// comunque leggere il foglio.
+fn fallback_of(fails: &[String]) -> Option<String> {
+    let v: Vec<&str> = fails.iter().map(String::as_str).filter(|f| !f.ends_with(": non legge immagini")).collect();
+    (!v.is_empty()).then(|| v.join("; "))
 }
 
 #[derive(uniffi::Error, thiserror::Error, Debug)]
@@ -654,12 +664,12 @@ fn run(providers: &[AiProvider], task: Task, msgs: &[ChatMsg], tools: Option<&dy
         }
         let w = Watch { inner: l, started: AtomicBool::new(false) };
         match call(p, &model, task, msgs, send_image, tools, &w) {
-            Ok(text) if !text.trim().is_empty() => return Ok(AiReply { text, provider: p.name.clone(), model }),
+            Ok(text) if !text.trim().is_empty() => return Ok(AiReply { text, provider: p.name.clone(), model, fallback: fallback_of(&fails) }),
             // ha lavorato con gli strumenti ma non ha scritto niente
             Ok(_) if w.started.load(Ordering::Relaxed) => {
                 let text = "Fatto (i passaggi sono qui sopra).".to_string();
                 let _ = l.on_event(AiEvent::Delta { text: text.clone() });
-                return Ok(AiReply { text, provider: p.name.clone(), model });
+                return Ok(AiReply { text, provider: p.name.clone(), model, fallback: fallback_of(&fails) });
             }
             Ok(_) => skip("risposta vuota".into())?,
             Err(AiError::Cancelled) => return Err(AiError::Cancelled),
@@ -741,6 +751,14 @@ pub(crate) fn read_image(providers: &[AiProvider], prompt: &str, png: Vec<u8>, l
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Il ripiego si dice; chi non legge le immagini non conta.
+    #[test]
+    fn ripiego() {
+        assert_eq!(fallback_of(&[]), None);
+        assert_eq!(fallback_of(&["Testo: non legge immagini".into()]), None);
+        assert_eq!(fallback_of(&["Testo: non legge immagini".into(), "Claude: HTTP 529".into()]).as_deref(), Some("Claude: HTTP 529"));
+    }
     use std::io::Write;
     use std::net::TcpListener;
     use std::sync::Mutex;

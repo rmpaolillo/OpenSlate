@@ -1147,6 +1147,7 @@ fn ocr_job(pages: Vec<(String, Page)>, cfg: Settings, tx: tokio::sync::mpsc::Unb
             let mut out = String::new();
             let mut first_png = None;
             let mut by = String::new();
+            let mut fallback: Option<String> = None;
             let mut markdown = false;
             // le figure ridisegnate prendono il nome dall'ora, come l'appunto
             let ts = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
@@ -1173,6 +1174,10 @@ fn ocr_job(pages: Vec<(String, Page)>, cfg: Settings, tx: tokio::sync::mpsc::Unb
                     Ok(r) => {
                         markdown = r.markdown;
                         by = r.by;
+                        // basta una pagina letta dal ripiego per dirlo
+                        if r.fallback.is_some() {
+                            fallback = r.fallback;
+                        }
                         if many {
                             if i > 0 {
                                 out.push_str(if markdown { "\n---\n\n" } else { "\n" });
@@ -1205,6 +1210,7 @@ fn ocr_job(pages: Vec<(String, Page)>, cfg: Settings, tx: tokio::sync::mpsc::Unb
                 text: out.trim().to_string(),
                 markdown,
                 by,
+                fallback,
                 title,
                 png: first_png,
             })));
@@ -1220,7 +1226,14 @@ impl App {
         match std::fs::write(&path, format!("{}\n", text.trim_end())) {
             Ok(()) => {
                 run_hook(&self.settings.hook, &path.to_string_lossy());
-                self.status = format!("Trascritto da {} — appunto {}", d.by, path.display());
+                self.status = match &d.fallback {
+                    // ha letto un servizio di ripiego: di solito legge peggio, va detto
+                    Some(why) => i18n::tf(format!(
+                        "⚠ Trascritto da {} perché prima non ha risposto {why}. Il ripiego può leggere peggio formule e scrittura: se serve, ripeti «Trascrivi».",
+                        d.by
+                    )),
+                    None => format!("Trascritto da {} — appunto {}", d.by, path.display()),
+                };
             }
             Err(e) => {
                 self.status = format!("⚠ salvataggio {}: {e}", path.display());

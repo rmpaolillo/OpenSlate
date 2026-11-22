@@ -283,4 +283,5 @@
     <string name="note_preview">Anteprima</string>
     <string name="note_edit">Modifica</string>
     <string name="stamp_look">Aspetto</string>
+    <string name="ai_fallback">Ha trascritto %1$s perché prima non ha risposto %2$s. Il ripiego può leggere peggio formule e scrittura: se serve, ripeti «Trascrivi».</string>
 </resources>

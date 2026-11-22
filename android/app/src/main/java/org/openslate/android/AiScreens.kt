@@ -91,6 +91,7 @@ import uniffi.openslate_mobile.BoardView
 import uniffi.openslate_mobile.aiChatBoard
 import uniffi.openslate_mobile.aiListModels
 import uniffi.openslate_mobile.aiTranscribe
+import uniffi.openslate_mobile.AiReply
 import kotlin.concurrent.thread
 
 private val main = Handler(Looper.getMainLooper())
@@ -182,8 +183,8 @@ class ChatState {
     }
 }
 
-/** Trascrive una pagina (PNG) in un thread a parte. */
-fun transcribe(ctx: Context, store: AiStore, png: ByteArray, onStatus: (String) -> Unit, done: (Result<String>) -> Unit) {
+/** Trascrive una pagina (PNG) in un thread a parte; la risposta dice anche chi ha letto e se era un ripiego. */
+fun transcribe(ctx: Context, store: AiStore, png: ByteArray, onStatus: (String) -> Unit, done: (Result<AiReply>) -> Unit) {
     val providers = store.providers()
     thread(name = "ai-ocr") {
         val listener = object : AiListener {
@@ -196,7 +197,7 @@ fun transcribe(ctx: Context, store: AiStore, png: ByteArray, onStatus: (String) 
                 return true
             }
         }
-        val r = runCatching { aiTranscribe(providers, png, listener).text }
+        val r = runCatching { aiTranscribe(providers, png, listener) }
             .recoverCatching { e -> throw Exception((e as? AiException.Failed)?.reason ?: e.message) }
         main.post { done(r) }
     }

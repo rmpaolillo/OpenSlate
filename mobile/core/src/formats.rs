@@ -193,6 +193,19 @@ pub fn copy_png(page: Page, quarter: u32) -> Result<Vec<u8>, StoreError> {
     crate::pagerender::page_to_png(&p, 1600).map_err(err)
 }
 
+/// La pagina da far leggere all'AI (trascrizione, chat), come la desktop
+/// (`page_png_for_ai`): ritagliata attorno alla scrittura (margine 3%), lato
+/// lungo 2000 px. Così la scrittura arriva grande e le formule si leggono
+/// meglio che con tutto il foglio bianco attorno.
+#[uniffi::export]
+pub fn ai_page_png(page: Page, quarter: u32) -> Result<Vec<u8>, StoreError> {
+    let p = crate::pagerender::crop_to_content(&to_desktop(&page, quarter), 0.03);
+    if p.strokes.is_empty() {
+        return Err(err("pagina vuota"));
+    }
+    crate::pagerender::page_to_png(&p, 2000).map_err(err)
+}
+
 /// La pagina al momento `t` (0..1) della scrittura, per i fotogrammi del
 /// video: gli stessi tempi della GIF e del video della desktop. I tratti
 /// tornano in unità del pad (la si disegna come una pagina qualsiasi).
@@ -292,6 +305,19 @@ mod tests {
         assert_eq!(img.width().max(img.height()), 1600);
         let (w, h) = (img.width() as f32, img.height() as f32);
         assert!(w / h < 0.6 || h / w < 0.6, "{w}×{h}");
+    }
+
+    /// All'AI va la scrittura ritagliata e grande, come dalla desktop (non
+    /// tutto il foglio bianco attorno).
+    #[test]
+    fn pagina_per_l_ai_ritagliata() {
+        let png = ai_page_png(page(), 1).unwrap();
+        let img = tiny_skia::Pixmap::decode_png(&png).unwrap();
+        assert_eq!(img.width().max(img.height()), 2000);
+        let (w, h) = (img.width() as f32, img.height() as f32);
+        assert!(w / h < 0.6 || h / w < 0.6, "{w}×{h}");
+        let empty = Page { strokes: Vec::new(), ..page() };
+        assert!(ai_page_png(empty, 1).is_err());
     }
 
     #[test]

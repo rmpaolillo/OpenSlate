@@ -662,6 +662,16 @@ pub struct Reply {
     pub text: String,
     pub provider: String,
     pub model: String,
+    /// Chi c'era prima nella catena e non ha risposto, col motivo («Claude:
+    /// tempo scaduto»): ha risposto un servizio di ripiego. `None` = il primo.
+    pub fallback: Option<String>,
+}
+
+/// I servizi saltati che contano: chi non legge le immagini non doveva
+/// comunque leggere il foglio.
+fn fallback_of(fails: &[String]) -> Option<String> {
+    let v: Vec<&str> = fails.iter().map(String::as_str).filter(|f| !f.ends_with(": non legge immagini")).collect();
+    (!v.is_empty()).then(|| v.join("; "))
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -804,14 +814,14 @@ pub fn run_chat(
         });
         match res {
             Ok(text) if !text.trim().is_empty() => {
-                return Ok(Reply { text, provider: p.name.clone(), model });
+                return Ok(Reply { text, provider: p.name.clone(), model, fallback: fallback_of(&fails) });
             }
             Ok(_) if started => {
                 // ha lavorato con gli strumenti ma non ha scritto niente: una
                 // riga lo dice (anche alla pagina, che altrimenti vedrebbe «nessuna risposta»)
                 let text: String = crate::i18n::t("Fatto (i passaggi sono qui sopra).").into();
                 on_event(Event::Delta(text.clone()));
-                return Ok(Reply { text, provider: p.name.clone(), model });
+                return Ok(Reply { text, provider: p.name.clone(), model, fallback: fallback_of(&fails) });
             }
             Ok(_) => {
                 if !skip("risposta vuota".into(), on_event) {
@@ -2506,6 +2516,34 @@ pub(crate) mod tests {
         let cfg = AiConfig { providers: vec![p], ..Default::default() };
         let e = complete(&cfg, Task::Chat, &[Msg::new("user", "ciao")]).unwrap_err().to_string();
         assert!(e.contains("Remoto: HTTP 400: model does not support images"), "{e}");
+    }
+
+    /// Il primo della catena non risponde: risponde il ripiego, e si sa chi
+    /// è mancato e perché (per avvisare: il ripiego può leggere peggio).
+    #[test]
+    fn il_ripiego_si_dice() {
+        let (bad, _) = fake_server(|_| {
+            let b = r#"{"error":{"message":"overloaded"}}"#;
+            format!("HTTP/1.1 529 Overloaded\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{b}", b.len())
+        });
+        let (good, _) = fake_server(|_| sse_reply(&["ok"]));
+        let mut first = provider("Primo", format!("http://127.0.0.1:{bad}"));
+        first.model = "m".into();
+        let mut second = provider("Ripiego", format!("http://127.0.0.1:{good}"));
+        second.model = "m".into();
+        let msgs = vec![Msg::new("user", "leggi").with_image(Arc::new(vec![1, 2, 3]))];
+        let cfg = AiConfig { providers: vec![first.clone(), second], ..Default::default() };
+        let r = complete(&cfg, Task::Ocr, &msgs).unwrap();
+        assert_eq!(r.provider, "Ripiego");
+        let why = r.fallback.expect("il ripiego va detto");
+        assert!(why.starts_with("Primo:") && why.contains("overloaded"), "{why}");
+        // chi risponde per primo non è un ripiego
+        let (ok, _) = fake_server(|_| sse_reply(&["ok"]));
+        first.url = format!("http://127.0.0.1:{ok}");
+        let cfg = AiConfig { providers: vec![first], ..Default::default() };
+        assert!(complete(&cfg, Task::Ocr, &msgs).unwrap().fallback.is_none());
+        // chi non legge le immagini non doveva leggere il foglio: non conta
+        assert_eq!(fallback_of(&["Testo: non legge immagini".into()]), None);
     }
 
     /// Provider senza visione: in chat riceve solo il testo.

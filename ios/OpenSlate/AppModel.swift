@@ -573,8 +573,10 @@ final class AppModel: ObservableObject, LinkListener {
             show(L("Nessun servizio AI: aggiungine uno in Impostazioni.", "No AI service yet: add one in Settings."))
             return
         }
+        // come la desktop: la scrittura ritagliata e grande, non tutto il foglio
+        let png: Data
+        do { png = try aiPagePng(page: page, quarter: UInt32(quarter)) } catch { show("\(error)"); return }
         busy = L("Trascrivo la pagina…", "Transcribing the page…")
-        let png = Export.pngData(page, quarter: quarter)
         let providers = ai.providers()
         DispatchQueue.global(qos: .userInitiated).async {
             let r = Result { try aiTranscribe(providers: providers, png: png, listener: StatusListener { [weak self] t in self?.busy = L("Trascrivo la pagina…", "Transcribing the page…") + "\n" + t }) }
@@ -582,6 +584,11 @@ final class AppModel: ObservableObject, LinkListener {
                 busy = nil
                 switch r {
                 case .success(let reply):
+                    // ha letto un servizio di ripiego: di solito legge peggio, va detto
+                    if let why = reply.fallback {
+                        show(L("Ha trascritto \(reply.provider) perché prima non ha risposto \(why). Il ripiego può leggere peggio formule e scrittura: se serve, ripeti «Trascrivi».",
+                               "Transcribed by \(reply.provider) because \(why) did not answer first. The fallback may read formulas and handwriting less well: if needed, transcribe again."))
+                    }
                     try? reply.text.write(toFile: libDir + "/\(page.id).md", atomically: true, encoding: .utf8)
                     done(reply.text)
                 case .failure(let e):
