@@ -28,6 +28,9 @@ pub(super) struct PhoneUi {
     /// La pagina del documento sotto i tratti, per `bg_rev`.
     mirror_tex: Option<(u64, egui::TextureHandle)>,
     mirror_zoom: super::zoom::ZoomView,
+    /// Il nome del telefono in diretta (id, nome), per non chiederlo al
+    /// server a ogni fotogramma (durante un sync lungo aspetterebbe).
+    mirror_who: Option<(String, Option<String>)>,
 }
 
 impl PhoneUi {
@@ -40,6 +43,7 @@ impl PhoneUi {
             mirror_closed: 0,
             mirror_tex: None,
             mirror_zoom: Default::default(),
+            mirror_who: None,
         }
     }
 
@@ -59,25 +63,42 @@ impl PhoneUi {
         if !self.mirror_open {
             return;
         }
-        let mirror = self.sync.mirror.clone();
-        let m = mirror.lock().unwrap_or_else(|e| e.into_inner());
-        let name = self.sync.phones().into_iter().find(|p| p.id == m.peer).map(|p| p.name).filter(|n| !n.is_empty());
+        // Si copia la pagina e si lascia subito il lucchetto: il server lo
+        // prende tenendo già il suo (`Shared`), quindi qui, col lucchetto
+        // della pagina in mano, non si deve chiedere niente al server
+        // (`phones()`), altrimenti i due si aspettano a vicenda per sempre.
+        let (peer, quiet, bg_rev, new_bg, rect, meta, strokes, gen) = {
+            let m = self.sync.mirror.lock().unwrap_or_else(|e| e.into_inner());
+            let fresh = self.mirror_tex.as_ref().map(|t| t.0) != Some(m.bg_rev);
+            (
+                m.peer.clone(),
+                m.ended || crate::sync::now() - m.last > LIVE_QUIET,
+                m.bg_rev,
+                // l'immagine si copia solo quando è nuova
+                fresh.then(|| m.bg.as_ref().map(|b| b.0.clone())),
+                m.bg.as_ref().map(|b| b.1),
+                m.meta.clone(),
+                m.strokes.clone(),
+                m.gen,
+            )
+        };
+        if self.mirror_who.as_ref().map(|w| &w.0) != Some(&peer) {
+            let name = self.sync.phones().into_iter().find(|p| p.id == peer).map(|p| p.name).filter(|n| !n.is_empty());
+            self.mirror_who = Some((peer, name));
+        }
+        let name = self.mirror_who.as_ref().and_then(|w| w.1.clone());
         let who = name.unwrap_or_else(|| i18n::t("Telefono").to_string());
-        let quiet = m.ended || crate::sync::now() - m.last > LIVE_QUIET;
         // la texture dello sfondo, rifatta quando cambia
-        if self.mirror_tex.as_ref().map(|t| t.0) != Some(m.bg_rev) {
-            self.mirror_tex = m.bg.as_ref().and_then(|(img, _)| {
-                let pm = tiny_skia::Pixmap::decode_png(img).ok()?;
+        if let Some(img) = new_bg {
+            self.mirror_tex = img.and_then(|img| {
+                let pm = tiny_skia::Pixmap::decode_png(&img).ok()?;
                 let ci = egui::ColorImage::from_rgba_premultiplied([pm.width() as usize, pm.height() as usize], pm.data());
-                Some((m.bg_rev, ctx.load_texture("phone-live-bg", ci, egui::TextureOptions::LINEAR)))
+                Some((bg_rev, ctx.load_texture("phone-live-bg", ci, egui::TextureOptions::LINEAR)))
             });
         }
-        let tex = self.mirror_tex.as_ref().filter(|t| t.0 == m.bg_rev).map(|t| t.1.id());
-        let bg = tex.zip(m.bg.as_ref().map(|b| b.1));
-        let meta = m.meta.clone();
-        let drawing = crate::stroke::Drawing { strokes: m.strokes.clone(), width: meta.pad_w.max(1.0), height: meta.pad_h.max(1.0) };
-        let gen = m.gen;
-        drop(m);
+        let tex = self.mirror_tex.as_ref().filter(|t| t.0 == bg_rev).map(|t| t.1.id());
+        let bg = tex.zip(rect);
+        let drawing = crate::stroke::Drawing { strokes, width: meta.pad_w.max(1.0), height: meta.pad_h.max(1.0) };
         let view = crate::scene::View { rot: ((4 - meta.quarter % 4) % 4) as i32, flip_x: false, flip_y: false };
         let paper = (!meta.paper.is_empty()).then(|| (super::paper::Paper::from_code(&meta.paper), meta.margin));
         let title = if meta.title.is_empty() { who.clone() } else { format!("{who} — {}", meta.title) };
