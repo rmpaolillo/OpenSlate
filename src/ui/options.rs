@@ -213,8 +213,8 @@ impl App {
                         ("Sposta il foglio (con gomma o evidenziatore)", "tasto centrale".into()),
                     ];
                     for (a, k) in rows {
-                        ui.label(i18n::tr(&*a).into_owned());
-                        ui.label(egui::RichText::new(i18n::tr(&k).into_owned()).monospace().strong());
+                        ui.label(i18n::tr(a).into_owned());
+                        ui.label(egui::RichText::new(i18n::tr(k).into_owned()).monospace().strong());
                         ui.end_row();
                     }
                 });
@@ -285,7 +285,7 @@ fn prefs_page(ui: &mut egui::Ui, p: &mut Prefs, ai: &mut bool) {
             row(ui, "Tema dell'interfaccia", |ui| {
                 ui.vertical(|ui| {
                     for a in Appearance::ALL {
-                        if ui.radio(Appearance::from_code(&d.ui_theme) == a, i18n::tr(&a.label()).into_owned()).clicked() {
+                        if ui.radio(Appearance::from_code(&d.ui_theme) == a, i18n::tr(a.label()).into_owned()).clicked() {
                             d.ui_theme = a.code().to_string();
                         }
                     }
@@ -300,15 +300,15 @@ fn prefs_page(ui: &mut egui::Ui, p: &mut Prefs, ai: &mut bool) {
                     let cur = super::paper::Paper::from_code(&d.paper);
                     let mut pick = cur;
                     egui::ComboBox::from_id_salt("paper")
-                        .selected_text(i18n::tr(&cur.label()).into_owned())
+                        .selected_text(i18n::tr(cur.label()).into_owned())
                         .width(240.0)
                         .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut pick, super::paper::Paper::Bianco, i18n::tr(&super::paper::Paper::Bianco.label()).into_owned());
+                            ui.selectable_value(&mut pick, super::paper::Paper::Bianco, i18n::tr(super::paper::Paper::Bianco.label()).into_owned());
                             for (title, group) in super::paper::Paper::GROUPS {
                                 ui.separator();
                                 ui.weak(title);
                                 for &p in group {
-                                    ui.selectable_value(&mut pick, p, i18n::tr(&p.label()).into_owned());
+                                    ui.selectable_value(&mut pick, p, i18n::tr(p.label()).into_owned());
                                 }
                             }
                         });
@@ -360,7 +360,7 @@ fn prefs_page(ui: &mut egui::Ui, p: &mut Prefs, ai: &mut bool) {
             row(ui, "Rotazione del foglio", |ui| {
                 ui.horizontal(|ui| {
                     for (r, t) in [(0, "0°"), (1, "90°"), (2, "180°"), (3, "270°")] {
-                        ui.radio_value(&mut d.rot, r, i18n::tr(&t).into_owned());
+                        ui.radio_value(&mut d.rot, r, i18n::tr(t).into_owned());
                     }
                 });
             });

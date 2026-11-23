@@ -536,7 +536,7 @@ mod tests {
         }
 
         let n = horiz(&layout(Paper::Pentagramma, w, h, false), Ink::Strong);
-        assert!(n > 0 && n % 5 == 0);
+        assert!(n > 0 && n.is_multiple_of(5));
 
         assert!(labels(&layout(Paper::Cornell, w, h, false)).contains(&"Riassunto".to_string()));
     }

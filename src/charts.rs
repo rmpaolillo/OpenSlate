@@ -87,9 +87,8 @@ pub struct Chart {
 /// Disegna il grafico descritto da `spec` e lo salva in `charts/`.
 pub fn draw(spec: &Value) -> Result<Chart> {
     let src = typst_source(spec)?;
-    let doc = crate::typstworld::compile(src.clone()).map_err(|e| {
+    let doc = crate::typstworld::compile(src.clone()).inspect_err(|_e| {
         tracing::warn!("grafico, sorgente Typst:\n{src}");
-        e
     })?;
     let page = &doc.pages()[0];
     let (width, height) = (page.frame.width().to_pt() as f32, page.frame.height().to_pt() as f32);
@@ -541,6 +540,7 @@ pub fn typst_source(spec: &Value) -> Result<String> {
 }
 
 #[cfg(test)]
+#[allow(clippy::approx_constant)] // tratti a mano simulati, non costanti
 mod tests {
     use super::*;
 

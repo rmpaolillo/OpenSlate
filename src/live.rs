@@ -54,7 +54,7 @@ impl LiveDecoder {
             PKT_PROXIMITY => self.lift(&mut out),
             PKT_COORD => {
                 let len = raw[1] as usize;
-                if len % POINT_SIZE != 0 {
+                if !len.is_multiple_of(POINT_SIZE) {
                     tracing::warn!("pacchetto live malformato: {raw:02x?}");
                     return out;
                 }

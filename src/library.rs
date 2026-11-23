@@ -489,7 +489,7 @@ mod tests {
         let mut lib3 = lib2;
         assert_eq!(lib3.trash(&[a.clone(), b.clone()]).unwrap(), 2);
         assert_eq!(Library::open_in(&dir).entries.len(), 1);
-        assert_eq!(lib3.restore(&[a.clone()]).unwrap(), 1);
+        assert_eq!(lib3.restore(std::slice::from_ref(&a)).unwrap(), 1);
         assert_eq!(Library::open_in(&dir).entries.len(), 2);
         let _ = std::fs::remove_dir_all(&dir);
     }

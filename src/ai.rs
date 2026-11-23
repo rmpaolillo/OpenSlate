@@ -1190,7 +1190,7 @@ pub fn choose_model(ids: &[String], vision: bool) -> Option<String> {
 /// («qwen3-vl-8b-instruct» → 8, «qwen3-30b-a3b» → 30). Sconosciuta = None.
 pub fn model_size(id: &str) -> Option<f32> {
     id.to_lowercase()
-        .split(|c: char| matches!(c, '-' | '_' | ':' | '/' | ' ' | '@'))
+        .split(['-', '_', ':', '/', ' ', '@'])
         .filter_map(|t| t.strip_suffix('b')?.parse::<f32>().ok())
         .reduce(f32::max)
 }
@@ -2701,7 +2701,7 @@ pub(crate) mod tests {
         assert!(reqs[0].contains("\"draw_chart\"") && reqs[0].contains("word__execute") && reqs[0].contains("document_insert_image"));
         assert!(reqs[0].contains("Accanto alla chat è aperto"));
         drop(reqs);
-        let b = std::fs::read(&d.dir.join("source.docx")).unwrap();
+        let b = std::fs::read(d.dir.join("source.docx")).unwrap();
         assert!(String::from_utf8_lossy(&b).contains("word/media/"));
     }
 

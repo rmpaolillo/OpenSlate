@@ -6,7 +6,6 @@ authors = ["Marco Paolillo"]
 description = "Free, open-source companion app for the Wacom Bamboo Slate"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/rmpaolillo/OpenSlate"
-homepage = "https://github.com/rmpaolillo/OpenSlate"
 readme = "README.md"
 keywords = ["wacom", "bamboo-slate", "smartpad", "handwriting", "egui"]
 categories = ["gui", "hardware-support"]
@@ -287,3 +286,12 @@ pdfcraft-render = { path = "vendor/pdfcraft-render" }
 # `openslate_mobile`: impostato da mobile/core (app Android e iOS), che include alcuni file di src/
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(openslate_mobile)"] }
+
+# Lint stilistici disattivati: `as_chunks` rompe i confronti esistenti,
+# e tipi/firme lunghe sono una scelta deliberata nel codice UI/protocollo
+[lints.clippy]
+chunks_exact_to_as_chunks = "allow"
+type_complexity = "allow"
+too_many_arguments = "allow"
+# `!(x > 0.0)` è voluto: vero anche per NaN
+neg_cmp_op_on_partial_ord = "allow"

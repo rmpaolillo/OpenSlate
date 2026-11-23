@@ -521,7 +521,7 @@ impl App {
             ui.separator();
             ui.label(egui::RichText::new(i18n::tr(&e.meta.display_title()).into_owned()).strong());
             if !e.meta.title.is_empty() {
-                ui.label(egui::RichText::new(i18n::tr(&&e.meta.created).into_owned()).weak());
+                ui.label(egui::RichText::new(i18n::tr(&e.meta.created).into_owned()).weak());
             }
             ui.label(egui::RichText::new(i18n::tf(format!("{} tratti", e.drawing.strokes.len()))).weak());
             ui.separator();

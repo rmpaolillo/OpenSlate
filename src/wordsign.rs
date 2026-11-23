@@ -229,13 +229,13 @@ fn clusters(items: &[usize], at: impl Fn(usize) -> (usize, [f32; 4])) -> Vec<Vec
     }
     let mut out: Vec<Vec<usize>> = Vec::new();
     let mut idx: std::collections::HashMap<usize, usize> = Default::default();
-    for i in 0..items.len() {
+    for (i, &item) in items.iter().enumerate() {
         let r = root(&mut parent, i);
         let k = *idx.entry(r).or_insert_with(|| {
             out.push(Vec::new());
             out.len() - 1
         });
-        out[k].push(items[i]);
+        out[k].push(item);
     }
     out
 }

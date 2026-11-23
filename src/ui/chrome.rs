@@ -151,10 +151,10 @@ impl App {
             p.circle_filled(c, 2.4, t.ribbon);
         }
         p.circle_stroke(c, 6.0, Stroke::new(1.0, Color32::from_black_alpha(70)));
-        p.text(pos2(r.min.x + 24.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&&text).into_owned(), medium(11.5), t.text);
+        p.text(pos2(r.min.x + 24.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&text).into_owned(), medium(11.5), t.text);
         resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &text));
         // il pad ha un posto solo: questo menu
-        let resp = resp.on_hover_text(i18n::tr(&tip).into_owned());
+        let resp = resp.on_hover_text(i18n::tr(tip).into_owned());
         egui::Popup::menu(&resp).show(|ui| {
             ui.set_min_width(250.0);
             let dim = |ui: &mut egui::Ui, s: String| {
@@ -343,7 +343,7 @@ impl App {
             ui.painter().rect_filled(r.shrink2(vec2(0.0, 4.0)), 4.0, t.hover);
         }
         let color = if active || special { t.accent_text } else { t.text };
-        ui.painter().text(r.center(), Align2::CENTER_CENTER, i18n::tr(&label).into_owned(), if active { semibold(12.5) } else { medium(12.5) }, color);
+        ui.painter().text(r.center(), Align2::CENTER_CENTER, i18n::tr(label).into_owned(), if active { semibold(12.5) } else { medium(12.5) }, color);
         if active {
             let u = Rect::from_center_size(pos2(r.center().x, r.max.y - 2.0), vec2(w - 16.0, 3.0));
             ui.painter().rect_filled(u, 2.0, t.accent);
@@ -420,8 +420,8 @@ impl App {
                 t.ribbon
             };
             ui.painter().rect(r, rounding, fill, Stroke::new(1.0, if on { t.accent.linear_multiply(0.6) } else { t.border_strong }), egui::StrokeKind::Inside);
-            ui.painter().text(r.center(), Align2::CENTER_CENTER, i18n::tr(&&label).into_owned(), medium(11.5), if on { t.accent_text } else { t.text });
-            if resp.on_hover_text(i18n::tr(&tip).into_owned()).clicked() && !on {
+            ui.painter().text(r.center(), Align2::CENTER_CENTER, i18n::tr(&label).into_owned(), medium(11.5), if on { t.accent_text } else { t.text });
+            if resp.on_hover_text(i18n::tr(tip).into_owned()).clicked() && !on {
                 actions.push(Action::SetMode(m));
             }
         }
@@ -435,7 +435,7 @@ impl App {
         let (r, resp) = ui.allocate_exact_size(vec2(w.max(74.0), 24.0), Sense::click());
         ui.painter().rect_filled(r, 4.0, if resp.hovered() { t.accent_text } else { t.accent });
         ui.painter().text(pos2(r.min.x + 15.0, r.center().y), Align2::CENTER_CENTER, ic::SHARE_NETWORK, icon(14.0), t.on_accent);
-        ui.painter().text(pos2(r.min.x + 27.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&label).into_owned(), medium(12.0), t.on_accent);
+        ui.painter().text(pos2(r.min.x + 27.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(label).into_owned(), medium(12.0), t.on_accent);
         resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
         let resp = resp.on_hover_text(i18n::t("Diretta web per TV e telefono, copia come immagine, esporta in PDF / PNG / SVG"));
         egui::Popup::menu(&resp).show(|ui| {
@@ -464,11 +464,10 @@ impl App {
             if menu_item(ui, true, ic::PRINTER, "Stampa…", &cmd_key("P")) {
                 actions.push(Action::Print);
             }
-            if self.docui.doc.is_none() && super::paper::Paper::from_code(&self.settings.paper) != super::paper::Paper::Bianco {
-                if menu_item(ui, true, if self.settings.print_paper { ic::CHECK_SQUARE } else { ic::SQUARE }, "Stampa anche le righe del foglio", "") {
+            if self.docui.doc.is_none() && super::paper::Paper::from_code(&self.settings.paper) != super::paper::Paper::Bianco
+                && menu_item(ui, true, if self.settings.print_paper { ic::CHECK_SQUARE } else { ic::SQUARE }, "Stampa anche le righe del foglio", "") {
                     actions.push(Action::TogglePrintPaper);
                 }
-            }
             if menu_item(ui, true, ic::FILE_PDF, "Esporta in PDF", "") {
                 actions.push(Action::Export(Fmt::Pdf));
             }
@@ -537,7 +536,7 @@ impl App {
                 ui.horizontal_centered(|ui| {
                     ui.spacing_mut().item_spacing = vec2(14.0, 0.0);
                     let st = |ui: &mut egui::Ui, s: &str, color: Color32| {
-                        ui.label(egui::RichText::new(i18n::tr(&s).into_owned()).font(regular(11.0)).color(color));
+                        ui.label(egui::RichText::new(i18n::tr(s).into_owned()).font(regular(11.0)).color(color));
                     };
                     match self.mode {
                         Mode::Board if self.center != super::workspace::Center::Board => {
@@ -777,10 +776,10 @@ impl App {
                             ui.painter().rect_filled(r, 4.0, if on { t.checked } else { t.hover });
                         }
                         let col = if c.enabled { t.text } else { t.text_disabled };
-                        ui.painter().text(pos2(r.min.x + 14.0, r.center().y), Align2::CENTER_CENTER, i18n::tr(&c.glyph).into_owned(), icon(15.0), if c.enabled { t.icon } else { t.text_disabled });
-                        ui.painter().text(pos2(r.min.x + 30.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&&c.label).into_owned(), regular(12.5), col);
+                        ui.painter().text(pos2(r.min.x + 14.0, r.center().y), Align2::CENTER_CENTER, i18n::tr(c.glyph).into_owned(), icon(15.0), if c.enabled { t.icon } else { t.text_disabled });
+                        ui.painter().text(pos2(r.min.x + 30.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&c.label).into_owned(), regular(12.5), col);
                         if !c.keys.is_empty() {
-                            ui.painter().text(pos2(r.max.x - 8.0, r.center().y), Align2::RIGHT_CENTER, i18n::tr(&&c.keys).into_owned(), regular(11.0), t.text_dim);
+                            ui.painter().text(pos2(r.max.x - 8.0, r.center().y), Align2::RIGHT_CENTER, i18n::tr(&c.keys).into_owned(), regular(11.0), t.text_dim);
                         }
                         if on && (down || up) {
                             resp.scroll_to_me(None);
@@ -868,7 +867,7 @@ impl App {
         // un comando per ogni foglio («Foglio: righe di 1ª elementare», …)
         for p in super::paper::Paper::ALL {
             let glyph = if p.ruled() || p == super::paper::Paper::Bianco { ic::NOTEBOOK } else { ic::GRID_FOUR };
-            v.push(c(glyph, &format!("Foglio: {}", i18n::tr(&p.label())), "", Action::Paper(p)));
+            v.push(c(glyph, &format!("Foglio: {}", i18n::tr(p.label())), "", Action::Paper(p)));
         }
         if !doc {
             v.push(c(ic::MAGIC_WAND, "Trasforma la lavagna in bella", "", Action::Fair(super::inbella_ui::Fair::Toggle)));

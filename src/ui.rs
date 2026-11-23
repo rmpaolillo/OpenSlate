@@ -1185,7 +1185,7 @@ fn ocr_job(pages: Vec<(String, Page)>, cfg: Settings, tx: tokio::sync::mpsc::Unb
                             out.push_str(&if markdown { format!("<!-- {title} -->\n") } else { format!("── {title} ──\n") });
                         }
                         out.push_str(r.text.trim());
-                        out.push_str("\n");
+                        out.push('\n');
                     }
                     // con più pagine quelle fatte non si buttano: la pagina che
                     // non riesce resta segnata nel testo
@@ -2735,7 +2735,7 @@ mod contorno_tests {
         let mut mesh = egui::Mesh::default();
         t.tessellate_shape(shape, &mut mesh);
         let r = egui::Rect::from_points(pts);
-        mesh.vertices.iter().map(|v| (r.distance_to_pos(v.pos))).fold(0.0, f32::max)
+        mesh.vertices.iter().map(|v| r.distance_to_pos(v.pos)).fold(0.0, f32::max)
     }
 
     /// Il bordo del tratto naturale ai tornanti (le punte di una firma) non

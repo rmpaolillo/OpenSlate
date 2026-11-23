@@ -21,6 +21,7 @@ enum Drag {
 }
 
 /// Cosa si sta posando sulla pagina.
+#[allow(clippy::large_enum_variant)] // uno solo per volta
 pub(super) enum Placing {
     /// La firma registrata.
     Sig(Signature),
@@ -351,7 +352,7 @@ impl App {
                 Err(e) => self.status = format!("⚠ Import: {e}"),
             }
         }
-        let dropped: Vec<PathBuf> = ctx.input(|i| i.raw.dropped_files.iter().filter_map(|f| Some(f.path().to_path_buf())).collect());
+        let dropped: Vec<PathBuf> = ctx.input(|i| i.raw.dropped_files.iter().map(|f| f.path().to_path_buf()).collect());
         if let Some(p) = dropped.into_iter().next() {
             self.start_import(p);
         }
@@ -831,7 +832,7 @@ impl App {
                 }
                 let col = if on { t.text } else { t.text_dim };
                 ui.painter().text(pos2(r.min.x + 16.0, r.center().y), Align2::CENTER_CENTER, glyph, icon(14.0), if on { t.accent_text } else { t.text_dim });
-                ui.painter().text(pos2(r.min.x + 28.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&text).into_owned(), font, col);
+                ui.painter().text(pos2(r.min.x + 28.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(text).into_owned(), font, col);
                 let mut out = None;
                 if closable {
                     let x = egui::Rect::from_center_size(pos2(r.max.x - 14.0, r.center().y), vec2(18.0, 18.0));

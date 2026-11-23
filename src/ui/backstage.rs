@@ -42,14 +42,14 @@ fn greeting() -> &'static str {
 
 fn heading(ui: &mut egui::Ui, s: &str) {
     let t = Tokens::get(ui.ctx());
-    ui.label(egui::RichText::new(i18n::tr(&s).into_owned()).font(semibold(24.0)).color(t.text));
+    ui.label(egui::RichText::new(i18n::tr(s).into_owned()).font(semibold(24.0)).color(t.text));
     ui.add_space(14.0);
 }
 
 fn subheading(ui: &mut egui::Ui, s: &str) {
     let t = Tokens::get(ui.ctx());
     ui.add_space(10.0);
-    ui.label(egui::RichText::new(i18n::tr(&s).into_owned()).font(semibold(14.0)).color(t.text));
+    ui.label(egui::RichText::new(i18n::tr(s).into_owned()).font(semibold(14.0)).color(t.text));
     ui.add_space(6.0);
 }
 
@@ -62,9 +62,9 @@ fn card(ui: &mut egui::Ui, glyph: &str, title: &str, sub: &str, enabled: bool) -
     ui.painter().rect(r, 6.0, fill, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
     let (ic_c, tx, sx) = if enabled { (t.accent_text, t.text, t.text_dim) } else { (t.text_disabled, t.text_disabled, t.text_disabled) };
     ui.painter().text(pos2(r.min.x + 30.0, r.center().y), Align2::CENTER_CENTER, glyph, icon(24.0), ic_c);
-    ui.painter().text(pos2(r.min.x + 58.0, r.min.y + 19.0), Align2::LEFT_CENTER, i18n::tr(&title).into_owned(), semibold(13.5), tx);
+    ui.painter().text(pos2(r.min.x + 58.0, r.min.y + 19.0), Align2::LEFT_CENTER, i18n::tr(title).into_owned(), semibold(13.5), tx);
     let clip = ui.painter().with_clip_rect(r.shrink(4.0));
-    clip.text(pos2(r.min.x + 58.0, r.min.y + 40.0), Align2::LEFT_CENTER, i18n::tr(&sub).into_owned(), regular(11.5), sx);
+    clip.text(pos2(r.min.x + 58.0, r.min.y + 40.0), Align2::LEFT_CENTER, i18n::tr(sub).into_owned(), regular(11.5), sx);
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, title));
     ui.add_space(6.0);
     enabled && resp.clicked()
@@ -81,7 +81,7 @@ fn tile(ui: &mut egui::Ui, glyph: &str, label: &str, blank: bool) -> bool {
     ui.painter().rect_filled(page.translate(vec2(0.0, 2.0)), 3.0, t.page_shadow);
     ui.painter().rect(page, 3.0, if blank { Color32::WHITE } else { t.input }, Stroke::new(1.0, if resp.hovered() { t.accent } else { t.border_strong }), egui::StrokeKind::Inside);
     ui.painter().text(page.center(), Align2::CENTER_CENTER, glyph, icon(34.0), if blank { Color32::from_gray(190) } else { t.accent_text });
-    ui.painter().text(pos2(r.center().x, page.max.y + 15.0), Align2::CENTER_CENTER, i18n::tr(&label).into_owned(), medium(12.0), t.text);
+    ui.painter().text(pos2(r.center().x, page.max.y + 15.0), Align2::CENTER_CENTER, i18n::tr(label).into_owned(), medium(12.0), t.text);
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
     resp.clicked()
 }
@@ -116,7 +116,7 @@ impl App {
                     if !glyph.is_empty() {
                         ui.painter().text(pos2(r.min.x + 31.0, r.center().y), Align2::CENTER_CENTER, glyph, icon(18.0), Color32::WHITE);
                     }
-                    ui.painter().text(pos2(r.min.x + 52.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&label).into_owned(), font, Color32::WHITE);
+                    ui.painter().text(pos2(r.min.x + 52.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(label).into_owned(), font, Color32::WHITE);
                     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
                     resp.clicked()
                 };
@@ -309,7 +309,7 @@ impl App {
             ui.vertical(|ui| {
                 ui.label(egui::RichText::new(i18n::t("OpenSlate")).font(semibold(20.0)).color(t.text));
                 ui.label(egui::RichText::new(i18n::tf(format!("OpenSlate {} — licenza {}", env!("CARGO_PKG_VERSION"), env!("CARGO_PKG_LICENSE")))).color(t.text_dim));
-                ui.label(egui::RichText::new(i18n::tr(&env!("CARGO_PKG_AUTHORS")).into_owned()).color(t.text_dim));
+                ui.label(egui::RichText::new(i18n::tr(env!("CARGO_PKG_AUTHORS")).into_owned()).color(t.text_dim));
             });
         });
         ui.add_space(12.0);
@@ -337,7 +337,7 @@ impl App {
             "Carattere Inter di Rasmus Andersson (SIL Open Font License 1.1). Icone Phosphor (MIT).",
             "Formule: KaTeX (MIT). Markdown: marked (MIT). Interfaccia: egui (MIT / Apache-2.0).",
         ] {
-            ui.label(egui::RichText::new(i18n::tr(&line).into_owned()).color(t.text_dim));
+            ui.label(egui::RichText::new(i18n::tr(line).into_owned()).color(t.text_dim));
         }
     }
 }

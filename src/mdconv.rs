@@ -292,7 +292,7 @@ fn parse_inline(s: &str) -> Vec<Inline> {
             if let Some(close) = find(start, &[']', '(']) {
                 if let Some(end) = find(close + 2, &[')']) {
                     let label: String = c[start..close].iter().collect();
-                    let url: String = c[close + 2..end].iter().collect::<String>().trim().split_whitespace().next().unwrap_or("").to_string();
+                    let url: String = c[close + 2..end].iter().collect::<String>().split_whitespace().next().unwrap_or("").to_string();
                     push_text(&mut text, &mut out);
                     out.push(if img { Inline::Image(label, url) } else { Inline::Link(parse_inline(&label), url) });
                     i = end + 1;
@@ -700,7 +700,7 @@ pub fn to_typst(md: &str, title: &str) -> String {
                 o.push_str(")\n\n");
             }
             Block::Math(m) => o.push_str(&format!("#mitex({})\n\n", typ_str(&m))),
-            Block::Code(c) => o.push_str(&format!("#raw(block: true, {})\n\n", format!("\"{}\"", c.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n")))),
+            Block::Code(c) => o.push_str(&format!("#raw(block: true, \"{}\")\n\n", c.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n"))),
             Block::Rule => o.push_str("#line(length: 100%, stroke: 0.4pt)\n\n"),
         }
     }

@@ -89,7 +89,7 @@ fn watch_nav(origin: &str, proxy: tao::event_loop::EventLoopProxy<String>) {
         let agent = ureq::AgentBuilder::new().timeout(std::time::Duration::from_secs(2)).build();
         let mut seen: Option<u64> = None;
         loop {
-            if let Ok(v) = agent.get(&url).call().and_then(|r| Ok(r.into_json::<serde_json::Value>()?)) {
+            if let Some(v) = agent.get(&url).call().ok().and_then(|r| r.into_json::<serde_json::Value>().ok()) {
                 let rev = v["rev"].as_u64().unwrap_or(0);
                 match seen {
                     None => seen = Some(rev),

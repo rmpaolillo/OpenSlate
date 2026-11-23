@@ -703,7 +703,7 @@ impl App {
                 ui.painter().rect_filled(r, round, t.hover);
             }
             ui.painter().text(pos2(r.min.x + 16.0, r.center().y), Align2::CENTER_CENTER, glyph, icon(14.0), if on { t.accent_text } else { t.text_dim });
-            ui.painter().text(pos2(r.min.x + 28.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&text).into_owned(), font, if on { t.text } else { t.text_dim });
+            ui.painter().text(pos2(r.min.x + 28.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(text).into_owned(), font, if on { t.text } else { t.text_dim });
             let x = egui::Rect::from_center_size(pos2(r.max.x - 14.0, r.center().y), vec2(18.0, 18.0));
             let xr = ui.interact(x, resp.id.with("close"), Sense::click());
             if xr.hovered() {

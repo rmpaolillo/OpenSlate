@@ -140,7 +140,6 @@ pub fn place_svg(file: &Path, svg: &Path, at: Option<[f32; 2]>, w: f32, h: f32) 
 
 /// Scrive la sessione in `dst` nel formato di `src` (un raster alla sua risoluzione).
 fn save_like(s: &mut Session, src: &Path, dst: &Path) -> Result<()> {
-    let s = s;
     match ext(src).as_str() {
         "svg" | "svgz" => {
             let format = if ext(dst) == "svgz" { "svgz" } else { "svg" };

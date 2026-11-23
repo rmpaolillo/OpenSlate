@@ -221,8 +221,8 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
     if path.starts_with("/api/") && header(&head, "sec-fetch-site").is_some_and(|s| s.eq_ignore_ascii_case("cross-site")) {
         return respond(&mut sock, "403 Forbidden", "text/plain", b"richiesta da un altro sito").await;
     }
-    if !from_mac && !public_path(path) {
-        if !has_key(&head, &query) {
+    if !from_mac && !public_path(path)
+        && !has_key(&head, &query) {
             return respond(
                 &mut sock,
                 "403 Forbidden",
@@ -231,7 +231,6 @@ async fn handle(mut sock: TcpStream, hub: Arc<Hub>) -> std::io::Result<()> {
             )
             .await;
         }
-    }
     // chiave nell'indirizzo aprendo una pagina: diventa un cookie (e sparisce
     // dall'indirizzo); per le altre richieste (script, immagini) vale e basta
     let page_nav = header(&head, "sec-fetch-mode").map_or(matches!(path, "/" | "/index.html" | "/chat" | "/appunti" | "/impostazioni"), |m| m.eq_ignore_ascii_case("navigate"));

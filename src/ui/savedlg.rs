@@ -80,8 +80,7 @@ mod tests {
 
     #[test]
     fn cartella_di_partenza() {
-        let mut s = Settings::default();
-        s.save_dir = "/questa/cartella/non/esiste".into();
+        let mut s = Settings { save_dir: "/questa/cartella/non/esiste".into(), ..Default::default() };
         assert!(start_dir(&s).ends_with(EXPORT_DIR));
         s.save_dir = std::env::temp_dir().to_string_lossy().into();
         assert_eq!(start_dir(&s), std::env::temp_dir());

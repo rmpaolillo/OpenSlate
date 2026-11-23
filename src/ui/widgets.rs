@@ -66,7 +66,7 @@ pub fn big_ex(ui: &mut Ui, glyph: &str, label: &str, tip: &str, enabled: bool, c
         ui.painter().text(pos2(r.center().x, y), Align2::CENTER_TOP, i18n::tr(&text).into_owned(), regular(11.5), tx);
         y += LABEL_PITCH;
     }
-    let resp = if tip.is_empty() { resp } else { resp.on_hover_text(i18n::tr(&tip).into_owned()) };
+    let resp = if tip.is_empty() { resp } else { resp.on_hover_text(i18n::tr(tip).into_owned()) };
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, label.replace('\n', " ")));
     resp
 }
@@ -90,9 +90,9 @@ pub fn small_ex(ui: &mut Ui, glyph: &str, label: &str, tip: &str, enabled: bool,
     let (ic, tx) = if enabled { (if checked { t.accent_text } else { t.icon }, t.text) } else { (t.text_disabled, t.text_disabled) };
     ui.painter().text(pos2(r.min.x + 12.0, r.center().y), Align2::CENTER_CENTER, glyph, icon(16.0), ic);
     if !label.is_empty() {
-        ui.painter().text(pos2(r.min.x + 24.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(&label).into_owned(), regular(11.5), tx);
+        ui.painter().text(pos2(r.min.x + 24.0, r.center().y), Align2::LEFT_CENTER, i18n::tr(label).into_owned(), regular(11.5), tx);
     }
-    let resp = if tip.is_empty() { resp } else { resp.on_hover_text(i18n::tr(&tip).into_owned()) };
+    let resp = if tip.is_empty() { resp } else { resp.on_hover_text(i18n::tr(tip).into_owned()) };
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, if label.is_empty() { tip } else { label }));
     resp
 }
@@ -126,7 +126,7 @@ pub fn group(ui: &mut Ui, title: &str, add: impl FnOnce(&mut Ui)) {
     });
     let r = inner.response.rect;
     let title_r = Rect::from_min_max(pos2(start.x, start.y + CONTENT_H), pos2(r.max.x, start.y + CONTENT_H + LABEL_H));
-    ui.painter().text(title_r.center(), Align2::CENTER_CENTER, i18n::tr(&title).into_owned(), regular(11.0), t.group_label);
+    ui.painter().text(title_r.center(), Align2::CENTER_CENTER, i18n::tr(title).into_owned(), regular(11.0), t.group_label);
     ui.add_space(5.0);
     let x = ui.cursor().min.x;
     ui.painter().line_segment([pos2(x, start.y + 4.0), pos2(x, start.y + CONTENT_H + LABEL_H - 4.0)], Stroke::new(1.0, t.border));

@@ -137,7 +137,7 @@ impl App {
                 for (title, group) in super::paper::Paper::GROUPS {
                     ui.separator();
                     ui.add_space(2.0);
-                    ui.label(egui::RichText::new(i18n::tr(&title).into_owned()).font(medium(11.0)).color(Tokens::get(ui.ctx()).text_dim));
+                    ui.label(egui::RichText::new(i18n::tr(title).into_owned()).font(medium(11.0)).color(Tokens::get(ui.ctx()).text_dim));
                     for &p in group {
                         if menu_item(ui, true, radio(p), p.label(), "") {
                             actions.push(Action::Paper(p));

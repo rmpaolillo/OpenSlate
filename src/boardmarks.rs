@@ -410,8 +410,7 @@ pub fn to_hand(text: &str) -> String {
     let mut s = text.replace("\\[", " ").replace("\\]", " ").replace("\\(", " ").replace("\\)", " ").replace('$', "");
     s = s.replace("**", "").replace("__", "").replace('`', "");
     // \frac{a}{b} → a/b (fra parentesi se serve)
-    loop {
-        let Some(i) = s.find("\\frac") else { break };
+    while let Some(i) = s.find("\\frac") {
         let rest = &s[i + 5..];
         let (Some((a, r1)), true) = (group(rest), true) else { s.replace_range(i..i + 5, ""); continue };
         let Some((b, r2)) = group(r1) else { s.replace_range(i..i + 5, ""); continue };
@@ -421,8 +420,7 @@ pub fn to_hand(text: &str) -> String {
         s.replace_range(i..end, &new);
     }
     // \sqrt{a} → √a o √(a)
-    loop {
-        let Some(i) = s.find("\\sqrt") else { break };
+    while let Some(i) = s.find("\\sqrt") {
         let Some((a, r1)) = group(&s[i + 5..]) else { s.replace_range(i..i + 5, "√"); continue };
         let new = if a.chars().count() > 1 { format!("√({a})") } else { format!("√{a}") };
         let end = s.len() - r1.len();

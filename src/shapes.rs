@@ -989,6 +989,7 @@ fn fit_conic_ellipse(q: &[P]) -> Option<Ell> {
     Some(if err(&e2) < err(&e) { e2 } else { e })
 }
 
+#[allow(clippy::needless_range_loop)]
 fn inv3(m: &[[f64; 3]; 3]) -> Option<[[f64; 3]; 3]> {
     let det = m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
     if det.abs() < 1e-14 {

@@ -526,6 +526,7 @@ fn apply(strokes: &[Stroke], g: &PageGeom, ph: &[Vec<(f32, f32)>], lines: &[Ln],
 }
 
 #[cfg(test)]
+#[allow(clippy::approx_constant)] // tratti a mano simulati, non costanti
 mod tests {
     use super::*;
     use crate::scene::View;

@@ -214,6 +214,7 @@ pub fn undo(dir: &Path, n: u64) -> Result<()> {
 // Server MCP della suite Craft, in memoria
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::large_enum_variant)] // un solo server vivo per volta
 enum Server {
     Word(wordcraft_mcp::Server),
     Svg(vectorcraft_mcp::Server),

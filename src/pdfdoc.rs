@@ -33,7 +33,7 @@ impl PdfPage {
     }
 
     /// Punto della pagina vista (u, v in 0..1, v verso il basso) → coordinate PDF.
-    pub fn to_user(&self, u: f32, v: f32) -> (f32, f32) {
+    pub fn to_user(self, u: f32, v: f32) -> (f32, f32) {
         let [x0, y0, x1, y1] = self.bbox;
         let (w, h) = (x1 - x0, y1 - y0);
         match self.rotate.rem_euclid(360) {

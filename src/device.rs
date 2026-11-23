@@ -186,7 +186,7 @@ pub async fn register(pad: &mut Pad) -> Result<([u8; 6], DeviceInfo), ProtoError
     let r = pad.recv(op::REGISTER_PRESS_BUTTON, Duration::from_secs(30)).await?;
     match r.opcode {
         op::R_BUTTON_SLATE | op::R_BUTTON_INTUOS => {}
-        op::R_GENERIC if r.data.first().map_or(false, |c| *c != 0) => {
+        op::R_GENERIC if r.data.first().is_some_and(|c| *c != 0) => {
             return Err(ProtoError::Device(r.data[0]));
         }
         other => {

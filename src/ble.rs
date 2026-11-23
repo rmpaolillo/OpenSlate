@@ -88,7 +88,7 @@ impl Found {
             || self.services.iter().any(is_wacom_service)
             || self
                 .company
-                .map_or(false, |c| protocol::WACOM_COMPANY_IDS.contains(&c))
+                .is_some_and(|c| protocol::WACOM_COMPANY_IDS.contains(&c))
     }
 
     pub fn describe(&self) -> String {
@@ -215,7 +215,7 @@ impl Pad {
                     }
                 }
             }
-            let ready = best.as_ref().map_or(false, |f| f.mfr.is_some());
+            let ready = best.as_ref().is_some_and(|f| f.mfr.is_some());
             if ready && start.elapsed() >= min_scan {
                 break;
             }
@@ -427,7 +427,7 @@ impl Pad {
     pub async fn disconnect(&self) {
         let connected = timeout(DISCONNECT_TIMEOUT, self.peripheral.is_connected())
             .await
-            .map_or(false, |r| r.unwrap_or(false));
+            .is_ok_and(|r| r.unwrap_or(false));
         if connected && timeout(DISCONNECT_TIMEOUT, self.peripheral.disconnect()).await.is_err() {
             tracing::warn!("disconnect: nessuna risposta dal pad");
         }

@@ -184,7 +184,7 @@ pub fn is_zigzag(pts: &[(f32, f32)], min_size: f32) -> bool {
         let cos = (a.0 * b.0 + a.1 * b.1) / (na * nb);
         if cos < -0.5 {
             // angolo di svolta > 120°: inversione netta
-            if last.map_or(true, |t| i - t > 2 * k) {
+            if last.is_none_or(|t| i - t > 2 * k) {
                 turns += 1;
             }
             last = Some(i);

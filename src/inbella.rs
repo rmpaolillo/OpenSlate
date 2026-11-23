@@ -682,6 +682,7 @@ pub(crate) fn turns_xy(pts: &[(f32, f32)], min: f32) -> (Vec<(f32, f32)>, Vec<(f
 }
 
 #[cfg(all(test, not(openslate_mobile)))]
+#[allow(clippy::approx_constant, clippy::vec_init_then_push)] // tratti a mano simulati
 pub(crate) mod tests {
     use super::*;
 
