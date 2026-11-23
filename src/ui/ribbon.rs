@@ -433,6 +433,9 @@ impl App {
                     actions.push(doc(DocAction::CancelStamp));
                 }
             });
+            if let super::doc_view::Placing::Sig(sig) = &st.what {
+                self.ribbon_sig(ui, sig, actions);
+            }
             return;
         }
         let open = self.docui.doc.is_some();

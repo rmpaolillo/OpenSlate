@@ -1395,5 +1395,16 @@
  "Apponi sul foglio": "페이지에 찍기",
  "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "회사 도장: 한 번 만들고 보드나 문서에 찍으세요",
  "Sempre identico": "항상 동일",
- "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale.": "끄기: 실제 스탬프 패드처럼 찍을 때마다 조금씩 다릅니다(기울기 ±1°, 잉크, 질감). 켜기: 항상 같음."
+ "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±2°, inchiostro e grana). Acceso: sempre uguale.": "끄기: 실제 스탬프 패드처럼 찍을 때마다 조금씩 다릅니다(기울기 ±2°, 잉크, 질감). 켜기: 항상 같음.",
+ "Inchiostro": "잉크",
+ "Come l'hai scritta": "쓴 그대로",
+ "Più bassa, tratto più chiaro e sottile, come una penna che scarica": "낮을수록 선이 더 연하고 가늘어집니다(잉크가 다 된 펜처럼)",
+ "Blu notte": "미드나이트 블루",
+ "Blu biro": "볼펜 파랑",
+ "Azzurro": "하늘색",
+ "Grafite": "그래파이트",
+ "Grigio scuro": "진회색",
+ "Bordeaux": "버건디",
+ "Verde scuro": "진녹색",
+ "Seppia": "세피아"
 }

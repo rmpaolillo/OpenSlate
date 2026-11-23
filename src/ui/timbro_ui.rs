@@ -387,7 +387,7 @@ impl App {
                 let mut fixed = st.fixed;
                 if ui
                     .checkbox(&mut fixed, egui::RichText::new(tr("Sempre identico")).size(11.5))
-                    .on_hover_text(tr("Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale."))
+                    .on_hover_text(tr("Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±2°, inchiostro e grana). Acceso: sempre uguale."))
                     .changed()
                 {
                     actions.push(edit(SealEdit::Fixed(fixed)));

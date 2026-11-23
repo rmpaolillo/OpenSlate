@@ -28,7 +28,53 @@ pub fn sig_exists(data_dir: String) -> bool {
 #[uniffi::export]
 pub fn sig_save(data_dir: String, strokes: Vec<PageStroke>, view: BoardView) -> Result<(), StoreError> {
     let st: Vec<_> = strokes.iter().filter(|s| s.stamp.is_none()).map(from_page_stroke).collect();
-    let sig = Signature::from_strokes(&st, view.view()).ok_or(StoreError::Io { reason: "firma vuota: scrivi la firma sul foglio".into() })?;
+    let mut sig = Signature::from_strokes(&st, view.view()).ok_or(StoreError::Io { reason: "firma vuota: scrivi la firma sul foglio".into() })?;
+    // registrandola di nuovo, colore e intensità restano quelli scelti
+    if let Some(old) = load(&data_dir) {
+        sig.intensity = old.intensity;
+        sig.color = old.color;
+    }
+    sig.save_to(&file(&data_dir)).map_err(|e| StoreError::Io { reason: e.to_string() })
+}
+
+/// Un inchiostro per la firma (`signature::INKS`).
+#[derive(uniffi::Record, Clone)]
+pub struct SigInk {
+    /// Nome in italiano (per l'accessibilità).
+    pub name: String,
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+}
+
+/// Gli inchiostri per la firma: più tonalità di blu, nero, grigio, rosso…
+#[uniffi::export]
+pub fn sig_inks() -> Vec<SigInk> {
+    crate::signature::INKS.iter().map(|(n, c)| SigInk { name: n.to_string(), r: c[0], g: c[1], b: c[2] }).collect()
+}
+
+/// Colore e intensità della firma, come per il timbro.
+#[derive(uniffi::Record, Clone, PartialEq, Debug)]
+pub struct SigLook {
+    /// Quale di `sig_inks`; -1 = il colore con cui è stata scritta.
+    pub ink: i32,
+    /// 0.3..1.
+    pub intensity: f32,
+}
+
+#[uniffi::export]
+pub fn sig_look(data_dir: String) -> SigLook {
+    let Some(sig) = load(&data_dir) else { return SigLook { ink: -1, intensity: 1.0 } };
+    let ink = sig.color.and_then(|c| crate::signature::INKS.iter().position(|(_, k)| *k == c)).map(|i| i as i32).unwrap_or(-1);
+    SigLook { ink, intensity: sig.intensity }
+}
+
+/// Cambia colore e intensità della firma registrata (restano per la prossima volta).
+#[uniffi::export]
+pub fn sig_set_look(data_dir: String, look: SigLook) -> Result<(), StoreError> {
+    let mut sig = load(&data_dir).ok_or(StoreError::Io { reason: "nessuna firma registrata".into() })?;
+    sig.color = usize::try_from(look.ink).ok().and_then(|i| crate::signature::INKS.get(i)).map(|(_, c)| *c);
+    sig.intensity = look.intensity.clamp(crate::signature::MIN_INTENSITY, 1.0);
     sig.save_to(&file(&data_dir)).map_err(|e| StoreError::Io { reason: e.to_string() })
 }
 
@@ -55,7 +101,7 @@ pub fn sig_png(data_dir: String, px_w: f32, page_px_h: f32) -> Vec<u8> {
     let Some(mut px) = Pixmap::new(w.max(1), h.max(1)) else { return Vec::new() };
     // lo spessore come sul foglio: pixel di un foglio alto 800, in proporzione
     let line_k = page_px_h.max(1.0) / 800.0;
-    for s in &sig.strokes {
+    for s in &sig.inked() {
         let mut pb = PathBuilder::new();
         for (i, p) in s.points.iter().enumerate() {
             let (x, y) = (p.x * k + 4.0, p.y * k + 4.0);
@@ -118,6 +164,16 @@ mod tests {
         let board = BoardModel::new();
         assert!(board_add_signature(board.clone(), view, d.clone(), r));
         assert_eq!(board.strokes().len(), 1);
+        // colore e intensità: si salvano, si vedono nei tratti posati e restano registrandola di nuovo
+        assert_eq!(sig_look(d.clone()), SigLook { ink: -1, intensity: 1.0 });
+        let look = SigLook { ink: 9, intensity: 0.6 };
+        sig_set_look(d.clone(), look.clone()).unwrap();
+        assert_eq!(sig_look(d.clone()), look);
+        assert!(board_add_signature(board.clone(), view, d.clone(), sig_natural_rect(d.clone(), view, 0.5, 0.5)));
+        let red = crate::signature::INKS[9].1;
+        assert_ne!(board.strokes()[1].color, format!("#{:02x}{:02x}{:02x}", red[0], red[1], red[2]), "più chiaro con intensità 0.6");
+        sig_save(d.clone(), board.strokes()[..1].to_vec(), view).unwrap();
+        assert_eq!(sig_look(d.clone()), look);
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

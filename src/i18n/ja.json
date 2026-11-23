@@ -1395,5 +1395,16 @@
  "Apponi sul foglio": "ページに押す",
  "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "会社の印鑑：一度作れば、ボードや文書に押せます",
  "Sempre identico": "常に同じ",
- "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale.": "オフ：本物のスタンプ台のように毎回少しずつ違います（傾き±1°、インク、かすれ）。オン：常に同じ。"
+ "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±2°, inchiostro e grana). Acceso: sempre uguale.": "オフ：本物のスタンプ台のように毎回少しずつ違います（傾き±2°、インク、かすれ）。オン：常に同じ。",
+ "Inchiostro": "インク",
+ "Come l'hai scritta": "書いたとおり",
+ "Più bassa, tratto più chiaro e sottile, come una penna che scarica": "低いほど線が薄く細くなります（インク切れのペンのように）",
+ "Blu notte": "ミッドナイトブルー",
+ "Blu biro": "ボールペンの青",
+ "Azzurro": "水色",
+ "Grafite": "グラファイト",
+ "Grigio scuro": "ダークグレー",
+ "Bordeaux": "ボルドー",
+ "Verde scuro": "ダークグリーン",
+ "Seppia": "セピア"
 }

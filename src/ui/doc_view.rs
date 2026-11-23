@@ -141,6 +141,8 @@ pub(super) enum DocAction {
     PlaceSeal(usize),
     /// Regola il timbro che si sta posando.
     Seal(super::timbro_ui::SealEdit),
+    /// Colore (Some(None) = quello originale) o intensità della firma che si sta posando.
+    SigLook { color: Option<Option<crate::stroke::Rgb>>, intensity: Option<f32> },
     /// La finestra dei timbri (su quale).
     StampWindow(Option<usize>),
     OpenLastExport,
@@ -684,7 +686,14 @@ impl App {
                     self.status = "Registrazione della firma annullata.".into();
                     return;
                 }
-                match Signature::from_strokes(&written, view) {
+                match Signature::from_strokes(&written, view).map(|mut sig| {
+                    // registrandola di nuovo, colore e intensità restano quelli scelti
+                    if let Some(old) = &self.docui.signature {
+                        sig.intensity = old.intensity;
+                        sig.color = old.color;
+                    }
+                    sig
+                }) {
                     Some(sig) => match sig.save() {
                         Ok(()) => {
                             self.docui.signature = Some(sig);
@@ -768,6 +777,19 @@ impl App {
                     let n = crate::stamp::natural_rect(spec, &g, 0.5, 0.5);
                     let (w, h) = (n[2] * k, n[3] * k);
                     *rect = [cx - w / 2.0, cy - h / 2.0, w, h];
+                }
+            }
+            DocAction::SigLook { color, intensity } => {
+                if let Some(Stamp { what: Placing::Sig(sig), .. }) = self.docui.stamp.as_mut() {
+                    if let Some(c) = color {
+                        sig.color = c;
+                    }
+                    if let Some(v) = intensity {
+                        sig.intensity = v.clamp(crate::signature::MIN_INTENSITY, 1.0);
+                    }
+                    // resta per la prossima volta (e va al telefono con la sincronizzazione)
+                    let _ = sig.save();
+                    self.docui.signature = Some(sig.clone());
                 }
             }
             DocAction::StampWindow(sel) => self.open_stamp_window(sel),
@@ -981,9 +1003,51 @@ impl App {
     }
 
     /// La firma da posizionare, tratto per tratto.
+    pub(super) fn ribbon_sig(&self, ui: &mut egui::Ui, sig: &Signature, actions: &mut Vec<Action>) {
+        use super::widgets::group;
+        let look = |color, intensity| Action::Doc(DocAction::SigLook { color, intensity });
+        group(ui, "Inchiostro", |ui| {
+            ui.vertical(|ui| {
+                ui.spacing_mut().item_spacing = egui::vec2(2.0, 2.0);
+                let swatch = |ui: &mut egui::Ui, c: egui::Color32, on: bool| {
+                    let (r, resp) = ui.allocate_exact_size(egui::vec2(18.0, 18.0), egui::Sense::click());
+                    ui.painter().circle_filled(r.center(), 7.0, c);
+                    if on {
+                        ui.painter().circle_stroke(r.center(), 8.5, egui::Stroke::new(2.0, ui.visuals().strong_text_color()));
+                    }
+                    resp
+                };
+                for row in crate::signature::INKS.chunks(7) {
+                    ui.horizontal(|ui| {
+                        for (name, c) in row {
+                            if swatch(ui, egui::Color32::from_rgb(c[0], c[1], c[2]), sig.color == Some(*c)).on_hover_text(crate::i18n::t(name)).clicked() {
+                                actions.push(look(Some(Some(*c)), None));
+                            }
+                        }
+                    });
+                }
+                ui.horizontal(|ui| {
+                    if ui.selectable_label(sig.color.is_none(), egui::RichText::new(crate::i18n::t("Come l'hai scritta")).size(11.0)).clicked() {
+                        actions.push(look(Some(None), None));
+                    }
+                    ui.spacing_mut().slider_width = 90.0;
+                    ui.label(egui::RichText::new(crate::i18n::t("Intensità")).size(11.0));
+                    let mut x = sig.intensity * 100.0;
+                    if ui
+                        .add(egui::Slider::new(&mut x, crate::signature::MIN_INTENSITY * 100.0..=100.0).suffix(" %").fixed_decimals(0))
+                        .on_hover_text(crate::i18n::t("Più bassa, tratto più chiaro e sottile, come una penna che scarica"))
+                        .changed()
+                    {
+                        actions.push(look(None, Some(x / 100.0)));
+                    }
+                });
+            });
+        });
+    }
+
     fn paint_sig(&self, painter: &egui::Painter, page: egui::Rect, r: egui::Rect, sig: &Signature, st: &Stamp, g: &PageGeom) {
         let scale = st.rect[3] / (sig.h / g.h);
-        for s in &sig.strokes {
+        for s in &sig.inked() {
             let col = egui::Color32::from_rgb(s.color[0], s.color[1], s.color[2]);
             let w = (s.width * scale * page.height() / 800.0).max(0.8);
             let pts: Vec<egui::Pos2> = s

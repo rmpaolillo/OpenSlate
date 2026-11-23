@@ -636,8 +636,8 @@ pub fn new_seed(old: u32) -> u32 {
 
 /// Come un timbro vero, ogni timbrata è un po' diversa: dipende dal tampone,
 /// da quanto si preme e da come si appoggia. Piccole variazioni attorno alle
-/// regolazioni dell'utente: inclinazione ±1°, intensità, grana e lato
-/// scarico appena diversi, grana nuova. Con `fixed` resta identico.
+/// regolazioni dell'utente: inclinazione ±2°, intensità ±15%, grana ±16%,
+/// inchiostro irregolare ±18%, lato scarico diverso, grana nuova. Con `fixed` resta identico.
 pub fn jitter(st: &StampStyle) -> StampStyle {
     if st.fixed {
         return st.clone();
@@ -651,10 +651,10 @@ pub fn jitter(st: &StampStyle) -> StampStyle {
         ((seed >> 8) as f32 / (1u32 << 24) as f32) * 2.0 - 1.0 // -1..1
     };
     let mut o = st.clone();
-    o.tilt = (st.tilt + r()).clamp(-15.0, 15.0);
-    o.opacity = (st.opacity + r() * 0.05).clamp(0.3, 1.0);
-    o.grain = (st.grain + r() * 0.06).clamp(0.0, 1.0);
-    o.uneven = (st.uneven + r() * 0.08).clamp(0.0, 1.0);
+    o.tilt = (st.tilt + r() * 2.0).clamp(-15.0, 15.0);
+    o.opacity = (st.opacity + r() * 0.15).clamp(0.3, 1.0);
+    o.grain = (st.grain + r() * 0.16).clamp(0.0, 1.0);
+    o.uneven = (st.uneven + r() * 0.18).clamp(0.0, 1.0);
     o.uneven_dir = (st.uneven_dir + r() * 60.0).rem_euclid(360.0);
     o.seed = new_seed(seed);
     o
@@ -855,9 +855,9 @@ pub(crate) mod tests {
         let b = jitter(&base);
         assert_ne!(a.seed, b.seed);
         for j in [&a, &b] {
-            assert!((j.tilt - base.tilt).abs() <= 1.0);
-            assert!((j.opacity - base.opacity).abs() <= 0.05 + 1e-6);
-            assert!((j.grain - base.grain).abs() <= 0.06 + 1e-6);
+            assert!((j.tilt - base.tilt).abs() <= 2.0);
+            assert!((j.opacity - base.opacity).abs() <= 0.15 + 1e-6);
+            assert!((j.grain - base.grain).abs() <= 0.16 + 1e-6);
             assert_eq!(j.frame, base.frame);
             assert_eq!(j.color, base.color);
         }

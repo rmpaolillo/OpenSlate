@@ -1395,5 +1395,16 @@
  "Apponi sul foglio": "Place on the page",
  "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "The company stamp: create it once, then place it on the board or the document",
  "Sempre identico": "Always identical",
- "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale.": "Off: every impression is slightly different, like with a real ink pad (tilt ±1°, ink and grain). On: always the same."
+ "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±2°, inchiostro e grana). Acceso: sempre uguale.": "Off: every impression is slightly different, like with a real ink pad (tilt ±2°, ink and grain). On: always the same.",
+ "Inchiostro": "Ink",
+ "Come l'hai scritta": "As written",
+ "Più bassa, tratto più chiaro e sottile, come una penna che scarica": "Lower: lighter, thinner line, like a pen running dry",
+ "Blu notte": "Midnight blue",
+ "Blu biro": "Ballpoint blue",
+ "Azzurro": "Light blue",
+ "Grafite": "Graphite",
+ "Grigio scuro": "Dark grey",
+ "Bordeaux": "Burgundy",
+ "Verde scuro": "Dark green",
+ "Seppia": "Sepia"
 }

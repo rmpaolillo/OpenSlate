@@ -1395,5 +1395,16 @@
  "Apponi sul foglio": "Поставити на аркуш",
  "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "Печатка компанії: створіть її один раз, а потім ставте на дошку чи документ",
  "Sempre identico": "Завжди однаково",
- "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale.": "Вимкнено: кожен відбиток трохи інший, як зі справжньою штемпельною подушкою (нахил ±1°, чорнило й зернистість). Увімкнено: завжди однаково."
+ "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±2°, inchiostro e grana). Acceso: sempre uguale.": "Вимкнено: кожен відбиток трохи інший, як зі справжньою штемпельною подушкою (нахил ±2°, чорнило й зернистість). Увімкнено: завжди однаково.",
+ "Inchiostro": "Чорнило",
+ "Come l'hai scritta": "Як написано",
+ "Più bassa, tratto più chiaro e sottile, come una penna che scarica": "Нижча: світліша й тонша лінія, як у ручки, що закінчується",
+ "Blu notte": "Темно-синій",
+ "Blu biro": "Синій кулькової ручки",
+ "Azzurro": "Блакитний",
+ "Grafite": "Графіт",
+ "Grigio scuro": "Темно-сірий",
+ "Bordeaux": "Бордовий",
+ "Verde scuro": "Темно-зелений",
+ "Seppia": "Сепія"
 }

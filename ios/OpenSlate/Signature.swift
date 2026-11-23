@@ -4,7 +4,9 @@ import UIKit
 /// La firma che si sta posando: riquadro (u, v, larghezza, altezza) e anteprima.
 struct SigJob {
     var rect: [Float]
-    let art: UIImage
+    var art: UIImage
+    /// Colore e intensità (restano per la prossima volta).
+    var look: SigLook
 }
 
 /// La firma registrata, come sulla desktop (stesso file, si sincronizza):
@@ -41,12 +43,26 @@ extension AppModel {
     func sigStart() {
         let rect = sigNaturalRect(dataDir: dataDir, view: view, cu: 0.68, cv: 0.84)
         guard rect.count == 4 else { show(L("Nessuna firma: prima registrala.", "No signature yet: record it first.")); return }
-        // l'anteprima larga 600 px: il foglio visto, in quei pixel, è alto così
-        let seenHOverW = quarter % 2 == 1 ? padSize.width / padSize.height : padSize.height / padSize.width
-        let png = sigPng(dataDir: dataDir, pxW: 600, pagePxH: Float(600 / CGFloat(rect[2]) * seenHOverW))
-        guard let img = UIImage(data: png) else { return }
+        guard let img = sigArt(rect) else { return }
         sealJob = nil
-        sigJob = SigJob(rect: rect, art: img)
+        sigJob = SigJob(rect: rect, art: img, look: sigLook(dataDir: dataDir))
+    }
+
+    /// L'anteprima larga 600 px, col colore e l'intensità scelti.
+    func sigArt(_ rect: [Float]) -> UIImage? {
+        // il foglio visto, in quei pixel, è alto così
+        let seenHOverW = quarter % 2 == 1 ? padSize.width / padSize.height : padSize.height / padSize.width
+        return UIImage(data: sigPng(dataDir: dataDir, pxW: 600, pagePxH: Float(600 / CGFloat(rect[2]) * seenHOverW)))
+    }
+
+    /// Cambia colore o intensità della firma: restano per la prossima volta (e vanno al computer).
+    func sigSetLookNow(_ l: SigLook) {
+        guard var j = sigJob else { return }
+        try? sigSetLook(dataDir: dataDir, look: l)
+        j.look = l
+        if let img = sigArt(j.rect) { j.art = img }
+        sigJob = j
+        sync.syncSoon(3)
     }
 
     func sigAccept() {
@@ -61,14 +77,42 @@ extension AppModel {
 
 struct SigBar: View {
     @EnvironmentObject var app: AppModel
+    /// Colore e intensità: di solito chiusi, così il foglio resta grande.
+    @State private var look = false
+    private let inks = sigInks()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(L("Posa la firma", "Place the signature")).font(.headline)
             Text(L("Tocca o trascina col dito dove la vuoi, tira l'angolo per ingrandirla, poi «Applica».", "Tap or drag where you want it, pull the corner to resize it, then «Apply»."))
                 .font(.footnote).foregroundStyle(.secondary)
+            if look, let l = app.sigJob?.look {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        Button(L("Come l'hai scritta", "As written")) { var n = l; n.ink = -1; app.sigSetLookNow(n) }
+                            .buttonStyle(.bordered).tint(l.ink < 0 ? .accentColor : .secondary).font(.caption)
+                        ForEach(Array(inks.enumerated()), id: \.offset) { i, k in
+                            Circle()
+                                .fill(Color(red: Double(k.r) / 255, green: Double(k.g) / 255, blue: Double(k.b) / 255))
+                                .frame(width: 22, height: 22)
+                                .padding(3)
+                                .overlay(Circle().stroke(Int32(i) == l.ink ? Color.primary : .clear, lineWidth: 2))
+                                .accessibilityLabel(k.name)
+                                .onTapGesture { var n = l; n.ink = Int32(i); app.sigSetLookNow(n) }
+                        }
+                    }
+                }
+                HStack {
+                    Text(L("Intensità", "Intensity")).font(.caption).frame(width: 90, alignment: .leading)
+                    Slider(value: Binding(get: { l.intensity }, set: { v in var n = l; n.intensity = v; app.sigSetLookNow(n) }), in: 0.3...1)
+                    Text("\(Int((l.intensity * 100).rounded()))%").font(.caption).frame(width: 40)
+                }
+            }
             HStack {
                 Button(L("Applica", "Apply")) { app.sigAccept() }.buttonStyle(.borderedProminent)
+                Button { look.toggle() } label: {
+                    Label(L("Aspetto", "Look"), systemImage: look ? "chevron.down" : "slider.horizontal.3")
+                }.buttonStyle(.bordered)
                 Button(L("Annulla", "Cancel")) { app.sigJob = nil }
             }
         }

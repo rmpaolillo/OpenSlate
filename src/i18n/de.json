@@ -1395,5 +1395,16 @@
  "Apponi sul foglio": "Auf das Blatt setzen",
  "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "Der Firmenstempel: einmal erstellen, dann auf die Tafel oder das Dokument setzen",
  "Sempre identico": "Immer gleich",
- "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale.": "Aus: Jeder Abdruck ist etwas anders, wie mit einem echten Stempelkissen (Neigung ±1°, Tinte und Körnung). An: immer gleich."
+ "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±2°, inchiostro e grana). Acceso: sempre uguale.": "Aus: Jeder Abdruck ist etwas anders, wie mit einem echten Stempelkissen (Neigung ±2°, Tinte und Körnung). An: immer gleich.",
+ "Inchiostro": "Tinte",
+ "Come l'hai scritta": "Wie geschrieben",
+ "Più bassa, tratto più chiaro e sottile, come una penna che scarica": "Niedriger: hellerer, dünnerer Strich, wie ein Stift, der austrocknet",
+ "Blu notte": "Nachtblau",
+ "Blu biro": "Kugelschreiberblau",
+ "Azzurro": "Hellblau",
+ "Grafite": "Graphit",
+ "Grigio scuro": "Dunkelgrau",
+ "Bordeaux": "Bordeaux",
+ "Verde scuro": "Dunkelgrün",
+ "Seppia": "Sepia"
 }

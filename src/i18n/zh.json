@@ -1395,5 +1395,16 @@
  "Apponi sul foglio": "盖在页面上",
  "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "公司印章：创建一次，然后盖在白板或文档上",
  "Sempre identico": "始终相同",
- "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale.": "关闭：每次盖章都略有不同，就像真实的印台（倾斜±1°、墨色和颗粒）。开启：始终相同。"
+ "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±2°, inchiostro e grana). Acceso: sempre uguale.": "关闭：每次盖章都略有不同，就像真实的印台（倾斜±2°、墨色和颗粒）。开启：始终相同。",
+ "Inchiostro": "墨水",
+ "Come l'hai scritta": "按原样",
+ "Più bassa, tratto più chiaro e sottile, come una penna che scarica": "越低线条越浅越细，就像快没墨的笔",
+ "Blu notte": "午夜蓝",
+ "Blu biro": "圆珠笔蓝",
+ "Azzurro": "天蓝",
+ "Grafite": "石墨",
+ "Grigio scuro": "深灰",
+ "Bordeaux": "酒红",
+ "Verde scuro": "深绿",
+ "Seppia": "深褐"
 }

@@ -1395,5 +1395,16 @@
  "Apponi sul foglio": "Poner en la hoja",
  "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "El sello de la empresa: créalo una vez y luego ponlo en la pizarra o en el documento",
  "Sempre identico": "Siempre idéntico",
- "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale.": "Desactivado: cada sellado es un poco distinto, como con un tampón real (inclinación ±1°, tinta y grano). Activado: siempre igual."
+ "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±2°, inchiostro e grana). Acceso: sempre uguale.": "Desactivado: cada sellado es un poco distinto, como con un tampón real (inclinación ±2°, tinta y grano). Activado: siempre igual.",
+ "Inchiostro": "Tinta",
+ "Come l'hai scritta": "Como la escribiste",
+ "Più bassa, tratto più chiaro e sottile, come una penna che scarica": "Más baja: trazo más claro y fino, como un bolígrafo que se gasta",
+ "Blu notte": "Azul noche",
+ "Blu biro": "Azul bolígrafo",
+ "Azzurro": "Celeste",
+ "Grafite": "Grafito",
+ "Grigio scuro": "Gris oscuro",
+ "Bordeaux": "Burdeos",
+ "Verde scuro": "Verde oscuro",
+ "Seppia": "Sepia"
 }

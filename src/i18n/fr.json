@@ -1395,5 +1395,16 @@
  "Apponi sul foglio": "Apposer sur la page",
  "Il timbro aziendale: crealo una volta, poi posalo sulla lavagna o sul documento": "Le tampon de l'entreprise : créez-le une fois, puis posez-le sur le tableau ou le document",
  "Sempre identico": "Toujours identique",
- "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±1°, inchiostro e grana). Acceso: sempre uguale.": "Désactivé : chaque coup de tampon est un peu différent, comme avec un vrai encreur (inclinaison ±1°, encre et grain). Activé : toujours pareil."
+ "Spento: ogni timbrata è un po' diversa, come col tampone vero (inclinazione ±2°, inchiostro e grana). Acceso: sempre uguale.": "Désactivé : chaque coup de tampon est un peu différent, comme avec un vrai encreur (inclinaison ±2°, encre et grain). Activé : toujours pareil.",
+ "Inchiostro": "Encre",
+ "Come l'hai scritta": "Telle qu'écrite",
+ "Più bassa, tratto più chiaro e sottile, come una penna che scarica": "Plus basse : trait plus clair et plus fin, comme un stylo qui s'épuise",
+ "Blu notte": "Bleu nuit",
+ "Blu biro": "Bleu stylo bille",
+ "Azzurro": "Bleu clair",
+ "Grafite": "Graphite",
+ "Grigio scuro": "Gris foncé",
+ "Bordeaux": "Bordeaux",
+ "Verde scuro": "Vert foncé",
+ "Seppia": "Sépia"
 }

@@ -13,6 +13,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -70,6 +71,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -120,6 +122,10 @@ import uniffi.openslate_mobile.sigExists
 import uniffi.openslate_mobile.sigSave
 import uniffi.openslate_mobile.sigNaturalRect
 import uniffi.openslate_mobile.sigPng
+import uniffi.openslate_mobile.SigLook
+import uniffi.openslate_mobile.sigInks
+import uniffi.openslate_mobile.sigLook
+import uniffi.openslate_mobile.sigSetLook
 import uniffi.openslate_mobile.boardAddSignature
 import uniffi.openslate_mobile.docTrash
 import androidx.compose.material3.CircularProgressIndicator
@@ -329,6 +335,9 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var sealLook by mutableStateOf(false)
     /** La firma che si sta posando. */
     private var sigJob by mutableStateOf<SigJob?>(null)
+    /** Colore e intensità della firma che si sta posando; `sigShowLook`: la parte «Aspetto» aperta. */
+    private var sigLookNow by mutableStateOf(SigLook(-1, 1f))
+    private var sigShowLook by mutableStateOf(false)
     /** Si sta registrando la firma: i tratti del foglio messi da parte. */
     private var sigCapture by mutableStateOf<List<PageStroke>?>(null)
     private var stampDialog by mutableStateOf<Int?>(null)
@@ -1153,12 +1162,27 @@ class MainActivity : ComponentActivity(), LinkListener {
             toast(getString(R.string.sig_none))
             return
         }
-        // l'anteprima larga 600 px: il foglio visto, in quei pixel, è alto così
+        val bmp = sigArt(rect) ?: return
+        sealJob = null
+        sigLookNow = sigLook(filesDir.path)
+        sigJob = SigJob(rect, bmp)
+    }
+
+    /** L'anteprima della firma larga 600 px, col colore e l'intensità scelti. */
+    private fun sigArt(rect: List<Float>): android.graphics.Bitmap? {
+        // il foglio visto, in quei pixel, è alto così
         val seenHOverW = if (quarter % 2 == 1) padSize.width / padSize.height else padSize.height / padSize.width
         val png = sigPng(filesDir.path, 600f, 600f / rect[2] * seenHOverW)
-        val bmp = android.graphics.BitmapFactory.decodeByteArray(png, 0, png.size) ?: return
-        sealJob = null
-        sigJob = SigJob(rect, bmp)
+        return android.graphics.BitmapFactory.decodeByteArray(png, 0, png.size)
+    }
+
+    /** Cambia colore o intensità della firma: restano per la prossima volta (e vanno al computer). */
+    private fun sigSetLookNow(l: SigLook) {
+        val j = sigJob ?: return
+        sigLookNow = l
+        runCatching { sigSetLook(filesDir.path, l) }
+        sigArt(j.rect)?.let { sigJob = j.copy(art = it) }
+        phoneSync.syncSoon(3000)
     }
 
     private fun sigAccept() {
@@ -1177,8 +1201,36 @@ class MainActivity : ComponentActivity(), LinkListener {
                 Text(stringResource(R.string.sig_place_title), Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.titleSmall)
                 Text(stringResource(R.string.sig_place_hint), Modifier.padding(horizontal = 12.dp, vertical = 2.dp), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (sigShowLook) {
+                    val l = sigLookNow
+                    // gli inchiostri: più tonalità per colore
+                    Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        FilterChip(selected = l.ink < 0, onClick = { sigSetLookNow(l.copy(ink = -1)) }, label = { Text(stringResource(R.string.sig_as_written)) })
+                        sigInks().forEachIndexed { i, k ->
+                            Box(
+                                Modifier.size(30.dp)
+                                    .border(if (i == l.ink) 2.dp else 0.dp, if (i == l.ink) MaterialTheme.colorScheme.onSurface else Color.Transparent, CircleShape)
+                                    .padding(4.dp)
+                                    .background(Color(k.r.toInt(), k.g.toInt(), k.b.toInt()), CircleShape)
+                                    .semantics { contentDescription = k.name }
+                                    .clickable { sigSetLookNow(l.copy(ink = i)) },
+                            )
+                        }
+                    }
+                    Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.stamp_opacity), Modifier.width(100.dp), style = MaterialTheme.typography.labelMedium)
+                        Slider(l.intensity, { v -> sigSetLookNow(l.copy(intensity = v)) }, Modifier.weight(1f).height(32.dp), valueRange = 0.3f..1f)
+                        Text("${(l.intensity * 100).roundToInt()}%", Modifier.width(44.dp), style = MaterialTheme.typography.labelMedium)
+                    }
+                }
                 ActionRow {
                     Button(onClick = { sigAccept() }) { Text(stringResource(R.string.sig_apply)) }
+                    OutlinedButton(onClick = { sigShowLook = !sigShowLook }) {
+                        Icon(if (sigShowLook) Icons.Filled.KeyboardArrowDown else Icons.Filled.Tune, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.stamp_look))
+                    }
                     TextButton(onClick = { sigJob = null }) { Text(stringResource(R.string.cancel)) }
                 }
             }
