@@ -285,6 +285,7 @@
     <string name="font_natural">Handwriting, natural</string>
     <string name="font_round">Handwriting, round</string>
     <string name="font_airy">Handwriting, airy</string>
+    <string name="font_cursive">Cursive</string>
     <string name="reply_copied">Reply copied.</string>
     <string name="note_preview">Preview</string>
     <string name="note_edit">Edit</string>

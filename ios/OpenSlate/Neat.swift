@@ -270,6 +270,7 @@ func fairFontName(_ key: String) -> String {
     case "naturale": return L("A mano, naturale", "Handwriting, natural")
     case "rotonda": return L("A mano, rotonda", "Handwriting, round")
     case "ariosa": return L("A mano, ariosa", "Handwriting, airy")
+    case "corsiva": return L("In corsivo", "Cursive")
     default: return L("A mano, inclinata", "Handwriting, slanted")
     }
 }

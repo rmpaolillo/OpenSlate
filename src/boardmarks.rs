@@ -384,6 +384,9 @@ pub fn build(c: &Ctx, m: &Value, n: usize) -> Result<(Vec<Mark>, String)> {
             // dove è finito: il testo dopo va sotto (y più grande)
             let q = |v: f32| (v * 1000.0).round() as i32;
             note.push_str(&format!(" — occupa [{}, {}, {}, {}]", q(laid.bbox[0]), q(laid.bbox[1]), q(laid.bbox[2]), q(laid.bbox[3])));
+            // lettere piccole, tratto sottile: lo spessore della penna in
+            // proporzione all'altezza delle lettere, salvo «spessore» esplicito
+            let width = if m["spessore"].is_null() { width.min((cap * 800.0 * 0.05).max(0.8)) } else { width };
             let mut out: Vec<Mark> = laid
                 .strokes
                 .into_iter()

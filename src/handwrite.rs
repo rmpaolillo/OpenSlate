@@ -64,10 +64,12 @@ pub enum Hand {
     Rotonda,
     /// Da Architects Daughter: largo e arioso.
     Ariosa,
+    /// Il corsivo di Hershey, lo stesso delle note dell'AI sul foglio.
+    Corsiva,
 }
 
 impl Hand {
-    pub const ALL: [Hand; 4] = [Hand::Inclinata, Hand::Naturale, Hand::Rotonda, Hand::Ariosa];
+    pub const ALL: [Hand; 5] = [Hand::Inclinata, Hand::Naturale, Hand::Rotonda, Hand::Ariosa, Hand::Corsiva];
 
     pub fn key(self) -> &'static str {
         match self {
@@ -75,6 +77,7 @@ impl Hand {
             Hand::Naturale => "naturale",
             Hand::Rotonda => "rotonda",
             Hand::Ariosa => "ariosa",
+            Hand::Corsiva => "corsiva",
         }
     }
 
@@ -89,6 +92,7 @@ impl Hand {
             Hand::Naturale => "A mano, naturale",
             Hand::Rotonda => "A mano, rotonda",
             Hand::Ariosa => "A mano, ariosa",
+            Hand::Corsiva => "In corsivo",
         }
     }
 }
@@ -175,6 +179,9 @@ fn font(style: Style) -> &'static Font {
     };
     if let Some((i, src)) = other {
         return HANDS[i].get_or_init(|| upright_hand(src));
+    }
+    if (style, hand()) == (Style::Naturale, Hand::Corsiva) {
+        return font(Style::Corsivo);
     }
     match style {
         Style::Stampatello => F.get_or_init(|| Font { glyphs: parse(FUTURAL), x_top: -5.0, slant: 0.0 }),
@@ -724,5 +731,18 @@ mod tests {
         // allineato a destra: finisce a `origin`
         let r = layout("ok", Style::Stampatello, 0.04, 1.4, (0.5, 0.1), 0.8, true);
         assert!(r.bbox[2] <= 0.5 + 0.005 && r.bbox[0] < 0.5, "{:?}", r.bbox);
+    }
+
+    #[test]
+    fn bella_copia_in_corsivo() {
+        let t = "Risolvi: $x^2 + 2x = \\frac{1}{2}$ è già fatta";
+        let corsivo = using_hand(Hand::Corsiva, || crate::mathhand::line_box(Style::Naturale, t));
+        let kalam = crate::mathhand::line_box(Style::Naturale, t);
+        assert!(!corsivo.strokes.is_empty());
+        assert_ne!(corsivo.strokes, kalam.strokes, "il corsivo è un'altra scrittura");
+        // le lettere sono quelle del corsivo delle note dell'AI
+        let a = using_hand(Hand::Corsiva, || char_glyph(Style::Naturale, 'a')).unwrap();
+        assert_eq!(a.strokes, char_glyph(Style::Corsivo, 'a').unwrap().strokes);
+        assert_eq!(Hand::parse("corsiva"), Hand::Corsiva);
     }
 }

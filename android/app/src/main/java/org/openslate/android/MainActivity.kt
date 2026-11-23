@@ -323,7 +323,7 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var fairWidth by mutableStateOf(0f)
     /** Bella copia: il testo dal margine sinistro (non da dove hai cominciato). */
     private var fairLeft by mutableStateOf(false)
-    /** Bella copia: il carattere a mano (inclinata, naturale, rotonda, ariosa). */
+    /** Bella copia: il carattere a mano (inclinata, naturale, rotonda, ariosa, corsiva). */
     private var fairFont by mutableStateOf("inclinata")
     private var choosingPaper by mutableStateOf(false)
     /** Bella copia o «Disponi sulle righe» in corso (null = no). */
@@ -1577,6 +1577,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         "naturale" -> R.string.font_natural
         "rotonda" -> R.string.font_round
         "ariosa" -> R.string.font_airy
+        "corsiva" -> R.string.font_cursive
         else -> R.string.font_slanted
     })
 
