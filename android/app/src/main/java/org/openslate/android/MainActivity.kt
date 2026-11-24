@@ -48,6 +48,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.VerticalDivider
@@ -70,6 +71,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
@@ -83,6 +85,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import uniffi.openslate_mobile.ExportKind
 import uniffi.openslate_mobile.setNaturalInk
 import uniffi.openslate_mobile.exportMime
@@ -340,6 +345,8 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var sigShowLook by mutableStateOf(false)
     /** Si sta registrando la firma: i tratti del foglio messi da parte. */
     private var sigCapture by mutableStateOf<List<PageStroke>?>(null)
+    /** A tutto schermo, come sulla desktop: resta solo il foglio (per scrivere e firmare sullo schermo). */
+    private var compact by mutableStateOf(false)
     private var stampDialog by mutableStateOf<Int?>(null)
     private var stampDialogOpen by mutableStateOf(false)
     /** Il numero del lavoro in corso: le risposte di uno annullato non contano. */
@@ -442,6 +449,13 @@ class MainActivity : ComponentActivity(), LinkListener {
                 .onFailure { prefs.edit().remove("doc_dir").apply() }
         }
         setContent {
+            // a tutto schermo spariscono anche le barre del sistema (tornano con uno scorrimento dal bordo)
+            val full = compact && screen == Screen.Board
+            LaunchedEffect(full) {
+                val bars = WindowCompat.getInsetsController(window, window.decorView)
+                bars.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                if (full) bars.hide(WindowInsetsCompat.Type.systemBars()) else bars.show(WindowInsetsCompat.Type.systemBars())
+            }
             MaterialTheme {
                 Surface(Modifier.fillMaxSize()) {
                   Column(Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -520,7 +534,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                     }
                     // le quattro parti dell'app, sempre a portata (non nelle schermate di dettaglio)
                     val top = screen
-                    if (top == Screen.Board || top == Screen.Library || top == Screen.Chat || top == Screen.Settings) {
+                    if ((top == Screen.Board && !compact) || top == Screen.Library || top == Screen.Chat || top == Screen.Settings) {
                         NavigationBar {
                             val go = { to: Screen ->
                                 if (to != Screen.Board) saveBoardIfNeeded()
@@ -911,6 +925,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         val statusLine = statusText(if (denied) null else s)
 
         Column(Modifier.fillMaxSize()) {
+          if (!compact) {
             // --- barra in alto: pad | titolo | annulla/ripeti | menu della pagina
             Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box {
@@ -969,6 +984,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                 IconButton(onClick = { copyPage(board.toPage(padSize.width, padSize.height)) }, enabled = !empty && d == null) {
                     Icon(Icons.Filled.ContentCopy, stringResource(R.string.copy_board))
                 }
+                IconButton(onClick = { compact = true }) { Icon(Icons.Filled.Fullscreen, stringResource(R.string.full_screen)) }
                 Box {
                     IconButton(onClick = { pageMenu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more)) }
                     DropdownMenu(expanded = pageMenu, onDismissRequest = { pageMenu = false }) {
@@ -1082,6 +1098,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                 Text(statusLine, Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+          }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 Sheet(
                     board.strokes, padSize.width, padSize.height, quarter, board.version,
@@ -1103,19 +1120,32 @@ class MainActivity : ComponentActivity(), LinkListener {
                     touchPen = touchPen,
                     tip = { board.tip },
                 )
+                // a tutto schermo restano solo annulla e l'uscita, in un angolo
+                if (compact) {
+                    Row(Modifier.align(Alignment.TopEnd).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilledTonalIconButton(onClick = { board.undo() }, enabled = board.model.canUndo()) {
+                            Icon(Icons.AutoMirrored.Filled.Undo, stringResource(R.string.undo))
+                        }
+                        FilledTonalIconButton(onClick = { compact = false }) {
+                            Icon(Icons.Filled.FullscreenExit, stringResource(R.string.exit_full_screen))
+                        }
+                    }
+                }
             }
             when {
                 sealJob != null -> SealBar()
                 sigJob != null -> SigBar()
                 sigCapture != null -> SigCaptureBar()
                 zoneJob != null -> NeatBar()
-                else -> ToolBar()
+                !compact -> ToolBar()
             }
         }
         if (zoneJob != null) BackHandler { neatCancel() }
         if (sealJob != null) BackHandler { sealJob = null }
         if (sigJob != null) BackHandler { sigJob = null }
         if (sigCapture != null) BackHandler { sigCaptureEnd(save = false) }
+        // «indietro» prima esce dal tutto schermo (non butta via niente)
+        if (compact) BackHandler { compact = false }
         if (stampDialogOpen) {
             StampDialog(
                 stamps, stampDialog, canPlace = true,
@@ -1241,9 +1271,12 @@ class MainActivity : ComponentActivity(), LinkListener {
     private fun SigCaptureBar() {
         Surface(tonalElevation = 2.dp) {
             Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
-                Text(stringResource(R.string.sig_capture_title), Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.titleSmall)
-                Text(stringResource(R.string.sig_capture_hint), Modifier.padding(horizontal = 12.dp, vertical = 2.dp), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // a tutto schermo solo i pulsanti: il foglio resta più grande
+                if (!compact) {
+                    Text(stringResource(R.string.sig_capture_title), Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.sig_capture_hint), Modifier.padding(horizontal = 12.dp, vertical = 2.dp), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 ActionRow {
                     Button(onClick = { sigCaptureEnd(save = true) }, enabled = !board.isEmpty) { Text(stringResource(R.string.sig_save)) }
                     OutlinedButton(onClick = { board.clear() }) { Text(stringResource(R.string.clear_page)) }

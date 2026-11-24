@@ -470,10 +470,12 @@ struct BoardScreen: View {
     var body: some View {
         let d = app.doc
         VStack(spacing: 0) {
-            topBar
-            if let d { DocBar(doc: d) }
-            if !(app.status.isOn) && app.status != .idle {
-                Text(app.status.text).font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.vertical, 4)
+            if !app.compact {
+                topBar
+                if let d { DocBar(doc: d) }
+                if !(app.status.isOn) && app.status != .idle {
+                    Text(app.status.text).font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.vertical, 4)
+                }
             }
             Sheet(strokes: board.strokes, padW: Float(app.padSize.width), padH: Float(app.padSize.height), quarter: app.quarter, version: board.version,
                   paper: d == nil ? (app.paperCode, app.paperMargin) : nil,
@@ -490,12 +492,30 @@ struct BoardScreen: View {
                   onPen: app.screenPen ? { pts in board.pen(pts) } : nil,
                   touchPen: app.touchPen,
                   tipOf: board)
+                // a tutto schermo restano solo annulla e l'uscita, in un angolo
+                .overlay(alignment: .topTrailing) {
+                    if app.compact {
+                        HStack(spacing: 8) {
+                            Button { board.undo() } label: { Image(systemName: "arrow.uturn.backward").frame(width: 40, height: 40) }
+                                .disabled(!board.model.canUndo())
+                                .accessibilityLabel(L("Annulla", "Undo"))
+                            Button { app.compact = false } label: { Image(systemName: "arrow.down.right.and.arrow.up.left").frame(width: 40, height: 40) }
+                                .accessibilityLabel(L("Esci dal tutto schermo", "Exit full screen"))
+                        }
+                        .background(.regularMaterial, in: Capsule())
+                        .padding(8)
+                    }
+                }
             if app.sealJob != nil { SealBar() }
             else if app.sigJob != nil { SigBar() }
             else if app.sigCapture != nil { SigCaptureBar(board: board) }
             else if app.zoneJob != nil { NeatBar() }
-            else { ToolBar(board: board, choosingPaper: $choosingPaper) }
+            else if !app.compact { ToolBar(board: board, choosingPaper: $choosingPaper) }
         }
+        // a tutto schermo spariscono anche le barre: schede, stato del sistema, indicatore Home
+        .toolbar(app.compact ? .hidden : .visible, for: .tabBar)
+        .statusBarHidden(app.compact)
+        .persistentSystemOverlays(app.compact ? .hidden : .automatic)
         .sheet(isPresented: $choosingPaper) { PaperPicker() }
         .fileImporter(isPresented: $importing, allowedContentTypes: docTypes) { r in if case .success(let url) = r { app.openDocument(url) } }
         .sheet(isPresented: $docsOpen) { DocsSheet().environmentObject(app) }
@@ -541,6 +561,8 @@ struct BoardScreen: View {
             Button { board.undo() } label: { Image(systemName: "arrow.uturn.backward") }.disabled(!board.model.canUndo())
             Button { board.redo() } label: { Image(systemName: "arrow.uturn.forward") }.disabled(!board.model.canRedo())
             Button { copyBoard() } label: { Image(systemName: "doc.on.doc") }.disabled(board.isEmpty || app.doc != nil)
+            Button { app.compact = true } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") }
+                .accessibilityLabel(L("A tutto schermo", "Full screen"))
             Menu {
                 Section(L("Pagina", "Page")) {
                     Button { app.saveBoardIfNeeded(); board.newPage() } label: { Label(L("Nuova pagina", "New page"), systemImage: "doc.badge.plus") }.disabled(app.doc != nil)

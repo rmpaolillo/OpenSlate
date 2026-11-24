@@ -55,8 +55,8 @@ targets:
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
-        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UIRequiresFullScreen: true
         UIBackgroundModes: [bluetooth-central]
         NSBluetoothAlwaysUsageDescription: "OpenSlate si collega al tuo Bamboo Slate via Bluetooth. / OpenSlate connects to your Bamboo Slate over Bluetooth."

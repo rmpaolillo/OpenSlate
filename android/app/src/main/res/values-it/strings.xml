@@ -270,6 +270,8 @@
     <string name="sig_insert">Inserisci la firma</string>
     <string name="sig_record">Registra la firma…</string>
     <string name="sig_capture_title">Registra la firma</string>
+    <string name="full_screen">A tutto schermo</string>
+    <string name="exit_full_screen">Esci dal tutto schermo</string>
     <string name="sig_capture_hint">Firma sul pad come su un foglio, poi «Salva firma». Va anche sul computer collegato.</string>
     <string name="sig_save">Salva firma</string>
     <string name="sig_saved">Firma salvata ✓</string>

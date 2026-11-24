@@ -126,9 +126,12 @@ struct SigCaptureBar: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(L("Registra la firma", "Record the signature")).font(.headline)
-            Text(L("Firma sul pad come su un foglio, poi «Salva firma». Va anche sul computer collegato.", "Sign on the pad as on paper, then «Save signature». It also goes to the connected computer."))
-                .font(.footnote).foregroundStyle(.secondary)
+            // a tutto schermo solo i pulsanti: il foglio resta più grande
+            if !app.compact {
+                Text(L("Registra la firma", "Record the signature")).font(.headline)
+                Text(L("Firma sul pad come su un foglio, poi «Salva firma». Va anche sul computer collegato.", "Sign on the pad as on paper, then «Save signature». It also goes to the connected computer."))
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
             HStack {
                 Button(L("Salva firma", "Save signature")) { app.sigCaptureEnd(save: true) }.buttonStyle(.borderedProminent).disabled(board.isEmpty)
                 Button(L("Pulisci", "Clear")) { board.clear() }

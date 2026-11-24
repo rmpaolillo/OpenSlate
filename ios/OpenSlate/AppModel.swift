@@ -221,6 +221,8 @@ final class AppModel: ObservableObject, LinkListener {
     /// La firma che si sta posando, e la firma che si sta registrando (i tratti messi da parte).
     @Published var sigJob: SigJob?
     @Published var sigCapture: [PageStroke]?
+    /// A tutto schermo, come sulla desktop: resta solo il foglio (per scrivere e firmare sullo schermo).
+    @Published var compact = false
     @Published var busy: String?
     @Published var toast: String?
 

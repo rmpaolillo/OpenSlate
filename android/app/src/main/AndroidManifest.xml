@@ -35,7 +35,7 @@
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
             android:name=".MainActivity"
-            android:screenOrientation="portrait"
+            android:screenOrientation="fullUser"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:exported="true">
             <intent-filter>

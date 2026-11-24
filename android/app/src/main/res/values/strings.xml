@@ -273,6 +273,8 @@
     <string name="sig_insert">Insert the signature</string>
     <string name="sig_record">Record the signature…</string>
     <string name="sig_capture_title">Record the signature</string>
+    <string name="full_screen">Full screen</string>
+    <string name="exit_full_screen">Exit full screen</string>
     <string name="sig_capture_hint">Sign on the pad as on paper, then «Save signature». It also goes to the connected computer.</string>
     <string name="sig_save">Save signature</string>
     <string name="sig_saved">Signature saved ✓</string>
