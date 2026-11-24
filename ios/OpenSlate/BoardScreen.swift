@@ -560,7 +560,7 @@ struct BoardScreen: View {
                 .font(.headline).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
             Button { board.undo() } label: { Image(systemName: "arrow.uturn.backward") }.disabled(!board.model.canUndo())
             Button { board.redo() } label: { Image(systemName: "arrow.uturn.forward") }.disabled(!board.model.canRedo())
-            Button { copyBoard() } label: { Image(systemName: "doc.on.doc") }.disabled(board.isEmpty || app.doc != nil)
+            // «Copia» sta nel menu ⋯: qui il posto va al titolo e al tutto schermo
             Button { app.compact = true } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") }
                 .accessibilityLabel(L("A tutto schermo", "Full screen"))
             Menu {
@@ -634,7 +634,8 @@ struct DocBar: View {
 
     var body: some View {
         HStack {
-            Image(systemName: "doc.text")
+            // la chiusura per prima: sui telefoni stretti la fine della barra esce dallo schermo
+            Button { app.closeDoc() } label: { Image(systemName: "xmark") }
             Button { app.goPage(-1) } label: { Image(systemName: "chevron.left") }.disabled(doc.index == 0)
             Text("\(doc.index + 1) / \(doc.count)").font(.callout.monospacedDigit())
             Button { app.goPage(1) } label: { Image(systemName: "chevron.right") }.disabled(doc.index + 1 >= doc.count)
@@ -657,7 +658,6 @@ struct DocBar: View {
             .disabled(app.sealJob != nil)
             Button { app.printNow() } label: { Label(L("Stampa", "Print"), systemImage: "printer") }
             Button { shareURL = app.signedFile() } label: { Label(L("Condividi firmato", "Share signed"), systemImage: "square.and.arrow.up") }
-            Button { app.closeDoc() } label: { Image(systemName: "xmark") }
         }
         .padding(.horizontal, 12).padding(.vertical, 6)
         .background(Color.accentColor.opacity(0.12))

@@ -981,9 +981,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                 IconButton(onClick = { board.redo() }, enabled = board.model.canRedo()) {
                     Icon(Icons.AutoMirrored.Filled.Redo, stringResource(R.string.redo))
                 }
-                IconButton(onClick = { copyPage(board.toPage(padSize.width, padSize.height)) }, enabled = !empty && d == null) {
-                    Icon(Icons.Filled.ContentCopy, stringResource(R.string.copy_board))
-                }
+                // «Copia» sta nel menu ⋮: qui il posto va al titolo e al tutto schermo
                 IconButton(onClick = { compact = true }) { Icon(Icons.Filled.Fullscreen, stringResource(R.string.full_screen)) }
                 Box {
                     IconButton(onClick = { pageMenu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more)) }
@@ -1051,7 +1049,8 @@ class MainActivity : ComponentActivity(), LinkListener {
             if (d != null) {
                 Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Description, null, Modifier.padding(start = 8.dp))
+                        // la chiusura per prima: sui telefoni stretti la fine della barra esce dallo schermo
+                        IconButton(onClick = { closeDoc() }) { Icon(Icons.Filled.Close, stringResource(R.string.close)) }
                         IconButton(onClick = { goPage(-1) }, enabled = d.index > 0) { Icon(Icons.Filled.ChevronLeft, stringResource(R.string.prev_page)) }
                         Text("${d.index + 1} / ${d.count}", style = MaterialTheme.typography.labelLarge)
                         IconButton(onClick = { goPage(1) }, enabled = d.index + 1 < d.count) { Icon(Icons.Filled.ChevronRight, stringResource(R.string.next_page)) }
@@ -1083,13 +1082,17 @@ class MainActivity : ComponentActivity(), LinkListener {
                                     onClick = { stampMenu = false; openStampDialog(0) })
                             }
                         }
-                        IconButton(onClick = { saveSigned.launch(d.title + " " + getString(R.string.signed_suffix) + "." + d.signedExt) }) {
-                            Icon(Icons.Filled.Save, stringResource(R.string.save_signed))
+                        // salva e condividi il firmato: un pulsante solo, per stare nella barra
+                        Box {
+                            var outMenu by remember { mutableStateOf(false) }
+                            IconButton(onClick = { outMenu = true }) { Icon(Icons.Filled.Share, stringResource(R.string.share_signed)) }
+                            DropdownMenu(outMenu, { outMenu = false }) {
+                                DropdownMenuItem(text = { Text(stringResource(R.string.save_signed)) }, leadingIcon = { Icon(Icons.Filled.Save, null) },
+                                    onClick = { outMenu = false; saveSigned.launch(d.title + " " + getString(R.string.signed_suffix) + "." + d.signedExt) })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.share_signed)) }, leadingIcon = { Icon(Icons.Filled.Share, null) },
+                                    onClick = { outMenu = false; signedFile()?.let { Export.share(this@MainActivity, it, d.signedMime) } })
+                            }
                         }
-                        IconButton(onClick = { signedFile()?.let { Export.share(this@MainActivity, it, d.signedMime) } }) {
-                            Icon(Icons.Filled.Share, stringResource(R.string.share_signed))
-                        }
-                        IconButton(onClick = { closeDoc() }) { Icon(Icons.Filled.Close, stringResource(R.string.close)) }
                     }
                 }
             }
