@@ -4,6 +4,8 @@
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
     <string name="rotate">Rotate</string>
+    <string name="auto_rotate">Auto-rotate the screen</string>
+    <string name="auto_rotate_hint">The app turns to landscape with the phone (handy for signing in full screen). Off: always portrait.</string>
     <string name="clear">Clear</string>
     <string name="battery">%1$d%%</string>
     <string name="st_idle">Not connected. Briefly press the pad\'s button, then Connect.</string>

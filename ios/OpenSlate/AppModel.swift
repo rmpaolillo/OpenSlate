@@ -244,6 +244,8 @@ final class AppModel: ObservableObject, LinkListener {
     @AppStorage("screen_pen") var screenPen = false
     /// …e anche un dito o una penna passiva (l'iPhone la vede come un dito).
     @AppStorage("touch_pen") var touchPen = false
+    /// Lo schermo gira col telefono (spento: sempre in verticale).
+    @AppStorage("auto_rotate") var autoRotate = true { didSet { OrientationDelegate.apply() } }
     /// La bella copia va subito sulle righe del foglio.
     @AppStorage("fair_on_rules") var fairOnRules = false
     /// Bella copia: quanto larghe le lettere (volte il carattere; 0 = come la tua scrittura).

@@ -4,6 +4,7 @@ import android.Manifest
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.content.pm.ActivityInfo
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -347,6 +348,8 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var sigCapture by mutableStateOf<List<PageStroke>?>(null)
     /** A tutto schermo, come sulla desktop: resta solo il foglio (per scrivere e firmare sullo schermo). */
     private var compact by mutableStateOf(false)
+    /** Lo schermo gira col telefono (spento: sempre in verticale). */
+    private var autoRotate by mutableStateOf(true)
     private var stampDialog by mutableStateOf<Int?>(null)
     private var stampDialogOpen by mutableStateOf(false)
     /** Il numero del lavoro in corso: le risposte di uno annullato non contano. */
@@ -410,6 +413,11 @@ class MainActivity : ComponentActivity(), LinkListener {
     }
 
     private val prefs by lazy { getSharedPreferences("view", MODE_PRIVATE) }
+
+    /** Rotazione automatica: segue il telefono (e il suo blocco rotazione), altrimenti verticale. */
+    private fun applyRotation() {
+        requestedOrientation = if (autoRotate) ActivityInfo.SCREEN_ORIENTATION_FULL_USER else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+    }
     private val aiStore by lazy { AiStore(this) }
     private val chat = ChatState()
     /** Il PDF aperto per firmarlo (null = lavagna normale). */
@@ -440,6 +448,8 @@ class MainActivity : ComponentActivity(), LinkListener {
         neatSetDir(filesDir.path)
         stamps = stampList(filesDir.path)
         quarter = prefs.getInt("quarter", 1) // lo Slate si usa in verticale
+        autoRotate = prefs.getBoolean("auto_rotate", autoRotate)
+        applyRotation()
         loadTools()
         // i documenti delle versioni di prima passano al formato della desktop
         runCatching { docMigrate(OpenDoc.root(this).path, view()) }
@@ -1754,6 +1764,16 @@ class MainActivity : ComponentActivity(), LinkListener {
             SettingsRow(Icons.Filled.Rotate90DegreesCw, stringResource(R.string.rotate), "${quarter * 90}°") {
                 quarter = (quarter + 1) % 4
                 prefs.edit().putInt("quarter", quarter).apply()
+            }
+            Row(Modifier.fillMaxWidth().clickable { autoRotate = !autoRotate; prefs.edit().putBoolean("auto_rotate", autoRotate).apply(); applyRotation() }
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.ScreenRotation, null)
+                Column(Modifier.weight(1f).padding(start = 16.dp)) {
+                    Text(stringResource(R.string.auto_rotate))
+                    Text(stringResource(R.string.auto_rotate_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = autoRotate, onCheckedChange = { autoRotate = it; prefs.edit().putBoolean("auto_rotate", it).apply(); applyRotation() })
             }
             SettingsHeader(stringResource(R.string.grp_writing))
             Row(Modifier.fillMaxWidth().clickable { naturalInk = !naturalInk; applyTools() }.padding(horizontal = 16.dp, vertical = 12.dp),

@@ -3,6 +3,8 @@
     <string name="connect">Collega</string>
     <string name="disconnect">Scollega</string>
     <string name="rotate">Ruota</string>
+    <string name="auto_rotate">Rotazione automatica dello schermo</string>
+    <string name="auto_rotate_hint">L\'app gira in orizzontale col telefono (utile per firmare a tutto schermo). Spenta: sempre in verticale.</string>
     <string name="clear">Pulisci</string>
     <string name="st_idle">Non collegato. Premi brevemente il pulsante del pad, poi Collega.</string>
     <string name="st_permission">OpenSlate ha bisogno del permesso Bluetooth per trovare il pad.</string>

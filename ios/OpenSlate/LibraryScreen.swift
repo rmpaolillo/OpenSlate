@@ -222,9 +222,13 @@ struct SettingsScreen: View {
                                        value: app.sync.deskName.map { L("Collegato a ", "Connected to ") + $0 } ?? L("Non collegato", "Not connected"))
                     }
                 }
-                Section(L("Foglio", "Sheet")) {
+                Section {
                     Button { choosingPaper = true } label: { LabeledContent(L("Foglio", "Paper"), value: paperName(app.paperCode)) }
                     Button { app.quarter = (app.quarter + 1) % 4; app.applyTools() } label: { LabeledContent(L("Ruota", "Rotate"), value: "\(app.quarter * 90)°") }
+                    Toggle(L("Rotazione automatica dello schermo", "Auto-rotate the screen"), isOn: $app.autoRotate)
+                } header: { Text(L("Foglio", "Sheet")) } footer: {
+                    Text(L("L'app gira in orizzontale col telefono (utile per firmare a tutto schermo). Spenta: sempre in verticale.",
+                           "The app turns to landscape with the phone (handy for signing in full screen). Off: always portrait."))
                 }
                 Section {
                     Toggle(L("Tratto naturale", "Natural stroke"), isOn: Binding(get: { app.naturalInk }, set: { app.naturalInk = $0; app.applyTools() }))

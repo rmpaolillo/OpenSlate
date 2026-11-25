@@ -2,8 +2,31 @@ import SwiftUI
 
 /// OpenSlate per iPhone e iPad: lo stesso cuore Rust dell'app Android
 /// (`mobile/core`), che usa gli stessi file della desktop.
+/// Rotazione automatica dello schermo (Impostazioni): accesa, l'app gira col
+/// telefono; spenta, resta in verticale come prima.
+final class OrientationDelegate: NSObject, UIApplicationDelegate {
+    static var mask: UIInterfaceOrientationMask {
+        let auto = UserDefaults.standard.object(forKey: "auto_rotate") as? Bool ?? true
+        if !auto { return .portrait }
+        return UIDevice.current.userInterfaceIdiom == .pad ? .all : .allButUpsideDown
+    }
+
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        Self.mask
+    }
+
+    /// Applica subito la scelta (spegnendola col telefono in orizzontale, torna in verticale).
+    static func apply() {
+        for case let scene as UIWindowScene in UIApplication.shared.connectedScenes {
+            scene.windows.first?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+            scene.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { _ in }
+        }
+    }
+}
+
 @main
 struct OpenSlateApp: App {
+    @UIApplicationDelegateAdaptor(OrientationDelegate.self) private var orientation
     @StateObject private var app = AppModel()
     @Environment(\.scenePhase) private var phase
 
