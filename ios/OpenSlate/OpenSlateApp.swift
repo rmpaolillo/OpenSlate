@@ -28,6 +28,13 @@ final class OrientationDelegate: NSObject, UIApplicationDelegate {
 struct OpenSlateApp: App {
     @UIApplicationDelegateAdaptor(OrientationDelegate.self) private var orientation
     @StateObject private var app = AppModel()
+
+    init() {
+        // i titoli delle schermate nel blu dell'app, come su Android
+        let blue = UIColor(named: "AccentColor") ?? .systemBlue
+        UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: blue]
+        UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: blue]
+    }
     @Environment(\.scenePhase) private var phase
 
     var body: some Scene {

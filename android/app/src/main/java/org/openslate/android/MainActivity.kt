@@ -34,8 +34,6 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -470,7 +468,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                 bars.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 if (full) bars.hide(WindowInsetsCompat.Type.systemBars()) else bars.show(WindowInsetsCompat.Type.systemBars())
             }
-            MaterialTheme {
+            OpenSlateTheme {
                 Surface(Modifier.fillMaxSize()) {
                   Column(Modifier.fillMaxSize().safeDrawingPadding()) {
                     Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -551,19 +549,20 @@ class MainActivity : ComponentActivity(), LinkListener {
                     // le quattro parti dell'app, sempre a portata (non nelle schermate di dettaglio)
                     val top = screen
                     if ((top == Screen.Board && !compact) || top == Screen.Library || top == Screen.Chat || top == Screen.Settings) {
-                        NavigationBar {
-                            val go = { to: Screen ->
-                                if (to != Screen.Board) saveBoardIfNeeded()
-                                screen = to
-                            }
-                            NavigationBarItem(top == Screen.Board, { go(Screen.Board) }, { Icon(Icons.Filled.Gesture, null) },
-                                label = { Text(stringResource(R.string.board)) })
-                            NavigationBarItem(top == Screen.Library, { go(Screen.Library) }, { Icon(Icons.Filled.PhotoLibrary, null) },
-                                label = { Text(stringResource(R.string.library)) })
-                            NavigationBarItem(top == Screen.Chat, { go(Screen.Chat) }, { Icon(Icons.AutoMirrored.Filled.Chat, null) },
-                                label = { Text(stringResource(R.string.chat)) })
-                            NavigationBarItem(top == Screen.Settings, { go(Screen.Settings) }, { Icon(Icons.Filled.Settings, null) },
-                                label = { Text(stringResource(R.string.settings)) })
+                        // la barra a pillola flottante, come nelle app di messaggi
+                        val tabs = listOf(Screen.Board, Screen.Library, Screen.Chat, Screen.Settings)
+                        FloatingNav(
+                            listOf(
+                                NavItem(Icons.Filled.Gesture, stringResource(R.string.board)),
+                                NavItem(Icons.Filled.PhotoLibrary, stringResource(R.string.library)),
+                                NavItem(Icons.AutoMirrored.Filled.Chat, stringResource(R.string.chat)),
+                                NavItem(Icons.Filled.Settings, stringResource(R.string.settings)),
+                            ),
+                            selected = tabs.indexOf(top),
+                        ) { i ->
+                            val to = tabs[i]
+                            if (to != Screen.Board) saveBoardIfNeeded()
+                            screen = to
                         }
                     }
                   }
