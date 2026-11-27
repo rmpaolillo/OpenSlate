@@ -62,7 +62,7 @@ pub fn to_pdf(input: &Path, out: &Path) -> Result<()> {
     // sopra il bianco, come la carta: i pixel sono opachi
     pm.fill(resvg::tiny_skia::Color::WHITE);
     resvg::render(&t, resvg::tiny_skia::Transform::from_scale(w as f32 / sw, h as f32 / sh), &mut pm.as_mut());
-    let rgb: Vec<u8> = pm.data().chunks_exact(4).flat_map(|p| [p[0], p[1], p[2]]).collect();
+    let rgb: Vec<u8> = pm.data().as_chunks::<4>().0.iter().flat_map(|p| [p[0], p[1], p[2]]).collect();
     // le misure dell'SVG sono pixel CSS (96 per pollice): in punti
     crate::pdfdoc::image_pdf(out, w, h, &rgb, sw as f64 * 0.75, sh as f64 * 0.75)
 }
