@@ -43,16 +43,22 @@ lopdf = { version = "0.45", default-features = false }
 # (src/signspot.rs della desktop): il lettore della suite Craft (vedi [patch])
 hayro-interpret = "0.7"
 kurbo = "0.13"
-# Word, foto e SVG firmati con le librerie della suite Craft (MIT OR Apache-2.0,
+# Word e foto firmati con le librerie della suite Craft (MIT OR Apache-2.0,
 # © ArtCraft Team), le stesse versioni della desktop
 wordcraft-engine = { git = "https://github.com/storytold/wordcraft", rev = "f83d5543221a066a9b20e4e8d9288e1c283028af" }
-photocraft-codecs = { package = "craft-image-codecs", git = "https://github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+photocraft-codecs = { package = "craft-image-codecs", git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
 photocraft-paint = { git = "https://github.com/storytold/photocraft", rev = "d600edeaf475e503ce14fa47b77d31a083c5ff70" }
 photocraft-raster = { git = "https://github.com/storytold/photocraft", rev = "d600edeaf475e503ce14fa47b77d31a083c5ff70" }
 photocraft-color = { git = "https://github.com/storytold/photocraft", rev = "d600edeaf475e503ce14fa47b77d31a083c5ff70" }
 photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "d600edeaf475e503ce14fa47b77d31a083c5ff70" }
-vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "2933449c3e68896457121ab749974ddbb3748eb6" }
-vectorcraft-render = { git = "https://github.com/storytold/vectorcraft", rev = "2933449c3e68896457121ab749974ddbb3748eb6" }
+# gli SVG (src/vecsign.rs, src/craftexport.rs di qui): resvg li disegna, la firma
+# si scrive nel file. Non VectorCraft come sulla desktop: il suo motore da solo
+# era metà dell'app (effetti, plugin, CAD, EPS e la sua interfaccia).
+resvg = { version = "0.48", default-features = false, features = ["text", "raster-images", "memmap-fonts"] }
+usvg = { version = "0.48", default-features = false, features = ["text"] }
+# i caratteri del telefono per i testi negli SVG (load_fonts_dir)
+fontdb = { version = "0.24", default-features = false, features = ["fs", "memmap"] }
+roxmltree = "0.21"
 # sincronizzazione col computer (src/sync): buste cifrate e impronte dei file
 chacha20poly1305 = "0.10"
 sha2 = "0.10"
@@ -66,8 +72,58 @@ codegen-units = 1
 
 # come la desktop: krilla e hayro-* da craft-libs, hayro-jbig2 e lopdf da PdfCraft
 [patch.crates-io]
-krilla = { git = "https://github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
-hayro-interpret = { git = "https://github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
-hayro-syntax = { git = "https://github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
-hayro-jbig2 = { git = "https://github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+krilla = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+hayro-interpret = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+hayro-syntax = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+hayro-jbig2 = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
 lopdf = { git = "https://github.com/storytold/pdfcraft", rev = "c34c6c5a0bd86d466f9f814c14b4cfdaa55cd7e2" }
+
+# una sola craft-libs per tutta la suite Craft (WordCraft, VectorCraft e PhotoCraft
+# ne fissano ognuna una sua): senza, una ventina di librerie entra due o tre volte.
+# (".git" nell'indirizzo: Cargo non permette di sostituire una sorgente con sé stessa)
+[patch."https://github.com/storytold/craft-libs"]
+craft-atomic = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-cfb = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-cms = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-codepage = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-dds = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-doc-binary = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-docx = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-drawingml = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-flow = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-font-catalog = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-font-os-windows = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-font-store = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-host = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-html = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-i18n = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-image-codecs = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-jpeg = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-keymap = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-latex = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-markdown = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-math = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-metadata = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-metafile = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-mime = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-odf = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-ods = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-offcrypto = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-opc = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-pdf = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-proof = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-rtf = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-sheet = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-ssip = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-tiff = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-tracked = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-ui-macros = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-wordmodel = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-xls = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-xlsx = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-xml = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+craft-zip = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+hayro-interpret = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+hayro-jbig2 = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+hayro-syntax = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+krilla = { git = "https://www.github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }

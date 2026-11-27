@@ -11,7 +11,7 @@
 
 #[path = "../../../src/aisync.rs"]
 pub mod aisync;
-#[path = "../../../src/craftexport.rs"]
+/// L'export dei fogli senza VectorCraft (il suo motore da solo pesava metà dell'app).
 pub mod craftexport;
 #[path = "../../../src/mdconv.rs"]
 pub mod mdconv;
@@ -29,7 +29,7 @@ pub mod pagegeom;
 pub mod inkshape;
 #[path = "../../../src/rasign.rs"]
 pub mod rasign;
-#[path = "../../../src/vecsign.rs"]
+/// Gli SVG senza VectorCraft: li disegna resvg, la firma si aggiunge al file.
 pub mod vecsign;
 #[path = "../../../src/wordsign.rs"]
 pub mod wordsign;
