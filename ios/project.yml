@@ -50,8 +50,8 @@ targets:
       path: OpenSlate/Info.plist
       properties:
         CFBundleDisplayName: OpenSlate
-        CFBundleShortVersionString: "0.5.0"
-        CFBundleVersion: "5"
+        CFBundleShortVersionString: "0.6.0"
+        CFBundleVersion: "6"
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
