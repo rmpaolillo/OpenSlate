@@ -77,7 +77,7 @@ impl DocTools {
                 json!({ "type": "object", "properties": {
                     "what": { "type": "string", "enum": ["firma", "timbro", "timbro e firma"], "description": "What to put there (default: what the place asks for)" },
                     "place": { "type": "integer", "description": "Number of the place from document_find_signature_places (1 = first)" },
-                    "near_text": { "type": "string", "description": "A label printed in the document, if the place is not in the list" },
+                    "near_text": { "type": "string", "description": "Only a signature label printed in the document (e.g. \"Il Committente\", \"Per accettazione\") that the list missed: never a table cell, a heading or a name in the header. Prefer `place`; when the document has no printed place, the list gives the end of the document" },
                     "page": { "type": "integer", "description": "Page of `near_text` (1 = first; default: the first page that has it)" },
                     "stamp": { "type": "string", "description": "Which stamp, by its name, when the user has more than one (default: the first)" }
                 } }),
@@ -138,7 +138,7 @@ impl DocTools {
         Ok(match name {
             "document_read_text" => ToolOut { text: signspot::read_text(&self.pages()?, 60_000), short: "documento letto".into(), ..Default::default() },
             "document_find_signature_places" => {
-                let spots = signspot::find_spots(&self.pages()?);
+                let spots = signspot::places(&self.pages()?);
                 ToolOut { short: format!("{} posti per firma o timbro", spots.len()), text: signspot::describe(&spots), ..Default::default() }
             }
             "document_place_signature" => {

@@ -438,13 +438,62 @@ pub fn find_spots(pages: &[PageText]) -> Vec<Spot> {
     out
 }
 
+/// I posti da proporre: quelli stampati nel documento o, se non ce n'è
+/// nessuno (un preventivo, una lettera), la fine del documento: dopo l'ultimo
+/// testo, a destra, dove si firma una lettera.
+pub fn places(pages: &[PageText]) -> Vec<Spot> {
+    let spots = find_spots(pages);
+    if !spots.is_empty() {
+        return spots;
+    }
+    end_spot(pages).into_iter().collect()
+}
+
+/// Sotto l'ultima riga del testo dell'ultima pagina scritta (non il piè di
+/// pagina: le righe nell'ultimo decimo del foglio), a destra.
+fn end_spot(pages: &[PageText]) -> Option<Spot> {
+    let (p, page) = pages.iter().enumerate().rev().find(|(_, pt)| !pt.lines.is_empty())?;
+    let body: Vec<&Line> = page.lines.iter().filter(|l| l.rect[1] < 0.9).collect();
+    let body = if body.is_empty() { page.lines.iter().collect() } else { body };
+    let last = body.iter().max_by(|a, b| a.rect[3].total_cmp(&b.rect[3]))?;
+    Some(Spot {
+        page: p,
+        kind: Kind::Entrambi,
+        label: END_LABEL.into(),
+        anchor: [0.72, (last.rect[3] + 2.0 * last.height()).min(0.85)],
+        mode: Mode::Below,
+    })
+}
+
+/// Come si chiama il posto in fondo (per il modello e per l'utente).
+const END_LABEL: &str = "fine del documento, a destra (nel documento non c'è un posto di firma stampato)";
+
+/// C'è posto per una firma sotto la riga `i` (riquadro `lr`)? No se altro
+/// testo comincia subito sotto, nella stessa colonna (una tabella,
+/// un'intestazione): la firma lo coprirebbe.
+fn room_below(page: &PageText, i: usize, lr: [f32; 4]) -> bool {
+    let cx = (lr[0] + lr[2]) / 2.0;
+    let (x0, x1) = (cx - 0.12, cx + 0.12);
+    !page.lines.iter().enumerate().any(|(j, l)| j != i && l.rect[2] > x0 && l.rect[0] < x1 && l.rect[1] >= lr[3] - 0.002 && l.rect[1] < lr[3] + 0.05)
+}
+
+/// Perché [`find_near`] non ha un posto.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Near {
+    /// La scritta non c'è.
+    Missing,
+    /// C'è, ma subito sotto c'è altro testo.
+    NoRoom,
+}
+
 /// Il posto vicino alla scritta `text` (la sceglie l'AI leggendo il documento,
 /// per esempio «Il Committente»), sulla pagina `page` o sulla prima che la ha.
-pub fn find_near(pages: &[PageText], page: Option<usize>, text: &str, kind: Kind) -> Option<Spot> {
+pub fn find_near(pages: &[PageText], page: Option<usize>, text: &str, kind: Kind) -> Result<Spot, Near> {
     let want = fold_text(text);
     if want.is_empty() {
-        return None;
+        return Err(Near::Missing);
     }
+    let mut full = false;
     let order: Vec<usize> = match page {
         Some(p) => std::iter::once(p).chain((0..pages.len()).filter(|&q| q != p)).collect(),
         None => (0..pages.len()).collect(),
@@ -456,11 +505,16 @@ pub fn find_near(pages: &[PageText], page: Option<usize>, text: &str, kind: Kind
             if let Some(pos) = find(&s, &want) {
                 let (start, end) = (at[pos], at[pos + want.len() - 1]);
                 let spot = spot_at(pt, i, start, end, line.blank_run(end + 1));
-                return Some(Spot { page: p, kind, label: text_range(line, start, end + 1), ..spot });
+                let lr = [line.letters[start].rect[0], line.rect[1], line.letters[end].rect[2], line.rect[3]];
+                if spot.mode == Mode::Below && !room_below(pt, i, lr) {
+                    full = true;
+                    continue;
+                }
+                return Ok(Spot { page: p, kind, label: text_range(line, start, end + 1), ..spot });
             }
         }
     }
-    None
+    Err(if full { Near::NoRoom } else { Near::Missing })
 }
 
 /// Il posto per la scritta alle lettere `start..=end` della riga `i`.
@@ -522,11 +576,15 @@ pub fn parse_what(w: &str) -> Kind {
 /// cambia cosa ci va. L'errore è già in parole per il modello.
 pub fn choose(pages: &[PageText], place: Option<usize>, near_text: Option<&str>, page: Option<usize>, what: Option<Kind>) -> Result<Spot, String> {
     let mut spot = if let Some(n) = place {
-        let spots = find_spots(pages);
+        let spots = places(pages);
         spots.get(n.wrapping_sub(1)).cloned().ok_or_else(|| format!("non c'è il posto {n}: i posti sono {} (document_find_signature_places)", spots.len()))?
     } else if let Some(t) = near_text {
-        find_near(pages, page, t, what.unwrap_or(Kind::Firma))
-            .ok_or_else(|| format!("«{t}» non c'è nel testo del documento: copia la scritta com'è stampata, o chiedi all'utente dove"))?
+        find_near(pages, page, t, what.unwrap_or(Kind::Firma)).map_err(|e| match e {
+            Near::Missing => format!("«{t}» non c'è nel testo del documento: copia la scritta com'è stampata, o chiedi all'utente dove"),
+            Near::NoRoom => format!(
+                "sotto «{t}» c'è altro testo (una tabella, un'intestazione): la firma lo coprirebbe. Non è un posto per firmare. Usa i posti di document_find_signature_places (se il documento non ne ha, c'è la fine del documento), o chiedi all'utente dove"
+            ),
+        })?
     } else {
         return Err("indica `place` (da document_find_signature_places) o `near_text`".into());
     };
@@ -561,7 +619,7 @@ pub fn read_text(pages: &[PageText], max_chars: usize) -> String {
 /// I posti in parole, per il modello e per l'utente.
 pub fn describe(spots: &[Spot]) -> String {
     if spots.is_empty() {
-        return "Nessun posto per firma o timbro riconosciuto nel testo del documento (forse è una scansione senza testo).".into();
+        return "Nel documento non c'è testo da leggere (forse è una scansione): chiedi all'utente dove firmare.".into();
     }
     let mut s = String::new();
     for (i, sp) in spots.iter().enumerate() {
@@ -569,6 +627,10 @@ pub fn describe(spots: &[Spot]) -> String {
             Mode::OnLine => "sopra la riga da riempire",
             Mode::Below => "sotto la scritta",
         };
+        if sp.label == END_LABEL {
+            s.push_str(&format!("{}. pagina {}: {} → {} (sotto l'ultimo testo)\n", i + 1, sp.page + 1, sp.label, sp.kind.name()));
+            continue;
+        }
         s.push_str(&format!("{}. pagina {}: «{}» → {} ({how})\n", i + 1, sp.page + 1, sp.label, sp.kind.name()));
     }
     s
@@ -718,7 +780,34 @@ mod tests {
         for (p, page) in pages.iter().enumerate() {
             println!("--- pagina {}: {} righe", p + 1, page.lines.len());
         }
-        print!("{}", describe(&find_spots(&pages)));
+        print!("{}", describe(&places(&pages)));
+        if std::env::var("SIGNSPOT_TEXT").is_ok() {
+            print!("{}", read_text(&pages, 20000));
+        }
+    }
+
+    /// Un preventivo senza posto di firma (come quello vero): non sotto una
+    /// scritta della tabella, ma in fondo, a destra.
+    #[test]
+    fn preventivo_senza_posto() {
+        let pages = pdf_text(pdf(&[
+            (72.0, 100.0, "Preventivo n.32 del 08/09/2026"),
+            (72.0, 140.0, "Committente      Tito Tiani & Partners"),
+            (72.0, 160.0, "Fornitore        Paolillo Ruggiero Marco"),
+            (72.0, 180.0, "Oggetto          Piattaforma AI"),
+            (72.0, 400.0, "Condizioni: preventivo valido 60 giorni."),
+            (72.0, 800.0, "Paolillo Ruggiero Marco - Via III Novembre 15, Barletta"),
+        ]))
+        .unwrap();
+        let spots = places(&pages);
+        assert_eq!(spots.len(), 1, "{spots:?}");
+        let s = &spots[0];
+        assert!(s.anchor[0] > 0.6 && s.anchor[1] > 400.0 / 842.0 && s.anchor[1] < 0.6 && s.kind == Kind::Entrambi, "{s:?}");
+        assert!(describe(&spots).contains("fine del documento"));
+        // «Fornitore» ha la riga «Oggetto» subito sotto: non è un posto
+        assert_eq!(find_near(&pages, None, "Fornitore", Kind::Firma).unwrap_err(), Near::NoRoom);
+        assert!(choose(&pages, None, Some("Fornitore"), None, None).unwrap_err().contains("altro testo"));
+        assert!(choose(&pages, Some(1), None, None, None).is_ok());
     }
 
     #[test]
@@ -726,6 +815,6 @@ mod tests {
         let pages = pdf_text(pdf(&[(72.0, 600.0, "Il Committente"), (350.0, 600.0, "Il Fornitore")])).unwrap();
         let s = find_near(&pages, None, "il fornitore", Kind::Firma).unwrap();
         assert!(s.anchor[0] > 0.6 && s.mode == Mode::Below, "{s:?}");
-        assert!(find_near(&pages, None, "notaio", Kind::Firma).is_none());
+        assert_eq!(find_near(&pages, None, "notaio", Kind::Firma).unwrap_err(), Near::Missing);
     }
 }

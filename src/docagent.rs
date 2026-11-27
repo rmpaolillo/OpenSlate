@@ -566,7 +566,7 @@ pub fn definitions(doc: &DocRef) -> Vec<Value> {
             json!({ "type": "object", "properties": {
                 "what": { "type": "string", "enum": ["firma", "timbro", "timbro e firma"], "description": "What to put there (default: what the place asks for)" },
                 "place": { "type": "integer", "description": "Number of the place from document_find_signature_places (1 = first)" },
-                "near_text": { "type": "string", "description": "A label printed in the document, if the place is not in the list" },
+                "near_text": { "type": "string", "description": "Only a signature label printed in the document (e.g. \"Il Committente\", \"Per accettazione\") that the list missed: never a table cell, a heading or a name in the header. Prefer `place`; when the document has no printed place, the list gives the end of the document" },
                 "page": { "type": "integer", "description": "Page of `near_text` (1 = first; default: the first page that has it)" },
                 "stamp": { "type": "string", "description": "Which stamp, by its name, when the user has more than one (default: the first)" }
             } }),
@@ -697,7 +697,7 @@ fn page_texts(doc: &DocRef) -> Result<Vec<crate::signspot::PageText>> {
 }
 
 fn signature_places(doc: &DocRef) -> Result<Vec<crate::signspot::Spot>> {
-    Ok(crate::signspot::find_spots(&page_texts(doc)?))
+    Ok(crate::signspot::places(&page_texts(doc)?))
 }
 
 fn place_signature(doc: &DocRef, args: &Value) -> Result<Outcome> {
