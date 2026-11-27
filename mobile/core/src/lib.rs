@@ -62,6 +62,9 @@ pub use seal::*;
 #[path = "../../../src/signature.rs"]
 pub mod signature;
 mod signing;
+#[path = "../../../src/signspot.rs"]
+pub mod signspot;
+mod docsign;
 pub use signing::*;
 #[path = "../../../src/docstore.rs"]
 pub mod docstore;

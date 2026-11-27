@@ -39,16 +39,20 @@ tiny-skia = "0.11"
 ab_glyph = "0.2"
 # i PDF firmati: lo stesso lopdf della desktop (quello di PdfCraft, vedi [patch])
 lopdf = { version = "0.45", default-features = false }
+# il testo dei PDF con le posizioni, per trovare dove vanno firma e timbro
+# (src/signspot.rs della desktop): il lettore della suite Craft (vedi [patch])
+hayro-interpret = "0.7"
+kurbo = "0.13"
 # Word, foto e SVG firmati con le librerie della suite Craft (MIT OR Apache-2.0,
 # © ArtCraft Team), le stesse versioni della desktop
-wordcraft-engine = { git = "https://github.com/storytold/wordcraft", rev = "a8db235e051ad21d9223209aed1824c4ed511905" }
-photocraft-codecs = { git = "https://github.com/storytold/photocraft", rev = "7f148de8258aad3a4a751aad3c9fcbfe936d122f" }
-photocraft-paint = { git = "https://github.com/storytold/photocraft", rev = "7f148de8258aad3a4a751aad3c9fcbfe936d122f" }
-photocraft-raster = { git = "https://github.com/storytold/photocraft", rev = "7f148de8258aad3a4a751aad3c9fcbfe936d122f" }
-photocraft-color = { git = "https://github.com/storytold/photocraft", rev = "7f148de8258aad3a4a751aad3c9fcbfe936d122f" }
-photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "7f148de8258aad3a4a751aad3c9fcbfe936d122f" }
-vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "9840b65a85d888d66dfbd791ee3a6313984a9ad2" }
-vectorcraft-render = { git = "https://github.com/storytold/vectorcraft", rev = "9840b65a85d888d66dfbd791ee3a6313984a9ad2" }
+wordcraft-engine = { git = "https://github.com/storytold/wordcraft", rev = "f83d5543221a066a9b20e4e8d9288e1c283028af" }
+photocraft-codecs = { package = "craft-image-codecs", git = "https://github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+photocraft-paint = { git = "https://github.com/storytold/photocraft", rev = "d600edeaf475e503ce14fa47b77d31a083c5ff70" }
+photocraft-raster = { git = "https://github.com/storytold/photocraft", rev = "d600edeaf475e503ce14fa47b77d31a083c5ff70" }
+photocraft-color = { git = "https://github.com/storytold/photocraft", rev = "d600edeaf475e503ce14fa47b77d31a083c5ff70" }
+photocraft-geom = { git = "https://github.com/storytold/photocraft", rev = "d600edeaf475e503ce14fa47b77d31a083c5ff70" }
+vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "2933449c3e68896457121ab749974ddbb3748eb6" }
+vectorcraft-render = { git = "https://github.com/storytold/vectorcraft", rev = "2933449c3e68896457121ab749974ddbb3748eb6" }
 # sincronizzazione col computer (src/sync): buste cifrate e impronte dei file
 chacha20poly1305 = "0.10"
 sha2 = "0.10"
@@ -62,8 +66,8 @@ codegen-units = 1
 
 # come la desktop: krilla e hayro-* da craft-libs, hayro-jbig2 e lopdf da PdfCraft
 [patch.crates-io]
-krilla = { git = "https://github.com/storytold/craft-libs", rev = "1b34eba41e62138fc2438d2734523b302840b45d" }
-hayro-interpret = { git = "https://github.com/storytold/craft-libs", rev = "1b34eba41e62138fc2438d2734523b302840b45d" }
-hayro-syntax = { git = "https://github.com/storytold/craft-libs", rev = "1b34eba41e62138fc2438d2734523b302840b45d" }
-hayro-jbig2 = { git = "https://github.com/storytold/pdfcraft", rev = "37fde37781274111973b864b38df75233c1b9191" }
-lopdf = { git = "https://github.com/storytold/pdfcraft", rev = "37fde37781274111973b864b38df75233c1b9191" }
+krilla = { git = "https://github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+hayro-interpret = { git = "https://github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+hayro-syntax = { git = "https://github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+hayro-jbig2 = { git = "https://github.com/storytold/craft-libs", rev = "a46af76c7c74dd8dd375d694baaef00d5ae836a2" }
+lopdf = { git = "https://github.com/storytold/pdfcraft", rev = "c34c6c5a0bd86d466f9f814c14b4cfdaa55cd7e2" }

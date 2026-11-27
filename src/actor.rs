@@ -94,6 +94,8 @@ pub enum UiEvent {
     UpdateDone(Result<crate::selfupdate::Ready, String>),
     /// La chat AI ha modificato il documento in questa cartella.
     DocChanged(std::path::PathBuf),
+    /// La chat AI propone una firma o un timbro sul documento (li applica l'utente).
+    SignProposal(crate::docagent::SignProposal),
     /// Un telefono ha finito di sincronizzarsi; `changed` = cosa è cambiato
     /// qui ("lib", "notes", "stamps"), da ricaricare.
     PhoneSynced { name: String, changed: Vec<&'static str> },

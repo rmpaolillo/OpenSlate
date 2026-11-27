@@ -169,6 +169,7 @@ extension AppModel {
         }
         sealJob = nil
         show(L("Timbro apposto: Annulla lo toglie.", "Stamp applied: Undo removes it."))
+        nextProposed()
     }
 }
 
@@ -298,7 +299,7 @@ struct SealBar: View {
                         Label(L("Aspetto", "Look"), systemImage: look ? "chevron.down" : "slider.horizontal.3")
                     }.buttonStyle(.bordered)
                     Spacer()
-                    Button(L("Annulla", "Cancel"), role: .cancel) { app.sealJob = nil }
+                    Button(L("Annulla", "Cancel"), role: .cancel) { app.sealJob = nil; app.nextProposed() }
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 8)

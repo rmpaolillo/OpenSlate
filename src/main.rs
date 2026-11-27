@@ -49,6 +49,7 @@ mod scene;
 mod selfupdate;
 mod settings;
 mod signature;
+mod signspot;
 mod stamp;
 mod stroke;
 mod swift;

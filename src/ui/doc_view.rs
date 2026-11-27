@@ -52,6 +52,8 @@ pub(super) struct DocUi {
     import_tx: std::sync::mpsc::Sender<Result<Document, String>>,
     import_rx: std::sync::mpsc::Receiver<Result<Document, String>>,
     pub stamp: Option<Stamp>,
+    /// Firme e timbri proposti dalla chat, dopo quello in prova: la pagina e la posa.
+    pub proposed: std::collections::VecDeque<(usize, Stamp)>,
     /// Registrazione della firma: tratti e sfondo da rimettere dopo.
     pub capture: Option<(Vec<Stroke>, Option<PageBg>)>,
     pub signature: Option<Signature>,
@@ -110,6 +112,7 @@ impl DocUi {
             import_tx,
             import_rx,
             stamp: None,
+            proposed: Default::default(),
             capture: None,
             signature: Signature::load(),
             last_export: None,
@@ -257,6 +260,7 @@ impl App {
             self.docui.board_stash = Some((s.drawing.strokes.clone(), chart));
         }
         self.docui.stamp = None;
+        self.docui.proposed.clear();
         if !self.docui.tabs.iter().any(|(id, _)| id == &d.id) {
             self.docui.tabs.push((d.id.clone(), d.title.clone()));
         }
@@ -329,10 +333,76 @@ impl App {
         self.save_doc();
     }
 
+    /// La chat propone firma e/o timbro in un posto del documento: compaiono in
+    /// prova (prima il timbro, poi la firma sopra), uno alla volta; l'utente li
+    /// applica con Invio o li salta con Esc.
+    pub(super) fn sign_proposal(&mut self, p: crate::docagent::SignProposal) {
+        use crate::signspot::{self, Kind as What};
+        let Some(d) = &self.docui.doc else {
+            self.status = "La chat ha proposto una firma, ma il documento è chiuso.".into();
+            return;
+        };
+        if d.dir != p.dir {
+            self.status = "La chat ha proposto una firma per un altro documento: riaprilo e richiedila.".into();
+            return;
+        }
+        let Some(page) = d.pages.get(p.spot.page) else { return };
+        let g = self.hub.lock().geom();
+        let (dw, dh) = page.pdf.display_size();
+        let page_rect = crate::document::fit_rect(dw, dh, g.w, g.h);
+        let mut seal_rect = None;
+        if p.spot.kind != What::Firma {
+            let Some(i) = p.stamp.filter(|&i| i < self.stampui.list.len()) else {
+                self.status = "⚠ Il timbro proposto dalla chat non c'è più.".into();
+                return;
+            };
+            let mut spec = self.stampui.list[i].spec.clone();
+            spec.style = crate::stamp::jitter(&spec.style);
+            let start = spec.style.clone();
+            let r = signspot::place(&p.spot, page_rect, crate::stamp::natural_rect(&spec, &g, 0.5, 0.5), 0.5);
+            seal_rect = Some(r);
+            self.docui.proposed.push_back((p.spot.page, Stamp { what: Placing::Seal { spec, saved: Some(i), start }, rect: r, drag: None }));
+        }
+        if p.spot.kind != What::Timbro {
+            let Some(sig) = self.docui.signature.clone() else {
+                self.status = "Prima registra la firma («Registra firma»).".into();
+                return;
+            };
+            let mut r = signspot::place(&p.spot, page_rect, sig.natural_rect(&g, 0.5, 0.5), 0.5);
+            if let Some(sr) = seal_rect {
+                r = signspot::over_stamp(sr, r, page_rect);
+            }
+            self.docui.proposed.push_back((p.spot.page, Stamp { what: Placing::Sig(sig), rect: r, drag: None }));
+        }
+        if self.docui.stamp.is_none() {
+            self.next_proposed();
+        }
+    }
+
+    /// Mette in prova la prossima firma o il prossimo timbro proposti dalla chat.
+    fn next_proposed(&mut self) {
+        let Some((page, st)) = self.docui.proposed.pop_front() else { return };
+        if self.docui.doc.as_ref().is_some_and(|d| d.current != page) {
+            self.show_page(page);
+        }
+        let what = match st.what {
+            Placing::Sig(_) => "la firma",
+            Placing::Seal { .. } => "il timbro",
+        };
+        let more = match self.docui.proposed.len() {
+            0 => String::new(),
+            1 => " (poi ce n'è un'altra)".into(),
+            n => format!(" (poi ce ne sono altre {n})"),
+        };
+        self.status = format!("La chat propone {what} qui: spostala se serve, Invio per applicarla, Esc per saltarla{more}.");
+        self.docui.stamp = Some(st);
+    }
+
     fn close_doc(&mut self) {
         self.save_doc();
         self.docui.doc = None;
         self.docui.stamp = None;
+        self.docui.proposed.clear();
         self.docui.tex.clear();
         self.docui.renderer = None;
         self.docui.detail = None;
@@ -750,6 +820,8 @@ impl App {
                         }
                     }
                 }
+                // la prossima proposta della chat, se c'è
+                self.next_proposed();
             }
             DocAction::PlaceSeal(i) => {
                 let Some(t) = self.stampui.list.get(i) else { return };
@@ -794,7 +866,10 @@ impl App {
                 }
             }
             DocAction::StampWindow(sel) => self.open_stamp_window(sel),
-            DocAction::CancelStamp => self.docui.stamp = None,
+            DocAction::CancelStamp => {
+                self.docui.stamp = None;
+                self.next_proposed();
+            }
             DocAction::OpenLastExport => {
                 if let Some(p) = &self.docui.last_export {
                     crate::platform::open(p);

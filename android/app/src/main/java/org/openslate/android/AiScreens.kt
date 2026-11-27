@@ -89,6 +89,8 @@ import uniffi.openslate_mobile.ChatMsg
 import uniffi.openslate_mobile.BoardModel
 import uniffi.openslate_mobile.BoardView
 import uniffi.openslate_mobile.aiChatBoard
+import uniffi.openslate_mobile.DocChat
+import uniffi.openslate_mobile.SignProposal
 import uniffi.openslate_mobile.aiListModels
 import uniffi.openslate_mobile.aiTranscribe
 import uniffi.openslate_mobile.AiReply
@@ -132,7 +134,12 @@ class ChatState {
      * Manda `text`, col foglio (`page`, PNG) se c'è. Il tutor può leggere e
      * annotare la lavagna (`board`, vista come `view`); `onBoard` la ridisegna.
      */
-    fun send(ctx: Context, store: AiStore, text: String, page: ByteArray?, board: BoardModel, view: BoardView, onBoard: () -> Unit) {
+    fun send(
+        ctx: Context, store: AiStore, text: String, page: ByteArray?, board: BoardModel, view: BoardView,
+        // il documento aperto (la chat lo legge e propone firma e timbro), e dove vanno le proposte
+        doc: DocChat? = null, onPropose: (SignProposal) -> Unit = {},
+        onBoard: () -> Unit,
+    ) {
         if (running || text.isBlank()) return
         val history = msgs.filter { !it.error }.map { ChatMsg(it.role, it.text, null) }
         msgs += UiMsg("user", text.trim(), page != null)
@@ -154,6 +161,7 @@ class ChatState {
                             is AiEvent.Thinking -> answer.thinking += event.text
                             is AiEvent.Tool -> status = event.label + "…"
                             is AiEvent.ToolDone -> answer.steps += "${event.label}: ${event.result}"
+                            is AiEvent.SignProposed -> onPropose(event.proposal)
                             AiEvent.BoardChanged -> {
                                 answer.boardChanged = true
                                 onBoard()
@@ -163,7 +171,7 @@ class ChatState {
                     return !cancel
                 }
             }
-            val result = runCatching { aiChatBoard(providers, send, board, view, listener) }
+            val result = runCatching { aiChatBoard(providers, send, board, view, doc, listener) }
             main.post {
                 result.onSuccess {
                     answer.text = it.text

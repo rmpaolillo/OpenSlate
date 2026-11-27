@@ -16,6 +16,7 @@ extension AppModel {
         if let d = doc { keepDoc(d) }
         sealJob = nil
         sigJob = nil
+        proposed.removeAll()
         sigCapture = board.model.strokes()
         board.openStrokes([])
         show(L("Firma sul pad come su un foglio, poi «Salva firma».", "Sign on the pad as on paper, then «Save signature»."))
@@ -72,6 +73,36 @@ extension AppModel {
             show(L("Firma posata: Annulla la toglie.", "Signature placed: Undo removes it."))
         }
         sigJob = nil
+        nextProposed()
+    }
+
+    /// La chat propone firma o timbro: si va alla lavagna e li si mette in prova, uno alla volta.
+    func onProposal(_ p: SignProposal) {
+        proposed.append(p)
+        tab = .board
+        if sigJob == nil && sealJob == nil && sigCapture == nil { nextProposed() }
+    }
+
+    /// Mette in prova la prossima proposta della chat (sulla sua pagina).
+    func nextProposed() {
+        guard !proposed.isEmpty else { return }
+        let p = proposed.removeFirst()
+        guard let d = doc else { proposed.removeAll(); return }
+        let page = Int(p.page)
+        if d.index != page { goPage(page - d.index) }
+        if p.seal {
+            guard stamps.indices.contains(Int(p.stamp)) else { return nextProposed() }
+            // ogni timbrata un po' diversa, come col tampone vero
+            let spec = stampJitter(spec: stamps[Int(p.stamp)].spec)
+            sigJob = nil
+            sealJob = SealJob(spec: spec, saved: Int(p.stamp), rect: p.rect, start: spec.style)
+            show(L("La chat propone il timbro a «\(p.label)»: spostalo se serve, poi «Applica».", "The chat proposes your stamp at «\(p.label)»: move it if needed, then «Apply»."))
+        } else {
+            guard let img = sigArt(p.rect) else { return nextProposed() }
+            sealJob = nil
+            sigJob = SigJob(rect: p.rect, art: img, look: sigLook(dataDir: dataDir))
+            show(L("La chat propone la firma a «\(p.label)»: spostala se serve, poi «Applica».", "The chat proposes your signature at «\(p.label)»: move it if needed, then «Apply»."))
+        }
     }
 }
 
@@ -113,7 +144,7 @@ struct SigBar: View {
                 Button { look.toggle() } label: {
                     Label(L("Aspetto", "Look"), systemImage: look ? "chevron.down" : "slider.horizontal.3")
                 }.buttonStyle(.bordered)
-                Button(L("Annulla", "Cancel")) { app.sigJob = nil }
+                Button(L("Annulla", "Cancel")) { app.sigJob = nil; app.nextProposed() }
             }
         }
         .padding(12).frame(maxWidth: .infinity, alignment: .leading).background(.bar)

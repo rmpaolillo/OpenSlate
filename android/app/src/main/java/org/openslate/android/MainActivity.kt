@@ -97,6 +97,8 @@ import uniffi.openslate_mobile.PadInfo
 import uniffi.openslate_mobile.Page
 import uniffi.openslate_mobile.PageStroke
 import uniffi.openslate_mobile.PenPoint
+import uniffi.openslate_mobile.DocChat
+import uniffi.openslate_mobile.SignProposal
 import uniffi.openslate_mobile.BoardModel
 import uniffi.openslate_mobile.AiEvent
 import uniffi.openslate_mobile.AiListener
@@ -346,6 +348,8 @@ class MainActivity : ComponentActivity(), LinkListener {
     private var sigShowLook by mutableStateOf(false)
     /** Si sta registrando la firma: i tratti del foglio messi da parte. */
     private var sigCapture by mutableStateOf<List<PageStroke>?>(null)
+    /** Firme e timbri proposti dalla chat, dopo quello in prova (li applica l'utente). */
+    private val proposed = ArrayDeque<SignProposal>()
     /** A tutto schermo, come sulla desktop: resta solo il foglio (per scrivere e firmare sullo schermo). */
     private var compact by mutableStateOf(false)
     /** Lo schermo gira col telefono (spento: sempre in verticale). */
@@ -509,6 +513,8 @@ class MainActivity : ComponentActivity(), LinkListener {
                                     chat.send(
                                         this@MainActivity, aiStore, text, png, board.model,
                                         BoardView(quarter.toUInt(), padSize.width, padSize.height),
+                                        doc = doc?.let { DocChat(it.dir.path, filesDir.path) },
+                                        onPropose = { onProposal(it) },
                                     ) { board.reload() }
                                 },
                                 onBack = { screen = Screen.Board },
@@ -797,6 +803,7 @@ class MainActivity : ComponentActivity(), LinkListener {
     private fun closeDoc() {
         doc?.let { keepDoc(it) }
         doc = null
+        proposed.clear()
         prefs.edit().remove("doc_dir").apply()
         board.newPage()
     }
@@ -1154,8 +1161,8 @@ class MainActivity : ComponentActivity(), LinkListener {
             }
         }
         if (zoneJob != null) BackHandler { neatCancel() }
-        if (sealJob != null) BackHandler { sealJob = null }
-        if (sigJob != null) BackHandler { sigJob = null }
+        if (sealJob != null) BackHandler { sealJob = null; nextProposed() }
+        if (sigJob != null) BackHandler { sigJob = null; nextProposed() }
         if (sigCapture != null) BackHandler { sigCaptureEnd(save = false) }
         // «indietro» prima esce dal tutto schermo (non butta via niente)
         if (compact) BackHandler { compact = false }
@@ -1178,6 +1185,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         doc?.let { keepDoc(it) }
         sealJob = null
         sigJob = null
+        proposed.clear()
         sigCapture = board.model.strokes()
         board.openStrokes(emptyList())
         toast(getString(R.string.sig_capture_hint))
@@ -1235,6 +1243,35 @@ class MainActivity : ComponentActivity(), LinkListener {
             toast(getString(R.string.sig_applied))
         }
         sigJob = null
+        nextProposed()
+    }
+
+    /** La chat propone firma o timbro: si va alla lavagna e li si mette in prova, uno alla volta. */
+    private fun onProposal(p: SignProposal) {
+        proposed.addLast(p)
+        screen = Screen.Board
+        if (sigJob == null && sealJob == null && sigCapture == null) nextProposed()
+    }
+
+    /** Mette in prova la prossima proposta della chat (sulla sua pagina). */
+    private fun nextProposed() {
+        val p = proposed.removeFirstOrNull() ?: return
+        val d = doc ?: run { proposed.clear(); return }
+        val page = p.page.toInt()
+        if (d.index != page) goPage(page - d.index)
+        if (p.seal) {
+            val st = stamps.getOrNull(p.stamp.toInt()) ?: return nextProposed()
+            // ogni timbrata un po' diversa, come col tampone vero
+            val spec = stampJitter(st.spec)
+            sigJob = null
+            sealJob = SealJob(spec, p.stamp.toInt(), p.rect, spec.style)
+        } else {
+            val bmp = sigArt(p.rect) ?: return nextProposed()
+            sealJob = null
+            sigLookNow = sigLook(filesDir.path)
+            sigJob = SigJob(p.rect, bmp)
+        }
+        toastLong(getString(if (p.seal) R.string.stamp_proposed else R.string.sig_proposed, p.label))
     }
 
     @Composable
@@ -1274,7 +1311,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                         Spacer(Modifier.width(6.dp))
                         Text(stringResource(R.string.stamp_look))
                     }
-                    TextButton(onClick = { sigJob = null }) { Text(stringResource(R.string.cancel)) }
+                    TextButton(onClick = { sigJob = null; nextProposed() }) { Text(stringResource(R.string.cancel)) }
                 }
             }
         }
@@ -1357,6 +1394,7 @@ class MainActivity : ComponentActivity(), LinkListener {
         }
         sealJob = null
         toast(getString(R.string.stamp_applied))
+        nextProposed()
     }
 
     /** La barra mentre si posa un timbro: colore, cornice, intensità, grana, inclinazione. */
@@ -1404,7 +1442,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                         Spacer(Modifier.width(6.dp))
                         Text(stringResource(R.string.stamp_look))
                     }
-                    TextButton(onClick = { sealJob = null }) { Text(stringResource(R.string.cancel)) }
+                    TextButton(onClick = { sealJob = null; nextProposed() }) { Text(stringResource(R.string.cancel)) }
                 }
             }
         }

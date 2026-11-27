@@ -77,6 +77,9 @@ pub enum AiEvent {
     ToolDone { label: String, result: String },
     /// Il tutor ha cambiato la lavagna: rileggerla.
     BoardChanged,
+    /// La chat propone una firma o un timbro sul documento: l'app li mette in
+    /// prova e li applica solo l'utente.
+    SignProposed { proposal: crate::docsign::SignProposal },
 }
 
 /// Il risultato di uno strumento.
@@ -90,6 +93,8 @@ pub struct ToolOut {
     pub images: Vec<Vec<u8>>,
     /// Ha cambiato la lavagna.
     pub changed: bool,
+    /// Firme e timbri proposti sul documento.
+    pub proposals: Vec<crate::docsign::SignProposal>,
 }
 
 /// Strumenti offerti al modello (come `ToolCtx` della desktop).
@@ -604,6 +609,9 @@ fn call(p: &AiProvider, model: &str, task: Task, msgs: &[ChatMsg], send_image: b
             if res.changed {
                 w.send(AiEvent::BoardChanged)?;
             }
+            for proposal in res.proposals.iter().cloned() {
+                w.send(AiEvent::SignProposed { proposal })?;
+            }
             wire.push(json!({ "role": "tool", "tool_call_id": c.id, "content": res.text }));
             if send_image && !res.images.is_empty() {
                 let mut parts = vec![json!({ "type": "text", "text": format!("Immagine restituita da {}:", c.name) })];
@@ -714,19 +722,21 @@ pub fn ai_chat(providers: Vec<AiProvider>, msgs: Vec<ChatMsg>, listener: Arc<dyn
 }
 
 /// Chat col tutor sulla lavagna: legge il foglio e ci scrive (con
-/// `lavagna_leggi` e `lavagna_annota`, come la desktop).
+/// `lavagna_leggi` e `lavagna_annota`, come la desktop). Con un documento
+/// aperto (`doc`) legge anche il documento e propone firma e timbro dove vanno.
 #[uniffi::export]
 pub fn ai_chat_board(
     providers: Vec<AiProvider>,
     msgs: Vec<ChatMsg>,
     board: Arc<crate::board::BoardModel>,
     view: crate::tutor::BoardView,
+    doc: Option<crate::docsign::DocChat>,
     listener: Arc<dyn AiListener>,
 ) -> Result<AiReply, AiError> {
-    let tutor = crate::tutor::Tutor::new(board, view);
+    let tools = crate::docsign::ChatTools { tutor: crate::tutor::Tutor::new(board, view), doc: doc.map(|d| crate::docsign::DocTools::new(d, view)) };
     let mut all = vec![ChatMsg { role: "system".into(), text: CHAT_PROMPT.into(), image: None }];
     all.extend(msgs);
-    run(&providers, Task::Chat, &all, Some(&tutor), listener.as_ref())
+    run(&providers, Task::Chat, &all, Some(&tools), listener.as_ref())
 }
 
 /// Trascrizione fedele di una pagina (PNG) in Markdown.
@@ -891,7 +901,7 @@ mod tests {
         let before = board.strokes().len();
         let log = Arc::new(Log(Mutex::new(Vec::new())));
         let view = crate::tutor::BoardView { quarter: 0, pad_w: 21600.0, pad_h: 14800.0 };
-        let r = ai_chat_board(vec![prov("Locale", &url)], vec![ChatMsg { role: "user".into(), text: "correggi".into(), image: None }], board.clone(), view, log.clone()).unwrap();
+        let r = ai_chat_board(vec![prov("Locale", &url)], vec![ChatMsg { role: "user".into(), text: "correggi".into(), image: None }], board.clone(), view, None, log.clone()).unwrap();
         assert_eq!(r.text, "Ho sottolineato la riga.");
         assert!(board.strokes().len() > before + 1, "nessun segno aggiunto");
         let ev = log.0.lock().unwrap().clone();

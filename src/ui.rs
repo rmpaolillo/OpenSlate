@@ -131,6 +131,10 @@ pub fn run_app(
         crate::docagent::on_change(move |dir| {
             let _ = tx.send(UiEvent::DocChanged(dir));
         });
+        let tx = evt_tx.clone();
+        crate::docagent::on_propose(move |p| {
+            let _ = tx.send(UiEvent::SignProposal(p));
+        });
         // e chiede all'archivio (cerca, apri, salva, cestino…)
         let tx = evt_tx.clone();
         crate::libagent::set_sink(move |req, reply| {
@@ -958,6 +962,7 @@ impl App {
                     self.status = "Foglio modificato dalla chat AI (si può annullare dalla chat).".into();
                 }
                 UiEvent::DocChanged(dir) => self.doc_changed_by_ai(dir),
+                UiEvent::SignProposal(p) => self.sign_proposal(p),
                 UiEvent::ChatLib(req, reply) => self.chat_lib.push((req, reply)),
                 UiEvent::PhoneSynced { name, changed } => self.phone_synced(name, changed),
                 UiEvent::PhoneLive => self.phone.live_changed(),

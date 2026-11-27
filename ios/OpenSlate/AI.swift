@@ -148,7 +148,10 @@ final class ChatState: ObservableObject {
         weak var chat: ChatState?
         let answer: UiMsg
         let onBoard: () -> Void
-        init(_ chat: ChatState, _ answer: UiMsg, _ onBoard: @escaping () -> Void) { self.chat = chat; self.answer = answer; self.onBoard = onBoard }
+        let onPropose: (SignProposal) -> Void
+        init(_ chat: ChatState, _ answer: UiMsg, _ onBoard: @escaping () -> Void, _ onPropose: @escaping (SignProposal) -> Void) {
+            self.chat = chat; self.answer = answer; self.onBoard = onBoard; self.onPropose = onPropose
+        }
         func onEvent(event: AiEvent) -> Bool {
             DispatchQueue.main.async { [self] in
                 switch event {
@@ -161,14 +164,17 @@ final class ChatState: ObservableObject {
                 case .boardChanged:
                     answer.boardChanged = true
                     onBoard()
+                case .signProposed(let p): onPropose(p)
                 }
             }
             return !(chat?.cancel ?? true)
         }
     }
 
-    /// Manda `text` (col foglio, se c'è): il tutor può leggere e annotare la lavagna.
-    func send(_ text: String, page: Data?, store: AiStore, board: BoardModel, view: BoardView, onBoard: @escaping () -> Void) {
+    /// Manda `text` (col foglio, se c'è): il tutor può leggere e annotare la lavagna;
+    /// con un documento aperto (`doc`) lo legge e propone firma e timbro (`onPropose`).
+    func send(_ text: String, page: Data?, store: AiStore, board: BoardModel, view: BoardView,
+              doc: DocChat? = nil, onPropose: @escaping (SignProposal) -> Void = { _ in }, onBoard: @escaping () -> Void) {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !running, !t.isEmpty else { return }
         let history = msgs.filter { !$0.error }.map { ChatMsg(role: $0.role, text: $0.text, image: nil) }
@@ -180,9 +186,9 @@ final class ChatState: ObservableObject {
         status = ""
         let providers = store.providers()
         let all = history + [ChatMsg(role: "user", text: t, image: page)]
-        let listener = Listener(self, answer, onBoard)
+        let listener = Listener(self, answer, onBoard, onPropose)
         DispatchQueue.global(qos: .userInitiated).async {
-            let r = Result { try aiChatBoard(providers: providers, msgs: all, board: board, view: view, listener: listener) }
+            let r = Result { try aiChatBoard(providers: providers, msgs: all, board: board, view: view, doc: doc, listener: listener) }
             DispatchQueue.main.async { [self] in
                 switch r {
                 case .success(let reply):
@@ -302,7 +308,9 @@ struct ChatScreen: View {
                     Button {
                         dictation.stop()
                         let png = attach && canAttach ? (try? aiPagePng(page: app.board.toPage(Float(app.padSize.width), Float(app.padSize.height)), quarter: UInt32(app.quarter))) : nil
-                        chat.send(input.trimmingCharacters(in: .whitespacesAndNewlines), page: png, store: app.ai, board: app.board.model, view: app.view) { app.board.reload() }
+                        chat.send(input.trimmingCharacters(in: .whitespacesAndNewlines), page: png, store: app.ai, board: app.board.model, view: app.view,
+                                  doc: app.doc.map { DocChat(dir: $0.dir.path, dataDir: app.dataDir) },
+                                  onPropose: { app.onProposal($0) }) { app.board.reload() }
                         input = ""
                     } label: {
                         Image(systemName: "arrow.up").font(.title3.bold()).frame(width: 48, height: 48)

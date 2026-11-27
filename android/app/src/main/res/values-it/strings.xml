@@ -272,6 +272,8 @@
     <string name="sig_insert">Inserisci la firma</string>
     <string name="sig_record">Registra la firma…</string>
     <string name="sig_capture_title">Registra la firma</string>
+    <string name="sig_proposed">La chat propone la firma a «%1$s»: spostala se serve, poi Applica (Annulla la salta).</string>
+    <string name="stamp_proposed">La chat propone il timbro a «%1$s»: spostalo se serve, poi Applica (Annulla lo salta).</string>
     <string name="full_screen">A tutto schermo</string>
     <string name="exit_full_screen">Esci dal tutto schermo</string>
     <string name="sig_capture_hint">Firma sul pad come su un foglio, poi «Salva firma». Va anche sul computer collegato.</string>

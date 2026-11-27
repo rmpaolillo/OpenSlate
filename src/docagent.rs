@@ -104,6 +104,25 @@ pub fn on_change(f: impl Fn(PathBuf) + Send + Sync + 'static) {
     let _ = NOTIFY.set(Box::new(f));
 }
 
+/// Una firma o un timbro proposti dalla chat: compaiono sul documento in
+/// prova e li mette solo l'utente (Applica / Invio), come quando li posa lui.
+#[derive(Clone, Debug)]
+pub struct SignProposal {
+    /// La cartella del documento.
+    pub dir: PathBuf,
+    pub spot: crate::signspot::Spot,
+    /// Quale timbro (posizione in `signatures/timbri.json`), se c'è il timbro.
+    pub stamp: Option<usize>,
+}
+
+type Propose = Box<dyn Fn(SignProposal) + Send + Sync>;
+static PROPOSE: OnceLock<Propose> = OnceLock::new();
+
+/// L'interfaccia riceve le firme e i timbri proposti dalla chat.
+pub fn on_propose(f: impl Fn(SignProposal) + Send + Sync + 'static) {
+    let _ = PROPOSE.set(Box::new(f));
+}
+
 /// La chat ha cambiato il foglio della lavagna (avvisa l'interfaccia).
 pub fn board_changed() {
     if let Some(n) = NOTIFY.get() {
@@ -535,6 +554,24 @@ pub fn definitions(doc: &DocRef) -> Vec<Value> {
             "width_cm": { "type": "number", "description": "Width in cm (default: the chart's own size, at most the text width)" }
         }, "required": ["image"] }),
     )];
+    if signs(doc) {
+        defs.push(function(
+            "document_find_signature_places",
+            "Find where the open document asks for a signature or a company stamp: labels such as «Firma», «Timbro e firma», «Il legale rappresentante», the parties of a contract («Il Committente», «Il Fornitore»…) and the blank lines next to them. Returns a numbered list (page, label, what goes there). Read-only.",
+            json!({ "type": "object", "properties": {} }),
+        ));
+        defs.push(function(
+            "document_place_signature",
+            "Propose the user's own saved signature and/or company stamp on the document, where it is expected. It appears on the page as a preview: nothing is applied until the user confirms it (Enter / Apply) or removes it (Esc). Use `place` (a number from document_find_signature_places) or `near_text` (a label you read in the document, e.g. \"Il Fornitore\", to sign right there: on its blank line or just below it). Call it once per place.",
+            json!({ "type": "object", "properties": {
+                "what": { "type": "string", "enum": ["firma", "timbro", "timbro e firma"], "description": "What to put there (default: what the place asks for)" },
+                "place": { "type": "integer", "description": "Number of the place from document_find_signature_places (1 = first)" },
+                "near_text": { "type": "string", "description": "A label printed in the document, if the place is not in the list" },
+                "page": { "type": "integer", "description": "Page of `near_text` (1 = first; default: the first page that has it)" },
+                "stamp": { "type": "string", "description": "Which stamp, by its name, when the user has more than one (default: the first)" }
+            } }),
+        ));
+    }
     match doc.kind {
         Kind::Text => {
             defs.push(function("text_read", "Read the whole text of the open document (Markdown, plain text or HTML), with line numbers.", json!({ "type": "object", "properties": {} })));
@@ -563,7 +600,7 @@ pub fn definitions(doc: &DocRef) -> Vec<Value> {
                         desc.push_str(" (`doc` can be omitted: it is the open document.)");
                         if t["name"] == "fill_sign_add" {
                             without_signature(&mut params);
-                            desc.push_str(" In OpenSlate the user signs with the pen: signature and initials are not available here, and neither are image files (`path`).");
+                            desc.push_str(" In OpenSlate signature and initials are not available here, and neither are image files (`path`): the user's real signature and stamp go through document_place_signature.");
                         }
                     }
                     defs.push(function(&name, &desc, params));
@@ -583,14 +620,22 @@ pub fn system_note(doc: &DocRef, title: &str) -> String {
             Per compilare un modulo: pdf__form_fields per vedere i campi, pdf__form_fill per riempirli tutti in una volta, pdf__form_reset per svuotarli. \
             Se il modulo non ha campi (stampato o scansionato): pdf__form_detect_fields li trova e li crea, oppure pdf__fill_sign_add scrive testo, crocette e la data \
             dove servono (guarda prima la pagina con pdf__page_render; la data nel formato dell'utente con `format`, per esempio dd/mm/yyyy in italiano, e `language`). \
-            Usa solo i dati che l'utente ti ha dato in questa conversazione o che sono nei documenti: quelli che mancano chiedili, non inventarli. \
-            La firma non la metti tu: alla fine di' all'utente dove firmare con la penna"),
+            Usa solo i dati che l'utente ti ha dato in questa conversazione o che sono nei documenti: quelli che mancano chiedili, non inventarli"),
         Kind::Svg => ("un disegno SVG", "gli strumenti svg__* (il server MCP di VectorCraft: svg__render_preview per guardarlo, svg__draw_shape, svg__add_text, svg__command_batch…)"),
         Kind::Text => ("un testo (Markdown, .txt o .html)", "text_read, text_replace e text_insert (nel Markdown le formule in LaTeX con $…$ e $$…$$)"),
         Kind::Photo => ("una foto", "gli strumenti photo__* (il server MCP di PhotoCraft: photo__doc_inspect per vedere com'è fatta, photo__command_list con «filter» per cercare i comandi (ritaglia, ridimensiona, ruota, luminosità, contrasto, livelli, curve, saturazione, bianco e nero, nitidezza, sfocatura, testo…), photo__command_run e photo__command_batch per usarli, photo__doc_render_preview per guardare il risultato). Ritagliare, ruotare o ridimensionare cambia le misure della foto: se l'utente ci ha scritto o firmato sopra, avvisalo"),
     };
+    let sign = if signs(doc) {
+        " Firma e timbro: la firma vera dell'utente (registrata con la penna) e i suoi timbri aziendali li proponi con \
+         document_find_signature_places (dove il documento li chiede) e document_place_signature (uno per posto, o vicino a una scritta \
+         che leggi tu, come «Il Fornitore»): compaiono in prova e li applica solo l'utente con Invio, o li toglie con Esc. \
+         Falli solo quando l'utente lo chiede; non firmare mai con altri strumenti (niente firme scritte con fill_sign_add). \
+         Se non trovi il posto, chiedi all'utente dove."
+    } else {
+        ""
+    };
     format!(
-        "\n\nAccanto alla chat è aperto «{title}», {what}: lo puoi leggere e modificare con {how}. \
+        "\n\nAccanto alla chat è aperto «{title}», {what}: lo puoi leggere e modificare con {how}.{sign} \
          Per metterci un grafico: prima draw_chart, poi document_insert_image con l'id del grafico. \
          Le modifiche si vedono subito nel documento e l'utente le può annullare: falle solo quando l'utente lo chiede, \
          e alla fine di' in breve che cosa hai cambiato."
@@ -600,6 +645,7 @@ pub fn system_note(doc: &DocRef, title: &str) -> String {
 /// Esegue lo strumento `name` sul documento; None se non è suo.
 pub fn execute(doc: &DocRef, name: &str, args: &Value) -> Option<Outcome> {
     let mine = name == "document_insert_image"
+        || (signs(doc) && matches!(name, "document_find_signature_places" | "document_place_signature"))
         || (doc.kind == Kind::Text && matches!(name, "text_read" | "text_replace" | "text_insert"))
         || (!doc.prefix().is_empty() && name.starts_with(doc.prefix()));
     if !mine {
@@ -611,6 +657,11 @@ pub fn execute(doc: &DocRef, name: &str, args: &Value) -> Option<Outcome> {
 fn run(doc: &DocRef, name: &str, args: &Value) -> Result<Outcome> {
     match name {
         "document_insert_image" => insert_image(doc, args),
+        "document_find_signature_places" => {
+            let spots = signature_places(doc)?;
+            Ok(Outcome { short: format!("{} posti per firma o timbro", spots.len()), text: crate::signspot::describe(&spots), ..Default::default() })
+        }
+        "document_place_signature" => place_signature(doc, args),
         "text_read" => {
             let t = std::fs::read_to_string(&doc.file)?;
             let numbered: String = t.lines().enumerate().map(|(i, l)| format!("{:>4}  {l}\n", i + 1)).collect();
@@ -633,6 +684,59 @@ fn run(doc: &DocRef, name: &str, args: &Value) -> Result<Outcome> {
         }
         _ => mcp_call(doc, &name[doc.prefix().len()..], args),
     }
+}
+
+/// Firma e timbro si propongono sui documenti col testo (Word e PDF): i posti
+/// si cercano nel PDF delle pagine.
+fn signs(doc: &DocRef) -> bool {
+    matches!(doc.kind, Kind::Word | Kind::Pdf) && doc.dir.join("source.pdf").exists()
+}
+
+fn page_texts(doc: &DocRef) -> Result<Vec<crate::signspot::PageText>> {
+    crate::signspot::pdf_text(std::fs::read(doc.dir.join("source.pdf"))?)
+}
+
+fn signature_places(doc: &DocRef) -> Result<Vec<crate::signspot::Spot>> {
+    Ok(crate::signspot::find_spots(&page_texts(doc)?))
+}
+
+fn place_signature(doc: &DocRef, args: &Value) -> Result<Outcome> {
+    use crate::signspot::{self, Kind as What};
+    let what = args["what"].as_str().map(signspot::parse_what);
+    let pages = page_texts(doc)?;
+    let page = args["page"].as_u64().map(|p| (p as usize).saturating_sub(1));
+    let spot = signspot::choose(&pages, args["place"].as_u64().map(|n| n as usize), args["near_text"].as_str(), page, what).map_err(|e| anyhow!(e))?;
+    let wants_sig = spot.kind != What::Timbro;
+    let wants_stamp = spot.kind != What::Firma;
+    if wants_sig && crate::signature::Signature::load().is_none() {
+        bail!("l'utente non ha ancora registrato la sua firma: digli di farlo con «Registra firma» (scrive la firma col pennino), poi riprova");
+    }
+    let stamp = if wants_stamp {
+        let list = crate::stamp::load_all(Path::new("signatures/timbri.json"));
+        if list.is_empty() {
+            bail!("l'utente non ha ancora un timbro: digli di crearlo con «Timbro» → «Crea un timbro», poi riprova");
+        }
+        let i = match args["stamp"].as_str().map(|n| n.to_lowercase()) {
+            Some(n) => list
+                .iter()
+                .position(|t| t.name.to_lowercase().contains(&n) || t.spec.company.name.to_lowercase().contains(&n))
+                .with_context(|| format!("nessun timbro «{n}»: ci sono {}", list.iter().map(|t| format!("«{}»", if t.name.is_empty() { &t.spec.company.name } else { &t.name })).collect::<Vec<_>>().join(", ")))?,
+            None => 0,
+        };
+        Some(i)
+    } else {
+        None
+    };
+    let propose = PROPOSE.get().context("l'app non può mostrare la proposta")?;
+    let (page, what_name, label) = (spot.page + 1, spot.kind.name(), spot.label.clone());
+    propose(SignProposal { dir: doc.dir.clone(), spot, stamp });
+    Ok(Outcome {
+        text: format!(
+            "Proposta pronta: {what_name} a pagina {page}, a «{label}». L'utente la vede sul documento e la applica lui con Invio (o la toglie con Esc): non è ancora sul documento finché non conferma."
+        ),
+        short: format!("{what_name} proposta a pagina {page}"),
+        ..Default::default()
+    })
 }
 
 /// Testo con un nuovo paragrafo dopo quello che contiene `after` (o in fondo).
@@ -756,7 +860,7 @@ fn forbidden_command(args: &Value) -> Option<String> {
 /// un'immagine): dalla chat no, la firma la mette l'utente con la penna.
 fn signature_refused(args: &Value) -> Option<&'static str> {
     if matches!(args["type"].as_str(), Some("signature" | "initials")) {
-        return Some("la firma e le iniziali le mette l'utente con la penna sullo Slate (o col mouse), non la chat: compila il resto e lascia a lui la firma");
+        return Some("con fill_sign_add no: la firma vera dell'utente la proponi con document_place_signature (la conferma lui)");
     }
     if args.get("path").is_some() || args.get("scan").is_some() {
         return Some("dalla chat Fill & Sign non usa file di immagini: solo testo, crocette, segni e data");

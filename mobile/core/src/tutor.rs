@@ -143,11 +143,11 @@ impl ToolRunner for Tutor {
         let fail = |e: anyhow::Error| ToolOut { text: format!("ERRORE: {e:#}"), short: format!("errore: {e:#}"), ..Default::default() };
         match name {
             "lavagna_leggi" => match self.read() {
-                Ok((text, images)) => ToolOut { text, short: "foglio letto".into(), images, changed: false },
+                Ok((text, images)) => ToolOut { text, short: "foglio letto".into(), images, ..Default::default() },
                 Err(e) => fail(e),
             },
             "lavagna_annota" => match self.annotate(args) {
-                Ok(text) => ToolOut { text, short: "segni sul foglio".into(), images: Vec::new(), changed: true },
+                Ok(text) => ToolOut { text, short: "segni sul foglio".into(), changed: true, ..Default::default() },
                 Err(e) => fail(e),
             },
             other => ToolOut { text: format!("ERRORE: strumento sconosciuto «{other}»"), short: "sconosciuto".into(), ..Default::default() },
