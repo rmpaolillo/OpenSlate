@@ -48,6 +48,8 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   le chat, avec les formules. Il peut aussi tracer le graphe d'une fonction sur la page.
 - **Signez des documents Word et PDF au stylet**, enregistrés dans le même format.
 - **Tampon d'entreprise** sur les documents : raison sociale, adresse, numéro de TVA, e-mail certifié (PEC)…, avec l'aspect d'une vraie encre (grain, encrage irrégulier, inclinaison), en bleu, gris ou une autre couleur d'encre.
+- **« Mets-y mon tampon et ma signature. »** Demandez-le au chat IA : il trouve où le document les attend (une ligne de signature, « Il Committente », « Per accettazione », ou la fin du document) et y propose votre propre signature et votre tampon enregistrés ; rien n'est appliqué tant que vous ne confirmez pas.
+- **Signature numérique qualifiée (PAdES) avec la signature à distance Aruba** : votre nom d'utilisateur, votre mot de passe et le code OTP de l'app Aruba OTP. Seule l'empreinte du document part chez Aruba, jamais le fichier.
 - **Écriture manuscrite → notes modifiables**, avec tableaux et formules, exportées en Markdown, Word ou PDF,
   imprimées ou dans une police manuscrite.
 - **Exportez dans le format qu'il vous faut** : PDF consultable, Word avec l'écriture en encre modifiable, JPEG/WebP légers, Xournal++, un GIF, un SVG ou une vidéo MP4 de la page en train de s'écrire, et LaTeX ou Typst à partir de la transcription.
@@ -84,6 +86,24 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   comme celle d'un vrai tampon : le texte dessous reste visible et la signature passe par-dessus. Il
   est enregistré dans la copie signée dans tous les formats (PDF, Word, photos, SVG) ; Annuler le
   retire en une étape et la gomme l'efface entièrement.
+- **Signature et tampon depuis le chat.** Avec un document Word ou PDF ouvert, dites au chat IA
+  « mets-y mon tampon et ma signature » : il lit le document, trouve les endroits qui les demandent
+  (un libellé « Firma » ou « Timbro », une ligne vide à remplir, « Il Committente », « Per
+  accettazione »… ; dans un document qui n'en a aucun, la fin du texte, à droite) et y propose votre
+  propre signature, enregistrée au stylet, et votre tampon d'entreprise, la signature par-dessus le
+  tampon comme à la main. Ils apparaissent en aperçu : **Appliquer** (Entrée) les garde, **Annuler**
+  (Échap) passe au suivant. Il ne signe que votre partie, jamais des cellules de tableau ni des
+  en-têtes. Aussi dans les apps pour téléphone.
+- **Signature numérique (PAdES) avec la signature à distance Aruba.** Onglet Document → **Signature
+  numérique** : après la signature manuscrite, le tampon et « Enregistrer PDF », elle signe le PDF
+  avec votre signature à distance qualifiée Aruba (celle de l'app Aruba OTP). Saisissez votre nom
+  d'utilisateur (`user@domain` ; `firma` si vous l'avez achetée sur pec.it), votre mot de passe et
+  le code OTP ; la copie signée est enregistrée à côté du PDF sous le nom `…-firmato-digitalmente.pdf`.
+  Le PDF et la signature CMS (`ETSI.CAdES.detached`) sont écrits en local par
+  [PdfCraft](https://github.com/storytold/pdfcraft) : seule l'empreinte SHA-256 part vers le service
+  ARSS d'Aruba, et la signature qui revient est vérifiée avec votre certificat avant d'entrer dans le
+  fichier. Le mot de passe et l'OTP ne sont jamais enregistrés (seul `user@domain` est mémorisé).
+  Faites-le en dernier : après la signature numérique, le PDF ne doit plus être modifié.
 - **Écrivez aussi sur des images.** Ouvrez un SVG, PNG, JPEG (ou encore WebP, TIFF, BMP, GIF), ou appuyez sur **Coller**
   (`Cmd+V`) avec une capture d'écran ou une photo dans le presse-papiers. Écrivez dessus et réenregistrez-la comme image
   de même format et de même taille : un SVG conserve l'écriture sous forme de tracés vectoriels
@@ -120,8 +140,9 @@ Les tickets et les pull requests sont les bienvenus : voir [CONTRIBUTING.md](CO
   formulaire avec mes données » : il lit les champs et les remplit avec PdfCraft. Un formulaire
   imprimé ou scanné sans champs les reçoit d'abord (PdfCraft trouve les espaces à remplir et les
   nomme d'après leurs libellés), ou le chat écrit du texte, des coches et la date aux bons endroits.
-  Il n'utilise que ce que vous lui dites et demande ce qui manque. Il ne signe jamais : la signature,
-  c'est vous, avec le stylet, et les valeurs remplies restent dans la copie signée.
+  Il n'utilise que ce que vous lui dites et demande ce qui manque. Il n'écrit jamais de signature à lui :
+  il peut seulement proposer votre propre signature et votre tampon enregistrés (voir plus haut), et
+  les valeurs remplies restent dans la copie signée.
 - **Parlez au chat.** Cliquez sur le microphone à côté d'Envoyer, ou maintenez la touche Alt
   (Option) de droite pendant que vous parlez : les mots arrivent dans la zone de message, prêts à
   être corrigés et envoyés. Whisper les transcrit sur votre ordinateur avec [whisper.cpp](https://github.com/ggml-org/whisper.cpp)
@@ -290,7 +311,10 @@ cœur Rust que l'app de bureau (`mobile/core`, qui reprend les fichiers source d
 eux-mêmes) : tableau en direct avec le Bamboo Slate, pages téléchargées du pad, l'archive au format
 de l'app de bureau, les outils et types de feuille, trait naturel, mise au propre et alignement
 sur les lignes, le chat IA avec le tuteur qui écrit sur la page, transcription en note et signature
-de documents (PDF, Word, photos, SVG) avec le tampon d'entreprise. Les réglages IA viennent de
+de documents (PDF, Word, photos, SVG) avec le tampon d'entreprise, que le chat IA place aussi là où
+le document les demande. Sur le téléphone, les fichiers SVG sont dessinés par
+[resvg](https://github.com/linebender/resvg) au lieu du moteur VectorCraft complet, ce qui garde
+l'app Android à environ 25 Mo. Les réglages IA viennent de
 l'app de bureau par un QR code (Réglages IA → « Connecter le téléphone »), affiché seulement à la
 demande ; sur le téléphone, les clés API sont stockées chiffrées. Il n'y a pas encore de
 téléchargements prêts : compile-les comme indiqué dans [android/README.md](android/README.md)

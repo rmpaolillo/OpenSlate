@@ -48,6 +48,8 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   el chat, con fórmulas. También puede dibujar la gráfica de una función en la hoja.
 - **Firma documentos Word y PDF con el bolígrafo**, guardados en el mismo formato.
 - **Sello de empresa** en los documentos: razón social, dirección, NIF/IVA, correo certificado (PEC)…, con aspecto de tinta real (grano, tinta irregular, inclinación), en azul, gris u otro color de tampón.
+- **«Ponle mi sello y mi firma».** Pídeselo al chat de IA: encuentra dónde los espera el documento (una línea para firmar, «Il Committente», «Per accettazione» o el final del documento) y te propone allí tu propia firma y tu sello guardados; no se aplica nada hasta que confirmas.
+- **Firma digital cualificada (PAdES) con la firma remota de Aruba**: tu usuario, tu contraseña y el código OTP de la app Aruba OTP. A Aruba solo va la huella del documento, nunca el archivo.
 - **Escritura a mano → notas editables**, con tablas y fórmulas, exportadas a Markdown, Word o PDF,
   en letra de imprenta o en una fuente manuscrita.
 - **Exporta a lo que necesites**: PDF con búsqueda, Word con la escritura como tinta editable, JPEG/WebP ligeros, Xournal++, un GIF, SVG o vídeo MP4 de la página escribiéndose, y LaTeX o Typst desde la transcripción.
@@ -84,6 +86,22 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   la de un sello de verdad: el texto de debajo se ve y la firma pasa por encima. Se guarda en la
   copia firmada en todos los formatos (PDF, Word, fotos, SVG); Deshacer lo quita en un paso y la
   goma lo borra entero.
+- **Firma y sello desde el chat.** Con un documento Word o PDF abierto, dile al chat de IA
+  «ponle mi sello y mi firma»: lee el documento, encuentra los lugares que los piden (una etiqueta
+  «Firma» o «Timbro», una línea en blanco para rellenar, «Il Committente», «Per accettazione»…; en
+  un documento que no tiene ninguno, el final del texto, a la derecha) y te propone allí tu propia
+  firma, grabada con el bolígrafo, y tu sello de empresa, la firma sobre el sello como a mano.
+  Aparecen como vista previa: **Aplicar** (Intro) los conserva, **Cancelar** (Esc) pasa al siguiente.
+  Solo firma tu parte, nunca celdas de tabla ni encabezados. También en las apps para teléfono.
+- **Firma digital (PAdES) con la firma remota de Aruba.** Pestaña Documento → **Firma digital**:
+  después de la firma a mano, el sello y «Guardar PDF», firma el PDF con tu firma remota cualificada
+  de Aruba (la de la app Aruba OTP). Escribe tu usuario (`user@domain`; `firma` si la compraste en
+  pec.it), tu contraseña y el código OTP; la copia firmada se guarda junto al PDF como
+  `…-firmato-digitalmente.pdf`. El PDF y la firma CMS (`ETSI.CAdES.detached`) los escribe en local
+  [PdfCraft](https://github.com/storytold/pdfcraft): al servicio ARSS de Aruba solo va la huella
+  SHA-256, y la firma que vuelve se comprueba con tu certificado antes de meterla en el archivo. La
+  contraseña y el OTP nunca se guardan (solo se recuerda `user@domain`). Hazlo al final: después de
+  la firma digital el PDF no debe modificarse.
 - **Escribe también sobre imágenes.** Abre un SVG, PNG o JPEG (también WebP, TIFF, BMP, GIF), o pulsa **Pegar**
   (`Cmd+V`) con una captura de pantalla o una foto en el portapapeles. Escribe encima y vuelve a guardarla como imagen
   del mismo formato y tamaño: un SVG conserva la escritura como trazados vectoriales
@@ -120,8 +138,9 @@ Las incidencias y las pull requests son bienvenidas: consulta [CONTRIBUTING.md](
   formulario con mis datos»: lee los campos y los rellena con PdfCraft. Un formulario impreso o
   escaneado sin campos los recibe primero (PdfCraft encuentra los espacios en blanco y los nombra
   según sus etiquetas), o el chat escribe texto, marcas y la fecha donde corresponde. Solo usa lo
-  que le dices y pregunta lo que falta. Nunca firma: la firma la pones tú con el lápiz, y los
-  valores rellenados quedan en la copia firmada.
+  que le dices y pregunta lo que falta. Nunca escribe una firma propia: solo puede proponer
+  tu propia firma y tu sello guardados (ver arriba), y los valores rellenados quedan en la copia
+  firmada.
 - **Habla con el chat.** Haz clic en el micrófono junto a Enviar, o mantén pulsada la tecla Alt
   (Opción) derecha mientras hablas: las palabras llegan al cuadro del mensaje, listas para corregir
   y enviar. Whisper las transcribe en tu ordenador con [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (en la GPU en los
@@ -285,7 +304,9 @@ en Rust que la app de escritorio (`mobile/core`, que usa los propios archivos fu
 pizarra en directo con el Bamboo Slate, páginas descargadas del pad, el archivo en el formato de
 escritorio, las herramientas y tipos de hoja, trazo natural, pasar a limpio y colocar en
 renglones, el chat de IA con el tutor que escribe en la página, transcripción a nota y firma de
-documentos (PDF, Word, fotos, SVG) con el sello de empresa. Los ajustes de IA llegan desde el
+documentos (PDF, Word, fotos, SVG) con el sello de empresa, que el chat de IA también coloca donde
+el documento los pide. En el teléfono los SVG los dibuja [resvg](https://github.com/linebender/resvg)
+en lugar del motor completo de VectorCraft, lo que deja la app de Android en unos 25 MB. Los ajustes de IA llegan desde el
 escritorio con un código QR (Ajustes de IA → «Conectar el teléfono»), que solo se muestra cuando
 lo pides; en el teléfono las claves API se guardan cifradas. Todavía no hay descargas listas:
 compílalas como se explica en [android/README.md](android/README.md) (Android 8.0 o superior) y

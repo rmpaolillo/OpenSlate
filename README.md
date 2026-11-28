@@ -48,6 +48,8 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   the chat, with formulas. It can also draw the graph of a function onto the page.
 - **Sign Word and PDF documents with the pen**, saved in the same format.
 - **Company stamp** on documents: company name, address, VAT number, certified email (PEC)…, with a realistic ink look (grain, uneven ink, tilt), in blue, grey or another ink colour.
+- **"Put my stamp and signature on it."** Ask the AI chat and it finds where the document expects them (a signature line, «Il Committente», «Per accettazione», or the end of the document) and proposes your own saved signature and stamp there; nothing is applied until you confirm.
+- **Qualified digital signature (PAdES) with Aruba remote signing**: your username, password and the OTP code from the Aruba OTP app. Only the document's fingerprint goes to Aruba, never the file.
 - **Handwriting → editable notes**, with tables and formulas, exported to Markdown, Word or PDF,
   printed or in a handwriting font.
 - **Export to what you need**: a searchable PDF, Word with the handwriting as editable ink, light
@@ -85,6 +87,23 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   new grain pattern. The ink is see-through like a real stamp: the text underneath shows and the
   signature goes over it. It is saved in the signed copy in every format (PDF, Word, photos, SVG),
   Undo takes it away in one step and the eraser removes it whole.
+- **Signature and stamp from the chat.** With a Word or PDF document open, tell the AI chat
+  "put my stamp and signature on it": it reads the document, finds the places that ask for them
+  (a «Firma» or «Timbro» label, a blank line to fill in, «Il Committente», «Per accettazione»…; in
+  a document with none, the end of the text, on the right) and proposes your own signature,
+  recorded with the pen, and your company stamp there, the signature over the stamp as by hand.
+  They appear as a preview: **Apply** (Enter) keeps them, **Cancel** (Esc) skips to the next one.
+  It signs only your side, never table cells or headings. Also in the phone apps.
+- **Digital signature (PAdES) with Aruba remote signing.** Document tab → **Digital signature**:
+  after the handwritten signature, the stamp and «Save PDF», it signs the PDF with your qualified
+  Aruba remote signature (the one with the Aruba OTP app). Enter your username
+  (`user@domain`; `firma` if you bought it on pec.it), password and OTP code; the signed copy is
+  saved next to the PDF as `…-firmato-digitalmente.pdf`. The PDF and the CMS signature
+  (`ETSI.CAdES.detached`) are written locally by [PdfCraft](https://github.com/storytold/pdfcraft):
+  only the SHA-256 fingerprint goes to Aruba's ARSS service, and the signature that comes back is
+  checked against your certificate before it goes into the file. The password and the OTP are
+  never saved (only `user@domain` is remembered). Do it last: after the digital signature the PDF
+  must not be changed.
 - **Write on images too.** Open an SVG, PNG, JPEG (also WebP, TIFF, BMP, GIF), or press **Paste**
   (`Cmd+V`) with a screenshot or photo on the clipboard. Write on it and save it back as an image
   of the same format and size: an SVG keeps the handwriting as vector paths
@@ -121,8 +140,8 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
   details": it reads the fields and fills them in with PdfCraft. A printed or scanned form with no
   fields gets them first (PdfCraft finds the blanks and names them from their labels), or the chat
   writes text, check marks and the date where they belong. It only uses what you tell it and asks
-  for what is missing. It never signs: the signature is yours, with the pen, and the filled-in
-  values stay in the signed copy.
+  for what is missing. It never writes a signature of its own: it can only propose your own saved
+  signature and stamp (see above), and the filled-in values stay in the signed copy.
 - **Talk to the chat.** Click the microphone next to Send, or hold the right Alt (Option) key while
   you speak: the words land in the message box, ready to correct and send. Whisper transcribes
   them on your computer with [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (on the GPU on Macs), offline: your voice never
@@ -283,7 +302,10 @@ The `android/` and `ios/` folders hold the phone and tablet apps, on the same Ru
 desktop (`mobile/core`, which uses the desktop's own source files): live board with the Bamboo Slate,
 pages downloaded from the pad, the library in the desktop format, the tools and paper styles,
 natural stroke, fair copy and arranging on lines, the AI chat with the tutor that writes on the page,
-transcription into a note, and signing documents (PDF, Word, photos, SVG) with the company stamp.
+transcription into a note, and signing documents (PDF, Word, photos, SVG) with the company stamp,
+also placed by the AI chat where the document asks for them. On the phone, SVG files are drawn with
+[resvg](https://github.com/linebender/resvg) instead of the whole VectorCraft engine, which keeps the
+Android app at about 25 MB.
 The AI settings come from the desktop through a QR code (AI settings → «Connect the phone»), shown
 only when you ask for it; on the phone the API keys are stored encrypted. There are no ready-made
 downloads yet: build them as described in [android/README.md](android/README.md) (Android 8.0 or

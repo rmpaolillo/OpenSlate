@@ -48,6 +48,8 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   Chat, mit Formeln. Er kann auch den Graphen einer Funktion aufs Blatt zeichnen.
 - **Word- und PDF-Dokumente mit dem Stift unterschreiben**, gespeichert im selben Format.
 - **Firmenstempel** auf Dokumenten: Firmenname, Adresse, USt-IdNr., zertifizierte E-Mail (PEC)…, mit echt wirkender Tinte (Körnung, ungleichmäßige Farbe, Neigung), in Blau, Grau oder einer anderen Stempelfarbe.
+- **„Setz meinen Stempel und meine Unterschrift drauf.“** Bitte den KI-Chat darum: Er findet, wo das Dokument sie erwartet (eine Unterschriftszeile, «Il Committente», «Per accettazione» oder das Ende des Dokuments), und schlägt dort deine eigene gespeicherte Unterschrift und deinen Stempel vor; nichts wird übernommen, bevor du bestätigst.
+- **Qualifizierte digitale Signatur (PAdES) mit der Aruba-Fernsignatur**: dein Benutzername, dein Passwort und der OTP-Code aus der App Aruba OTP. Zu Aruba geht nur der Fingerabdruck des Dokuments, nie die Datei.
 - **Handschrift → bearbeitbare Notizen**, mit Tabellen und Formeln, exportiert als Markdown, Word oder PDF,
   gedruckt oder in einer Handschrift-Schriftart.
 - **Export in das, was du brauchst**: durchsuchbares PDF, Word mit der Handschrift als bearbeitbare Tinte, leichte JPEG/WebP, Xournal++, ein animiertes GIF, SVG oder MP4-Video der Seite, die sich schreibt, und LaTeX oder Typst aus der Transkription.
@@ -85,6 +87,24 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   bleibt sichtbar, die Unterschrift liegt darüber. Er wird in der unterschriebenen Kopie in jedem
   Format gespeichert (PDF, Word, Fotos, SVG); Rückgängig nimmt ihn in einem Schritt zurück, der
   Radierer entfernt ihn ganz.
+- **Unterschrift und Stempel aus dem Chat.** Ist ein Word- oder PDF-Dokument geöffnet, sag dem KI-Chat
+  „setz meinen Stempel und meine Unterschrift drauf“: Er liest das Dokument, findet die Stellen, die
+  danach verlangen (eine Beschriftung «Firma» oder «Timbro», eine leere Zeile zum Ausfüllen,
+  «Il Committente», «Per accettazione»…; in einem Dokument ohne solche Stellen das Textende, rechts)
+  und schlägt dort deine eigene, mit dem Stift aufgenommene Unterschrift und deinen Firmenstempel vor,
+  die Unterschrift über dem Stempel wie von Hand. Sie erscheinen als Vorschau: **Anwenden** (Eingabe)
+  behält sie, **Abbrechen** (Esc) springt zur nächsten Stelle. Er unterschreibt nur deine Seite, nie
+  Tabellenzellen oder Überschriften. Auch in den Apps fürs Telefon.
+- **Digitale Signatur (PAdES) mit der Aruba-Fernsignatur.** Registerkarte Dokument → **Digitale Signatur**:
+  nach der handschriftlichen Unterschrift, dem Stempel und «PDF speichern» signiert sie das PDF mit
+  deiner qualifizierten Aruba-Fernsignatur (der mit der App Aruba OTP). Gib deinen Benutzernamen
+  (`user@domain`; `firma`, wenn du sie auf pec.it gekauft hast), dein Passwort und den OTP-Code ein;
+  die signierte Kopie wird neben dem PDF als `…-firmato-digitalmente.pdf` gespeichert. Das PDF und
+  die CMS-Signatur (`ETSI.CAdES.detached`) schreibt [PdfCraft](https://github.com/storytold/pdfcraft)
+  lokal: Nur der SHA-256-Fingerabdruck geht an den ARSS-Dienst von Aruba, und die zurückkommende
+  Signatur wird vor dem Einfügen in die Datei mit deinem Zertifikat geprüft. Passwort und OTP werden
+  nie gespeichert (nur `user@domain` wird gemerkt). Mach das zuletzt: Nach der digitalen Signatur darf
+  das PDF nicht mehr verändert werden.
 - **Auch auf Bildern schreiben.** Öffne ein SVG, PNG, JPEG (auch WebP, TIFF, BMP, GIF) oder drück **Einfügen**
   (`Cmd+V`) mit einem Screenshot oder Foto in der Zwischenablage. Schreib darauf und speichere es wieder als Bild
   im selben Format und in derselben Größe: Ein SVG behält die Handschrift als Vektorpfade
@@ -121,8 +141,9 @@ Issues und Pull Requests sind willkommen: siehe [CONTRIBUTING.md](CONTRIBUTING.m
   Formular mit meinen Daten aus“. Er liest die Felder und füllt sie mit PdfCraft aus. Ein gedrucktes
   oder gescanntes Formular ohne Felder bekommt sie zuerst (PdfCraft findet die Lücken und benennt
   sie nach ihren Beschriftungen), oder der Chat schreibt Text, Häkchen und das Datum an die richtige
-  Stelle. Er verwendet nur, was du ihm sagst, und fragt nach, was fehlt. Unterschreiben tut er nie:
-  die Unterschrift setzt du mit dem Stift, und die ausgefüllten Werte bleiben in der unterschriebenen Kopie.
+  Stelle. Er verwendet nur, was du ihm sagst, und fragt nach, was fehlt. Eine eigene Unterschrift schreibt er nie:
+  Er kann nur deine gespeicherte Unterschrift und deinen Stempel vorschlagen (siehe oben), und die
+  ausgefüllten Werte bleiben in der unterschriebenen Kopie.
 - **Mit dem Chat sprechen.** Klick auf das Mikrofon neben Senden oder halte beim Sprechen die rechte
   Alt-Taste (Wahltaste) gedrückt: Die Worte landen im Eingabefeld, bereit zum Korrigieren und Senden.
   Whisper transkribiert sie auf deinem Computer mit [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (auf dem Mac auf der
@@ -289,7 +310,10 @@ Rust-Kern wie die Desktop-App (`mobile/core`, der die Quelldateien der Desktop-A
 verwendet): Live-Tafel mit dem Bamboo Slate, Seiten vom Pad laden, das Archiv im Format der
 Desktop-App, Werkzeuge und Papierarten, natürlicher Strich, Reinschrift und Ausrichten auf Linien,
 der KI-Chat mit dem Tutor, der auf die Seite schreibt, Transkription in eine Notiz und das
-Unterschreiben von Dokumenten (PDF, Word, Fotos, SVG) mit dem Firmenstempel. Die KI-Einstellungen
+Unterschreiben von Dokumenten (PDF, Word, Fotos, SVG) mit dem Firmenstempel; beides setzt auch
+der KI-Chat dort, wo das Dokument danach verlangt. Auf dem Telefon zeichnet
+[resvg](https://github.com/linebender/resvg) die SVG-Dateien statt der ganzen VectorCraft-Engine,
+so bleibt die Android-App bei etwa 25 MB. Die KI-Einstellungen
 kommen per QR-Code von der Desktop-App (KI-Einstellungen → «Telefon verbinden»), der nur auf Wunsch
 erscheint; auf dem Telefon werden die API-Schlüssel verschlüsselt gespeichert. Fertige Downloads
 gibt es noch nicht: baue die Apps wie in [android/README.md](android/README.md) (Android 8.0 oder
