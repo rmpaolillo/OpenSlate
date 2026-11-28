@@ -517,6 +517,45 @@ pub fn find_near(pages: &[PageText], page: Option<usize>, text: &str, kind: Kind
     Err(if full { Near::NoRoom } else { Near::Missing })
 }
 
+/// Dove va il timbro «data e luogo» per il posto `near` (dove vanno firma e
+/// timbro): sulla scritta «Luogo e data» (o «Data», «Data e luogo»…) più
+/// vicina della stessa pagina; se non c'è, alla stessa altezza dall'altra
+/// parte del foglio, come «Barletta, 28/11/2026 ……… Firma».
+pub fn date_spot(pages: &[PageText], near: &Spot) -> Spot {
+    const PAIRS: &[&str] = &["luogoedata", "dataeluogo", "luogodata", "dataluogo", "localitaedata", "luogoedatadifirma"];
+    let mut best: Option<(f32, Spot)> = None;
+    if let Some(pt) = pages.get(near.page) {
+        for (i, line) in pt.lines.iter().enumerate() {
+            let (s, at) = folded(line);
+            if s.is_empty() || s.len() > MAX_LABEL {
+                continue;
+            }
+            let hit = PAIRS
+                .iter()
+                .find_map(|w| {
+                    let w: Vec<char> = w.chars().collect();
+                    find(&s, &w).map(|p| (p, w.len()))
+                })
+                // «Data» da sola: tutta la riga (non «Data di nascita»)
+                .or_else(|| (s.iter().collect::<String>() == "data").then_some((0, 4)));
+            let Some((p, n)) = hit else { continue };
+            let (start, end) = (at[p], at[p + n - 1]);
+            let spot = spot_at(pt, i, start, end, line.blank_run(end + 1));
+            let d = (spot.anchor[0] - near.anchor[0]).hypot(spot.anchor[1] - near.anchor[1]);
+            if d < 0.45 && best.as_ref().is_none_or(|b| d < b.0) {
+                best = Some((d, Spot { page: near.page, kind: Kind::Timbro, label: text_range(line, start, end + 1), ..spot }));
+            }
+        }
+    }
+    best.map(|b| b.1).unwrap_or_else(|| Spot {
+        page: near.page,
+        kind: Kind::Timbro,
+        label: "luogo e data".into(),
+        anchor: [if near.anchor[0] >= 0.5 { 0.27 } else { 0.73 }, near.anchor[1]],
+        mode: near.mode,
+    })
+}
+
 /// Il posto per la scritta alle lettere `start..=end` della riga `i`.
 fn spot_at(page: &PageText, i: usize, start: usize, end: usize, blank_after: Option<[f32; 4]>) -> Spot {
     let line = &page.lines[i];
@@ -592,6 +631,34 @@ pub fn choose(pages: &[PageText], place: Option<usize>, near_text: Option<&str>,
         spot.kind = w;
     }
     Ok(spot)
+}
+
+/// Che cosa ha chiesto la chat: il posto, se ci vanno firma e/o timbro
+/// (`sign`) e se anche (o solo) «data e luogo», e dove.
+#[derive(Clone, Debug)]
+pub struct Request {
+    pub spot: Spot,
+    pub sign: bool,
+    pub date: Option<Spot>,
+}
+
+/// Come [`choose`], più «data e luogo»: `what` «data e luogo» li chiede da
+/// soli, `date_place` insieme a firma e timbro. L'errore è in parole per il modello.
+pub fn request(pages: &[PageText], place: Option<usize>, near_text: Option<&str>, page: Option<usize>, what: Option<&str>, date_place: bool) -> Result<Request, String> {
+    let only_date = what.is_some_and(|w| {
+        let w = w.to_lowercase();
+        (w.contains("data") || w.contains("luogo") || w.contains("date")) && !["firma", "timbro", "sign", "stamp"].iter().any(|x| w.contains(x))
+    });
+    let spot = choose(pages, place, near_text, page, if only_date { None } else { what.map(parse_what) })?;
+    let date = if only_date && near_text.is_some() {
+        // la scritta scelta è già quella della data («Luogo e data»)
+        Some(Spot { kind: Kind::Timbro, ..spot.clone() })
+    } else if only_date || date_place {
+        Some(date_spot(pages, &spot))
+    } else {
+        None
+    };
+    Ok(Request { spot, sign: !only_date, date })
 }
 
 /// Il testo delle pagine, per il modello che non vede il documento.
@@ -808,6 +875,23 @@ mod tests {
         assert_eq!(find_near(&pages, None, "Fornitore", Kind::Firma).unwrap_err(), Near::NoRoom);
         assert!(choose(&pages, None, Some("Fornitore"), None, None).unwrap_err().contains("altro testo"));
         assert!(choose(&pages, Some(1), None, None, None).is_ok());
+    }
+
+    #[test]
+    fn data_e_luogo_sulla_sua_riga_o_accanto() {
+        let pages = pdf_text(pdf(&[
+            (72.0, 600.0, "Luogo e data ____________________"),
+            (350.0, 600.0, "Firma ____________________"),
+        ]))
+        .unwrap();
+        let sig = find_spots(&pages).into_iter().find(|s| s.label.contains("Firma")).unwrap();
+        let d = date_spot(&pages, &sig);
+        assert!(d.label.to_lowercase().contains("luogo e data") && d.anchor[0] < 0.45 && d.mode == Mode::OnLine, "{d:?}");
+        // un preventivo senza «Luogo e data»: dall'altra parte, alla stessa altezza
+        let pages = pdf_text(pdf(&[(72.0, 100.0, "Preventivo n.32"), (72.0, 400.0, "Condizioni: 60 giorni.")])).unwrap();
+        let end = places(&pages).remove(0);
+        let d = date_spot(&pages, &end);
+        assert!(d.anchor[0] < 0.5 && (d.anchor[1] - end.anchor[1]).abs() < 1e-6, "{d:?} {end:?}");
     }
 
     #[test]

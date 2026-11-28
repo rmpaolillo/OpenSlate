@@ -501,9 +501,10 @@ impl App {
                         actions.push(doc(DocAction::PlaceSeal(i)));
                     }
                 }
-                if !stamps.is_empty() {
-                    ui.separator();
+                if menu_item(ui, true, ic::CALENDAR, "Data e luogo", "") {
+                    actions.push(doc(DocAction::PlaceDate(None)));
                 }
+                ui.separator();
                 let label = if stamps.is_empty() { "Crea un timbro…" } else { "Crea o modifica i timbri…" };
                 if menu_item(ui, true, ic::PENCIL_SIMPLE, label, "") {
                     actions.push(doc(DocAction::StampWindow(if stamps.is_empty() { None } else { Some(0) })));
@@ -520,7 +521,7 @@ impl App {
             if big_ex(ui, glyph, label, tip, open, false, false).clicked() {
                 actions.push(doc(DocAction::SaveSigned));
             }
-            if big_ex(ui, ic::SEAL_CHECK, "Firma\ndigitale", "Firma digitale PAdES con la tua firma remota Aruba (OTP), sull'ultimo PDF salvato o su un PDF che scegli. Per ultima: prima firma grafica, timbro e «Salva PDF»", true, false, false).clicked() {
+            if big_ex(ui, ic::CERTIFICATE, "Firma\ndigitale", "Firma digitale PAdES con la tua firma remota Aruba (OTP), sull'ultimo PDF salvato o su un PDF che scegli. Per ultima: prima firma grafica, timbro e «Salva PDF»", true, false, false).clicked() {
                 actions.push(Action::Firma(super::firmadig_ui::FirmaAction::Open));
             }
             if big_ex(ui, ic::PRINTER, "Stampa", "Stampa il documento con quello che hai scritto, firma e timbri compresi (Cmd+P)", open, false, false).clicked() {

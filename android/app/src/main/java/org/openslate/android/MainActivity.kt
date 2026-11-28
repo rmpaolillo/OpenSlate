@@ -115,6 +115,8 @@ import uniffi.openslate_mobile.stampNaturalRect
 import uniffi.openslate_mobile.stampRefit
 import uniffi.openslate_mobile.stampReseed
 import uniffi.openslate_mobile.stampJitter
+import uniffi.openslate_mobile.stampDatePlace
+import uniffi.openslate_mobile.stampNew
 import uniffi.openslate_mobile.stampKeepEdits
 import uniffi.openslate_mobile.stampSave
 import uniffi.openslate_mobile.paperHasRows
@@ -1085,7 +1087,7 @@ class MainActivity : ComponentActivity(), LinkListener {
                         }
                         Box {
                             var stampMenu by remember { mutableStateOf(false) }
-                            IconButton(onClick = { if (stamps.isEmpty()) openStampDialog(null) else stampMenu = true }, enabled = sealJob == null) {
+                            IconButton(onClick = { stampMenu = true }, enabled = sealJob == null) {
                                 Icon(Icons.Filled.Approval, stringResource(R.string.stamp))
                             }
                             DropdownMenu(stampMenu, { stampMenu = false }) {
@@ -1093,9 +1095,12 @@ class MainActivity : ComponentActivity(), LinkListener {
                                     DropdownMenuItem(text = { Text(st.name.ifBlank { st.spec.company.name }) }, leadingIcon = { Icon(Icons.Filled.Approval, null) },
                                         onClick = { stampMenu = false; startSeal(i) })
                                 }
+                                // «data e luogo»: un piccolo timbro a sé, con la città e l'inchiostro del primo timbro
+                                DropdownMenuItem(text = { Text(stringResource(R.string.stamp_date)) }, leadingIcon = { Icon(Icons.Filled.Event, null) },
+                                    onClick = { stampMenu = false; startDate(0) })
                                 HorizontalDivider()
-                                DropdownMenuItem(text = { Text(stringResource(R.string.stamp_edit)) }, leadingIcon = { Icon(Icons.Filled.Edit, null) },
-                                    onClick = { stampMenu = false; openStampDialog(0) })
+                                DropdownMenuItem(text = { Text(stringResource(if (stamps.isEmpty()) R.string.stamp_create else R.string.stamp_edit)) }, leadingIcon = { Icon(Icons.Filled.Edit, null) },
+                                    onClick = { stampMenu = false; openStampDialog(if (stamps.isEmpty()) null else 0) })
                             }
                         }
                         // salva e condividi il firmato: un pulsante solo, per stare nella barra
@@ -1258,7 +1263,11 @@ class MainActivity : ComponentActivity(), LinkListener {
         val d = doc ?: run { proposed.clear(); return }
         val page = p.page.toInt()
         if (d.index != page) goPage(page - d.index)
-        if (p.seal) {
+        if (p.dated) {
+            val spec = stampJitter(stampDatePlace(stamps.getOrNull(p.stamp.toInt())?.spec ?: stampNew().spec))
+            sigJob = null
+            sealJob = SealJob(spec, null, p.rect, spec.style)
+        } else if (p.seal) {
             val st = stamps.getOrNull(p.stamp.toInt()) ?: return nextProposed()
             // ogni timbrata un po' diversa, come col tampone vero
             val spec = stampJitter(st.spec)
@@ -1270,7 +1279,7 @@ class MainActivity : ComponentActivity(), LinkListener {
             sigLookNow = sigLook(filesDir.path)
             sigJob = SigJob(p.rect, bmp)
         }
-        toastLong(getString(if (p.seal) R.string.stamp_proposed else R.string.sig_proposed, p.label))
+        toastLong(getString(if (p.dated) R.string.date_proposed else if (p.seal) R.string.stamp_proposed else R.string.sig_proposed, p.label))
     }
 
     @Composable
@@ -1370,6 +1379,12 @@ class MainActivity : ComponentActivity(), LinkListener {
         sealJob = SealJob(spec, i, stampNaturalRect(spec, view(), 0.3f, 0.84f), spec.style)
     }
 
+    /** Posa «data e luogo» (città e inchiostro del timbro n. `i`, o solo la data). */
+    private fun startDate(i: Int) {
+        val spec = stampJitter(stampDatePlace(stamps.getOrNull(i)?.spec ?: stampNew().spec))
+        sealJob = SealJob(spec, null, stampNaturalRect(spec, view(), 0.3f, 0.84f), spec.style)
+    }
+
     private fun sealEdit(spec: StampSpec) {
         val j = sealJob ?: return
         sealJob = j.copy(spec = spec, rect = stampRefit(j.spec, spec, view(), j.rect))
@@ -1411,9 +1426,17 @@ class MainActivity : ComponentActivity(), LinkListener {
         }
         Surface(tonalElevation = 2.dp) {
             Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
-                Text(stringResource(R.string.stamp_place_title), Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.titleSmall)
+                val dated = j.spec.text.isNotBlank()
+                Text(stringResource(if (dated) R.string.stamp_date else R.string.stamp_place_title), Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.titleSmall)
                 Text(stringResource(R.string.stamp_place_hint), Modifier.padding(horizontal = 12.dp, vertical = 2.dp), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // «data e luogo»: il testo si cambia qui (città e data)
+                if (dated) {
+                    var text by remember(j.spec.style.seed) { mutableStateOf(j.spec.text) }
+                    OutlinedTextField(text, { t -> text = t; if (t.isNotBlank()) sealEdit(j.spec.copy(text = t)) },
+                        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), singleLine = true,
+                        label = { Text(stringResource(R.string.stamp_date)) })
+                }
                 // colore, cornice e realismo solo a richiesta, e al più per un pezzo di schermo
                 if (sealLook) {
                     Column(Modifier.heightIn(max = 220.dp).verticalScroll(androidx.compose.foundation.rememberScrollState())) {

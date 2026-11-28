@@ -36,6 +36,13 @@ pub fn stamp_new() -> SavedStamp {
     SavedStamp { name: String::new(), spec }
 }
 
+/// Il timbro «data e luogo» con la città e l'inchiostro di `base` e la data
+/// di oggi («Barletta, 28/11/2026»; solo la data senza città).
+#[uniffi::export]
+pub fn stamp_date_place(base: StampSpec) -> StampSpec {
+    stamp::date_place_today(&base)
+}
+
 /// Grana nuova (e il lato scarico da un'altra parte).
 #[uniffi::export]
 pub fn stamp_reseed(spec: StampSpec) -> StampSpec {

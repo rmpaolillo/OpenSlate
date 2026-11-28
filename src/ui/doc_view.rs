@@ -146,6 +146,8 @@ pub(super) enum DocAction {
     CancelStamp,
     /// Posa il timbro n. dell'elenco.
     PlaceSeal(usize),
+    /// Posa «data e luogo» (città e inchiostro del timbro n., o solo la data).
+    PlaceDate(Option<usize>),
     /// Regola il timbro che si sta posando.
     Seal(super::timbro_ui::SealEdit),
     /// Colore (Some(None) = quello originale) o intensità della firma che si sta posando.
@@ -354,7 +356,7 @@ impl App {
         let (dw, dh) = page.pdf.display_size();
         let page_rect = crate::document::fit_rect(dw, dh, g.w, g.h);
         let mut seal_rect = None;
-        if p.spot.kind != What::Firma {
+        if p.sign && p.spot.kind != What::Firma {
             let Some(i) = p.stamp.filter(|&i| i < self.stampui.list.len()) else {
                 self.status = "⚠ Il timbro proposto dalla chat non c'è più.".into();
                 return;
@@ -366,7 +368,7 @@ impl App {
             seal_rect = Some(r);
             self.docui.proposed.push_back((p.spot.page, Stamp { what: Placing::Seal { spec, saved: Some(i), start }, rect: r, drag: None }));
         }
-        if p.spot.kind != What::Timbro {
+        if p.sign && p.spot.kind != What::Timbro {
             let Some(sig) = self.docui.signature.clone() else {
                 self.status = "Prima registra la firma («Registra firma»).".into();
                 return;
@@ -376,6 +378,15 @@ impl App {
                 r = signspot::over_stamp(sr, r, page_rect);
             }
             self.docui.proposed.push_back((p.spot.page, Stamp { what: Placing::Sig(sig), rect: r, drag: None }));
+        }
+        if let Some(ds) = &p.date {
+            // «data e luogo» con la città e l'inchiostro del timbro (o solo la data)
+            let base = p.stamp.and_then(|i| self.stampui.list.get(i)).or(self.stampui.list.first()).map(|t| t.spec.clone()).unwrap_or_default();
+            let mut spec = crate::stamp::date_place_today(&base);
+            spec.style = crate::stamp::jitter(&spec.style);
+            let start = spec.style.clone();
+            let r = signspot::place(ds, page_rect, crate::stamp::natural_rect(&spec, &g, 0.5, 0.5), 0.4);
+            self.docui.proposed.push_back((ds.page, Stamp { what: Placing::Seal { spec, saved: None, start }, rect: r, drag: None }));
         }
         if self.docui.stamp.is_none() {
             self.next_proposed();
@@ -388,8 +399,9 @@ impl App {
         if self.docui.doc.as_ref().is_some_and(|d| d.current != page) {
             self.show_page(page);
         }
-        let what = match st.what {
+        let what = match &st.what {
             Placing::Sig(_) => "la firma",
+            Placing::Seal { spec, .. } if spec.is_dated() => "data e luogo",
             Placing::Seal { .. } => "il timbro",
         };
         let more = match self.docui.proposed.len() {
@@ -841,6 +853,16 @@ impl App {
                 }
                 self.docui.stamp = Some(Stamp { what: Placing::Seal { spec, saved: Some(i), start }, rect: r, drag: None });
                 self.status = "Trascina il timbro dove serve, rotella o angolo per la grandezza; regola colore, grana e inclinazione nella barra, poi Invio.".into();
+            }
+            DocAction::PlaceDate(i) => {
+                let base = i.and_then(|i| self.stampui.list.get(i)).or(self.stampui.list.first()).map(|t| t.spec.clone()).unwrap_or_default();
+                let mut spec = crate::stamp::date_place_today(&base);
+                spec.style = crate::stamp::jitter(&spec.style);
+                let start = spec.style.clone();
+                let g = self.hub.lock().geom();
+                let r = crate::stamp::natural_rect(&spec, &g, 0.3, 0.84);
+                self.docui.stamp = Some(Stamp { what: Placing::Seal { spec, saved: None, start }, rect: r, drag: None });
+                self.status = "Trascina data e luogo dove servono; il testo si cambia nella barra (Data e luogo), poi Invio.".into();
             }
             DocAction::Seal(e) => {
                 let g = self.hub.lock().geom();

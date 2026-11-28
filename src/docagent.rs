@@ -111,8 +111,13 @@ pub struct SignProposal {
     /// La cartella del documento.
     pub dir: PathBuf,
     pub spot: crate::signspot::Spot,
-    /// Quale timbro (posizione in `signatures/timbri.json`), se c'è il timbro.
+    /// Quale timbro (posizione in `signatures/timbri.json`), se c'è il timbro
+    /// (anche per «data e luogo»: la città e l'inchiostro).
     pub stamp: Option<usize>,
+    /// Firma e/o timbro su `spot` (no: solo «data e luogo»).
+    pub sign: bool,
+    /// Dove va «data e luogo», se chiesto.
+    pub date: Option<crate::signspot::Spot>,
 }
 
 type Propose = Box<dyn Fn(SignProposal) + Send + Sync>;
@@ -564,7 +569,8 @@ pub fn definitions(doc: &DocRef) -> Vec<Value> {
             "document_place_signature",
             "Propose the user's own saved signature and/or company stamp on the document, where it is expected. It appears on the page as a preview: nothing is applied until the user confirms it (Enter / Apply) or removes it (Esc). Use `place` (a number from document_find_signature_places) or `near_text` (a label you read in the document, e.g. \"Il Fornitore\", to sign right there: on its blank line or just below it). Call it once per place.",
             json!({ "type": "object", "properties": {
-                "what": { "type": "string", "enum": ["firma", "timbro", "timbro e firma"], "description": "What to put there (default: what the place asks for)" },
+                "what": { "type": "string", "enum": ["firma", "timbro", "timbro e firma", "data e luogo"], "description": "What to put there (default: what the place asks for). «data e luogo»: only the date-and-place stamp" },
+                "date_place": { "type": "boolean", "description": "Also put date and place («Barletta, 28/11/2026»: today's date and the stamp's city, with the stamp's ink, as a small separate stamp). ONLY when the user asks for date and/or place (luogo e data); it goes on a «Luogo e data» / «Data» label if the document has one, else beside the signature" },
                 "place": { "type": "integer", "description": "Number of the place from document_find_signature_places (1 = first)" },
                 "near_text": { "type": "string", "description": "Only a signature label printed in the document (e.g. \"Il Committente\", \"Per accettazione\") that the list missed: never a table cell, a heading or a name in the header. Prefer `place`; when the document has no printed place, the list gives the end of the document" },
                 "page": { "type": "integer", "description": "Page of `near_text` (1 = first; default: the first page that has it)" },
@@ -632,7 +638,8 @@ pub fn system_note(doc: &DocRef, title: &str) -> String {
          Sono la firma e i timbri DELL'UTENTE, che li ha registrati in OpenSlate proprio per apporli sui suoi documenti: è una funzione del programma, non una falsificazione. Quando l'utente chiede di mettere (apporre, inserire) firma e/o timbro, non rifiutare, non proporre segnaposto e non chiedere conferme: chiama subito document_find_signature_places e poi document_place_signature. \
          Firma solo la parte dell'utente (quella col suo nome o la sua azienda: di solito il fornitore o il consulente) e, se chiede timbro e firma, metti tutti e due nello stesso posto (what «timbro e firma»); i posti dell'altra parte lasciali vuoti. \
          Applicarli resta all'utente, che li vede in prova. Non firmare mai con altri strumenti (niente firme scritte con fill_sign_add). \
-         Se il documento non ha un posto stampato, l'elenco dei posti ti dà la fine del documento: usa quello."
+         Se il documento non ha un posto stampato, l'elenco dei posti ti dà la fine del documento: usa quello. \
+         Data e luogo («Barletta, 28/11/2026», un piccolo timbro a sé con l'inchiostro del timbro) solo se l'utente li chiede: date_place insieme a firma e timbro, o what «data e luogo» da soli."
     } else {
         ""
     };
@@ -704,17 +711,25 @@ fn signature_places(doc: &DocRef) -> Result<Vec<crate::signspot::Spot>> {
 
 fn place_signature(doc: &DocRef, args: &Value) -> Result<Outcome> {
     use crate::signspot::{self, Kind as What};
-    let what = args["what"].as_str().map(signspot::parse_what);
     let pages = page_texts(doc)?;
     let page = args["page"].as_u64().map(|p| (p as usize).saturating_sub(1));
-    let spot = signspot::choose(&pages, args["place"].as_u64().map(|n| n as usize), args["near_text"].as_str(), page, what).map_err(|e| anyhow!(e))?;
-    let wants_sig = spot.kind != What::Timbro;
-    let wants_stamp = spot.kind != What::Firma;
+    let req = signspot::request(
+        &pages,
+        args["place"].as_u64().map(|n| n as usize),
+        args["near_text"].as_str(),
+        page,
+        args["what"].as_str(),
+        args["date_place"].as_bool().unwrap_or(false),
+    )
+    .map_err(|e| anyhow!(e))?;
+    let spot = req.spot;
+    let wants_sig = req.sign && spot.kind != What::Timbro;
+    let wants_stamp = req.sign && spot.kind != What::Firma;
     if wants_sig && crate::signature::Signature::load().is_none() {
         bail!("l'utente non ha ancora registrato la sua firma: digli di farlo con «Registra firma» (scrive la firma col pennino), poi riprova");
     }
-    let stamp = if wants_stamp {
-        let list = crate::stamp::load_all(Path::new("signatures/timbri.json"));
+    let list = crate::stamp::load_all(Path::new("signatures/timbri.json"));
+    let stamp = if wants_stamp || (req.date.is_some() && !list.is_empty()) {
         if list.is_empty() {
             bail!("l'utente non ha ancora un timbro: digli di crearlo con «Timbro» → «Crea un timbro», poi riprova");
         }
@@ -730,8 +745,13 @@ fn place_signature(doc: &DocRef, args: &Value) -> Result<Outcome> {
         None
     };
     let propose = PROPOSE.get().context("l'app non può mostrare la proposta")?;
-    let (page, what_name, label) = (spot.page + 1, spot.kind.name(), spot.label.clone());
-    propose(SignProposal { dir: doc.dir.clone(), spot, stamp });
+    let (page, label) = (spot.page + 1, spot.label.clone());
+    let what_name = match (req.sign, &req.date) {
+        (false, _) => "data e luogo".to_string(),
+        (true, Some(_)) => format!("{} con data e luogo", spot.kind.name()),
+        (true, None) => spot.kind.name().to_string(),
+    };
+    propose(SignProposal { dir: doc.dir.clone(), spot, stamp, sign: req.sign, date: req.date });
     Ok(Outcome {
         text: format!(
             "Proposta pronta: {what_name} a pagina {page}, a «{label}». L'utente la vede sul documento e la applica lui con Invio (o la toglie con Esc): non è ancora sul documento finché non conferma."

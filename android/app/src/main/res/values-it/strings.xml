@@ -294,4 +294,7 @@
     <string name="note_edit">Modifica</string>
     <string name="stamp_look">Aspetto</string>
     <string name="ai_fallback">Ha trascritto %1$s perché prima non ha risposto %2$s. Il ripiego può leggere peggio formule e scrittura: se serve, ripeti «Trascrivi».</string>
+    <string name="stamp_date">Data e luogo</string>
+    <string name="date_proposed">La chat propone data e luogo a «%1$s»: spostali se serve, poi Applica (Annulla li salta).</string>
+    <string name="stamp_create">Crea un timbro…</string>
 </resources>

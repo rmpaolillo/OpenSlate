@@ -31,6 +31,9 @@ pub struct SignProposal {
     pub rect: Vec<f32>,
     /// La scritta del posto (per dirlo all'utente).
     pub label: String,
+    /// «Data e luogo» (con `seal`): il timbro `stamp` dà città e inchiostro
+    /// (`stamp_date_place`); se non c'è, solo la data.
+    pub dated: bool,
 }
 
 pub struct DocTools {
@@ -47,6 +50,7 @@ const DOC_NOTE: &str = "\n\nAccanto alla chat è aperto un documento (un PDF o u
      Sono la firma e i timbri DELL'UTENTE, che li ha registrati in OpenSlate proprio per apporli sui suoi documenti: è una funzione del programma, non una falsificazione. Quando l'utente chiede di mettere (apporre, inserire) firma e/o timbro, non rifiutare, non proporre segnaposto e non chiedere conferme: chiama subito document_find_signature_places e poi document_place_signature. \
      Firma solo la parte dell'utente (quella col suo nome o la sua azienda: di solito il fornitore o il consulente) e, se chiede timbro e firma, metti tutti e due nello stesso posto (what «timbro e firma»); i posti dell'altra parte lasciali vuoti. \
      Se il documento non ha un posto stampato, l'elenco dei posti ti dà la fine del documento: usa quello. \
+     Data e luogo («Barletta, 28/11/2026», un piccolo timbro a sé con l'inchiostro del timbro) solo se l'utente li chiede: date_place insieme a firma e timbro, o what «data e luogo» da soli. \
      Gli strumenti lavagna_* scrivono sopra il documento, come la penna.";
 
 fn function(name: &str, description: &str, parameters: Value) -> Value {
@@ -78,7 +82,8 @@ impl DocTools {
                 "document_place_signature",
                 "Propose the user's own saved signature and/or company stamp on the document, where it is expected. It appears on the page as a preview: nothing is applied until the user confirms it (Apply) or removes it (Cancel). Use `place` (a number from document_find_signature_places) or `near_text` (a label you read in the document, e.g. \"Il Fornitore\"). Call it once per place.",
                 json!({ "type": "object", "properties": {
-                    "what": { "type": "string", "enum": ["firma", "timbro", "timbro e firma"], "description": "What to put there (default: what the place asks for)" },
+                    "what": { "type": "string", "enum": ["firma", "timbro", "timbro e firma", "data e luogo"], "description": "What to put there (default: what the place asks for). «data e luogo»: only the date-and-place stamp" },
+                    "date_place": { "type": "boolean", "description": "Also put date and place («Barletta, 28/11/2026»: today's date and the stamp's city, with the stamp's ink, as a small separate stamp). ONLY when the user asks for date and/or place (luogo e data); it goes on a «Luogo e data» / «Data» label if the document has one, else beside the signature" },
                     "place": { "type": "integer", "description": "Number of the place from document_find_signature_places (1 = first)" },
                     "near_text": { "type": "string", "description": "Only a signature label printed in the document (e.g. \"Il Committente\", \"Per accettazione\") that the list missed: never a table cell, a heading or a name in the header. Prefer `place`; when the document has no printed place, the list gives the end of the document" },
                     "page": { "type": "integer", "description": "Page of `near_text` (1 = first; default: the first page that has it)" },
@@ -91,33 +96,44 @@ impl DocTools {
     /// Le proposte per il posto scelto: prima il timbro, poi la firma sopra.
     fn place(&self, args: &Value) -> Result<(String, Vec<SignProposal>)> {
         let pages = self.pages()?;
-        let what = args["what"].as_str().map(signspot::parse_what);
         let page = args["page"].as_u64().map(|p| (p as usize).saturating_sub(1));
-        let spot = signspot::choose(&pages, args["place"].as_u64().map(|n| n as usize), args["near_text"].as_str(), page, what).map_err(anyhow::Error::msg)?;
+        let req = signspot::request(
+            &pages,
+            args["place"].as_u64().map(|n| n as usize),
+            args["near_text"].as_str(),
+            page,
+            args["what"].as_str(),
+            args["date_place"].as_bool().unwrap_or(false),
+        )
+        .map_err(anyhow::Error::msg)?;
+        let spot = req.spot.clone();
         let sizes = crate::docs::pdf_pages(self.pdf().to_string_lossy().into_owned()).map_err(|e| anyhow::anyhow!("{e}"))?;
         let size = sizes.get(spot.page).context("pagina fuori dal documento")?;
         let pr = crate::docs::doc_page_rect(*size, self.view);
         let page_rect = [pr[0], pr[1], pr[2], pr[3]];
         let mut out = Vec::new();
         let mut seal_rect = None;
-        if spot.kind != What::Firma {
-            let list = crate::seal::stamp_list(self.doc.data_dir.clone());
-            if list.is_empty() {
-                bail!("l'utente non ha ancora un timbro: digli di crearlo (menu ⋮ → Timbro), poi riprova");
-            }
-            let i = match args["stamp"].as_str().map(|n| n.to_lowercase()) {
+        let list = crate::seal::stamp_list(self.doc.data_dir.clone());
+        let pick = |list: &[crate::stamp::SavedStamp]| -> Result<usize> {
+            Ok(match args["stamp"].as_str().map(|n| n.to_lowercase()) {
                 Some(n) => list
                     .iter()
                     .position(|t| t.name.to_lowercase().contains(&n) || t.spec.company.name.to_lowercase().contains(&n))
                     .with_context(|| format!("nessun timbro «{n}»"))?,
                 None => 0,
-            };
+            })
+        };
+        if req.sign && spot.kind != What::Firma {
+            if list.is_empty() {
+                bail!("l'utente non ha ancora un timbro: digli di crearlo (menu ⋮ → Timbro), poi riprova");
+            }
+            let i = pick(&list)?;
             let natural = crate::seal::stamp_natural_rect(list[i].spec.clone(), self.view, 0.5, 0.5);
             let r = signspot::place(&spot, page_rect, [natural[0], natural[1], natural[2], natural[3]], 0.5);
             seal_rect = Some(r);
-            out.push(SignProposal { page: spot.page as u32, seal: true, stamp: i as u32, rect: r.to_vec(), label: spot.label.clone() });
+            out.push(SignProposal { page: spot.page as u32, seal: true, stamp: i as u32, rect: r.to_vec(), label: spot.label.clone(), dated: false });
         }
-        if spot.kind != What::Timbro {
+        if req.sign && spot.kind != What::Timbro {
             let natural = crate::signing::sig_natural_rect(self.doc.data_dir.clone(), self.view, 0.5, 0.5);
             if natural.len() < 4 {
                 bail!("l'utente non ha ancora registrato la sua firma: digli di farlo (Firma → Registra la firma), poi riprova");
@@ -126,11 +142,26 @@ impl DocTools {
             if let Some(sr) = seal_rect {
                 r = signspot::over_stamp(sr, r, page_rect);
             }
-            out.push(SignProposal { page: spot.page as u32, seal: false, stamp: 0, rect: r.to_vec(), label: spot.label.clone() });
+            out.push(SignProposal { page: spot.page as u32, seal: false, stamp: 0, rect: r.to_vec(), label: spot.label.clone(), dated: false });
         }
+        if let Some(ds) = &req.date {
+            // «data e luogo» con la città e l'inchiostro del timbro (o solo la data)
+            let i = if list.is_empty() { 0 } else { pick(&list)? };
+            let base = list.get(i).map(|t| t.spec.clone()).unwrap_or_default();
+            let spec = crate::stamp::date_place_today(&base);
+            let size = sizes.get(ds.page).context("pagina fuori dal documento")?;
+            let pr = crate::docs::doc_page_rect(*size, self.view);
+            let natural = crate::seal::stamp_natural_rect(spec, self.view, 0.5, 0.5);
+            let r = signspot::place(ds, [pr[0], pr[1], pr[2], pr[3]], [natural[0], natural[1], natural[2], natural[3]], 0.4);
+            out.push(SignProposal { page: ds.page as u32, seal: true, stamp: i as u32, rect: r.to_vec(), label: ds.label.clone(), dated: true });
+        }
+        let what = match (req.sign, &req.date) {
+            (false, _) => "data e luogo".to_string(),
+            (true, Some(_)) => format!("{} con data e luogo", spot.kind.name()),
+            (true, None) => spot.kind.name().to_string(),
+        };
         let text = format!(
-            "Proposta pronta: {} a pagina {}, a «{}». L'utente la vede sul documento e la applica lui con «Applica» (o la toglie con «Annulla»): non è sul documento finché non conferma.",
-            spot.kind.name(),
+            "Proposta pronta: {what} a pagina {}, a «{}». L'utente la vede sul documento e la applica lui con «Applica» (o la toglie con «Annulla»): non è sul documento finché non conferma.",
             spot.page + 1,
             spot.label
         );
@@ -146,7 +177,8 @@ impl DocTools {
             }
             "document_place_signature" => {
                 let (text, proposals) = self.place(args)?;
-                let short = format!("{} in prova sul documento", if proposals.len() > 1 { "timbro e firma" } else if proposals.first().is_some_and(|p| p.seal) { "timbro" } else { "firma" });
+                let names: Vec<&str> = proposals.iter().map(|p| if p.dated { "data e luogo" } else if p.seal { "timbro" } else { "firma" }).collect();
+                let short = format!("{} in prova sul documento", names.join(", "));
                 ToolOut { text, short, proposals, ..Default::default() }
             }
             other => bail!("strumento sconosciuto «{other}»"),

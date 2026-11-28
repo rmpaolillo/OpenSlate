@@ -17,7 +17,7 @@ use std::collections::HashMap;
 pub(super) const FILE: &str = "signatures/timbri.json";
 
 /// Una regolazione del timbro posato.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub(super) enum SealEdit {
     Color(InkColor),
     Frame(Frame),
@@ -29,12 +29,19 @@ pub(super) enum SealEdit {
     Fixed(bool),
     /// Grana nuova (e il lato scarico da un'altra parte).
     Reseed,
+    /// Il testo di «data e luogo».
+    Text(String),
 }
 
 impl SealEdit {
     pub(super) fn apply(self, spec: &mut StampSpec) {
+        if let SealEdit::Text(t) = self {
+            spec.text = t;
+            return;
+        }
         let st = &mut spec.style;
         match self {
+            SealEdit::Text(_) => {}
             SealEdit::Color(c) => st.color = c,
             SealEdit::Frame(f) => st.frame = f,
             SealEdit::Opacity(v) => st.opacity = v.clamp(0.3, 1.0),
@@ -336,6 +343,22 @@ impl App {
     pub(super) fn ribbon_seal(&self, ui: &mut egui::Ui, spec: &StampSpec, actions: &mut Vec<Action>) {
         let edit = |e: SealEdit| Action::Doc(DocAction::Seal(e));
         let st = &spec.style;
+        if spec.is_dated() {
+            group(ui, "Data e luogo", |ui| {
+                column(ui, |ui| {
+                    let mut t = spec.text.clone();
+                    let r = ui.add(egui::TextEdit::singleline(&mut t).desired_width(190.0)).on_hover_text(tr("Città e data come vanno sul foglio: cambiale se serve"));
+                    if r.changed() && !t.trim().is_empty() {
+                        actions.push(edit(SealEdit::Text(t)));
+                    }
+                    if small(ui, ic::CALENDAR, "Oggi", "Rimette la data di oggi").clicked() {
+                        let city = spec.company.city.trim();
+                        let d = chrono::Local::now().format("%d/%m/%Y").to_string();
+                        actions.push(edit(SealEdit::Text(if city.is_empty() { d } else { format!("{city}, {d}") })));
+                    }
+                });
+            });
+        }
         group(ui, "Colore", |ui| {
             column(ui, |ui| {
                 ui.add_space(2.0);

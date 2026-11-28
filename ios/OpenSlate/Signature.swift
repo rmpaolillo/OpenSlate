@@ -90,7 +90,13 @@ extension AppModel {
         guard let d = doc else { proposed.removeAll(); return }
         let page = Int(p.page)
         if d.index != page { goPage(page - d.index) }
-        if p.seal {
+        if p.dated {
+            let base = stamps.indices.contains(Int(p.stamp)) ? stamps[Int(p.stamp)].spec : stampNew().spec
+            let spec = stampJitter(spec: stampDatePlace(base: base))
+            sigJob = nil
+            sealJob = SealJob(spec: spec, saved: nil, rect: p.rect, start: spec.style)
+            show(L("La chat propone data e luogo a «\(p.label)»: spostali se serve, poi «Applica».", "The chat proposes date and place at «\(p.label)»: move them if needed, then «Apply»."))
+        } else if p.seal {
             guard stamps.indices.contains(Int(p.stamp)) else { return nextProposed() }
             // ogni timbrata un po' diversa, come col tampone vero
             let spec = stampJitter(spec: stamps[Int(p.stamp)].spec)

@@ -150,6 +150,15 @@ extension AppModel {
         sealJob = SealJob(spec: spec, saved: i, rect: stampNaturalRect(spec: spec, view: view, cu: 0.3, cv: 0.84), start: spec.style)
     }
 
+    /// Posa «data e luogo» (città e inchiostro del timbro n. `i`, o solo la data).
+    func startDate(_ i: Int) {
+        let base = stamps.indices.contains(i) ? stamps[i].spec : stampNew().spec
+        let spec = stampJitter(spec: stampDatePlace(base: base))
+        eraserOn = false
+        applyTools()
+        sealJob = SealJob(spec: spec, saved: nil, rect: stampNaturalRect(spec: spec, view: view, cu: 0.3, cv: 0.84), start: spec.style)
+    }
+
     func sealEdit(_ spec: StampSpec) {
         guard let j = sealJob else { return }
         sealJob = SealJob(spec: spec, saved: j.saved, rect: stampRefit(before: j.spec, after: spec, view: view, rect: j.rect), start: j.start)
@@ -267,10 +276,18 @@ struct SealBar: View {
         if let j = app.sealJob {
             let st = j.spec.style
             VStack(alignment: .leading, spacing: 4) {
-                Text(L("Timbro aziendale", "Company stamp")).font(.subheadline.bold())
+                let dated = !j.spec.text.trimmingCharacters(in: .whitespaces).isEmpty
+                Text(dated ? L("Data e luogo", "Date and place") : L("Timbro aziendale", "Company stamp")).font(.subheadline.bold())
                 Text(L("Tocca o trascina col dito dove vuoi il timbro, tira l'angolo per la grandezza, poi Applica.",
                        "Tap or drag where you want the stamp, pull the corner to resize it, then Apply."))
                     .font(.caption).foregroundStyle(.secondary)
+                // «data e luogo»: il testo si cambia qui (città e data)
+                if dated {
+                    TextField(L("Data e luogo", "Date and place"), text: Binding(
+                        get: { j.spec.text },
+                        set: { t in if !t.trimmingCharacters(in: .whitespaces).isEmpty { var s = j.spec; s.text = t; app.sealEdit(s) } }))
+                        .textFieldStyle(.roundedBorder)
+                }
                 if look {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 4) {

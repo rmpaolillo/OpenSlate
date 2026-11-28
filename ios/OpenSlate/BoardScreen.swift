@@ -592,6 +592,7 @@ struct BoardScreen: View {
                             ForEach(Array(app.stamps.enumerated()), id: \.offset) { i, s in
                                 Button { app.startSeal(i) } label: { Label(s.name.isEmpty ? s.spec.company.name : s.name, systemImage: "seal") }
                             }
+                            Button { app.startDate(0) } label: { Label(L("Data e luogo", "Date and place"), systemImage: "calendar") }
                             Divider()
                             Button { editingStamps = DocBar.EditStamps(sel: app.stamps.isEmpty ? nil : 0) } label: {
                                 Label(app.stamps.isEmpty ? L("Crea un timbro…", "Create a stamp…") : L("Crea o modifica i timbri…", "Create or edit stamps…"), systemImage: "pencil")
@@ -650,6 +651,7 @@ struct DocBar: View {
                 ForEach(Array(app.stamps.enumerated()), id: \.offset) { i, s in
                     Button { app.startSeal(i) } label: { Label(s.name.isEmpty ? s.spec.company.name : s.name, systemImage: "seal") }
                 }
+                Button { app.startDate(0) } label: { Label(L("Data e luogo", "Date and place"), systemImage: "calendar") }
                 Divider()
                 Button { editing = EditStamps(sel: app.stamps.isEmpty ? nil : 0) } label: {
                     Label(app.stamps.isEmpty ? L("Crea un timbro…", "Create a stamp…") : L("Crea o modifica i timbri…", "Create or edit stamps…"), systemImage: "pencil")

@@ -117,6 +117,9 @@ impl Default for StampStyle {
 pub struct StampSpec {
     pub company: Company,
     pub style: StampStyle,
+    /// Data e luogo («Barletta, 28/11/2026»): se c'è, il timbro è solo questa
+    /// riga, come un datario, con l'inchiostro del timbro (vedi [`date_place`]).
+    pub text: String,
 }
 
 /// Un timbro salvato con il suo nome.
@@ -139,8 +142,16 @@ impl StampSpec {
         h
     }
 
+    /// Un timbro «data e luogo» (una riga sola).
+    pub fn is_dated(&self) -> bool {
+        !self.text.trim().is_empty()
+    }
+
     /// Le righe del timbro (testo, grassetto); le vuote si saltano.
     pub fn lines(&self) -> Vec<(String, bool)> {
+        if self.is_dated() {
+            return vec![(self.text.trim().to_string(), false)];
+        }
         let c = &self.company;
         let t = |s: &str| s.trim().to_string();
         let mut out = Vec::new();
@@ -182,6 +193,8 @@ impl StampSpec {
 // Impaginazione (in cm)
 
 const EM_NAME: f32 = 0.46;
+/// Data e luogo: tra le righe del timbro e la ragione sociale.
+const EM_DATE: f32 = 0.38;
 const EM_TEXT: f32 = 0.31;
 const LEAD: f32 = 1.22;
 
@@ -228,7 +241,13 @@ fn layout(spec: &StampSpec, f: &Fonts) -> Layout {
     let sized: Vec<(String, bool, f32, f32)> = lines
         .into_iter()
         .map(|(t, b)| {
-            let em = if b { EM_NAME } else { EM_TEXT };
+            let em = if spec.is_dated() {
+                EM_DATE
+            } else if b {
+                EM_NAME
+            } else {
+                EM_TEXT
+            };
             let w = line_width(if b { &f.bold } else { &f.text }, &t, em);
             (t, b, em, w)
         })
@@ -613,6 +632,25 @@ pub fn natural_rect(spec: &StampSpec, g: &PageGeom, cu: f32, cv: f32) -> [f32; 4
 // ---------------------------------------------------------------------------
 // Timbri salvati
 
+/// Il timbro «data e luogo» con l'inchiostro di `base` (il timbro aziendale):
+/// «Barletta, 28/11/2026» con la città del timbro (solo la data se non c'è),
+/// senza cornice e un po' storto come messo a mano.
+pub fn date_place(base: &StampSpec, date: chrono::NaiveDate) -> StampSpec {
+    let city = base.company.city.trim();
+    let d = date.format("%d/%m/%Y").to_string();
+    let text = if city.is_empty() { d } else { format!("{city}, {d}") };
+    let mut style = base.style.clone();
+    style.frame = Frame::Plain;
+    style.seed = new_seed(style.seed);
+    style.uneven_dir = (style.seed % 360) as f32;
+    StampSpec { company: Company { city: base.company.city.clone(), ..Default::default() }, style, text }
+}
+
+/// [`date_place`] con la data di oggi.
+pub fn date_place_today(base: &StampSpec) -> StampSpec {
+    date_place(base, chrono::Local::now().date_naive())
+}
+
 pub fn load_all(path: &Path) -> Vec<SavedStamp> {
     std::fs::read_to_string(path).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default()
 }
@@ -717,7 +755,28 @@ pub(crate) mod tests {
                 pec: "".into(),
             },
             style: StampStyle::default(),
+            text: String::new(),
         }
+    }
+
+    #[test]
+    fn data_e_luogo() {
+        let d = date_place(&cordua(), chrono::NaiveDate::from_ymd_opt(2026, 11, 28).unwrap());
+        assert!(d.is_dated() && d.style.frame == Frame::Plain && d.style.color == cordua().style.color);
+        assert_eq!(d.lines(), vec![("Genova, 28/11/2026".to_string(), false)]);
+        // una riga: più bassa e più stretta del timbro aziendale
+        let (w, h) = size_cm(&d);
+        let (sw, sh) = size_cm(&cordua());
+        assert!(h < sh * 0.5 && w < sw && (2.5..6.0).contains(&w), "{w}×{h} contro {sw}×{sh}");
+        // senza città: solo la data; i timbri vecchi (senza «text») restano aziendali
+        let mut nc = cordua();
+        nc.company.city.clear();
+        assert_eq!(date_place(&nc, chrono::NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()).text, "02/01/2026");
+        let old: StampSpec = serde_json::from_str(r#"{"company":{"name":"X"}}"#).unwrap();
+        assert!(!old.is_dated());
+        // e si disegna con la grana del timbro
+        let r = render(&d, 60.0);
+        assert!(r.w > r.h * 4 && r.px.chunks_exact(4).any(|p| p[3] > 0));
     }
 
     #[test]

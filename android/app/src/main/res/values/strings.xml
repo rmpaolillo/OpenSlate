@@ -297,4 +297,7 @@
     <string name="note_edit">Edit</string>
     <string name="stamp_look">Look</string>
     <string name="ai_fallback">Transcribed by %1$s because %2$s did not answer first. The fallback may read formulas and handwriting less well: if needed, transcribe again.</string>
+    <string name="stamp_date">Date and place</string>
+    <string name="date_proposed">The chat proposes date and place at «%1$s»: move them if needed, then Apply (Cancel skips them).</string>
+    <string name="stamp_create">Create a stamp…</string>
 </resources>
