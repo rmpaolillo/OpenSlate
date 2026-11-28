@@ -1034,6 +1034,8 @@ class MainActivity : ComponentActivity(), LinkListener {
                                 enabled = !placing, onClick = { pageMenu = false; sigCaptureStart() })
                             DropdownMenuItem(text = { Text(stringResource(R.string.stamp) + "…") }, leadingIcon = { Icon(Icons.Filled.Approval, null) },
                                 enabled = !placing, onClick = { pageMenu = false; openStampDialog(if (stamps.isEmpty()) null else 0) })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.stamp_date)) }, leadingIcon = { Icon(Icons.Filled.Event, null) },
+                                enabled = !placing, onClick = { pageMenu = false; startDate(0) })
                         }
                         HorizontalDivider()
                         MenuHeader(stringResource(R.string.grp_share))
