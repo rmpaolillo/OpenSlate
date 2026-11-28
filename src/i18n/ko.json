@@ -1406,5 +1406,19 @@
  "Grigio scuro": "진회색",
  "Bordeaux": "버건디",
  "Verde scuro": "진녹색",
- "Seppia": "세피아"
+ "Seppia": "세피아",
+ "Il PDF da firmare digitalmente": "전자 서명할 PDF",
+ "Firma digitale (Aruba)": "전자 서명 (Aruba)",
+ "Firma PAdES con la tua firma remota Aruba. Ad Aruba va solo l'impronta del documento, non il file. Fallo per ultimo: dopo la firma digitale il PDF non va più modificato.": "Aruba 원격 서명으로 PAdES 서명합니다. Aruba로는 문서의 지문만 전송되며 파일은 전송되지 않습니다. 마지막에 하세요: 전자 서명 후에는 PDF를 수정하면 안 됩니다.",
+ "nessun PDF scelto": "선택한 PDF 없음",
+ "Password": "비밀번호",
+ "Codice OTP": "OTP 코드",
+ "dall'app Aruba OTP": "Aruba OTP 앱에서",
+ "Utente come nel SelfCare di Aruba: utente@dominio (se l'hai comprata su pec.it il dominio è «firma»). La password e l'OTP non vengono salvati.": "Aruba SelfCare와 같은 사용자: 사용자@도메인 (pec.it에서 구매했다면 도메인은 «firma»). 비밀번호와 OTP는 저장되지 않습니다.",
+ "{} Firmo…": "{} 서명 중…",
+ "{} Firma": "{} 서명",
+ "Firma\ndigitale": "전자\n서명",
+ "Firma digitale PAdES con la tua firma remota Aruba (OTP), sull'ultimo PDF salvato o su un PDF che scegli. Per ultima: prima firma grafica, timbro e «Salva PDF»": "Aruba 원격 서명(OTP)으로 마지막으로 저장한 PDF 또는 선택한 PDF에 PAdES 전자 서명합니다. 마지막에: 먼저 손글씨 서명, 도장, «PDF 저장»",
+ "Firma digitale: chiedo ad Aruba…": "전자 서명: Aruba에 요청 중…",
+ "Firmato digitalmente: {}": "전자 서명됨: {}"
 }

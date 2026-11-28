@@ -1406,5 +1406,19 @@
  "Grigio scuro": "深灰",
  "Bordeaux": "酒红",
  "Verde scuro": "深绿",
- "Seppia": "深褐"
+ "Seppia": "深褐",
+ "Il PDF da firmare digitalmente": "要数字签名的 PDF",
+ "Firma digitale (Aruba)": "数字签名（Aruba）",
+ "Firma PAdES con la tua firma remota Aruba. Ad Aruba va solo l'impronta del documento, non il file. Fallo per ultimo: dopo la firma digitale il PDF non va più modificato.": "使用你的 Aruba 远程签名进行 PAdES 签名。发送给 Aruba 的只是文档指纹，而不是文件。最后再做：数字签名后不应再修改 PDF。",
+ "nessun PDF scelto": "未选择 PDF",
+ "Password": "密码",
+ "Codice OTP": "OTP 验证码",
+ "dall'app Aruba OTP": "来自 Aruba OTP 应用",
+ "Utente come nel SelfCare di Aruba: utente@dominio (se l'hai comprata su pec.it il dominio è «firma»). La password e l'OTP non vengono salvati.": "用户名与 Aruba SelfCare 中相同：用户@域（在 pec.it 购买的域为 «firma»）。密码和 OTP 不会保存。",
+ "{} Firmo…": "{} 正在签名…",
+ "{} Firma": "{} 签名",
+ "Firma\ndigitale": "数字\n签名",
+ "Firma digitale PAdES con la tua firma remota Aruba (OTP), sull'ultimo PDF salvato o su un PDF che scegli. Per ultima: prima firma grafica, timbro e «Salva PDF»": "使用你的 Aruba 远程签名（OTP）对最后保存的 PDF 或你选择的 PDF 进行 PAdES 数字签名。最后再做：先手写签名、盖章并「保存 PDF」",
+ "Firma digitale: chiedo ad Aruba…": "数字签名：正在请求 Aruba…",
+ "Firmato digitalmente: {}": "已数字签名：{}"
 }

@@ -23,6 +23,7 @@ mod device;
 mod docimport;
 mod docrender;
 mod docagent;
+mod firmadigitale;
 mod docxfonts;
 mod docstore;
 mod document;

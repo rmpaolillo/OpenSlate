@@ -1406,5 +1406,19 @@
  "Grigio scuro": "Темно-сірий",
  "Bordeaux": "Бордовий",
  "Verde scuro": "Темно-зелений",
- "Seppia": "Сепія"
+ "Seppia": "Сепія",
+ "Il PDF da firmare digitalmente": "PDF для цифрового підпису",
+ "Firma digitale (Aruba)": "Цифровий підпис (Aruba)",
+ "Firma PAdES con la tua firma remota Aruba. Ad Aruba va solo l'impronta del documento, non il file. Fallo per ultimo: dopo la firma digitale il PDF non va più modificato.": "Підпис PAdES вашим віддаленим підписом Aruba. До Aruba надсилається лише відбиток документа, не файл. Робіть це останнім: після цифрового підпису PDF не можна змінювати.",
+ "nessun PDF scelto": "PDF не вибрано",
+ "Password": "Пароль",
+ "Codice OTP": "Код OTP",
+ "dall'app Aruba OTP": "з застосунку Aruba OTP",
+ "Utente come nel SelfCare di Aruba: utente@dominio (se l'hai comprata su pec.it il dominio è «firma»). La password e l'OTP non vengono salvati.": "Користувач як у SelfCare Aruba: користувач@домен (якщо купили на pec.it, домен «firma»). Пароль і OTP не зберігаються.",
+ "{} Firmo…": "{} Підписую…",
+ "{} Firma": "{} Підписати",
+ "Firma\ndigitale": "Цифровий\nпідпис",
+ "Firma digitale PAdES con la tua firma remota Aruba (OTP), sull'ultimo PDF salvato o su un PDF che scegli. Per ultima: prima firma grafica, timbro e «Salva PDF»": "Цифровий підпис PAdES вашим віддаленим підписом Aruba (OTP) на останньому збереженому PDF або вибраному PDF. Останнім: спершу рукописний підпис, печатка і «Зберегти PDF»",
+ "Firma digitale: chiedo ad Aruba…": "Цифровий підпис: звертаюся до Aruba…",
+ "Firmato digitalmente: {}": "Підписано цифровим підписом: {}"
 }

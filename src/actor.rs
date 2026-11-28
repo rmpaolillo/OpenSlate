@@ -96,6 +96,8 @@ pub enum UiEvent {
     DocChanged(std::path::PathBuf),
     /// La chat AI propone una firma o un timbro sul documento (li applica l'utente).
     SignProposal(crate::docagent::SignProposal),
+    /// La firma digitale (Aruba) è finita: il PDF firmato, o l'errore.
+    DigitalSigned(Result<std::path::PathBuf, String>),
     /// Un telefono ha finito di sincronizzarsi; `changed` = cosa è cambiato
     /// qui ("lib", "notes", "stamps"), da ricaricare.
     PhoneSynced { name: String, changed: Vec<&'static str> },

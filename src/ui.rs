@@ -13,6 +13,7 @@ mod chat_lib;
 mod chrome;
 mod doc_view;
 mod embed;
+mod firmadig_ui;
 mod allena_ui;
 mod inbella_ui;
 mod library_view;
@@ -571,6 +572,8 @@ enum Action {
     Zoom(ZoomOp),
     Lib(library_view::LibAction),
     Doc(doc_view::DocAction),
+    /// La finestra «Firma digitale».
+    Firma(firmadig_ui::FirmaAction),
 }
 
 /// Disegna una pagina il più grande possibile nel riquadro (stesse
@@ -963,6 +966,7 @@ impl App {
                 }
                 UiEvent::DocChanged(dir) => self.doc_changed_by_ai(dir),
                 UiEvent::SignProposal(p) => self.sign_proposal(p),
+                UiEvent::DigitalSigned(r) => self.on_digital_signed(r),
                 UiEvent::ChatLib(req, reply) => self.chat_lib.push((req, reply)),
                 UiEvent::PhoneSynced { name, changed } => self.phone_synced(name, changed),
                 UiEvent::PhoneLive => self.phone.live_changed(),
@@ -2172,6 +2176,7 @@ impl App {
             },
             Action::Lib(la) => self.apply_lib(la, ctx),
             Action::Doc(da) => self.apply_doc(da),
+            Action::Firma(fa) => self.apply_firma(fa),
         }
     }
 
@@ -2587,6 +2592,7 @@ impl eframe::App for App {
         self.error_window(ctx, &mut actions);
         self.quit_window(ctx);
         self.stamp_window(ctx, &mut actions);
+        self.firma_window(ctx, &mut actions);
         self.palette_ui(ctx, &mut actions);
         self.place_pages(ctx);
 

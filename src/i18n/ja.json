@@ -1406,5 +1406,19 @@
  "Grigio scuro": "ダークグレー",
  "Bordeaux": "ボルドー",
  "Verde scuro": "ダークグリーン",
- "Seppia": "セピア"
+ "Seppia": "セピア",
+ "Il PDF da firmare digitalmente": "電子署名する PDF",
+ "Firma digitale (Aruba)": "電子署名（Aruba）",
+ "Firma PAdES con la tua firma remota Aruba. Ad Aruba va solo l'impronta del documento, non il file. Fallo per ultimo: dopo la firma digitale il PDF non va più modificato.": "Aruba のリモート署名で PAdES 署名します。Aruba に送られるのは文書のハッシュだけで、ファイルは送られません。最後に行ってください：電子署名の後は PDF を変更しないでください。",
+ "nessun PDF scelto": "PDF が選ばれていません",
+ "Password": "パスワード",
+ "Codice OTP": "OTP コード",
+ "dall'app Aruba OTP": "Aruba OTP アプリから",
+ "Utente come nel SelfCare di Aruba: utente@dominio (se l'hai comprata su pec.it il dominio è «firma»). La password e l'OTP non vengono salvati.": "ユーザーは Aruba SelfCare と同じ：ユーザー@ドメイン（pec.it で購入した場合ドメインは「firma」）。パスワードと OTP は保存されません。",
+ "{} Firmo…": "{} 署名中…",
+ "{} Firma": "{} 署名",
+ "Firma\ndigitale": "電子\n署名",
+ "Firma digitale PAdES con la tua firma remota Aruba (OTP), sull'ultimo PDF salvato o su un PDF che scegli. Per ultima: prima firma grafica, timbro e «Salva PDF»": "Aruba のリモート署名（OTP）で、最後に保存した PDF または選んだ PDF に PAdES 電子署名します。最後に：先に手書き署名、印、「PDF を保存」",
+ "Firma digitale: chiedo ad Aruba…": "電子署名：Aruba に問い合わせ中…",
+ "Firmato digitalmente: {}": "電子署名しました：{}"
 }

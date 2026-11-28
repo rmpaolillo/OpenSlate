@@ -113,6 +113,11 @@ wordcraft-fonts = { git = "https://github.com/storytold/wordcraft", rev = "f83d5
 # PDF: il disegno nitido delle pagine col motore di PdfCraft (MIT OR Apache-2.0,
 # © ArtCraft Team), senza la sua interfaccia. Da GitHub, versione fissa.
 pdfcraft-render = { git = "https://github.com/storytold/pdfcraft", rev = "c34c6c5a0bd86d466f9f814c14b4cfdaa55cd7e2" }
+# Firma digitale PAdES (src/firmadigitale.rs): la busta CMS e il PDF firmato li
+# scrive PdfCraft; la firma dell'impronta la fa la firma remota di Aruba (OTP)
+pdfcraft-sign = { git = "https://github.com/storytold/pdfcraft", rev = "c34c6c5a0bd86d466f9f814c14b4cfdaa55cd7e2" }
+pdfcraft-cos = { git = "https://github.com/storytold/pdfcraft", rev = "c34c6c5a0bd86d466f9f814c14b4cfdaa55cd7e2" }
+roxmltree = "0.21"
 # Chat e appunti dentro la finestra (WebView di sistema: WKWebView su macOS)
 wry = "0.57"
 tao = "0.37"

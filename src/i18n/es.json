@@ -1406,5 +1406,19 @@
  "Grigio scuro": "Gris oscuro",
  "Bordeaux": "Burdeos",
  "Verde scuro": "Verde oscuro",
- "Seppia": "Sepia"
+ "Seppia": "Sepia",
+ "Il PDF da firmare digitalmente": "El PDF que firmar digitalmente",
+ "Firma digitale (Aruba)": "Firma digital (Aruba)",
+ "Firma PAdES con la tua firma remota Aruba. Ad Aruba va solo l'impronta del documento, non il file. Fallo per ultimo: dopo la firma digitale il PDF non va più modificato.": "Firma PAdES con tu firma remota de Aruba. A Aruba solo va la huella del documento, no el archivo. Hazlo al final: después de la firma digital el PDF ya no debe modificarse.",
+ "nessun PDF scelto": "ningún PDF elegido",
+ "Password": "Contraseña",
+ "Codice OTP": "Código OTP",
+ "dall'app Aruba OTP": "de la app Aruba OTP",
+ "Utente come nel SelfCare di Aruba: utente@dominio (se l'hai comprata su pec.it il dominio è «firma»). La password e l'OTP non vengono salvati.": "Usuario como en el SelfCare de Aruba: usuario@dominio (si la compraste en pec.it el dominio es «firma»). La contraseña y el OTP no se guardan.",
+ "{} Firmo…": "{} Firmando…",
+ "{} Firma": "{} Firmar",
+ "Firma\ndigitale": "Firma\ndigital",
+ "Firma digitale PAdES con la tua firma remota Aruba (OTP), sull'ultimo PDF salvato o su un PDF che scegli. Per ultima: prima firma grafica, timbro e «Salva PDF»": "Firma digital PAdES con tu firma remota de Aruba (OTP), en el último PDF guardado o en un PDF que elijas. Al final: primero firma manuscrita, sello y «Guardar PDF»",
+ "Firma digitale: chiedo ad Aruba…": "Firma digital: consultando a Aruba…",
+ "Firmato digitalmente: {}": "Firmado digitalmente: {}"
 }

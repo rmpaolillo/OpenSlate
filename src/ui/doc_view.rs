@@ -54,6 +54,8 @@ pub(super) struct DocUi {
     pub stamp: Option<Stamp>,
     /// Firme e timbri proposti dalla chat, dopo quello in prova: la pagina e la posa.
     pub proposed: std::collections::VecDeque<(usize, Stamp)>,
+    /// La finestra «Firma digitale», se aperta.
+    pub firma: Option<super::firmadig_ui::FirmaForm>,
     /// Registrazione della firma: tratti e sfondo da rimettere dopo.
     pub capture: Option<(Vec<Stroke>, Option<PageBg>)>,
     pub signature: Option<Signature>,
@@ -113,6 +115,7 @@ impl DocUi {
             import_rx,
             stamp: None,
             proposed: Default::default(),
+            firma: None,
             capture: None,
             signature: Signature::load(),
             last_export: None,

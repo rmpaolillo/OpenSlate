@@ -44,6 +44,9 @@ pub struct Settings {
     pub copy_crop: bool,
     /// Ultima cartella scelta per salvare ed esportare (vuoto = `exports/`).
     pub save_dir: String,
+    /// Firma digitale remota di Aruba: l'account `utente@dominio` (la
+    /// password e l'OTP non si salvano).
+    pub aruba_account: String,
     /// Lingua dell'interfaccia: `auto` (quella del sistema) o un codice
     /// (it, en, es, fr, de, uk, zh, ja, ko).
     pub ui_lang: String,
@@ -122,6 +125,7 @@ impl Default for Settings {
             sync_delete: true,
             copy_crop: true,
             save_dir: String::new(),
+            aruba_account: String::new(),
             ui_lang: "auto".into(),
             copy_size: 1600,
             thumb_size: 330.0,
@@ -223,6 +227,7 @@ impl Settings {
             "sync_delete" => self.sync_delete = b(v),
             "copy_crop" => self.copy_crop = b(v),
             "save_dir" => self.save_dir = v.trim().into(),
+            "aruba_account" => self.aruba_account = v.trim().into(),
             "ui_lang" => self.ui_lang = v.trim().into(),
             "thumb_size" => self.thumb_size = v.parse().unwrap_or(self.thumb_size),
             "copy_size" => self.copy_size = v.parse().unwrap_or(self.copy_size).clamp(256, 8000),
@@ -286,7 +291,8 @@ impl Settings {
              # stampa della lavagna: anche le righe o i quadretti del foglio\nprint_paper = {}\n\
              # cartella proposta quando si salva o si esporta (l'ultima scelta; vuoto = exports/)\nsave_dir = {}\n\
              # lingua dell'interfaccia: auto (quella del sistema), it, en, es, fr, de, uk, zh, ja, ko\nui_lang = {}\n\
-             # aggiornamenti: avvisa quando c'è una versione nuova su GitHub; versione saltata; installa da solo senza chiedere\nupdate_check = {}\nupdate_skip = {}\nupdate_install_auto = {}\n",
+             # aggiornamenti: avvisa quando c'è una versione nuova su GitHub; versione saltata; installa da solo senza chiedere\nupdate_check = {}\nupdate_skip = {}\nupdate_install_auto = {}\n\
+             # firma digitale remota di Aruba: utente@dominio (password e OTP non si salvano)\naruba_account = {}\n",
             self.rot,
             b(self.flip_x),
             b(self.flip_y),
@@ -328,6 +334,7 @@ impl Settings {
             b(self.update_check),
             self.update_skip,
             b(self.update_auto),
+            self.aruba_account,
         );
         // un file scritto a metà (crash) farebbe ripartire coi valori di serie
         if let Err(e) = crate::web::write_atomic(std::path::Path::new(FILE), text.as_bytes()) {
