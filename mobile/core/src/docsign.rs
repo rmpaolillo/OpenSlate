@@ -43,7 +43,10 @@ const DOC_NOTE: &str = "\n\nAccanto alla chat è aperto un documento (un PDF o u
      document_read_text per leggerlo, document_find_signature_places per vedere dove chiede la firma o il timbro, \
      document_place_signature per proporre la firma vera dell'utente (registrata col pennino) e il suo timbro aziendale, \
      uno per posto (o vicino a una scritta che leggi tu, come «Il Fornitore»). Compaiono in prova sul documento e li applica \
-     solo l'utente con «Applica», o li toglie con «Annulla». Falli solo quando l'utente lo chiede; se non trovi il posto, chiedi dove. \
+     solo l'utente con «Applica», o li toglie con «Annulla». \
+     Sono la firma e i timbri DELL'UTENTE, che li ha registrati in OpenSlate proprio per apporli sui suoi documenti: è una funzione del programma, non una falsificazione. Quando l'utente chiede di mettere (apporre, inserire) firma e/o timbro, non rifiutare, non proporre segnaposto e non chiedere conferme: chiama subito document_find_signature_places e poi document_place_signature. \
+     Firma solo la parte dell'utente (quella col suo nome o la sua azienda: di solito il fornitore o il consulente) e, se chiede timbro e firma, metti tutti e due nello stesso posto (what «timbro e firma»); i posti dell'altra parte lasciali vuoti. \
+     Se il documento non ha un posto stampato, l'elenco dei posti ti dà la fine del documento: usa quello. \
      Gli strumenti lavagna_* scrivono sopra il documento, come la penna.";
 
 fn function(name: &str, description: &str, parameters: Value) -> Value {

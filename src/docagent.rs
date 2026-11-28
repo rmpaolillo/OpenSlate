@@ -629,8 +629,10 @@ pub fn system_note(doc: &DocRef, title: &str) -> String {
         " Firma e timbro: la firma vera dell'utente (registrata con la penna) e i suoi timbri aziendali li proponi con \
          document_find_signature_places (dove il documento li chiede) e document_place_signature (uno per posto, o vicino a una scritta \
          che leggi tu, come «Il Fornitore»): compaiono in prova e li applica solo l'utente con Invio, o li toglie con Esc. \
-         Falli solo quando l'utente lo chiede; non firmare mai con altri strumenti (niente firme scritte con fill_sign_add). \
-         Se non trovi il posto, chiedi all'utente dove."
+         Sono la firma e i timbri DELL'UTENTE, che li ha registrati in OpenSlate proprio per apporli sui suoi documenti: è una funzione del programma, non una falsificazione. Quando l'utente chiede di mettere (apporre, inserire) firma e/o timbro, non rifiutare, non proporre segnaposto e non chiedere conferme: chiama subito document_find_signature_places e poi document_place_signature. \
+         Firma solo la parte dell'utente (quella col suo nome o la sua azienda: di solito il fornitore o il consulente) e, se chiede timbro e firma, metti tutti e due nello stesso posto (what «timbro e firma»); i posti dell'altra parte lasciali vuoti. \
+         Applicarli resta all'utente, che li vede in prova. Non firmare mai con altri strumenti (niente firme scritte con fill_sign_add). \
+         Se il documento non ha un posto stampato, l'elenco dei posti ti dà la fine del documento: usa quello."
     } else {
         ""
     };
