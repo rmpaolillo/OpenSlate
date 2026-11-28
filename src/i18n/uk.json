@@ -1420,5 +1420,9 @@
  "Firma\ndigitale": "Цифровий\nпідпис",
  "Firma digitale PAdES con la tua firma remota Aruba (OTP), sull'ultimo PDF salvato o su un PDF che scegli. Per ultima: prima firma grafica, timbro e «Salva PDF»": "Цифровий підпис PAdES вашим віддаленим підписом Aruba (OTP) на останньому збереженому PDF або вибраному PDF. Останнім: спершу рукописний підпис, печатка і «Зберегти PDF»",
  "Firma digitale: chiedo ad Aruba…": "Цифровий підпис: звертаюся до Aruba…",
- "Firmato digitalmente: {}": "Підписано цифровим підписом: {}"
+ "Firmato digitalmente: {}": "Підписано цифровим підписом: {}",
+ "Data e luogo": "Дата і місце",
+ "Rimette la data di oggi": "Повертає сьогоднішню дату",
+ "Città e data come vanno sul foglio: cambiale se serve": "Місто і дата, як вони будуть на аркуші: змініть за потреби",
+ "Trascina data e luogo dove servono; il testo si cambia nella barra (Data e luogo), poi Invio.": "Перетягніть дату і місце куди треба; текст змінюється на панелі (Дата і місце), потім Enter."
 }

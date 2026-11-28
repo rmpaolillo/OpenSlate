@@ -1420,5 +1420,9 @@
  "Firma\ndigitale": "전자\n서명",
  "Firma digitale PAdES con la tua firma remota Aruba (OTP), sull'ultimo PDF salvato o su un PDF che scegli. Per ultima: prima firma grafica, timbro e «Salva PDF»": "Aruba 원격 서명(OTP)으로 마지막으로 저장한 PDF 또는 선택한 PDF에 PAdES 전자 서명합니다. 마지막에: 먼저 손글씨 서명, 도장, «PDF 저장»",
  "Firma digitale: chiedo ad Aruba…": "전자 서명: Aruba에 요청 중…",
- "Firmato digitalmente: {}": "전자 서명됨: {}"
+ "Firmato digitalmente: {}": "전자 서명됨: {}",
+ "Data e luogo": "날짜와 장소",
+ "Rimette la data di oggi": "오늘 날짜로 되돌립니다",
+ "Città e data come vanno sul foglio: cambiale se serve": "종이에 들어갈 도시와 날짜: 필요하면 바꾸세요",
+ "Trascina data e luogo dove servono; il testo si cambia nella barra (Data e luogo), poi Invio.": "날짜와 장소를 원하는 곳으로 끌어다 놓고, 막대(날짜와 장소)에서 글자를 바꾼 뒤 Enter."
 }

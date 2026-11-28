@@ -1420,5 +1420,9 @@
  "Firma\ndigitale": "電子\n署名",
  "Firma digitale PAdES con la tua firma remota Aruba (OTP), sull'ultimo PDF salvato o su un PDF che scegli. Per ultima: prima firma grafica, timbro e «Salva PDF»": "Aruba のリモート署名（OTP）で、最後に保存した PDF または選んだ PDF に PAdES 電子署名します。最後に：先に手書き署名、印、「PDF を保存」",
  "Firma digitale: chiedo ad Aruba…": "電子署名：Aruba に問い合わせ中…",
- "Firmato digitalmente: {}": "電子署名しました：{}"
+ "Firmato digitalmente: {}": "電子署名しました：{}",
+ "Data e luogo": "日付と場所",
+ "Rimette la data di oggi": "今日の日付に戻す",
+ "Città e data come vanno sul foglio: cambiale se serve": "ページに入る市と日付：必要なら変更してください",
+ "Trascina data e luogo dove servono; il testo si cambia nella barra (Data e luogo), poi Invio.": "日付と場所を置きたい場所へドラッグし、バー（日付と場所）で文字を変更して Enter。"
 }

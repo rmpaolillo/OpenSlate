@@ -1420,5 +1420,9 @@
  "Firma\ndigitale": "数字\n签名",
  "Firma digitale PAdES con la tua firma remota Aruba (OTP), sull'ultimo PDF salvato o su un PDF che scegli. Per ultima: prima firma grafica, timbro e «Salva PDF»": "使用你的 Aruba 远程签名（OTP）对最后保存的 PDF 或你选择的 PDF 进行 PAdES 数字签名。最后再做：先手写签名、盖章并「保存 PDF」",
  "Firma digitale: chiedo ad Aruba…": "数字签名：正在请求 Aruba…",
- "Firmato digitalmente: {}": "已数字签名：{}"
+ "Firmato digitalmente: {}": "已数字签名：{}",
+ "Data e luogo": "日期和地点",
+ "Rimette la data di oggi": "恢复为今天的日期",
+ "Città e data come vanno sul foglio: cambiale se serve": "写在纸上的城市和日期：需要时可修改",
+ "Trascina data e luogo dove servono; il testo si cambia nella barra (Data e luogo), poi Invio.": "把日期和地点拖到合适位置；在工具栏（日期和地点）中修改文字，然后按回车。"
 }

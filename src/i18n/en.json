@@ -1420,5 +1420,9 @@
  "Firma\ndigitale": "Digital\nsignature",
  "Firma digitale PAdES con la tua firma remota Aruba (OTP), sull'ultimo PDF salvato o su un PDF che scegli. Per ultima: prima firma grafica, timbro e «Salva PDF»": "PAdES digital signature with your Aruba remote signature (OTP), on the last saved PDF or a PDF you choose. Do it last: first handwritten signature, stamp and «Save PDF»",
  "Firma digitale: chiedo ad Aruba…": "Digital signature: asking Aruba…",
- "Firmato digitalmente: {}": "Digitally signed: {}"
+ "Firmato digitalmente: {}": "Digitally signed: {}",
+ "Data e luogo": "Date and place",
+ "Rimette la data di oggi": "Puts back today's date",
+ "Città e data come vanno sul foglio: cambiale se serve": "City and date as they go on the page: change them if needed",
+ "Trascina data e luogo dove servono; il testo si cambia nella barra (Data e luogo), poi Invio.": "Drag date and place where they belong; change the text in the bar (Date and place), then Enter."
 }
